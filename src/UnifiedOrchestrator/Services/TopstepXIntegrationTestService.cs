@@ -98,7 +98,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             
             foreach (var instrument in instruments)
             {
-                var price = await _adapterService.GetPriceAsync(instrument, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var price = await _adapterService.GetPriceAsync(instrument, cancellationToken).ConfigureAwait(false);
                 
                 if (price <= 0)
                 {
@@ -109,7 +109,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             }
             
             // Verify health score
-            var health = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var health = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             if (health.HealthScore < 80)
             {
                 throw new InvalidOperationException($"Health score too low: {health.HealthScore}%");
@@ -134,7 +134,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         try
         {
             // Get current price for MNQ
-            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
             
             // Place bracket order with proper stop/target levels
             var stopLoss = currentPrice - 10m;
@@ -145,7 +145,7 @@ public class TopstepXIntegrationTestService : BackgroundService
                 size: 1,
                 stopLoss: stopLoss,
                 takeProfit: takeProfit,
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
                 
             if (!orderResult.Success)
             {
@@ -187,7 +187,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         
         try
         {
-            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
             
             // Attempt to place an oversized order that should be blocked by risk management
             var oversizeOrder = await _adapterService.PlaceOrderAsync(
@@ -195,7 +195,7 @@ public class TopstepXIntegrationTestService : BackgroundService
                 size: 1000, // Extremely large size to trigger risk limits
                 stopLoss: currentPrice - 10m,
                 takeProfit: currentPrice + 15m,
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
                 
             // The order should either fail or be reduced by risk management
             if (oversizeOrder.Success && oversizeOrder.Size == 1000)
@@ -231,7 +231,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         try
         {
             // Get baseline health
-            var initialHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var initialHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Initial health score: {HealthScore}% - Status: {Status}", 
                 initialHealth.HealthScore, initialHealth.Status);
             
@@ -262,7 +262,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             // Monitor health over time
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             
-            var followUpHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var followUpHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Follow-up health score: {HealthScore}%", followUpHealth.HealthScore);
             
             _logger.LogInformation("✅ Health Test PASSED - Health monitoring functioning correctly");
@@ -287,7 +287,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             var priceTask1 = _adapterService.GetPriceAsync("MNQ", cancellationToken);
             var priceTask2 = _adapterService.GetPriceAsync("ES", cancellationToken);
             
-            var prices = await Task.WhenAll(priceTask1, priceTask2).ConfigureAwait(false).ConfigureAwait(false);
+            var prices = await Task.WhenAll(priceTask1, priceTask2).ConfigureAwait(false);
             var mnqPrice = prices[0];
             var esPrice = prices[1];
             
@@ -299,7 +299,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             var order2Task = _adapterService.PlaceOrderAsync(
                 "ES", 1, esPrice - 5m, esPrice + 10m, cancellationToken);
                 
-            var orders = await Task.WhenAll(order1Task, order2Task).ConfigureAwait(false).ConfigureAwait(false);
+            var orders = await Task.WhenAll(order1Task, order2Task).ConfigureAwait(false);
             var mnqOrder = orders[0];
             var esOrder = orders[1];
             
@@ -323,7 +323,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             }
             
             // Test concurrent portfolio status
-            var portfolioStatus = await _adapterService.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var portfolioStatus = await _adapterService.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Portfolio status retrieved - {PositionCount} positions", portfolioStatus.Positions.Count);
             
             _logger.LogInformation("✅ Multi-Instrument Test PASSED - No thread contention detected");

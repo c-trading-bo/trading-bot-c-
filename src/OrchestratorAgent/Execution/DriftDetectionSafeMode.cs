@@ -345,7 +345,7 @@ namespace OrchestratorAgent.Execution
     public class DriftStatusReport
     {
         public DateTime GeneratedAt { get; set; }
-        public List<ContextDriftStatus> ContextStatuses { get; set; } = new();
+        public List<ContextDriftStatus> ContextStatuses { get; } = new();
         public string OverallRiskLevel { get; set; } = "";
         public int ActiveSafeModes { get; set; }
     }

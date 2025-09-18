@@ -91,7 +91,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
 
     public async Task<ProductionPerformanceMetrics> GetMetricsAsync()
     {
-        return await _performanceCounter.GetMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
+        return await _performanceCounter.GetMetricsAsync().ConfigureAwait(false);
     }
 
     private async void PerformHealthChecks(object? state)
@@ -101,21 +101,21 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
             _logger.LogDebug("🔍 [HEALTH-CHECK] Performing comprehensive health checks...");
 
             // Check TopstepX adapter health
-            var adapterHealth = await _topstepXAdapterMonitor.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var adapterHealth = await _topstepXAdapterMonitor.CheckHealthAsync().ConfigureAwait(false);
             if (!adapterHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] TopstepX adapter unhealthy: {Reason}", adapterHealth.Reason);
             }
 
             // Check API health
-            var apiHealth = await _apiHealthMonitor.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var apiHealth = await _apiHealthMonitor.CheckHealthAsync().ConfigureAwait(false);
             if (!apiHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] API health check failed: {Reason}", apiHealth.Reason);
             }
 
             // Check system health
-            var systemHealth = await _healthMonitor.CheckSystemHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var systemHealth = await _healthMonitor.CheckSystemHealthAsync().ConfigureAwait(false);
             if (!systemHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] System health check failed: {Reason}", systemHealth.Reason);
@@ -213,7 +213,7 @@ public class TopstepXAdapterMonitor
             }
 
             // Get detailed health metrics from adapter
-            var healthResult = await _topstepXAdapter.GetHealthScoreAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var healthResult = await _topstepXAdapter.GetHealthScoreAsync().ConfigureAwait(false);
             
             if (healthResult.HealthScore < 80)
             {
@@ -240,7 +240,7 @@ public class TopstepXAdapterMonitor
             }
 
             // Get portfolio status for reconciliation
-            var portfolioStatus = await _topstepXAdapter.GetPortfolioStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var portfolioStatus = await _topstepXAdapter.GetPortfolioStatusAsync().ConfigureAwait(false);
             
             _logger.LogInformation("🔄 [TOPSTEPX-RECONCILIATION] Portfolio reconciliation completed since {LastReconciliation}", 
                 _lastReconciliation);
@@ -364,7 +364,7 @@ public class ApiHealthMonitor
             
             // Test API connectivity
             var stopwatch = Stopwatch.StartNew();
-            var response = await _httpClient.GetAsync($"{apiBaseUrl}/health", CancellationToken.None).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"{apiBaseUrl}/health", CancellationToken.None).ConfigureAwait(false);
             stopwatch.Stop();
 
             var isHealthy = response.IsSuccessStatusCode;

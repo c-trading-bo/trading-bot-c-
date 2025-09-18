@@ -55,7 +55,7 @@ public class EnsembleModelService
             {
                 try
                 {
-                    var prediction = await GetModelPredictionAsync(modelId, modelInfo, features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var prediction = await GetModelPredictionAsync(modelId, modelInfo, features, cancellationToken).ConfigureAwait(false);
                     predictions.Add(prediction);
                     totalWeight += modelInfo.Weight;
                 }
@@ -253,5 +253,5 @@ public class EnsemblePrediction
     public int ModelCount { get; set; }
     public double PredictionVariance { get; set; }
     public TimeSpan AvgInferenceTime { get; set; }
-    public List<ModelPrediction> ModelPredictions { get; set; } = new();
+    public List<ModelPrediction> ModelPredictions { get; } = new();
 }

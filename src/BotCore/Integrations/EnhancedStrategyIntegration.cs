@@ -29,7 +29,7 @@ namespace BotCore.Integrations
                 var signalData = ConvertToTrainingSignalData(signal, currentBar, snapshot);
 
                 // Record the trade data for RL training
-                var tradeId = await trainingService.RecordTradeAsync(signalData).ConfigureAwait(false).ConfigureAwait(false);
+                var tradeId = await trainingService.RecordTradeAsync(signalData).ConfigureAwait(false);
 
                 logger.LogDebug("[EnhancedIntegration] Collected signal data for {Strategy}: {TradeId}",
                     signal.Strategy, tradeId);
@@ -104,7 +104,7 @@ namespace BotCore.Integrations
             try
             {
                 // Process with enhanced training data collection
-                result.TradeId = await CollectSignalDataAsync(logger, trainingService, signal, currentBar, snapshot).ConfigureAwait(false).ConfigureAwait(false);
+                result.TradeId = await CollectSignalDataAsync(logger, trainingService, signal, currentBar, snapshot).ConfigureAwait(false);
                 result.Success = !string.IsNullOrEmpty(result.TradeId);
 
                 logger.LogInformation("[EnhancedIntegration] Processed signal for {Strategy} - TradeId: {TradeId}",

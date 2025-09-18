@@ -68,10 +68,10 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         try
         {
             // Get challenger decision from InferenceBrain (using unified type)
-            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false);
             
             // Convert UnifiedTradingBrain to unified decision format
-            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false);
             var championDecision = ConvertBrainDecisionToUnifiedDecision(brainDecision, context, "UnifiedTradingBrain");
             
             // Track decision comparison for statistical analysis
@@ -108,7 +108,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             _logger.LogError(ex, "[ADAPTER] Error in decision making, falling back to UnifiedTradingBrain");
             
             // Fallback to UnifiedTradingBrain on any error
-            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false);
             return ConvertBrainDecisionToUnifiedDecision(fallbackDecision, context, "UnifiedTradingBrain-Fallback");
         }
     }
@@ -150,7 +150,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         
         var riskEngine = new RiskEngine();
         
-        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -399,7 +399,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 return;
 
             // Get shadow test results for promotion evaluation
-            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24)).ConfigureAwait(false).ConfigureAwait(false);
+            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24)).ConfigureAwait(false);
             
             if (shadowResults.Count < 50) // Need sufficient shadow test data
                 return;

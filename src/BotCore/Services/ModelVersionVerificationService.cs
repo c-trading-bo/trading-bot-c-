@@ -72,11 +72,11 @@ namespace BotCore.Services
                 }
 
                 // Calculate model hash
-                result.ModelHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+                result.ModelHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false);
                 metadata.ModelHash = result.ModelHash;
 
                 // Load version registry
-                var registry = await LoadVersionRegistryAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var registry = await LoadVersionRegistryAsync().ConfigureAwait(false);
 
                 // Check if this is a duplicate model
                 var existingVersion = registry.Versions.FirstOrDefault(v => v.ModelHash == result.ModelHash);
@@ -96,7 +96,7 @@ namespace BotCore.Services
                 metadata.Version = result.Version;
 
                 // Validate model integrity
-                result.IntegrityValid = await ValidateModelIntegrityAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+                result.IntegrityValid = await ValidateModelIntegrityAsync(modelPath).ConfigureAwait(false);
                 if (!result.IntegrityValid)
                 {
                     result.ValidationErrors.Add("Model integrity validation failed");
@@ -105,7 +105,7 @@ namespace BotCore.Services
                 // Compare with previous versions if required
                 if (_config.RequireVersionDifference && registry.Versions.Any())
                 {
-                    var isSignificantlyDifferent = await ValidateSignificantDifferenceAsync(modelPath, registry).ConfigureAwait(false).ConfigureAwait(false);
+                    var isSignificantlyDifferent = await ValidateSignificantDifferenceAsync(modelPath, registry).ConfigureAwait(false);
                     if (!isSignificantlyDifferent)
                     {
                         result.IsValid = false;
@@ -181,8 +181,8 @@ namespace BotCore.Services
                     return false;
                 }
 
-                var hash1 = await CalculateModelHashAsync(modelPath1).ConfigureAwait(false).ConfigureAwait(false);
-                var hash2 = await CalculateModelHashAsync(modelPath2).ConfigureAwait(false).ConfigureAwait(false);
+                var hash1 = await CalculateModelHashAsync(modelPath1).ConfigureAwait(false);
+                var hash2 = await CalculateModelHashAsync(modelPath2).ConfigureAwait(false);
 
                 var areIdentical = hash1 == hash2;
                 
@@ -328,7 +328,7 @@ namespace BotCore.Services
         {
             using var sha256 = SHA256.Create();
             using var stream = File.OpenRead(modelPath);
-            var hash = await Task.Run(() => sha256.ComputeHash(stream)).ConfigureAwait(false).ConfigureAwait(false);
+            var hash = await Task.Run(() => sha256.ComputeHash(stream)).ConfigureAwait(false);
             return Convert.ToHexString(hash);
         }
 
@@ -349,7 +349,7 @@ namespace BotCore.Services
             {
                 // For now, we'll use hash comparison as a proxy for weight differences
                 // In a more sophisticated implementation, you could load model weights and compare numerically
-                var currentHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+                var currentHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false);
                 
                 // Check if any recent versions have the same hash
                 var recentVersions = registry.Versions
@@ -386,7 +386,7 @@ namespace BotCore.Services
                     return new ModelVersionRegistry();
                 }
 
-                var json = await File.ReadAllTextAsync(_versionRegistryPath).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(_versionRegistryPath).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<ModelVersionRegistry>(json) ?? new ModelVersionRegistry();
             }
             catch (Exception ex)
@@ -457,7 +457,7 @@ namespace BotCore.Services
         public string StrategyName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public TrainingMetrics TrainingMetrics { get; set; } = new();
-        public Dictionary<string, object> AdditionalData { get; set; } = new();
+        public Dictionary<string, object> AdditionalData { get; } = new();
     }
 
     /// <summary>
@@ -471,7 +471,7 @@ namespace BotCore.Services
         public DateTime TrainingEnd { get; set; }
         public TimeSpan TrainingDuration => TrainingEnd - TrainingStart;
         public TrainingMetrics TrainingMetrics { get; set; } = new();
-        public Dictionary<string, object> Hyperparameters { get; set; } = new();
+        public Dictionary<string, object> Hyperparameters { get; } = new();
         public string DatasetHash { get; set; } = string.Empty;
         public string Environment { get; set; } = string.Empty;
     }
@@ -501,7 +501,7 @@ namespace BotCore.Services
         public bool IsValid { get; set; }
         public bool IsDuplicate { get; set; }
         public bool IntegrityValid { get; set; }
-        public List<string> ValidationErrors { get; set; } = new();
+        public List<string> ValidationErrors { get; } = new();
         public ModelMetadata? Metadata { get; set; }
         public DateTime VerificationTime { get; set; }
     }
@@ -524,7 +524,7 @@ namespace BotCore.Services
     /// </summary>
     public class ModelVersionRegistry
     {
-        public List<ModelVersionInfo> Versions { get; set; } = new();
+        public List<ModelVersionInfo> Versions { get; } = new();
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
         public string RegistryVersion { get; set; } = "1.0";
     }

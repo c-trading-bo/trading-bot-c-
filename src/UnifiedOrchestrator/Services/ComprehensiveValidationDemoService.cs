@@ -118,7 +118,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
         try
         {
             // Generate demonstration validation report with realistic metrics
-            var validationReport = await _validationService.GenerateDemoValidationReportAsync(stoppingToken).ConfigureAwait(false).ConfigureAwait(false);
+            var validationReport = await _validationService.GenerateDemoValidationReportAsync(stoppingToken).ConfigureAwait(false);
             
             // Display comprehensive validation results
             _logger.LogWarning("📊 [VALIDATION-DEMO] Validation Report Generated - ID: {ValidationId}", validationReport.ValidationId);
@@ -217,7 +217,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
         try
         {
             // Execute quick rollback drill for demonstration
-            var drillResult = await _rollbackDrillService.ExecuteQuickDrillAsync(stoppingToken).ConfigureAwait(false).ConfigureAwait(false);
+            var drillResult = await _rollbackDrillService.ExecuteQuickDrillAsync(stoppingToken).ConfigureAwait(false);
             
             // Display rollback drill results
             _logger.LogWarning("🔄 [ROLLBACK-DEMO] Rollback Drill Completed - ID: {DrillId}", drillResult.DrillId);

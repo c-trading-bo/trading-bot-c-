@@ -146,7 +146,7 @@ Artifacts will be saved to: artifacts/production-demo/
             var demoRunner = host.Services.GetRequiredService<ProductionDemonstrationRunner>();
             
             // Run complete demonstration
-            var result = await demoRunner.RunCompleteProductionDemoAsync(CancellationToken.None).ConfigureAwait(false).ConfigureAwait(false);
+            var result = await demoRunner.RunCompleteProductionDemoAsync(CancellationToken.None).ConfigureAwait(false);
             
             if (result.Success)
             {

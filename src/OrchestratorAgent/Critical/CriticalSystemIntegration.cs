@@ -95,7 +95,7 @@ namespace OrchestratorAgent.Critical
                 // 1. Check correlation protection
                 if (_correlationProtectionSystem != null)
                 {
-                    var correlationOk = await _correlationProtectionSystem.ValidateNewPosition(symbol, quantity, direction).ConfigureAwait(false).ConfigureAwait(false);
+                    var correlationOk = await _correlationProtectionSystem.ValidateNewPosition(symbol, quantity, direction).ConfigureAwait(false);
                     if (!correlationOk)
                     {
                         _logger.LogWarning("[CriticalSystem] Order rejected by correlation protection: {Symbol} {Qty} {Direction}", 
@@ -149,7 +149,7 @@ namespace OrchestratorAgent.Critical
         {
             if (_executionVerificationSystem != null)
             {
-                return await _executionVerificationSystem.VerifyExecution(orderId, expectedQuantity, maxSlippage).ConfigureAwait(false).ConfigureAwait(false);
+                return await _executionVerificationSystem.VerifyExecution(orderId, expectedQuantity, maxSlippage).ConfigureAwait(false);
             }
             return false;
         }

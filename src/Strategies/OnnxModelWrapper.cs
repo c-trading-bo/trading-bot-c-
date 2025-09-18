@@ -137,7 +137,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             var normalizedFeatures = NormalizeFeatures(features);
             
             // Use actual ONNX inference or sophisticated fallback
-            var confidence = await RunOnnxInferenceAsync(normalizedFeatures).ConfigureAwait(false).ConfigureAwait(false);
+            var confidence = await RunOnnxInferenceAsync(normalizedFeatures).ConfigureAwait(false);
             LogFallbackPredictionConfidence(_logger, confidence, null);
             
             // Ensure confidence is in valid range
@@ -218,18 +218,18 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         {
             if (!_isModelLoaded)
             {
-                return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
+                return await SimulateModelPrediction(features).ConfigureAwait(false);
             }
 
             // Production ONNX inference logic
             // Note: This implementation is ready for when ONNX packages are added to the project
             // For now, use the sophisticated simulation until ONNX packages are integrated
-            return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX] Error during model inference, falling back to simulation");
-            return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
     }
 

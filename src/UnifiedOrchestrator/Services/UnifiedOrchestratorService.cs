@@ -100,12 +100,12 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         try
         {
             _logger.LogInformation("🚀 Initializing TopstepX Python SDK adapter...");
-            _adapterInitialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            _adapterInitialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false);
             
             if (_adapterInitialized)
             {
                 // Test health and connectivity
-                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
                 if (health.HealthScore >= 80)
                 {
                     _logger.LogInformation("✅ TopstepX SDK adapter initialized - Health: {HealthScore}%", health.HealthScore);
@@ -172,7 +172,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         {
             try
             {
-                var price = await _topstepXAdapter.GetPriceAsync(instrument, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var price = await _topstepXAdapter.GetPriceAsync(instrument, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("✅ {Instrument} connected - Current price: ${Price:F2}", instrument, price);
             }
             catch (Exception ex)
@@ -190,7 +190,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             try
             {
                 // Periodic health check and price monitoring
-                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
                 if (health.HealthScore < 80)
                 {
                     _logger.LogWarning("⚠️ TopstepX adapter health degraded: {HealthScore}% - Status: {Status}", 
@@ -235,8 +235,8 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     {
         try
         {
-            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
+            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken).ConfigureAwait(false);
             
             _logger.LogDebug("[PRICES] MNQ: ${MNQPrice:F2}, ES: ${ESPrice:F2}", mnqPrice, esPrice);
         }
@@ -264,7 +264,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             _logger.LogInformation("🎯 Demonstrating TopstepX SDK integration...");
             
             // Get health score and validate system ready
-            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             if (health.HealthScore < 80)
             {
                 _logger.LogWarning("❌ System health too low for trading: {HealthScore}%", health.HealthScore);
@@ -272,7 +272,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             }
             
             // Get current MNQ price for demo
-            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("📊 MNQ Price: ${Price:F2}", mnqPrice);
             
             // Place demonstration bracket order as specified in requirements
@@ -281,7 +281,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
                 size: 1,
                 stopLoss: mnqPrice - 10m,
                 takeProfit: mnqPrice + 15m,
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
                 
             if (orderResult.Success)
             {
@@ -295,7 +295,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             }
             
             // Get portfolio status
-            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("📈 Portfolio updated - {PositionCount} positions tracked", portfolio.Positions.Count);
             
         }
@@ -364,7 +364,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             _logger.LogInformation("🚀 Starting TopstepX SDK trading demonstration...");
             
             // Validate health score >= 80 as specified
-            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             if (health.HealthScore < 80)
             {
                 throw new InvalidOperationException($"System health degraded: {health.HealthScore}% < 80%");
@@ -373,8 +373,8 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             _logger.LogInformation("✅ Health score validation passed: {HealthScore}%", health.HealthScore);
             
             // Get current prices for both instruments
-            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
+            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("📊 Current Prices - MNQ: ${MNQPrice:F2}, ES: ${ESPrice:F2}", mnqPrice, esPrice);
             
@@ -384,7 +384,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
                 size: 1,
                 stopLoss: mnqPrice - 10m,
                 takeProfit: mnqPrice + 15m,
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
                 
             if (!orderResult.Success)
             {
@@ -396,7 +396,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
                 orderResult.Symbol, orderResult.Size, orderResult.EntryPrice, orderResult.StopLoss, orderResult.TakeProfit, orderResult.OrderId);
                 
             // Get portfolio status to verify
-            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("📈 Portfolio status retrieved - {PositionCount} positions", portfolio.Positions.Count);
             
             _logger.LogInformation("✅ Trading demonstration completed successfully");
@@ -418,7 +418,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             return new HealthScoreResult(0, "not_initialized", new(), new(), DateTime.UtcNow, false);
         }
         
-        return await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -431,7 +431,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             throw new InvalidOperationException("TopstepX adapter not initialized");
         }
         
-        return await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> ExecuteEmergencyShutdownAsync(CancellationToken cancellationToken = default)
@@ -547,7 +547,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     public async Task<OrchestratorStatus> GetStatusAsync()
     {
-        var systemStatus = await GetSystemStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var systemStatus = await GetSystemStatusAsync().ConfigureAwait(false);
         
         int activeCount, totalCount;
         lock (_workflowLock)

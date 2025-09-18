@@ -65,7 +65,7 @@ namespace BotCore.Auth
 
         public async Task<string> GetTokenAsync(CancellationToken ct = default)
         {
-            var (jwt, _) = await GetFreshJwtAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+            var (jwt, _) = await GetFreshJwtAsync(ct).ConfigureAwait(false);
             return jwt;
         }
 
@@ -84,17 +84,17 @@ namespace BotCore.Auth
                         "application/json")
                 };
 
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                    var errorBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     _logger.LogError("Auth failed: {StatusCode} {ReasonPhrase} - {Body}", 
                         response.StatusCode, response.ReasonPhrase, errorBody);
                     throw new HttpRequestException($"Auth {(int)response.StatusCode} {response.StatusCode}: {errorBody}");
                 }
 
-                var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 _logger.LogInformation("JWT received successfully");
 
                 using var doc = JsonDocument.Parse(json);

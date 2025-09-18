@@ -135,8 +135,8 @@ public class TradingSystemState
     public bool CanTrade { get; set; }
     public int ActiveOrders { get; set; }
     public int FilledOrders { get; set; }
-    public Dictionary<string, decimal> Positions { get; set; } = new();
-    public Dictionary<string, string> ContractIds { get; set; } = new();
+    public Dictionary<string, decimal> Positions { get; } = new();
+    public Dictionary<string, string> ContractIds { get; } = new();
     public DateTime LastOrderTime { get; set; } = DateTime.MinValue;
     public string LastOrderStatus { get; set; } = string.Empty;
     
@@ -163,10 +163,10 @@ public class DataSystemState
 {
     public bool IsActive { get; set; } = false;
     public DateTime LastDataUpdate { get; set; } = DateTime.MinValue;
-    public Dictionary<string, DateTime> LastSymbolUpdate { get; set; } = new();
+    public Dictionary<string, DateTime> LastSymbolUpdate { get; } = new();
     public int TotalDataPoints { get; set; } = 0;
     public string DataQuality { get; set; } = "UNKNOWN";
-    public List<string> DataSources { get; set; } = new();
+    public List<string> DataSources { get; } = new();
     
     public DataSystemState Clone()
     {
@@ -192,7 +192,7 @@ public class TradingMessage
     public string Payload { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string MessageType { get; set; } = string.Empty;
-    public Dictionary<string, string> Headers { get; set; } = new();
+    public Dictionary<string, string> Headers { get; } = new();
 }
 
 /// <summary>
@@ -308,8 +308,8 @@ public class WorkflowExecutionContext
     public DateTime StartTime { get; set; } = DateTime.UtcNow;
     public DateTime? EndTime { get; set; }
     public WorkflowExecutionStatus Status { get; set; } = WorkflowExecutionStatus.Running;
-    public Dictionary<string, object> Parameters { get; set; } = new();
-    public List<string> Logs { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
+    public List<string> Logs { get; } = new();
     public string? ErrorMessage { get; set; }
     public TimeSpan Duration => (EndTime ?? DateTime.UtcNow) - StartTime;
 }
@@ -353,7 +353,7 @@ public class UnifiedWorkflow
     public string[] Actions { get; set; } = Array.Empty<string>();
     public WorkflowType Type { get; set; } = WorkflowType.Standard;
     public bool Enabled { get; set; } = true;
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    public Dictionary<string, object> Configuration { get; } = new();
     public WorkflowMetrics Metrics { get; set; } = new();
 }
 
@@ -628,7 +628,7 @@ public class RiskBreach
     public decimal Limit { get; set; }
     public decimal Severity { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, object> Details { get; set; } = new();
+    public Dictionary<string, object> Details { get; } = new();
 }
 
 // Health Status Model
@@ -644,8 +644,8 @@ public class HealthStatus
     public double AverageLatencyMs { get; set; }
     public string StatusMessage { get; set; } = string.Empty;
     public DateTime LastCheck { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, object> Metrics { get; set; } = new();
-    public List<string> Issues { get; set; } = new();
+    public Dictionary<string, object> Metrics { get; } = new();
+    public List<string> Issues { get; } = new();
 }
 
 // TopstepX SignalR message models

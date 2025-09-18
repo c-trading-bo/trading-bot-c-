@@ -46,8 +46,8 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             _logger?.LogInformation("[ADAPTIVE-HEAL] Starting intelligent recovery for unknown issue: {Message}", healthCheckResult.Message);
 
             // Load knowledge base
-            var knowledgeBase = await LoadKnowledgeBaseAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var repairPatterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var knowledgeBase = await LoadKnowledgeBaseAsync(cancellationToken).ConfigureAwait(false);
+            var repairPatterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
 
             // Analyze the failure type and determine strategy
             var failureAnalysis = AnalyzeFailure(healthCheckResult, knowledgeBase);
@@ -61,7 +61,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             {
                 _logger?.LogInformation("[ADAPTIVE-HEAL] Attempting strategy: {Strategy}", strategy.Name);
                 
-                var result = await ExecuteRecoveryStrategy(strategy, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var result = await ExecuteRecoveryStrategy(strategy, cancellationToken).ConfigureAwait(false);
                 actionsPerformed.AddRange(result.ActionsPerformed);
 
                 if (result.Success)
@@ -401,7 +401,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             foreach (var action in strategy.Actions)
             {
-                var actionResult = await ExecuteRecoveryAction(action, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var actionResult = await ExecuteRecoveryAction(action, cancellationToken).ConfigureAwait(false);
                 result.ActionsPerformed.Add($"{action}: {actionResult}");
                 
                 if (!actionResult.Contains("success", StringComparison.OrdinalIgnoreCase))
@@ -491,7 +491,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     {
         try
         {
-            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
             
             if (!patterns.SuccessfulStrategies.ContainsKey(analysis.Category))
             {
@@ -536,7 +536,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     {
         try
         {
-            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
             
             foreach (var strategy in strategies)
             {
@@ -569,7 +569,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             if (File.Exists(KnowledgeBaseFile))
             {
-                var json = await File.ReadAllTextAsync(KnowledgeBaseFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(KnowledgeBaseFile, cancellationToken).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<AdaptiveKnowledgeBase>(json) ?? new AdaptiveKnowledgeBase();
             }
         }
@@ -587,7 +587,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             if (File.Exists(RepairPatternsFile))
             {
-                var json = await File.ReadAllTextAsync(RepairPatternsFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(RepairPatternsFile, cancellationToken).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<RepairPatterns>(json) ?? new RepairPatterns();
             }
         }
@@ -625,7 +625,7 @@ public class FailureAnalysis
     public string OriginalMessage { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public double Confidence { get; set; }
-    public List<string> KeyIndicators { get; set; } = new();
+    public List<string> KeyIndicators { get; } = new();
     public string SeverityLevel { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
 }
@@ -642,7 +642,7 @@ public class RecoveryStrategy
 public class RecoveryStrategyResult
 {
     public bool Success { get; set; }
-    public List<string> ActionsPerformed { get; set; } = new();
+    public List<string> ActionsPerformed { get; } = new();
 }
 
 public class AdaptiveKnowledgeBase
@@ -669,7 +669,7 @@ public class LearnedStrategy
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<string> Actions { get; set; } = new();
+    public List<string> Actions { get; } = new();
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public double SuccessRate { get; set; }

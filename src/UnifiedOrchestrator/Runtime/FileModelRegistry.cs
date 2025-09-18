@@ -60,7 +60,7 @@ public class FileModelRegistry : IModelRegistry
             // Validate artifact exists and compute hash
             if (!string.IsNullOrEmpty(model.ArtifactPath) && File.Exists(model.ArtifactPath))
             {
-                model.ArtifactHash = await ComputeFileHashAsync(model.ArtifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                model.ArtifactHash = await ComputeFileHashAsync(model.ArtifactPath, cancellationToken).ConfigureAwait(false);
                 
                 // Copy artifact to registry with atomic move
                 var artifactName = $"{model.Algorithm}_{model.VersionId}_{Path.GetFileName(model.ArtifactPath)}";
@@ -114,7 +114,7 @@ public class FileModelRegistry : IModelRegistry
             return null;
         }
 
-        return await GetModelAsync(championVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await GetModelAsync(championVersionId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public class FileModelRegistry : IModelRegistry
 
         try
         {
-            var json = await File.ReadAllTextAsync(modelFiles[0], cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(modelFiles[0], cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<ModelVersion>(json, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -155,7 +155,7 @@ public class FileModelRegistry : IModelRegistry
         {
             try
             {
-                var json = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
                 var model = JsonSerializer.Deserialize<ModelVersion>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -184,7 +184,7 @@ public class FileModelRegistry : IModelRegistry
         try
         {
             // Verify challenger model exists
-            var challengerModel = await GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challengerModel = await GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challengerModel == null)
             {
                 _logger.LogError("Cannot promote non-existent challenger {VersionId} for {Algorithm}", challengerVersionId, algorithm);
@@ -192,7 +192,7 @@ public class FileModelRegistry : IModelRegistry
             }
 
             // Get current champion
-            var currentChampion = await GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var currentChampion = await GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
             promotionRecord.FromVersionId = currentChampion?.VersionId ?? "none";
             promotionRecord.ToVersionId = challengerVersionId;
 
@@ -243,7 +243,7 @@ public class FileModelRegistry : IModelRegistry
     /// </summary>
     public async Task<bool> RollbackToPreviousAsync(string algorithm, string reason, CancellationToken cancellationToken = default)
     {
-        var promotionHistory = await GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var promotionHistory = await GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false);
         var lastPromotion = promotionHistory.FirstOrDefault();
         
         if (lastPromotion == null || string.IsNullOrEmpty(lastPromotion.FromVersionId) || lastPromotion.FromVersionId == "none")
@@ -270,7 +270,7 @@ public class FileModelRegistry : IModelRegistry
         lastPromotion.RollbackReason = reason;
         await UpdatePromotionRecordAsync(lastPromotion, cancellationToken).ConfigureAwait(false);
 
-        return await PromoteToChampionAsync(algorithm, lastPromotion.FromVersionId, rollbackRecord, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await PromoteToChampionAsync(algorithm, lastPromotion.FromVersionId, rollbackRecord, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ public class FileModelRegistry : IModelRegistry
         {
             try
             {
-                var json = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
                 var promotion = JsonSerializer.Deserialize<PromotionRecord>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -310,7 +310,7 @@ public class FileModelRegistry : IModelRegistry
     /// </summary>
     public async Task<bool> ValidateArtifactAsync(string versionId, CancellationToken cancellationToken = default)
     {
-        var model = await GetModelAsync(versionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var model = await GetModelAsync(versionId, cancellationToken).ConfigureAwait(false);
         if (model == null || string.IsNullOrEmpty(model.ArtifactPath))
         {
             return false;
@@ -322,7 +322,7 @@ public class FileModelRegistry : IModelRegistry
             return false;
         }
 
-        var currentHash = await ComputeFileHashAsync(model.ArtifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var currentHash = await ComputeFileHashAsync(model.ArtifactPath, cancellationToken).ConfigureAwait(false);
         var isValid = currentHash.Equals(model.ArtifactHash, StringComparison.OrdinalIgnoreCase);
         
         if (!isValid)
@@ -339,8 +339,8 @@ public class FileModelRegistry : IModelRegistry
     /// </summary>
     public async Task CleanupOldModelsAsync(string algorithm, int keepCount = 10, CancellationToken cancellationToken = default)
     {
-        var models = await GetModelsAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var champion = await GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var models = await GetModelsAsync(algorithm, cancellationToken).ConfigureAwait(false);
+        var champion = await GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
         
         // Always keep the champion, then keep the most recent ones
         var toKeep = models.Take(keepCount).ToList();
@@ -393,7 +393,7 @@ public class FileModelRegistry : IModelRegistry
             try
             {
                 var algorithm = Path.GetFileNameWithoutExtension(file).Replace("_champion", "");
-                var versionId = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                var versionId = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                 
                 lock (_championLock)
                 {
@@ -413,7 +413,7 @@ public class FileModelRegistry : IModelRegistry
     {
         using var sha256 = SHA256.Create();
         using var stream = File.OpenRead(filePath);
-        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
         return Convert.ToHexString(hash);
     }
 

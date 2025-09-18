@@ -32,7 +32,7 @@ namespace OrchestratorAgent.Ops
             {
                 try
                 {
-                    var (ok, msg) = await _pf.RunAsync(_symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
+                    var (ok, msg) = await _pf.RunAsync(_symbol, ct).ConfigureAwait(false);
 
                     if (ok) { okStreak++; badStreak = 0; } else { badStreak++; okStreak = 0; }
 

@@ -97,7 +97,7 @@ public sealed class OnnxModelValidationService
         }
 
         // Wait for all validations to complete
-        var results = await Task.WhenAll(validationTasks).ConfigureAwait(false).ConfigureAwait(false);
+        var results = await Task.WhenAll(validationTasks).ConfigureAwait(false);
 
         // Store results and check overall status
         foreach (var result in results)
@@ -149,7 +149,7 @@ public sealed class OnnxModelValidationService
             var memoryBefore = GC.GetTotalMemory(false);
 
             // Load the model
-            var session = await _modelLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
+            var session = await _modelLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
             
             var loadTime = DateTime.UtcNow - startTime;
             var memoryAfter = GC.GetTotalMemory(false);
@@ -241,7 +241,7 @@ public sealed class OnnxModelValidationService
         public double SuccessRate { get; set; }
         public double TotalLoadTimeMs { get; set; }
         public long TotalMemoryUsageMB { get; set; }
-        public List<string> FailedModelPaths { get; set; } = new();
+        public List<string> FailedModelPaths { get; } = new();
         public DateTime ValidationDate { get; set; }
     }
 
@@ -250,7 +250,7 @@ public sealed class OnnxModelValidationService
     /// </summary>
     public async Task<string> GenerateValidationReportAsync()
     {
-        var success = await ValidateAllModelsAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var success = await ValidateAllModelsAsync().ConfigureAwait(false);
         var summary = GetValidationSummary();
 
         var report = $@"

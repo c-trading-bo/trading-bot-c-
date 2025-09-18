@@ -257,7 +257,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             if (dataIntegrationService != null)
             {
                 _logger.LogInformation("[AUTO-SCHEDULER] Verifying unified data integration for historical processing");
-                var isHistoricalConnected = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var isHistoricalConnected = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("[AUTO-SCHEDULER] Historical data connection status: {Status}", 
                     isHistoricalConnected ? "Connected" : "Disconnected");
             }
@@ -286,7 +286,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             var dataIntegrationService = scope.ServiceProvider.GetService<UnifiedDataIntegrationService>();
             if (dataIntegrationService != null)
             {
-                var isLiveConnected = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var isLiveConnected = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false);
                 if (!isLiveConnected)
                 {
                     _logger.LogWarning("[AUTO-SCHEDULER] ⚠️ Live data not connected during market hours - this may indicate a connection issue");

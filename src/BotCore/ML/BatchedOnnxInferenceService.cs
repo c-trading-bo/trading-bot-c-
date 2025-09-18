@@ -103,7 +103,7 @@ public class BatchedOnnxInferenceService : IDisposable
 
         try
         {
-            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false).ConfigureAwait(false);
+            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -150,7 +150,7 @@ public class BatchedOnnxInferenceService : IDisposable
         try
         {
             // Load model if not already loaded
-            var session = await _modelLoader.LoadModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+            var session = await _modelLoader.LoadModelAsync(modelPath).ConfigureAwait(false);
             if (session == null)
             {
                 _logger.LogError("Failed to load model for batch inference: {ModelPath}", modelPath);
@@ -205,7 +205,7 @@ public class BatchedOnnxInferenceService : IDisposable
             };
 
             // Run inference
-            var outputs = await Task.Run(() => session.Run(inputs)).ConfigureAwait(false).ConfigureAwait(false);
+            var outputs = await Task.Run(() => session.Run(inputs)).ConfigureAwait(false);
             var outputTensor = outputs.First().AsTensor<float>();
 
             // Extract results and complete requests

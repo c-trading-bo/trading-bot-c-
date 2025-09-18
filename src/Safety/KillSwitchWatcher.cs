@@ -48,7 +48,7 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
 
     public async Task<bool> IsKillSwitchActiveAsync()
     {
-        return await Task.FromResult(_isActive).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(_isActive).ConfigureAwait(false);
     }
 
     public async Task StartWatchingAsync()

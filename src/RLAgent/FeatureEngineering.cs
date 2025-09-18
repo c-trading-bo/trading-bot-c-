@@ -168,7 +168,7 @@ public class FeatureEngineering : IDisposable
         {
             var aggregator = _streamingAggregators.GetOrAdd(tick.Symbol, 
                 _ => new StreamingSymbolAggregator(tick.Symbol, _config));
-            var features = await aggregator.ProcessTickAsync(tick, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await aggregator.ProcessTickAsync(tick, cancellationToken).ConfigureAwait(false);
             
             _logger.LogTrace("[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}", 
                 tick.Symbol, tick.Price, tick.Volume);
@@ -877,7 +877,7 @@ public class FeatureEngineering : IDisposable
 /// </summary>
 public class FeatureConfig
 {
-    public Dictionary<RegimeType, RegimeProfile> RegimeProfiles { get; set; } = new();
+    public Dictionary<RegimeType, RegimeProfile> RegimeProfiles { get; } = new();
     public RegimeProfile DefaultProfile { get; set; } = new();
     public int MaxBufferSize { get; set; } = 1000;
     public int TopKFeatures { get; set; } = 10;
@@ -933,7 +933,7 @@ public class FeatureState
 {
     public DateTime LastUpdate { get; set; }
     public int FeatureCount { get; set; }
-    public Dictionary<string, double> LastValidValues { get; set; } = new();
+    public Dictionary<string, double> LastValidValues { get; } = new();
 }
 
 /// <summary>
@@ -1014,8 +1014,8 @@ public class StreamingFeatures
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
-    public Dictionary<string, double> Features { get; set; } = new();
-    public Dictionary<string, double> MicrostructureFeatures { get; set; } = new();
+    public Dictionary<string, double> Features { get; } = new();
+    public Dictionary<string, double> MicrostructureFeatures { get; } = new();
     public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; set; } = new();
     public bool IsStale { get; set; }
 }

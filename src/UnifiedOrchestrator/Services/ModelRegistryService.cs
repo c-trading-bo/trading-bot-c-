@@ -20,7 +20,7 @@ namespace UnifiedOrchestrator.Services
     public class ModelMetadata
     {
         public DateTime TrainingDate { get; set; }
-        public Dictionary<string, object> Hyperparams { get; set; } = new();
+        public Dictionary<string, object> Hyperparams { get; } = new();
         public double ValidationAccuracy { get; set; }
         public string Description { get; set; } = "";
         public string Version { get; set; } = "";
@@ -121,7 +121,7 @@ namespace UnifiedOrchestrator.Services
                     var metadataPath = Path.Combine(dir, "metadata.json");
                     if (File.Exists(metadataPath))
                     {
-                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                         var entry = JsonSerializer.Deserialize<ModelRegistryEntry>(metadataJson);
                         
                         if (entry != null && entry.RegisteredAt > latestTime)
@@ -164,7 +164,7 @@ namespace UnifiedOrchestrator.Services
                     var metadataPath = Path.Combine(dir, "metadata.json");
                     if (File.Exists(metadataPath))
                     {
-                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                         var entry = JsonSerializer.Deserialize<ModelRegistryEntry>(metadataJson);
                         if (entry != null)
                         {

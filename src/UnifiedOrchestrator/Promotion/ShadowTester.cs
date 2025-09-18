@@ -44,13 +44,13 @@ public class ShadowTester : IShadowTester
                 testId, algorithm, challengerVersionId);
 
             // Get champion and challenger models
-            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
             if (champion == null)
             {
                 throw new InvalidOperationException($"No champion found for algorithm {algorithm}");
             }
 
-            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null)
             {
                 throw new InvalidOperationException($"Challenger version {challengerVersionId} not found");
@@ -71,7 +71,7 @@ public class ShadowTester : IShadowTester
             _activeTests[testId] = shadowTest;
 
             // Run the shadow test
-            var validationReport = await ExecuteShadowTestAsync(shadowTest, champion, challenger, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var validationReport = await ExecuteShadowTestAsync(shadowTest, champion, challenger, cancellationToken).ConfigureAwait(false);
             
             shadowTest.Status = "COMPLETED";
             shadowTest.EndTime = DateTime.UtcNow;
@@ -153,8 +153,8 @@ public class ShadowTester : IShadowTester
     private async Task<PromotionTestReport> ExecuteShadowTestAsync(ShadowTest shadowTest, ModelVersion champion, ModelVersion challenger, CancellationToken cancellationToken)
     {
         // Load both models for parallel inference
-        var championModel = await LoadModelAsync(champion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var challengerModel = await LoadModelAsync(challenger, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var championModel = await LoadModelAsync(champion, cancellationToken).ConfigureAwait(false);
+        var challengerModel = await LoadModelAsync(challenger, cancellationToken).ConfigureAwait(false);
 
         // Create validation report
         var report = new PromotionTestReport
@@ -213,8 +213,8 @@ public class ShadowTester : IShadowTester
                 var context = CreateMockTradingContext(random);
                 
                 // Get decisions from both models
-                var championDecision = await GetModelDecisionAsync(championModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-                var challengerDecision = await GetModelDecisionAsync(challengerModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var championDecision = await GetModelDecisionAsync(championModel, context, cancellationToken).ConfigureAwait(false);
+                var challengerDecision = await GetModelDecisionAsync(challengerModel, context, cancellationToken).ConfigureAwait(false);
 
                 // Record decisions for comparison
                 shadowTest.ChampionDecisions.Add(championDecision);
@@ -555,9 +555,9 @@ internal class ShadowTest
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public int SessionsRecorded { get; set; }
-    public List<ShadowDecision> ChampionDecisions { get; set; } = new();
-    public List<ShadowDecision> ChallengerDecisions { get; set; } = new();
-    public Dictionary<string, object> IntermediateResults { get; set; } = new();
+    public List<ShadowDecision> ChampionDecisions { get; } = new();
+    public List<ShadowDecision> ChallengerDecisions { get; } = new();
+    public Dictionary<string, object> IntermediateResults { get; } = new();
     public CancellationTokenSource? CancellationToken { get; set; }
 }
 

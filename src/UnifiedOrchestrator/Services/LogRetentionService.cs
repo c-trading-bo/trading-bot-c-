@@ -78,20 +78,20 @@ public class LogRetentionService : IHostedService
             // Clean up trading logs (30 days retention)
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "trading"), 
-                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
+                _options.LogRetentionDays).ConfigureAwait(false);
 
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "system"), 
-                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
+                _options.LogRetentionDays).ConfigureAwait(false);
 
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "ml"), 
-                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
+                _options.LogRetentionDays).ConfigureAwait(false);
 
             // Clean up debug logs (7 days retention)
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "market"), 
-                _options.DebugLogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
+                _options.DebugLogRetentionDays).ConfigureAwait(false);
 
             // Clean up critical alerts older than 90 days
             var criticalAlertsPath = Path.Combine(_options.LogDirectory, "critical_alerts.txt");
@@ -154,7 +154,7 @@ public class LogRetentionService : IHostedService
     {
         try
         {
-            var lines = await File.ReadAllLinesAsync(alertsPath).ConfigureAwait(false).ConfigureAwait(false);
+            var lines = await File.ReadAllLinesAsync(alertsPath).ConfigureAwait(false);
             var cutoffDate = DateTime.UtcNow.AddDays(-90);
             
             var filteredLines = lines.Where(line =>

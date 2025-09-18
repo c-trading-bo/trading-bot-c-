@@ -67,7 +67,7 @@ public class IntelligenceService : IIntelligenceService
                 return null;
             }
 
-            var json = await File.ReadAllTextAsync(_signalsPath).ConfigureAwait(false).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(_signalsPath).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(json))
             {
                 _logger.LogDebug("[INTEL] Signals file is empty");

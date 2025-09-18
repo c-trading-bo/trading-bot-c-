@@ -280,7 +280,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             var regimeDetector = _serviceProvider.GetService<IRegimeDetector>();
             if (regimeDetector != null)
             {
-                var regime = await regimeDetector.DetectCurrentRegimeAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var regime = await regimeDetector.DetectCurrentRegimeAsync().ConfigureAwait(false);
                 _logger.LogInformation("🔬 [RUNTIME-PROOF] RegimeDetector.DetectCurrentRegimeAsync() -> Type: {RegimeType}, Confidence: {Confidence:F2}", 
                     regime.Type, regime.Confidence);
             }
@@ -289,7 +289,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             if (featureStore != null)
             {
                 // Get features for a test symbol to prove it's working
-                var features = await featureStore.GetFeaturesAsync("ES", DateTime.UtcNow.AddHours(-1), DateTime.UtcNow).ConfigureAwait(false).ConfigureAwait(false);
+                var features = await featureStore.GetFeaturesAsync("ES", DateTime.UtcNow.AddHours(-1), DateTime.UtcNow).ConfigureAwait(false);
                 _logger.LogInformation("🔬 [RUNTIME-PROOF] FeatureStore.GetFeaturesAsync() -> Features for {Symbol}: {FeatureCount} features", 
                     features.Symbol, features.Features.Count);
             }
@@ -300,7 +300,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                 // Get a model to prove it's working
                 try
                 {
-                    var model = await modelRegistry.GetModelAsync("test").ConfigureAwait(false).ConfigureAwait(false);
+                    var model = await modelRegistry.GetModelAsync("test").ConfigureAwait(false);
                     _logger.LogInformation("🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> Model ID: {ModelId}, Version: {Version}", 
                         model.Id, model.Version);
                 }
@@ -325,9 +325,9 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
 public class ProductionVerificationResult
 {
     public bool IsProductionReady { get; set; } = true;
-    public Dictionary<string, string> ProductionServices { get; set; } = new();
-    public List<string> Errors { get; set; } = new();
-    public List<string> Warnings { get; set; } = new();
+    public Dictionary<string, string> ProductionServices { get; } = new();
+    public List<string> Errors { get; } = new();
+    public List<string> Warnings { get; } = new();
     public DateTime VerificationTime { get; set; } = DateTime.UtcNow;
     
     public string GetSummary()

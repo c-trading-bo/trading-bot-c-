@@ -51,7 +51,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 return CreateDefaultCalibrationMap(modelId);
             }
 
-            var content = await File.ReadAllTextAsync(calibrationPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(calibrationPath, cancellationToken).ConfigureAwait(false);
             var map = JsonSerializer.Deserialize<CalibrationMap>(content);
             
             if (map != null)
@@ -113,7 +113,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     {
         try
         {
-            var map = await LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var map = await LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return ApplyCalibration(map, rawConfidence);
         }
         catch (Exception ex)
@@ -144,7 +144,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 try
                 {
                     var fileName = Path.GetFileNameWithoutExtension(modelFile);
-                    var calibrationPoints = await LoadCalibrationPointsAsync(fileName, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var calibrationPoints = await LoadCalibrationPointsAsync(fileName, cancellationToken).ConfigureAwait(false);
                     
                     if (calibrationPoints.Count >= 50) // Minimum points for stable calibration
                     {
@@ -346,7 +346,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
         try
         {
-            var content = await File.ReadAllTextAsync(pointsPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(pointsPath, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<CalibrationPoint>>(content) ?? new List<CalibrationPoint>();
         }
         catch (Exception ex)

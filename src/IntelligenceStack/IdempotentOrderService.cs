@@ -58,7 +58,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{timestampBucket:yyyy-MM-dd_HH-mm}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
             
             // Async hash computation for production-grade systems
-            var orderKey = await ComputeHashAsync(keyContent, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var orderKey = await ComputeHashAsync(keyContent, cancellationToken).ConfigureAwait(false);
             
             // Async logging for audit trail
             await LogOrderKeyGenerationAsync(orderKey, request, (decimal)priceBucket, cancellationToken).ConfigureAwait(false);
@@ -95,7 +95,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
             if (File.Exists(orderPath))
             {
-                var content = await File.ReadAllTextAsync(orderPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(orderPath, cancellationToken).ConfigureAwait(false);
                 var record = JsonSerializer.Deserialize<OrderRecord>(content);
                 
                 if (record != null && IsWithinDedupeWindow(record.CreatedAt))
@@ -166,8 +166,8 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     {
         try
         {
-            var orderKey = await GenerateOrderKeyAsync(request, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var isDuplicate = await IsDuplicateOrderAsync(orderKey, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var orderKey = await GenerateOrderKeyAsync(request, cancellationToken).ConfigureAwait(false);
+            var isDuplicate = await IsDuplicateOrderAsync(orderKey, cancellationToken).ConfigureAwait(false);
 
             var result = new OrderDeduplicationResult
             {
@@ -260,7 +260,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             {
                 try
                 {
-                    var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                    var content = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var record = JsonSerializer.Deserialize<OrderRecord>(content);
                     
                     if (record != null && IsWithinDedupeWindow(record.CreatedAt))
@@ -380,7 +380,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     {
         return await Task.Run(() =>
         {
-            using var sha256 = SHA256.Create().ConfigureAwait(false).ConfigureAwait(false);
+            using var sha256 = SHA256.Create().ConfigureAwait(false);
             var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(hash).ToLowerInvariant();
         }, cancellationToken);

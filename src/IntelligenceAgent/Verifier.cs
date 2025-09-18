@@ -42,11 +42,11 @@ public class Verifier : IVerifier
 
             // Query orders for today
             var orderStats = await QueryOrdersAsync(utcToday, utcNow, cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             // Query trades for today  
             var tradeStats = await QueryTradesAsync(utcToday, utcNow, cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             var result = new VerificationResult
             {
@@ -120,7 +120,7 @@ public class Verifier : IVerifier
             var requestUri = $"/api/Order/search?from={fromParam}&to={toParam}";
             
             using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -130,7 +130,7 @@ public class Verifier : IVerifier
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             using var document = JsonDocument.Parse(json);
             
@@ -178,7 +178,7 @@ public class Verifier : IVerifier
             var requestUri = $"/api/Trade/search?from={fromParam}&to={toParam}";
             
             using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -188,7 +188,7 @@ public class Verifier : IVerifier
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken)
-                .ConfigureAwait(false).ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             using var document = JsonDocument.Parse(json);
             

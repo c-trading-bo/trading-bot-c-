@@ -60,7 +60,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
             }
 
             // Create artifact metadata
-            var artifactMetadata = await CreateArtifactMetadataAsync(tempOutputPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var artifactMetadata = await CreateArtifactMetadataAsync(tempOutputPath, metadata, cancellationToken).ConfigureAwait(false);
             var metadataPath = Path.ChangeExtension(outputPath, ".metadata.json");
             var tempMetadataPath = metadataPath + ".tmp";
 
@@ -105,7 +105,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
             }
 
             // Validate ONNX model structure
-            return await ValidateOnnxModelAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            return await ValidateOnnxModelAsync(artifactPath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -125,7 +125,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
         {
             try
             {
-                var json = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                 var metadata = JsonSerializer.Deserialize<ArtifactMetadata>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -138,7 +138,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
             }
         }
 
-        return await CreateDefaultMetadataAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await CreateDefaultMetadataAsync(artifactPath, cancellationToken).ConfigureAwait(false);
     }
 
     #region Private Methods
@@ -173,7 +173,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
     private async Task<ArtifactMetadata> CreateArtifactMetadataAsync(string artifactPath, TrainingMetadata trainingMetadata, CancellationToken cancellationToken)
     {
         var fileInfo = new FileInfo(artifactPath);
-        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false);
 
         return new ArtifactMetadata
         {
@@ -198,7 +198,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
     private async Task<ArtifactMetadata> CreateDefaultMetadataAsync(string artifactPath, CancellationToken cancellationToken)
     {
         var fileInfo = new FileInfo(artifactPath);
-        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false);
 
         return new ArtifactMetadata
         {
@@ -216,7 +216,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
     {
         using var sha256 = SHA256.Create();
         using var stream = File.OpenRead(filePath);
-        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
         return Convert.ToHexString(hash);
     }
 
@@ -262,14 +262,14 @@ public class UcbSerializer : IArtifactBuilder
             }
 
             // For UCB, we serialize parameters to JSON format
-            var ucbModel = await LoadUcbModelAsync(modelPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var ucbModel = await LoadUcbModelAsync(modelPath, cancellationToken).ConfigureAwait(false);
             var serializedModel = SerializeUcbModel(ucbModel, metadata);
 
             var tempOutputPath = outputPath + ".tmp";
             await File.WriteAllTextAsync(tempOutputPath, serializedModel, cancellationToken).ConfigureAwait(false);
 
             // Create metadata
-            var artifactMetadata = await CreateUcbMetadataAsync(tempOutputPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var artifactMetadata = await CreateUcbMetadataAsync(tempOutputPath, metadata, cancellationToken).ConfigureAwait(false);
             var metadataPath = Path.ChangeExtension(outputPath, ".metadata.json");
             var tempMetadataPath = metadataPath + ".tmp";
 
@@ -307,7 +307,7 @@ public class UcbSerializer : IArtifactBuilder
                 return false;
             }
 
-            var content = await File.ReadAllTextAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(artifactPath, cancellationToken).ConfigureAwait(false);
             var ucbModel = JsonSerializer.Deserialize<UcbModelArtifact>(content);
             
             return ucbModel != null && 
@@ -333,7 +333,7 @@ public class UcbSerializer : IArtifactBuilder
         {
             try
             {
-                var json = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                 var metadata = JsonSerializer.Deserialize<ArtifactMetadata>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -346,7 +346,7 @@ public class UcbSerializer : IArtifactBuilder
             }
         }
 
-        return await CreateDefaultUcbMetadataAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await CreateDefaultUcbMetadataAsync(artifactPath, cancellationToken).ConfigureAwait(false);
     }
 
     #region Private Methods
@@ -403,7 +403,7 @@ public class UcbSerializer : IArtifactBuilder
     private async Task<ArtifactMetadata> CreateUcbMetadataAsync(string artifactPath, TrainingMetadata trainingMetadata, CancellationToken cancellationToken)
     {
         var fileInfo = new FileInfo(artifactPath);
-        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false);
 
         return new ArtifactMetadata
         {
@@ -428,7 +428,7 @@ public class UcbSerializer : IArtifactBuilder
     private async Task<ArtifactMetadata> CreateDefaultUcbMetadataAsync(string artifactPath, CancellationToken cancellationToken)
     {
         var fileInfo = new FileInfo(artifactPath);
-        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await ComputeFileHashAsync(artifactPath, cancellationToken).ConfigureAwait(false);
 
         return new ArtifactMetadata
         {
@@ -504,7 +504,7 @@ public class UcbSerializer : IArtifactBuilder
     {
         using var sha256 = SHA256.Create();
         using var stream = File.OpenRead(filePath);
-        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var hash = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
         return Convert.ToHexString(hash);
     }
 
@@ -519,7 +519,7 @@ public class UcbModelArtifact
     public string Version { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public TrainingMetadata TrainingMetadata { get; set; } = new();
-    public Dictionary<string, object> ArmStatistics { get; set; } = new();
-    public Dictionary<string, object> ExplorationParameters { get; set; } = new();
+    public Dictionary<string, object> ArmStatistics { get; } = new();
+    public Dictionary<string, object> ExplorationParameters { get; } = new();
     public object ModelParameters { get; set; } = new();
 }

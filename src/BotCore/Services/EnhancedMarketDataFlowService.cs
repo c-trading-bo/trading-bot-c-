@@ -200,7 +200,7 @@ namespace BotCore.Services
             {
                 _logger.LogInformation("[DATA-FLOW-RECOVERY] Ensuring data flow health");
 
-                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false);
                 
                 if (healthStatus.IsHealthy)
                 {
@@ -458,7 +458,7 @@ namespace BotCore.Services
         {
             try
             {
-                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false);
                 
                 if (!healthStatus.IsHealthy)
                 {
@@ -520,7 +520,7 @@ namespace BotCore.Services
                 await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.RecoveryDelaySeconds)).ConfigureAwait(false);
 
                 // Step 3: Verify recovery
-                var healthStatusAfterRecovery = await GetHealthStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var healthStatusAfterRecovery = await GetHealthStatusAsync().ConfigureAwait(false);
                 if (healthStatusAfterRecovery.IsHealthy)
                 {
                     _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
@@ -645,8 +645,8 @@ namespace BotCore.Services
         public int HealthySymbolCount { get; set; }
         public int TotalSymbolCount { get; set; }
         public double HealthPercentage { get; set; }
-        public List<string> Issues { get; set; } = new();
-        public List<DataFlowMetrics> SymbolMetrics { get; set; } = new();
+        public List<string> Issues { get; } = new();
+        public List<DataFlowMetrics> SymbolMetrics { get; } = new();
     }
 
     /// <summary>

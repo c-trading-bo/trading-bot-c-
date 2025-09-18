@@ -16,7 +16,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var token = await tokenProvider().ConfigureAwait(false).ConfigureAwait(false);
+                var token = await tokenProvider().ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     log.LogWarning("[SmokeTest] Skipping: missing JWT token.");
@@ -40,8 +40,8 @@ namespace OrchestratorAgent
                 placeReq.Content = new StringContent(JsonSerializer.Serialize(placeBody), Encoding.UTF8, "application/json");
 
                 log.LogInformation("[SmokeTest] Placing far-away LIMIT order: {Contract} acct={Account}", contractId, SecurityHelpers.MaskAccountId(accountId));
-                using var placeResp = await http.SendAsync(placeReq, ct).ConfigureAwait(false).ConfigureAwait(false);
-                var placeText = await placeResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var placeResp = await http.SendAsync(placeReq, ct).ConfigureAwait(false);
+                var placeText = await placeResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 if (!placeResp.IsSuccessStatusCode)
                 {
                     log.LogWarning("[SmokeTest] Place failed {Status}: {Body}", (int)placeResp.StatusCode, Trunc(placeText));
@@ -70,8 +70,8 @@ namespace OrchestratorAgent
                 cancelReq.Content = new StringContent(JsonSerializer.Serialize(cancelBody), Encoding.UTF8, "application/json");
 
                 log.LogInformation("[SmokeTest] Canceling orderId={OrderId}", SecurityHelpers.MaskOrderId(orderId.ToString()));
-                using var cancelResp = await http.SendAsync(cancelReq, ct).ConfigureAwait(false).ConfigureAwait(false);
-                var cancelText = await cancelResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var cancelResp = await http.SendAsync(cancelReq, ct).ConfigureAwait(false);
+                var cancelText = await cancelResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 if (!cancelResp.IsSuccessStatusCode)
                 {
                     log.LogWarning("[SmokeTest] Cancel failed {Status}: {Body}", (int)cancelResp.StatusCode, Trunc(cancelText));

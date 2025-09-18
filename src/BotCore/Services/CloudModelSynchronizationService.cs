@@ -131,7 +131,7 @@ public class CloudModelSynchronizationService : BackgroundService
             _logger.LogInformation("🌐 [CLOUD-SYNC] Starting model synchronization...");
             
             // Get completed workflow runs
-            var workflowRuns = await GetCompletedWorkflowRunsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var workflowRuns = await GetCompletedWorkflowRunsAsync(cancellationToken).ConfigureAwait(false);
             
             var syncedCount = 0;
             var newModelCount = 0;
@@ -140,11 +140,11 @@ public class CloudModelSynchronizationService : BackgroundService
             {
                 try
                 {
-                    var artifacts = await GetWorkflowArtifactsAsync(run.Id, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var artifacts = await GetWorkflowArtifactsAsync(run.Id, cancellationToken).ConfigureAwait(false);
                     
                     foreach (var artifact in artifacts.Where(a => a.Name.Contains("model") || a.Name.Contains("onnx")))
                     {
-                        var wasNew = await DownloadAndUpdateModelAsync(artifact, run, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var wasNew = await DownloadAndUpdateModelAsync(artifact, run, cancellationToken).ConfigureAwait(false);
                         syncedCount++;
                         if (wasNew) newModelCount++;
                     }
@@ -175,7 +175,7 @@ public class CloudModelSynchronizationService : BackgroundService
         try
         {
             var url = $"https://api.github.com/repos/{_repositoryOwner}/{_repositoryName}/actions/runs?status=completed&per_page=50";
-            var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -183,7 +183,7 @@ public class CloudModelSynchronizationService : BackgroundService
                 return new List<WorkflowRun>();
             }
             
-            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<GitHubWorkflowRunsResponse>(content, new JsonSerializerOptions 
             { 
                 PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower 
@@ -214,14 +214,14 @@ public class CloudModelSynchronizationService : BackgroundService
         try
         {
             var url = $"https://api.github.com/repos/{_repositoryOwner}/{_repositoryName}/actions/runs/{runId}/artifacts";
-            var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
             
             if (!response.IsSuccessStatusCode)
             {
                 return new List<Artifact>();
             }
             
-            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<GitHubArtifactsResponse>(content, new JsonSerializerOptions 
             { 
                 PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower 
@@ -254,7 +254,7 @@ public class CloudModelSynchronizationService : BackgroundService
             
             // Download artifact
             var downloadUrl = $"https://api.github.com/repos/{_repositoryOwner}/{_repositoryName}/actions/artifacts/{artifact.Id}/zip";
-            var downloadResponse = await _httpClient.GetAsync(downloadUrl, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var downloadResponse = await _httpClient.GetAsync(downloadUrl, cancellationToken).ConfigureAwait(false);
             
             if (!downloadResponse.IsSuccessStatusCode)
             {
@@ -263,7 +263,7 @@ public class CloudModelSynchronizationService : BackgroundService
             }
             
             // Extract and save model
-            using var zipStream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            using var zipStream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
             
             var extracted = false;
@@ -406,13 +406,13 @@ public class ModelInfo
 public class ModelRegistry
 {
     public DateTime LastUpdated { get; set; }
-    public List<ModelInfo> Models { get; set; } = new();
+    public List<ModelInfo> Models { get; } = new();
     public int TotalModels { get; set; }
 }
 
 public class GitHubWorkflowRunsResponse
 {
-    public List<WorkflowRun> WorkflowRuns { get; set; } = new();
+    public List<WorkflowRun> WorkflowRuns { get; } = new();
 }
 
 public class WorkflowRun
@@ -429,7 +429,7 @@ public class WorkflowRun
 
 public class GitHubArtifactsResponse
 {
-    public List<Artifact> Artifacts { get; set; } = new();
+    public List<Artifact> Artifacts { get; } = new();
 }
 
 public class Artifact

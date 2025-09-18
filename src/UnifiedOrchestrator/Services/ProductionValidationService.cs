@@ -306,7 +306,7 @@ public class ProductionValidationService : IValidationService
         var championResults = GenerateRealisticShadowResults("UnifiedTradingBrain", 150, 0.15, 0.08); // Lower performance
         var challengerResults = GenerateRealisticShadowResults("InferenceBrain", 150, 0.25, 0.12); // Higher performance
 
-        return await RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken).ConfigureAwait(false);
     }
 
     // Helper methods for statistical calculations (simplified implementations)
@@ -492,7 +492,7 @@ public class ProductionValidationService : IValidationService
                 currentChampion, 
                 challengerAlgorithm, 
                 TimeSpan.FromDays(1), // 1 day validation period
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
             
             var result = new ValidationResult
             {

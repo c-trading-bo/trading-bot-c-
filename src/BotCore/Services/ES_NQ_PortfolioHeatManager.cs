@@ -15,11 +15,11 @@ namespace BotCore.Services
         public decimal TotalExposure { get; set; }
         public double Correlation { get; set; }
         public double ConcentrationRisk { get; set; }
-        public Dictionary<string, double> TimeExposure { get; set; } = new();
+        public Dictionary<string, double> TimeExposure { get; } = new();
         public bool IsOverheated { get; set; }
         public string RecommendedAction { get; set; } = "";
         public DateTime LastUpdate { get; set; }
-        public Dictionary<string, decimal> RiskMetrics { get; set; } = new();
+        public Dictionary<string, decimal> RiskMetrics { get; } = new();
     }
 
     public interface IPortfolioHeatManager
@@ -67,14 +67,14 @@ namespace BotCore.Services
                 var sessions = new[] { "Asian", "European", "USMorning", "USAfternoon" };
                 foreach (var session in sessions)
                 {
-                    heat.TimeExposure[session] = await CalculateSessionExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                    heat.TimeExposure[session] = await CalculateSessionExposureAsync(positions, session).ConfigureAwait(false);
                 }
 
                 // Calculate correlation (simplified)
-                heat.Correlation = await CalculatePortfolioCorrelationAsync(positions).ConfigureAwait(false).ConfigureAwait(false);
+                heat.Correlation = await CalculatePortfolioCorrelationAsync(positions).ConfigureAwait(false);
 
                 // Risk metrics
-                heat.RiskMetrics = await CalculateRiskMetricsAsync(positions).ConfigureAwait(false).ConfigureAwait(false);
+                heat.RiskMetrics = await CalculateRiskMetricsAsync(positions).ConfigureAwait(false);
 
                 // Overheat detection
                 heat.IsOverheated = heat.ConcentrationRisk > 0.7 ||
@@ -106,8 +106,8 @@ namespace BotCore.Services
             try
             {
                 // This would normally get current positions from a position service
-                var positions = await GetCurrentPositionsAsync().ConfigureAwait(false).ConfigureAwait(false);
-                var heat = await CalculateHeatAsync(positions).ConfigureAwait(false).ConfigureAwait(false);
+                var positions = await GetCurrentPositionsAsync().ConfigureAwait(false);
+                var heat = await CalculateHeatAsync(positions).ConfigureAwait(false);
                 return heat.IsOverheated;
             }
             catch (Exception ex)
@@ -121,8 +121,8 @@ namespace BotCore.Services
         {
             try
             {
-                var positions = await GetCurrentPositionsAsync().ConfigureAwait(false).ConfigureAwait(false);
-                var heat = await CalculateHeatAsync(positions).ConfigureAwait(false).ConfigureAwait(false);
+                var positions = await GetCurrentPositionsAsync().ConfigureAwait(false);
+                var heat = await CalculateHeatAsync(positions).ConfigureAwait(false);
                 return heat.RecommendedAction;
             }
             catch (Exception ex)
@@ -137,7 +137,7 @@ namespace BotCore.Services
             try
             {
                 // Integration point: Use your sophisticated position tracking and session analysis
-                var sessionExposure = await CalculateRealSessionExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                var sessionExposure = await CalculateRealSessionExposureAsync(positions, session).ConfigureAwait(false);
                 if (sessionExposure.HasValue)
                 {
                     return sessionExposure.Value;
@@ -298,7 +298,7 @@ namespace BotCore.Services
                 // Connect to existing position tracking infrastructure in production order:
                 
                 // 1. Try real-time position monitoring system first
-                var realTimeExposure = await TryGetRealTimeSessionExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                var realTimeExposure = await TryGetRealTimeSessionExposureAsync(positions, session).ConfigureAwait(false);
                 if (realTimeExposure.HasValue)
                 {
                     _logger.LogDebug("[HEAT] Retrieved real-time session exposure for {Session}: {Exposure}", session, realTimeExposure.Value);
@@ -306,7 +306,7 @@ namespace BotCore.Services
                 }
 
                 // 2. Try session-based exposure calculation algorithms
-                var algorithmExposure = await TryGetAlgorithmicSessionExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                var algorithmExposure = await TryGetAlgorithmicSessionExposureAsync(positions, session).ConfigureAwait(false);
                 if (algorithmExposure.HasValue)
                 {
                     _logger.LogDebug("[HEAT] Calculated algorithmic session exposure for {Session}: {Exposure}", session, algorithmExposure.Value);
@@ -314,7 +314,7 @@ namespace BotCore.Services
                 }
 
                 // 3. Try position time tracking system
-                var timeTrackingExposure = await TryGetTimeTrackingExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                var timeTrackingExposure = await TryGetTimeTrackingExposureAsync(positions, session).ConfigureAwait(false);
                 if (timeTrackingExposure.HasValue)
                 {
                     _logger.LogDebug("[HEAT] Retrieved time-tracked session exposure for {Session}: {Exposure}", session, timeTrackingExposure.Value);
@@ -340,7 +340,7 @@ namespace BotCore.Services
                 /*
                 if (_positionTracker is IRealTimePositionMonitor realTimeMonitor)
                 {
-                    var sessionExposure = await realTimeMonitor.GetSessionExposureAsync(session, positions).ConfigureAwait(false).ConfigureAwait(false);
+                    var sessionExposure = await realTimeMonitor.GetSessionExposureAsync(session, positions).ConfigureAwait(false);
                     return sessionExposure;
                 }
                 */
@@ -364,7 +364,7 @@ namespace BotCore.Services
                 /*
                 if (_exposureCalculator is ISessionExposureCalculator sessionCalculator)
                 {
-                    var exposure = await sessionCalculator.CalculateSessionExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                    var exposure = await sessionCalculator.CalculateSessionExposureAsync(positions, session).ConfigureAwait(false);
                     return exposure;
                 }
                 */
@@ -388,7 +388,7 @@ namespace BotCore.Services
                 /*
                 if (_timeTracker is IPositionTimeTracker timeTracker)
                 {
-                    var timeBasedExposure = await timeTracker.GetSessionTimeExposureAsync(positions, session).ConfigureAwait(false).ConfigureAwait(false);
+                    var timeBasedExposure = await timeTracker.GetSessionTimeExposureAsync(positions, session).ConfigureAwait(false);
                     return timeBasedExposure;
                 }
                 */

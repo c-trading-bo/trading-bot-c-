@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Linq;
+using System.Security;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 
@@ -66,9 +67,29 @@ public class UpdaterAgent
             await RunUpdateLoop().ConfigureAwait(false);
             return 0;
         }
+        catch (TaskCanceledException ex)
+        {
+            Log.Warning(ex, "UpdaterAgent was cancelled");
+            return 1;
+        }
+        catch (OperationCanceledException ex)
+        {
+            Log.Warning(ex, "UpdaterAgent operation was cancelled");
+            return 1;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "UpdaterAgent invalid operation");
+            return 1;
+        }
+        catch (Exception ex) when (ex.IsFatal())
+        {
+            Log.Fatal(ex, "Fatal error in UpdaterAgent - terminating");
+            throw; // Rethrow fatal exceptions
+        }
         catch (Exception ex)
         {
-            Log.Error(ex, "UpdaterAgent failed");
+            Log.Error(ex, "Unexpected error in UpdaterAgent - returning error code");
             return 1;
         }
     }
@@ -85,9 +106,24 @@ public class UpdaterAgent
                 await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
                 iterationCount++;
             }
+            catch (HttpRequestException ex)
+            {
+                Log.Error(ex, "HTTP error during update cycle");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException ex)
+            {
+                Log.Warning(ex, "Update cycle was cancelled");
+                break; // Exit the loop
+            }
+            catch (Exception ex) when (ex.IsFatal())
+            {
+                Log.Fatal(ex, "Fatal error in update cycle");
+                throw; // Rethrow fatal exceptions
+            }
             catch (Exception ex)
             {
-                Log.Error(ex, "Update cycle failed");
+                Log.Error(ex, "Unexpected error in update cycle - continuing with next iteration");
                 await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
             }
         }
@@ -98,7 +134,7 @@ public class UpdaterAgent
         // Compute pending commits vs last deployed
         var head = Git("rev-parse HEAD");
         var last = File.Exists(_lastDeployedPath) ? 
-            (await File.ReadAllTextAsync(_lastDeployedPath)).Split('|').FirstOrDefault() ?? "" : "".ConfigureAwait(false);
+            (await File.ReadAllTextAsync(_lastDeployedPath).ConfigureAwait(false)).Split('|').FirstOrDefault() ?? "" : "";
 
         if (head == last)
         {
@@ -135,8 +171,8 @@ public class UpdaterAgent
 
     private async Task<bool> RunValidation()
     {
-        if (_runTests && !await RunTests())
-            return false.ConfigureAwait(false);
+        if (_runTests && !await RunTests().ConfigureAwait(false))
+            return false;
 
         if (_runReplays && !await RunReplays().ConfigureAwait(false))
             return false;
@@ -278,5 +314,20 @@ public class UpdaterAgent
         p.WaitForExit();
         return output.Trim();
     }
+}
 
+internal static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should be rethrown
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is SecurityException;
+    }
 }

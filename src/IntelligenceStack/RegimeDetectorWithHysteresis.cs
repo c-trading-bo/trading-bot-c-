@@ -69,7 +69,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
 
     public async Task<RegimeTransition> CheckTransitionAsync(RegimeState currentState, CancellationToken cancellationToken = default)
     {
-        var newRegime = await DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var newRegime = await DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
         
         return new RegimeTransition
         {

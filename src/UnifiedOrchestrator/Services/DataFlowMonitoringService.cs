@@ -151,8 +151,8 @@ public class DataFlowMonitoringService : BackgroundService
                 return;
             }
 
-            var historicalStatus = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var liveStatus = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var historicalStatus = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
+            var liveStatus = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false);
             
             RecordConnectionHealth("HistoricalData", historicalStatus, 
                 historicalStatus ? "Connected" : "Disconnected");
@@ -413,7 +413,7 @@ public class DataFlowStatusReport
     public DateTime LastHistoricalDataProcessed { get; set; }
     public double LiveDataRatePerMinute { get; set; }
     public double HistoricalDataRatePerFiveMinutes { get; set; }
-    public Dictionary<string, ConnectionHealth> ConnectionHealthStatus { get; set; } = new();
+    public Dictionary<string, ConnectionHealth> ConnectionHealthStatus { get; } = new();
     public int HealthyConnectionCount { get; set; }
     public int TotalConnectionCount { get; set; }
 }

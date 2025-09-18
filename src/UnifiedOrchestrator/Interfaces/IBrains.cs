@@ -74,13 +74,13 @@ public class TradingDecision
     public string PPOVersionId { get; set; } = string.Empty;
     public string UCBVersionId { get; set; } = string.Empty;
     public string LSTMVersionId { get; set; } = string.Empty;
-    public Dictionary<string, string> AlgorithmVersions { get; set; } = new();
-    public Dictionary<string, string> AlgorithmHashes { get; set; } = new();
+    public Dictionary<string, string> AlgorithmVersions { get; } = new();
+    public Dictionary<string, string> AlgorithmHashes { get; } = new();
     
     // Decision metadata
     public decimal ProcessingTimeMs { get; set; }
-    public Dictionary<string, decimal> AlgorithmConfidences { get; set; } = new();
-    public Dictionary<string, object> DecisionMetadata { get; set; } = new();
+    public Dictionary<string, decimal> AlgorithmConfidences { get; } = new();
+    public Dictionary<string, object> DecisionMetadata { get; } = new();
     
     // Compatibility alias
     public Dictionary<string, object> Metadata => DecisionMetadata;
@@ -90,7 +90,7 @@ public class TradingDecision
     
     // Risk assessment
     public bool PassedRiskChecks { get; set; }
-    public List<string> RiskWarnings { get; set; } = new();
+    public List<string> RiskWarnings { get; } = new();
 }
 
 /// <summary>
@@ -105,9 +105,9 @@ public class InferenceStats
     public DateTime LastDecisionTime { get; set; }
     
     // Model health
-    public Dictionary<string, bool> ModelHealth { get; set; } = new();
-    public Dictionary<string, DateTime> ModelLoadTimes { get; set; } = new();
-    public Dictionary<string, int> ModelSwapCounts { get; set; } = new();
+    public Dictionary<string, bool> ModelHealth { get; } = new();
+    public Dictionary<string, DateTime> ModelLoadTimes { get; } = new();
+    public Dictionary<string, int> ModelSwapCounts { get; } = new();
     
     // Performance
     public decimal TodayWinRate { get; set; }
@@ -124,7 +124,7 @@ public class TrainingConfig
     public string Algorithm { get; set; } = string.Empty;
     public DateTime DataStartTime { get; set; }
     public DateTime DataEndTime { get; set; }
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
     public string DataSource { get; set; } = string.Empty;
     public int MaxEpochs { get; set; } = 100;
     public decimal LearningRate { get; set; } = 0.001m;
@@ -148,7 +148,7 @@ public class TrainingResult
     public decimal FinalLoss { get; set; }
     public decimal BestValidationScore { get; set; }
     public int EpochsCompleted { get; set; }
-    public Dictionary<string, decimal> Metrics { get; set; } = new();
+    public Dictionary<string, decimal> Metrics { get; } = new();
     
     // Model metadata
     public TrainingMetadata Metadata { get; set; } = new();
@@ -166,8 +166,8 @@ public class TrainingMetadata
     public int DataSamples { get; set; }
     public string GitSha { get; set; } = string.Empty;
     public string CreatedBy { get; set; } = Environment.UserName;
-    public Dictionary<string, object> Parameters { get; set; } = new();
-    public Dictionary<string, decimal> PerformanceMetrics { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
+    public Dictionary<string, decimal> PerformanceMetrics { get; } = new();
 }
 
 /// <summary>
@@ -182,8 +182,8 @@ public class TrainingStatus
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public string CurrentStage { get; set; } = string.Empty;
-    public Dictionary<string, object> StageData { get; set; } = new();
-    public List<string> Logs { get; set; } = new();
+    public Dictionary<string, object> StageData { get; } = new();
+    public List<string> Logs { get; } = new();
     public string? ErrorMessage { get; set; }
 }
 
@@ -210,7 +210,7 @@ public class ChallengerTrainingRequest
 {
     public string BaseModelVersion { get; set; } = string.Empty;
     public double TargetSharpe { get; set; }
-    public Dictionary<string, object> SuccessfulPatterns { get; set; } = new();
+    public Dictionary<string, object> SuccessfulPatterns { get; } = new();
     public TimeSpan TrainingDataPeriod { get; set; }
     public DateTime Timestamp { get; set; }
 }

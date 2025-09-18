@@ -38,8 +38,8 @@ public class MarketData
 public class OrderBook
 {
     public string Symbol { get; set; } = string.Empty;
-    public List<OrderBookLevel> Bids { get; set; } = new();
-    public List<OrderBookLevel> Asks { get; set; } = new();
+    public List<OrderBookLevel> Bids { get; } = new();
+    public List<OrderBookLevel> Asks { get; } = new();
     public DateTime Timestamp { get; set; }
 }
 
@@ -108,7 +108,7 @@ public class RedundantDataFeedManager : IDisposable
         {
             try
             {
-                var connected = await feed.ConnectAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var connected = await feed.ConnectAsync().ConfigureAwait(false);
                 _feedHealth[feed.FeedName] = new DataFeedHealth
                 {
                     FeedName = feed.FeedName,
@@ -159,7 +159,7 @@ public class RedundantDataFeedManager : IDisposable
         {
             try
             {
-                data = await _primaryFeed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
+                data = await _primaryFeed.GetMarketDataAsync(symbol).ConfigureAwait(false);
                 if (ValidateMarketData(data))
                 {
                     return data;
@@ -181,7 +181,7 @@ public class RedundantDataFeedManager : IDisposable
                 {
                     _logger.LogWarning("[DataFeed] Failing over to {FeedName} for {Symbol}", feed.FeedName, symbol);
 
-                    data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
+                    data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false);
                     if (ValidateMarketData(data))
                     {
                         // Switch primary feed
@@ -274,7 +274,7 @@ public class RedundantDataFeedManager : IDisposable
                     try
                     {
                         // Test feed with ping
-                        var testData = await feed.GetMarketDataAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
+                        var testData = await feed.GetMarketDataAsync("ES").ConfigureAwait(false);
                         var latency = (DateTime.UtcNow - startTime).TotalMilliseconds;
                         
                         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
@@ -362,7 +362,7 @@ public class RedundantDataFeedManager : IDisposable
                 try
                 {
                     var startTime = DateTime.UtcNow;
-                    var data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
+                    var data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false);
                     var responseTime = DateTime.UtcNow - startTime;
 
                     if (data != null && ValidateMarketData(data))
@@ -632,15 +632,15 @@ public class RedundantDataFeedManager : IDisposable
     {
         public string Symbol { get; set; } = string.Empty;
         public DateTime CheckTime { get; set; }
-        public Dictionary<string, MarketDataSnapshot> FeedData { get; set; } = new();
+        public Dictionary<string, MarketDataSnapshot> FeedData { get; } = new();
         public bool IsConsistent { get; set; }
         public decimal PriceDeviation { get; set; }
         public decimal PriceStandardDeviation { get; set; }
         public decimal SpreadDeviation { get; set; }
         public TimeSpan MaxDataAge { get; set; }
         public TimeSpan AverageDataAge { get; set; }
-        public List<string> OutlierFeeds { get; set; } = new();
-        public List<string> Issues { get; set; } = new();
+        public List<string> OutlierFeeds { get; } = new();
+        public List<string> Issues { get; } = new();
     }
 
     public class MarketDataSnapshot

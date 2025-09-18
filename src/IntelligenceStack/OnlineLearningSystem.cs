@@ -203,7 +203,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             FeatureDriftState? driftState = null;
             if (File.Exists(driftStatePath))
             {
-                var content = await File.ReadAllTextAsync(driftStatePath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(driftStatePath, cancellationToken).ConfigureAwait(false);
                 driftState = JsonSerializer.Deserialize<FeatureDriftState>(content);
             }
 
@@ -390,7 +390,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(stateFile).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(stateFile).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<OnlineLearningState>(content);
             
             if (state != null)
@@ -635,14 +635,14 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private sealed class OnlineLearningState
     {
         public Dictionary<string, Dictionary<string, double>> RegimeWeights { get; set; } = new();
-        public Dictionary<string, double> BaselineVariance { get; set; } = new();
+        public Dictionary<string, double> BaselineVariance { get; } = new();
         public DateTime LastSaved { get; set; }
     }
 
     private sealed class FeatureDriftState
     {
         public string ModelId { get; set; } = string.Empty;
-        public Dictionary<string, double> BaselineFeatures { get; set; } = new();
+        public Dictionary<string, double> BaselineFeatures { get; } = new();
         public DateTime LastUpdated { get; set; }
         public int DriftDetectedCount { get; set; }
     }

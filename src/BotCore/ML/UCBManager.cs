@@ -62,9 +62,9 @@ namespace BotCore.ML
                     "application/json"
                 );
                 
-                using var resp = await _http.PostAsync("ucb/recommend", content, ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var resp = await _http.PostAsync("ucb/recommend", content, ct).ConfigureAwait(false);
                 resp.EnsureSuccessStatusCode();
-                var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
                 var rec = JsonConvert.DeserializeObject<UCBRecommendation>(text, JsonCfg);
                 if (rec == null) throw new InvalidOperationException("Null UCBRecommendation");
@@ -102,7 +102,7 @@ namespace BotCore.ML
                     "application/json"
                 );
                 
-                using var resp = await _http.PostAsync("ucb/update_pnl", content, ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var resp = await _http.PostAsync("ucb/update_pnl", content, ct).ConfigureAwait(false);
                 resp.EnsureSuccessStatusCode();
                 
                 _logger.LogInformation("💰 [UCB] Updated P&L for {Strategy}: {PnL:C}", strategy, pnl);
@@ -121,7 +121,7 @@ namespace BotCore.ML
         {
             try
             {
-                using var resp = await _http.PostAsync("ucb/reset_daily", new StringContent(""), ct).ConfigureAwait(false).ConfigureAwait(false);
+                using var resp = await _http.PostAsync("ucb/reset_daily", new StringContent(""), ct).ConfigureAwait(false);
                 resp.EnsureSuccessStatusCode();
                 
                 _logger.LogInformation("🌅 [UCB] Daily stats reset completed");

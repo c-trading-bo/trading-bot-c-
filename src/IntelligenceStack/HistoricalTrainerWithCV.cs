@@ -82,7 +82,7 @@ public class HistoricalTrainerWithCV
                     modelFamily, 
                     split, 
                     foldNumber, 
-                    cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
                     
                 cvResult.FoldResults.Add(foldResult);
                 
@@ -148,10 +148,10 @@ public class HistoricalTrainerWithCV
             var examples = new List<TrainingExample>();
             
             // Get raw market data
-            var marketData = await GetMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var marketData = await GetMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
             
             // Get features with proper time alignment
-            var features = await _featureStore.GetFeaturesAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await _featureStore.GetFeaturesAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
 
             // Generate labels with embargo to prevent lookahead bias
             foreach (var dataPoint in marketData)
@@ -160,7 +160,7 @@ public class HistoricalTrainerWithCV
                     dataPoint, 
                     features, 
                     marketData, 
-                    cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
                     
                 if (example != null)
                 {
@@ -234,16 +234,16 @@ public class HistoricalTrainerWithCV
         try
         {
             // Generate training data with purging
-            var trainingData = await GenerateTrainingDataAsync(split, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var trainingData = await GenerateTrainingDataAsync(split, cancellationToken).ConfigureAwait(false);
             
             // Train model
-            var trainedModel = await TrainModelAsync(modelFamily, trainingData, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var trainedModel = await TrainModelAsync(modelFamily, trainingData, cancellationToken).ConfigureAwait(false);
             
             // Generate test data
-            var testData = await GenerateTestDataAsync(split, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var testData = await GenerateTestDataAsync(split, cancellationToken).ConfigureAwait(false);
             
             // Evaluate model
-            var testMetrics = await EvaluateModelAsync(trainedModel, testData, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var testMetrics = await EvaluateModelAsync(trainedModel, testData, cancellationToken).ConfigureAwait(false);
             
             foldResult.TestMetrics = testMetrics;
             foldResult.TrainingExamples = trainingData.Count;
@@ -275,7 +275,7 @@ public class HistoricalTrainerWithCV
         await _featureStore.GetFeaturesAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken).ConfigureAwait(false);
         
         // Generate leak-safe labels
-        var examples = await GenerateLeakSafeLabelsAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var examples = await GenerateLeakSafeLabelsAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken).ConfigureAwait(false);
         
         // Apply purging - remove examples too close to train/test boundary
         var purgedExamples = examples.Where(ex => 
@@ -292,7 +292,7 @@ public class HistoricalTrainerWithCV
         CancellationToken cancellationToken)
     {
         // Generate test data for out-of-sample evaluation
-        var testData = await GenerateLeakSafeLabelsAsync("ES", split.TestStart, split.TestEnd, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var testData = await GenerateLeakSafeLabelsAsync("ES", split.TestStart, split.TestEnd, cancellationToken).ConfigureAwait(false);
         
         return testData;
     }
@@ -364,7 +364,7 @@ public class HistoricalTrainerWithCV
         return await Task.Run(async () =>
         {
             // Simulate async validation against external data integrity services
-            await Task.Delay(5, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await Task.Delay(5, cancellationToken).ConfigureAwait(false);
             
             // Find future outcome with embargo to prevent lookahead bias
             var embargoTime = dataPoint.Timestamp.Add(_embargoWindow);
@@ -398,7 +398,7 @@ public class HistoricalTrainerWithCV
         // Production-grade market data retrieval with async I/O operations
         return await Task.Run(async () =>
         {
-            var dataPoints = new List<MarketDataPoint>().ConfigureAwait(false).ConfigureAwait(false);
+            var dataPoints = new List<MarketDataPoint>().ConfigureAwait(false);
             
             // Step 1: Load historical data from multiple sources asynchronously
             var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
@@ -408,16 +408,16 @@ public class HistoricalTrainerWithCV
             try
             {
                 // Prefer primary data source
-                dataPoints = await primaryDataTask.ConfigureAwait(false).ConfigureAwait(false);
+                dataPoints = await primaryDataTask.ConfigureAwait(false);
                 
                 if (dataPoints.Count == 0)
                 {
                     _logger.LogWarning("[HISTORICAL_TRAINER] Primary data source failed, using backup for {Symbol}", symbol);
-                    dataPoints = await backupDataTask.ConfigureAwait(false).ConfigureAwait(false);
+                    dataPoints = await backupDataTask.ConfigureAwait(false);
                 }
                 
                 // Enhance with volume data
-                var volumeData = await volumeDataTask.ConfigureAwait(false).ConfigureAwait(false);
+                var volumeData = await volumeDataTask.ConfigureAwait(false);
                 EnhanceWithVolumeData(dataPoints, volumeData);
             }
             catch (Exception ex)
@@ -429,7 +429,7 @@ public class HistoricalTrainerWithCV
             }
             
             // Step 2: Apply data quality checks and cleaning
-            dataPoints = await ApplyDataQualityChecksAsync(dataPoints, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            dataPoints = await ApplyDataQualityChecksAsync(dataPoints, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("[HISTORICAL_TRAINER] Retrieved {Count} data points for {Symbol} from {Start} to {End}",
                 dataPoints.Count, symbol, startTime, endTime);
@@ -473,7 +473,7 @@ public class HistoricalTrainerWithCV
     {
         // Simulate loading from backup data source
         await Task.Delay(200, cancellationToken).ConfigureAwait(false); // Simulate slower backup source
-        return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
     }
     
     private static async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
@@ -506,7 +506,7 @@ public class HistoricalTrainerWithCV
                 dp.High >= dp.Close &&
                 dp.Low <= dp.Open && 
                 dp.Low <= dp.Close &&
-                dp.Volume > 0).ToList().ConfigureAwait(false).ConfigureAwait(false);
+                dp.Volume > 0).ToList().ConfigureAwait(false);
             
             // Fill gaps if necessary
             if (validDataPoints.Count != dataPoints.Count)
@@ -605,7 +605,7 @@ public class HistoricalTrainerWithCV
                 }
             };
 
-            var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("[HISTORICAL_CV] Registered best model: {ModelId} from fold {Fold}", 
                 model.Id, bestFold.FoldNumber);
@@ -665,7 +665,7 @@ public class WalkForwardCVResult
     public DateTime EndDate { get; set; }
     public TimeSpan TrainingWindow { get; set; }
     public TimeSpan TestWindow { get; set; }
-    public List<CVFoldResult> FoldResults { get; set; } = new();
+    public List<CVFoldResult> FoldResults { get; } = new();
     public ModelMetrics? AggregateMetrics { get; set; }
     public bool MeetsPromotionCriteria { get; set; }
     public DateTime StartedAt { get; set; }

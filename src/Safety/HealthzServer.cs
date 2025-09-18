@@ -31,11 +31,11 @@ namespace OrchestratorAgent.Health
                     {
                         try
                         {
-                            var ctx = await listener.GetContextAsync().ConfigureAwait(false).ConfigureAwait(false);
+                            var ctx = await listener.GetContextAsync().ConfigureAwait(false);
                             var path = ctx.Request.Url?.AbsolutePath ?? string.Empty;
                             if (path.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
                             {
-                                var (ok, msg) = await pf.RunAsync(symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
+                                var (ok, msg) = await pf.RunAsync(symbol, ct).ConfigureAwait(false);
                                 var (_, warn) = dst.Check();
                                 var json = JsonSerializer.Serialize(new { ok, msg, warn_dst = warn, mode = mode == null ? null : (mode.IsLive ? "LIVE" : "SHADOW") });
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);

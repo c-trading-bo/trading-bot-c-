@@ -468,7 +468,7 @@ public class TradingLogger : ITradingLogger, IDisposable
 
     public async Task<PerformanceMetrics> GetPerformanceMetricsAsync()
     {
-        return await Task.FromResult(_performanceMetrics).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(_performanceMetrics).ConfigureAwait(false);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

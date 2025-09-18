@@ -76,7 +76,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             try
             {
                 // Load persisted risk state if available
-                var persistedState = await _persistence.LoadRiskStateAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var persistedState = await _persistence.LoadRiskStateAsync().ConfigureAwait(false);
                 if (persistedState != null)
                 {
                     // Check if state is from today
@@ -94,7 +94,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                 }
                 
                 // Load position state for exposure calculation
-                var positionState = await _persistence.LoadPositionStateAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var positionState = await _persistence.LoadPositionStateAsync().ConfigureAwait(false);
                 if (positionState != null)
                 {
                     _currentState = _currentState with 

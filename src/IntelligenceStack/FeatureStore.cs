@@ -57,7 +57,7 @@ public class FeatureStore : IFeatureStore
 
             foreach (var file in featureFiles)
             {
-                var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
                 var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
                 
                 if (featureSet != null)
@@ -109,7 +109,7 @@ public class FeatureStore : IFeatureStore
         try
         {
             // Validate before saving
-            var isValid = await ValidateSchemaAsync(features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var isValid = await ValidateSchemaAsync(features, cancellationToken).ConfigureAwait(false);
             if (!isValid)
             {
                 throw new InvalidOperationException($"Feature validation failed for {features.Symbol}");
@@ -146,7 +146,7 @@ public class FeatureStore : IFeatureStore
     {
         try
         {
-            var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false);
             if (schema == null)
             {
                 _logger.LogWarning("[FEATURES] Schema not found for version: {Version}", features.Version);
@@ -192,7 +192,7 @@ public class FeatureStore : IFeatureStore
                 return defaultSchema;
             }
 
-            var content = await File.ReadAllTextAsync(schemaPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(schemaPath, cancellationToken).ConfigureAwait(false);
             var schema = JsonSerializer.Deserialize<FeatureSchema>(content);
 
             if (schema != null)

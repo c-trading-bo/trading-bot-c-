@@ -125,7 +125,7 @@ namespace BotCore.Risk
             public DateTime DrawdownStart { get; set; }
             public TimeSpan DrawdownDuration { get; set; }
             public int ConsecutiveLosses { get; set; }
-            public List<decimal> LossSequence { get; set; } = new();
+            public List<decimal> LossSequence { get; } = new();
         }
         
         public class DrawdownAction

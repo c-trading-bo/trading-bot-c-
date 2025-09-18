@@ -71,7 +71,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
                     
                     // Send telemetry to cloud endpoint
-                    var response = await _httpClient.PostAsync($"{cloudEndpoint}/api/telemetry", content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var response = await _httpClient.PostAsync($"{cloudEndpoint}/api/telemetry", content, cancellationToken).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {

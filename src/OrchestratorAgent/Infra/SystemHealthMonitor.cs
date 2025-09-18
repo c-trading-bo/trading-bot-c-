@@ -169,7 +169,7 @@ public class SystemHealthMonitor
         try
         {
             // Discover health checks that implement IHealthCheck interface
-            var discoveredChecks = await _discovery.DiscoverHealthChecksAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var discoveredChecks = await _discovery.DiscoverHealthChecksAsync().ConfigureAwait(false);
 
             foreach (var healthCheck in discoveredChecks)
             {
@@ -209,7 +209,7 @@ public class SystemHealthMonitor
             _logger.LogInformation("[HEALTH] Discovered and registered {Count} health checks + Universal Auto-Discovery Monitor", discoveredChecks.Count);
 
             // Check for unmonitored features
-            var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync().ConfigureAwait(false);
             if (unmonitored.Count > 0)
             {
                 _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features (will be auto-monitored by Universal Discovery): {Features}",
@@ -226,7 +226,7 @@ public class SystemHealthMonitor
     {
         try
         {
-            var result = await healthCheck.ExecuteAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var result = await healthCheck.ExecuteAsync().ConfigureAwait(false);
 
             var status = result.Status switch
             {
@@ -248,7 +248,7 @@ public class SystemHealthMonitor
     {
         try
         {
-            var healingAttempted = await _selfHealingEngine.AttemptHealingAsync(healthCheckName, failedResult).ConfigureAwait(false).ConfigureAwait(false);
+            var healingAttempted = await _selfHealingEngine.AttemptHealingAsync(healthCheckName, failedResult).ConfigureAwait(false);
             if (healingAttempted)
             {
                 _logger.LogInformation("[SELF-HEAL] Initiated self-healing for failed health check: {HealthCheck}", healthCheckName);
@@ -1229,7 +1229,7 @@ public class HealthCheck
 public class SystemHealthSnapshot
 {
     public DateTime Timestamp { get; set; }
-    public Dictionary<string, HealthResult> Results { get; set; } = new();
+    public Dictionary<string, HealthResult> Results { get; } = new();
 
     public HealthStatus OverallStatus => Results.Values.Any(r => r.Status == HealthStatus.Failed)
         ? HealthStatus.Failed

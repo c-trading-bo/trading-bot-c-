@@ -222,13 +222,13 @@ namespace OrchestratorAgent
                     try
                     {
                         await Task.Delay(TimeSpan.FromMinutes(20), ct).ConfigureAwait(false);
-                        var newToken = await auth.ValidateAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                        var newToken = await auth.ValidateAsync(ct).ConfigureAwait(false);
                         if (string.IsNullOrWhiteSpace(newToken))
                         {
                             var u = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
                             var k = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
                             if (!string.IsNullOrWhiteSpace(u) && !string.IsNullOrWhiteSpace(k))
-                                newToken = await auth.GetJwtAsync(u!, k!, ct).ConfigureAwait(false).ConfigureAwait(false);
+                                newToken = await auth.GetJwtAsync(u!, k!, ct).ConfigureAwait(false);
                         }
                         if (!string.IsNullOrWhiteSpace(newToken))
                         {
@@ -246,7 +246,7 @@ namespace OrchestratorAgent
             // Rebuild state on boot: seed de-dupe cache from open positions
             try
             {
-                var open = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
+                var open = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false);
                 foreach (var p in open)
                 {
                     try
@@ -293,7 +293,7 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        var (Sig, ContractId) = await _routeChan.Reader.ReadAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                        var (Sig, ContractId) = await _routeChan.Reader.ReadAsync(ct).ConfigureAwait(false);
                         await Retry(() => router.RouteAsync(Sig, ContractId, ct), ct).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) { }
@@ -369,7 +369,7 @@ namespace OrchestratorAgent
                                 Timestamp = DateTime.UnixEpoch.AddMilliseconds(bar.Ts)
                             };
                             
-                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick).ConfigureAwait(false).ConfigureAwait(false);
+                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick).ConfigureAwait(false);
                             _log.LogTrace("[ML_PIPELINE] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}, FeatureCount={FeatureCount}", 
                                 tick.Symbol, tick.Price, tick.Volume, features?.GetType().GetProperties().Length ?? 0);
                         }
@@ -399,7 +399,7 @@ namespace OrchestratorAgent
                     string contractId;
                     if (_contractService != null)
                     {
-                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol.ConfigureAwait(false).ConfigureAwait(false);
+                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol.ConfigureAwait(false);
                     }
                     else
                     {
@@ -477,7 +477,7 @@ namespace OrchestratorAgent
                             decimal? net = null!;
                             try
                             {
-                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
+                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct).ConfigureAwait(false);
                                 if (j.ValueKind == System.Text.Json.JsonValueKind.Object && j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
                             }
                             catch { }
@@ -485,7 +485,7 @@ namespace OrchestratorAgent
                             {
                                 try
                                 {
-                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
+                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", cancellationToken: ct).ConfigureAwait(false);
                                     if (j.ValueKind == System.Text.Json.JsonValueKind.Object)
                                     {
                                         if (j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
@@ -631,7 +631,7 @@ namespace OrchestratorAgent
                                 // Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
                                 if (_intelligenceOrchestrator != null)
                                 {
-                                    var prediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol).ConfigureAwait(false).ConfigureAwait(false);
+                                    var prediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol).ConfigureAwait(false);
                                     P_cloud = prediction.Confidence;
                                     _log.LogDebug("[ML_GATE] Cloud prediction for {Symbol}: confidence={Confidence}", s.Symbol, P_cloud);
                                 }
@@ -647,7 +647,7 @@ namespace OrchestratorAgent
                                     try
                                     {
                                         // Try to get online prediction from intelligence orchestrator
-                                        var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId).ConfigureAwait(false).ConfigureAwait(false);
+                                        var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId).ConfigureAwait(false);
                                         P_online = onlinePrediction?.Confidence ?? 0.7;
                                         _log.LogDebug("[ML_GATE] Online prediction for {Symbol} {Strategy}: confidence={Confidence}", s.Symbol, s.StrategyId, P_online);
                                     }
@@ -780,8 +780,8 @@ namespace OrchestratorAgent
                     {
                         await Retry(async () =>
                         {
-                            var pos = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
-                            var ord = await router.QueryOpenOrdersAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
+                            var pos = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false);
+                            var ord = await router.QueryOpenOrdersAsync(_accountId, ct).ConfigureAwait(false);
                             _status.Set("broker.positions.count", pos?.Count ?? 0);
                             _status.Set("broker.orders.count", ord?.Count ?? 0);
                             await router.EnsureBracketsAsync(_accountId, ct).ConfigureAwait(false);
@@ -878,7 +878,7 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        var verificationResult = await _verifier.VerifyTodayAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                        var verificationResult = await _verifier.VerifyTodayAsync(ct).ConfigureAwait(false);
                         _lastVerify = DateTime.UtcNow;
                         
                         if (verificationResult != null)

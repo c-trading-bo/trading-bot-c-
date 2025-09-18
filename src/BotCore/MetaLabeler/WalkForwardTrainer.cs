@@ -70,7 +70,7 @@ public class WalkForwardTrainer
             foldNumber++;
             Console.WriteLine($"[WALK-FORWARD] Processing fold {foldNumber}...");
 
-            var fold = await ProcessFoldAsync(currentDate, foldNumber, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var fold = await ProcessFoldAsync(currentDate, foldNumber, ct).ConfigureAwait(false);
             results.Folds.Add(fold);
 
             // Move to next fold
@@ -120,8 +120,8 @@ public class WalkForwardTrainer
         try
         {
             // Get training data
-            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
-            var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct).ConfigureAwait(false);
+            var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct).ConfigureAwait(false);
 
             fold.TrainingSamples = trainLabeled.Count;
 
@@ -133,12 +133,12 @@ public class WalkForwardTrainer
             }
 
             // Train model using ML framework
-            var modelPath = await TrainModelAsync(trainLabeled, foldNumber, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var modelPath = await TrainModelAsync(trainLabeled, foldNumber, ct).ConfigureAwait(false);
             fold.ModelPath = modelPath;
 
             // Get test data (respecting embargo period)
-            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
-            var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct).ConfigureAwait(false);
+            var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct).ConfigureAwait(false);
 
             fold.TestSamples = testLabeled.Count;
 
@@ -149,7 +149,7 @@ public class WalkForwardTrainer
             }
 
             // Evaluate model on test set
-            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct).ConfigureAwait(false);
             fold.Metrics = metrics;
             fold.Status = FoldStatus.Completed;
 
@@ -236,11 +236,11 @@ public class WalkForwardTrainer
             // Load and use sophisticated ONNX model for real ML inference
             Console.WriteLine($"[WALK-FORWARD] Loading ONNX model for evaluation: {modelPath}");
             
-            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
+            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
             if (session == null)
             {
                 Console.WriteLine($"[WALK-FORWARD] Failed to load ONNX model, falling back to feature-based prediction");
-                return await EvaluateWithFeatureBasedPrediction(testData).ConfigureAwait(false).ConfigureAwait(false);
+                return await EvaluateWithFeatureBasedPrediction(testData).ConfigureAwait(false);
             }
 
             var predictions = new List<decimal>();
@@ -248,7 +248,7 @@ public class WalkForwardTrainer
             foreach (var testSample in testData)
             {
                 // Use sophisticated ONNX model inference for predictions
-                var prediction = await RunOnnxInferenceAsync(session, testSample).ConfigureAwait(false).ConfigureAwait(false);
+                var prediction = await RunOnnxInferenceAsync(session, testSample).ConfigureAwait(false);
                 predictions.Add(prediction);
             }
 

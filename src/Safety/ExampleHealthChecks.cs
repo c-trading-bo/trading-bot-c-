@@ -40,7 +40,7 @@ public class MLLearningHealthCheck : IHealthCheck
             }
 
             // Validate state file structure
-            var stateContent = await System.IO.File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var stateContent = await System.IO.File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(stateContent) || !stateContent.Contains("lastPractice"))
             {
                 return HealthCheckResult.Failed("ML learning state file is corrupted or invalid");
@@ -106,7 +106,7 @@ public class StrategySignalHealthCheck : IHealthCheck
             {
                 try
                 {
-                    var content = await System.IO.File.ReadAllTextAsync(configFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var content = await System.IO.File.ReadAllTextAsync(configFile, cancellationToken).ConfigureAwait(false);
                     if (content.Contains("maxTrades") && content.Contains("entryMode"))
                     {
                         validConfigs++;

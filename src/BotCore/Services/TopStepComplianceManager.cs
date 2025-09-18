@@ -412,5 +412,5 @@ public class ComplianceReport
     public decimal ProgressToTarget { get; set; }
     public bool IsOnTrack { get; set; }
     public int MinimumDaysRemaining { get; set; }
-    public List<string> Recommendations { get; set; } = new();
+    public List<string> Recommendations { get; } = new();
 }

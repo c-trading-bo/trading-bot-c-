@@ -164,7 +164,7 @@ public class OnnxEnsembleWrapper : IDisposable
         }
 
         await _inferenceWriter.WriteAsync(request, cancellationToken).ConfigureAwait(false);
-        return await tcs.Task.ConfigureAwait(false).ConfigureAwait(false);
+        return await tcs.Task.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -267,7 +267,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             foreach (var group in featureGroups)
             {
-                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false).ConfigureAwait(false);
+                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false);
                 
                 for (int i = 0; i < group.Count; i++)
                 {
@@ -327,7 +327,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             try
             {
-                var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures).ConfigureAwait(false).ConfigureAwait(false);
+                var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures).ConfigureAwait(false);
                 
                 for (int i = 0; i < batchSize; i++)
                 {
@@ -602,7 +602,7 @@ public class InferenceRequest
 /// </summary>
 public class EnsemblePrediction
 {
-    public Dictionary<string, ModelPrediction> Predictions { get; set; } = new();
+    public Dictionary<string, ModelPrediction> Predictions { get; } = new();
     public float EnsembleResult { get; set; }
     public double Confidence { get; set; }
     public double LatencyMs { get; set; }

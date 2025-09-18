@@ -192,7 +192,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
                 
-                var response = await client.GetStringAsync("http://localhost:5051/mechanic/health").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.GetStringAsync("http://localhost:5051/mechanic/health").ConfigureAwait(false);
                 return response;
             }
             catch (Exception ex)
@@ -212,7 +212,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/scan").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.GetAsync("http://localhost:5051/mechanic/scan").ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -232,7 +232,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/fix").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.GetAsync("http://localhost:5051/mechanic/fix").ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -252,10 +252,10 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/ultimate-metrics").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.GetAsync("http://localhost:5051/mechanic/ultimate-metrics").ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
+                    return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 }
                 return null;
             }
@@ -276,7 +276,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromMinutes(5); // Longer timeout for preparation
                 
-                var response = await client.PostAsync("http://localhost:5051/mechanic/prepare-workflows", null).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.PostAsync("http://localhost:5051/mechanic/prepare-workflows", null).ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

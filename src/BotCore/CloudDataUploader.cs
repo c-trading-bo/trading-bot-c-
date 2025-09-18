@@ -145,7 +145,7 @@ namespace BotCore
                 await ConvertJsonlToParquetAsync(jsonlPath, tempParquetPath).ConfigureAwait(false);
 
                 // Upload to S3 using AWS CLI (since AWS SDK would add dependencies)
-                var success = await UploadToS3Async(tempParquetPath, s3Key).ConfigureAwait(false).ConfigureAwait(false);
+                var success = await UploadToS3Async(tempParquetPath, s3Key).ConfigureAwait(false);
 
                 if (success)
                 {
@@ -197,7 +197,7 @@ namespace BotCore
             // In a full implementation, you'd use a proper parquet library
             var csvPath = parquetPath.Replace(".parquet", ".csv");
 
-            var lines = await File.ReadAllLinesAsync(jsonlPath).ConfigureAwait(false).ConfigureAwait(false);
+            var lines = await File.ReadAllLinesAsync(jsonlPath).ConfigureAwait(false);
             if (lines.Length == 0) return;
 
             // Parse first line to get column headers
@@ -267,8 +267,8 @@ namespace BotCore
                 using var process = System.Diagnostics.Process.Start(processInfo);
                 if (process == null) return false;
 
-                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
-                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
                 await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode == 0)

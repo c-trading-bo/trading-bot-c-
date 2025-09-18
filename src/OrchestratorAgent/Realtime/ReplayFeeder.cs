@@ -14,7 +14,7 @@ namespace OrchestratorAgent.Realtime
             string? line;
             while ((line = await r.ReadLineAsync(ct)) != null)
             {
-                ct.ThrowIfCancellationRequested().ConfigureAwait(false).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested().ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(line);
                 yield return (doc.RootElement.GetProperty("type").GetString()!,
                               doc.RootElement.GetProperty("data"));

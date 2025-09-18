@@ -154,7 +154,7 @@ public class FeatureDemonstrationService : BackgroundService
         await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Let execution start
 
         // Get real orchestrator status
-        var status = await _unifiedOrchestrator.GetStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var status = await _unifiedOrchestrator.GetStatusAsync().ConfigureAwait(false);
         
         _logger.LogInformation("📊 [FEATURE_DEMO] Active workflows: {ActiveWorkflows}", status.ActiveWorkflows);
         _logger.LogInformation("📊 [FEATURE_DEMO] Total workflows: {TotalWorkflows}", status.TotalWorkflows);
@@ -176,7 +176,7 @@ public class FeatureDemonstrationService : BackgroundService
             {
                 // Test actual Python model call
                 var testInput = "{\"symbol\": \"ES\", \"side\": \"BUY\", \"signal\": \"bullish_momentum\"}";
-                var decision = await _decisionServiceClient.GetDecisionAsync(testInput, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var decision = await _decisionServiceClient.GetDecisionAsync(testInput, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("🐍 [FEATURE_DEMO] Python model decision result: {Decision}", decision);
                 _logger.LogInformation("🐍 [FEATURE_DEMO] Python process invoked successfully!");
@@ -215,7 +215,7 @@ public class FeatureDemonstrationService : BackgroundService
                     try
                     {
                         // Try to load the model (this will use fallback if ONNX packages are missing)
-                        var session = await _onnxModelLoader.LoadModelAsync(modelPath, validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
+                        var session = await _onnxModelLoader.LoadModelAsync(modelPath, validateInference: false).ConfigureAwait(false);
                         
                         if (session != null)
                         {

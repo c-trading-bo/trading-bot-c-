@@ -308,9 +308,9 @@ namespace BotCore.Services
         public int TotalTrades { get; set; }
         public int WinningTrades { get; set; }
         public double WinRate => TotalTrades > 0 ? (double)WinningTrades / TotalTrades : 0;
-        public Dictionary<int, int> TradesByHour { get; set; } = new();
-        public Dictionary<int, int> WinsByHour { get; set; } = new();
-        public Dictionary<int, double> WinRateByHour { get; set; } = new();
+        public Dictionary<int, int> TradesByHour { get; } = new();
+        public Dictionary<int, int> WinsByHour { get; } = new();
+        public Dictionary<int, double> WinRateByHour { get; } = new();
         public double TotalPnL { get; set; }
         public double AveragePnL => TotalTrades > 0 ? TotalPnL / TotalTrades : 0;
         public double AverageWin { get; set; }

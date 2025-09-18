@@ -111,11 +111,11 @@ namespace BotCore.Infrastructure
                     apiKey = apiKey // Note: We use apiKey, not password - safer for API authentication
                 };
 
-                var response = await client.PostAsJsonAsync("/auth/login", loginRequest, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await client.PostAsJsonAsync("/auth/login", loginRequest, cancellationToken).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     
                     // Parse JWT token from response (implementation depends on API response format)
                     var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(responseContent);
@@ -193,7 +193,7 @@ namespace BotCore.Infrastructure
         {
             var client = _httpClientFactory.CreateClient("TopstepX");
             
-            var token = await _tokenHandler.GetValidTokenAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var token = await _tokenHandler.GetValidTokenAsync(cancellationToken).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(token))
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

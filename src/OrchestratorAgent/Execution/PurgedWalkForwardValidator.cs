@@ -291,7 +291,7 @@ namespace OrchestratorAgent.Execution
     public class StrategyParameters
     {
         public string StrategyName { get; set; } = "";
-        public Dictionary<string, object> Parameters { get; set; } = new();
+        public Dictionary<string, object> Parameters { get; } = new();
 
         public override bool Equals(object? obj)
         {
@@ -313,7 +313,7 @@ namespace OrchestratorAgent.Execution
         public StrategyParameters Parameters { get; set; } = new();
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<ValidationFold> FoldResults { get; set; } = new();
+        public List<ValidationFold> FoldResults { get; } = new();
 
         // Aggregate statistics
         public double OverallWinRate { get; set; }

@@ -48,7 +48,7 @@ public class ContractService : IContractService
         try
         {
             // Try available-first approach
-            var contractId = await TryAvailableFirstAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var contractId = await TryAvailableFirstAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             if (!string.IsNullOrEmpty(contractId))
             {
@@ -68,7 +68,7 @@ public class ContractService : IContractService
 
             // Fallback to search if available returned empty
             _logger.LogWarning("contract: available empty → fallback to search for symbol {Symbol}", symbol);
-            contractId = await TrySearchFallbackAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            contractId = await TrySearchFallbackAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             if (!string.IsNullOrEmpty(contractId))
             {
@@ -100,11 +100,11 @@ public class ContractService : IContractService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/Contract/available?live=false&symbol={symbol}", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"/Contract/available?live=false&symbol={symbol}", cancellationToken).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(content);
                 
                 if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
@@ -136,11 +136,11 @@ public class ContractService : IContractService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/Contract/search?symbol={symbol}&frontMonth=true", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"/Contract/search?symbol={symbol}&frontMonth=true", cancellationToken).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(content);
                 
                 if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)

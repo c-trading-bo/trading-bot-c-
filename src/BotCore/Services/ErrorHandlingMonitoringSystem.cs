@@ -51,7 +51,7 @@ namespace TopstepX.Bot.Core.Services
             public int ErrorCount { get; set; }
             public double SuccessRate { get; set; } = 100.0;
             public long ResponseTimeMs { get; set; }
-            public Dictionary<string, object> Metrics { get; set; } = new();
+            public Dictionary<string, object> Metrics { get; } = new();
         }
         
         public enum ErrorSeverity
@@ -513,7 +513,7 @@ namespace TopstepX.Bot.Core.Services
         public bool IsHealthy { get; set; }
         public double OverallHealthScore { get; set; }
         public DateTime Timestamp { get; set; }
-        public Dictionary<string, object> ComponentHealthSummary { get; set; } = new();
+        public Dictionary<string, object> ComponentHealthSummary { get; } = new();
     }
     
     public class SystemHealthStatus

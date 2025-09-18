@@ -69,7 +69,7 @@ public class EnhancedTradingBrainIntegration
             var risk = CreateSampleRisk();
             
             var originalBrainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false);
             
             if (!_isEnhancementActive)
             {
@@ -91,17 +91,17 @@ public class EnhancedTradingBrainIntegration
             
             // Get ensemble strategy prediction
             var strategyPrediction = await _ensembleService.GetStrategySelectionPredictionAsync(
-                contextVector, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                contextVector, availableStrategies, cancellationToken).ConfigureAwait(false);
             
             // Get ensemble price direction prediction
             var pricePrediction = await _ensembleService.GetPriceDirectionPredictionAsync(
-                marketFeatures, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                marketFeatures, cancellationToken).ConfigureAwait(false);
             
             // Get ensemble CVaR action
             var convertedDecision = ConvertBrainToTradingDecision(originalBrainDecision);
             var state = CreateStateVector(marketContext, convertedDecision);
             var ensembleAction = await _ensembleService.GetEnsembleActionAsync(
-                state, true, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                state, true, cancellationToken).ConfigureAwait(false);
             
             // Step 3: Enhance the original decision using ensemble insights
             var enhancedDecision = EnhanceDecision(
@@ -133,7 +133,7 @@ public class EnhancedTradingBrainIntegration
                 var risk = CreateSampleRisk();
                 
                 var originalBrainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                    symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false);
                 
                 return new EnhancedTradingDecision
                 {

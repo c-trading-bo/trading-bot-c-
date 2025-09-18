@@ -128,7 +128,7 @@ public class HealthCheckDiscovery
         try
         {
             // Get all current health checks
-            var currentChecks = await DiscoverHealthChecksAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var currentChecks = await DiscoverHealthChecksAsync().ConfigureAwait(false);
             var monitoredFeatures = currentChecks.Select(c => c.Name.ToLower()).ToHashSet();
 
             // Scan for potential features that need monitoring

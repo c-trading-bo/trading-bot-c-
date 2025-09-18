@@ -87,7 +87,7 @@ namespace BotCore
             for (var i = 1; i <= maxAttempts; i++)
             {
                 await WaitForConnected(hub, TimeSpan.FromSeconds(30), ct, log).ConfigureAwait(false);
-                try { return await call().ConfigureAwait(false).ConfigureAwait(false); }
+                try { return await call().ConfigureAwait(false); }
                 catch (InvalidOperationException) { /* state may have flipped mid-invoke */ }
                 catch (Microsoft.AspNetCore.SignalR.HubException) { /* transient */ }
                 catch (TaskCanceledException) { /* transient */ }

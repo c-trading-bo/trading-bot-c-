@@ -80,7 +80,7 @@ public class UnifiedDecisionRouter
             _logger.LogDebug("🎯 [DECISION-ROUTER] Routing decision for {Symbol}", symbol);
             
             // Step 1: Try Enhanced Brain Integration (Primary)
-            var decision = await TryEnhancedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await TryEnhancedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
@@ -94,7 +94,7 @@ public class UnifiedDecisionRouter
             }
             
             // Step 2: Try Unified Trading Brain (Secondary)
-            decision = await TryUnifiedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            decision = await TryUnifiedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
@@ -108,7 +108,7 @@ public class UnifiedDecisionRouter
             }
             
             // Step 3: Try Intelligence Orchestrator (Fallback)
-            decision = await TryIntelligenceOrchestratorAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            decision = await TryIntelligenceOrchestratorAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
@@ -161,7 +161,7 @@ public class UnifiedDecisionRouter
             var availableStrategies = GetAvailableStrategies(marketContext);
             
             var enhancedDecision = await _enhancedBrain.MakeEnhancedDecisionAsync(
-                symbol, enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                symbol, enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false);
             
             if (enhancedDecision?.EnhancementApplied == true)
             {
@@ -194,7 +194,7 @@ public class UnifiedDecisionRouter
             var risk = CreateRiskEngine();
             
             var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
-                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false);
             
             return ConvertFromBrainDecision(brainDecision);
         }
@@ -216,7 +216,7 @@ public class UnifiedDecisionRouter
         try
         {
             var abstractionContext = EnhanceMarketContext(marketContext);
-            var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken).ConfigureAwait(false);
             
             return ConvertFromAbstractionDecision(decision);
         }
@@ -699,7 +699,7 @@ public class UnifiedTradingDecision
     public decimal Quantity { get; set; }
     public string Strategy { get; set; } = string.Empty;
     public string DecisionSource { get; set; } = string.Empty;
-    public Dictionary<string, object> Reasoning { get; set; } = new();
+    public Dictionary<string, object> Reasoning { get; } = new();
     public DateTime Timestamp { get; set; }
     public double ProcessingTimeMs { get; set; }
 }
@@ -710,7 +710,7 @@ public class MarketAnalysis
 {
     public bool IsUptrend { get; set; }
     public decimal Strength { get; set; }
-    public List<string> Signals { get; set; } = new();
+    public List<string> Signals { get; } = new();
 }
 
 public class DecisionOutcome
@@ -732,7 +732,7 @@ public class DecisionOutcome
 
 public class DecisionRouterStats
 {
-    public List<SourceStats> SourceStats { get; set; } = new();
+    public List<SourceStats> SourceStats { get; } = new();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 

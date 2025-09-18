@@ -124,8 +124,8 @@ public class AutomatedPromotionService : BackgroundService
             }
 
             // Get current champion and potential challengers
-            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var allModels = await _modelRegistry.GetModelsAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
+            var allModels = await _modelRegistry.GetModelsAsync(algorithm, cancellationToken).ConfigureAwait(false);
             
             // Find validated but not promoted models as potential challengers
             var challengers = allModels
@@ -140,7 +140,7 @@ public class AutomatedPromotionService : BackgroundService
                 
                 // Validate challenger against champion
                 var validationResult = await _validationService.ValidateChallengerAsync(
-                    challenger.VersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    challenger.VersionId, cancellationToken).ConfigureAwait(false);
                 
                 if (validationResult.Outcome == ValidationOutcome.Passed)
                 {
@@ -167,7 +167,7 @@ public class AutomatedPromotionService : BackgroundService
         try
         {
             // Get next safe promotion window
-            var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false);
             if (nextSafeWindow == null)
             {
                 _logger.LogWarning("[AUTO-PROMOTION] No safe window available for {Algorithm} promotion", algorithm);
@@ -235,7 +235,7 @@ public class AutomatedPromotionService : BackgroundService
                 promotion.Algorithm, promotion.ChallengerVersionId);
 
             // Safety checks before promotion
-            var safetyPassed = await PerformSafetyChecksAsync(promotion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var safetyPassed = await PerformSafetyChecksAsync(promotion, cancellationToken).ConfigureAwait(false);
             if (!safetyPassed)
             {
                 promotion.Status = "FAILED_SAFETY_CHECKS";
@@ -261,7 +261,7 @@ public class AutomatedPromotionService : BackgroundService
                 promotion.Algorithm, 
                 promotion.ChallengerVersionId, 
                 $"Automated gradual rollout - Step 1 ({_initialPositionSizeLimit:P0} position limit)",
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (promotionSuccess)
             {
@@ -329,11 +329,11 @@ public class AutomatedPromotionService : BackgroundService
             }
 
             // Collect health metrics for current step
-            var healthMetric = await CollectRolloutHealthMetricAsync(rollout, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var healthMetric = await CollectRolloutHealthMetricAsync(rollout, cancellationToken).ConfigureAwait(false);
             rollout.HealthMetrics.Add(healthMetric);
 
             // Check if rollout is healthy
-            var isHealthy = await AssessRolloutHealthAsync(rollout, healthMetric, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var isHealthy = await AssessRolloutHealthAsync(rollout, healthMetric, cancellationToken).ConfigureAwait(false);
             
             if (!isHealthy)
             {
@@ -422,7 +422,7 @@ public class AutomatedPromotionService : BackgroundService
                 rollout.Algorithm, reason);
 
             var rollbackSuccess = await _promotionService.RollbackToPreviousAsync(
-                rollout.Algorithm, $"Automated rollback: {reason}", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                rollout.Algorithm, $"Automated rollback: {reason}", cancellationToken).ConfigureAwait(false);
 
             rollout.Status = rollbackSuccess ? "ROLLED_BACK" : "ROLLBACK_FAILED";
             rollout.CompletedAt = DateTime.UtcNow;
@@ -457,7 +457,7 @@ public class AutomatedPromotionService : BackgroundService
         try
         {
             // Check 1: Market is in safe window
-            var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false);
             if (!isInSafeWindow)
             {
                 _logger.LogWarning("[AUTO-PROMOTION] Safety check failed: not in safe promotion window");
@@ -673,7 +673,7 @@ public class GradualRolloutState
     public int StepNumber { get; set; }
     public int MaxSteps { get; set; }
     public string Status { get; set; } = string.Empty;
-    public List<RolloutHealthMetric> HealthMetrics { get; set; } = new();
+    public List<RolloutHealthMetric> HealthMetrics { get; } = new();
 }
 
 /// <summary>
@@ -703,7 +703,7 @@ public class PromotionHealthCheck
     public string ChallengerVersionId { get; set; } = string.Empty;
     public int StepNumber { get; set; }
     public bool IsHealthy { get; set; }
-    public List<string> Issues { get; set; } = new();
+    public List<string> Issues { get; } = new();
 }
 
 /// <summary>
@@ -716,9 +716,9 @@ public class AutomatedPromotionStatus
     public int RecentHealthChecksCount { get; set; }
     public DateTime LastCheckTime { get; set; }
     
-    public List<PromotionSchedule> ScheduledPromotions { get; set; } = new();
-    public List<GradualRolloutState> ActiveRollouts { get; set; } = new();
-    public List<PromotionHealthCheck> RecentHealthChecks { get; set; } = new();
+    public List<PromotionSchedule> ScheduledPromotions { get; } = new();
+    public List<GradualRolloutState> ActiveRollouts { get; } = new();
+    public List<PromotionHealthCheck> RecentHealthChecks { get; } = new();
 }
 
 #endregion

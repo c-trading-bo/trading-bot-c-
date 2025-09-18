@@ -223,7 +223,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        return await Task.FromResult(issues).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(issues).ConfigureAwait(false);
     }
 
     public async Task<TimeSpan> CheckTimeSynchronizationAsync()
@@ -233,7 +233,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             var systemTime = DateTime.UtcNow;
             
             // Simulate NTP check (in production, use actual NTP client)
-            var ntpTime = await SimulateNtpQueryAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var ntpTime = await SimulateNtpQueryAsync().ConfigureAwait(false);
             _timeSkew = systemTime - ntpTime;
             _lastNtpSync = systemTime;
 
@@ -366,10 +366,10 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
     {
         if (_qualityMetrics.TryGetValue(symbol, out var metrics))
         {
-            return await Task.FromResult(metrics.Clone()).ConfigureAwait(false).ConfigureAwait(false);
+            return await Task.FromResult(metrics.Clone()).ConfigureAwait(false);
         }
 
-        return await Task.FromResult(new DataQualityMetrics { Symbol = symbol }).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(new DataQualityMetrics { Symbol = symbol }).ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -681,7 +681,7 @@ public class DataQualityReport
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
-    public List<DataQualityIssue> Issues { get; set; } = new();
+    public List<DataQualityIssue> Issues { get; } = new();
     public bool HasIssues => Issues.Any();
     public int CriticalIssueCount => Issues.Count(i => i.Severity == DataQualitySeverity.Critical);
 }
@@ -694,7 +694,7 @@ public class DataQualityIssue
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class DataQualityMetrics

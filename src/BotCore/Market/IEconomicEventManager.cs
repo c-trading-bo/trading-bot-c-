@@ -74,7 +74,7 @@ public class EconomicEvent
     public EventImpact Impact { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<string> AffectedSymbols { get; set; } = new();
+    public List<string> AffectedSymbols { get; } = new();
     public bool IsActual { get; set; }
     public string? ActualValue { get; set; }
     public string? ForecastValue { get; set; }
@@ -90,7 +90,7 @@ public class TradingRestriction
     public bool IsRestricted { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTime RestrictedUntil { get; set; }
-    public List<EconomicEvent> CausingEvents { get; set; } = new();
+    public List<EconomicEvent> CausingEvents { get; } = new();
     public EventImpact MaxImpact { get; set; }
 }
 
@@ -101,6 +101,6 @@ public class EconomicEventAlert
 {
     public EconomicEvent Event { get; set; } = new();
     public TimeSpan TimeUntilEvent { get; set; }
-    public List<string> AffectedSymbols { get; set; } = new();
+    public List<string> AffectedSymbols { get; } = new();
     public string RecommendedAction { get; set; } = string.Empty;
 }

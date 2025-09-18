@@ -72,16 +72,16 @@ public class NightlyParameterTuner
             }
 
             // Create tuning session
-            var session = await CreateTuningSessionAsync(modelFamily, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var session = await CreateTuningSessionAsync(modelFamily, cancellationToken).ConfigureAwait(false);
             
             // Run Bayesian optimization
-            var bayesianResult = await RunBayesianOptimizationAsync(session, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var bayesianResult = await RunBayesianOptimizationAsync(session, cancellationToken).ConfigureAwait(false);
             
             // If Bayesian optimization doesn't find good parameters, try evolutionary search
             if (!bayesianResult.ImprovedBaseline)
             {
                 _logger.LogInformation("[NIGHTLY_TUNING] Bayesian optimization didn't improve baseline, trying evolutionary search");
-                var evolutionaryResult = await RunEvolutionarySearchAsync(session, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var evolutionaryResult = await RunEvolutionarySearchAsync(session, cancellationToken).ConfigureAwait(false);
                 
                 if (evolutionaryResult.ImprovedBaseline)
                 {
@@ -153,8 +153,8 @@ public class NightlyParameterTuner
         };
 
         // Initialize with baseline parameters
-        var baseline = await GetBaselineParametersAsync(session.ModelFamily, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        result.BaselineMetrics = await EvaluateParametersAsync(session.ModelFamily, baseline, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var baseline = await GetBaselineParametersAsync(session.ModelFamily, cancellationToken).ConfigureAwait(false);
+        result.BaselineMetrics = await EvaluateParametersAsync(session.ModelFamily, baseline, cancellationToken).ConfigureAwait(false);
         
         var bestParameters = new Dictionary<string, double>(baseline);
         var bestMetrics = result.BaselineMetrics;
@@ -170,7 +170,7 @@ public class NightlyParameterTuner
             var candidateParams = GenerateNextCandidateByesian(session, trial);
             
             // Evaluate candidate parameters
-            var candidateMetrics = await EvaluateParametersAsync(session.ModelFamily, candidateParams, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var candidateMetrics = await EvaluateParametersAsync(session.ModelFamily, candidateParams, cancellationToken).ConfigureAwait(false);
             
             // Update session history
             session.TrialHistory.Add(new TrialResult
@@ -227,7 +227,7 @@ public class NightlyParameterTuner
 
         // Initialize population
         var populationSize = Math.Min(20, _config.Trials / 3);
-        var population = await InitializePopulationAsync(session.ModelFamily, populationSize, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var population = await InitializePopulationAsync(session.ModelFamily, populationSize, cancellationToken).ConfigureAwait(false);
         
         var generations = _config.Trials / populationSize;
         var bestIndividual = population.OrderByDescending(ind => ind.Fitness).First();
@@ -243,12 +243,12 @@ public class NightlyParameterTuner
                 break;
 
             // Selection, crossover, and mutation
-            var newPopulation = await EvolvePopulationAsync(population, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var newPopulation = await EvolvePopulationAsync(population, cancellationToken).ConfigureAwait(false);
             
             // Evaluate new individuals
             foreach (var individual in newPopulation.Where(ind => ind.Metrics == null))
             {
-                individual.Metrics = await EvaluateParametersAsync(session.ModelFamily, individual.Parameters, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                individual.Metrics = await EvaluateParametersAsync(session.ModelFamily, individual.Parameters, cancellationToken).ConfigureAwait(false);
                 individual.Fitness = CalculateFitness(individual.Metrics);
                 result.TrialsCompleted++;
             }
@@ -291,7 +291,7 @@ public class NightlyParameterTuner
                 StartTime = DateTime.UtcNow,
                 ParameterSpace = GetParameterSpace(),
                 TrialHistory = new List<TrialResult>()
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
 
             lock (_lock)
             {
@@ -354,14 +354,14 @@ public class NightlyParameterTuner
         var baselineTask = Task.Run(async () =>
         {
             // Step 1: Try to load from historical tuning results
-            var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false);
             if (historicalParams != null)
             {
                 return historicalParams;
             }
 
             // Step 2: Load from model registry if available
-            var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false);
             if (registryParams != null)
             {
                 return registryParams;
@@ -371,7 +371,7 @@ public class NightlyParameterTuner
             return GetIntelligentDefaultsAsync(modelFamily, cancellationToken).Result;
         }, cancellationToken);
 
-        return await baselineTask.ConfigureAwait(false).ConfigureAwait(false);
+        return await baselineTask.ConfigureAwait(false);
     }
 
     private async Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
@@ -383,7 +383,7 @@ public class NightlyParameterTuner
                 var bestResult = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.BestMetrics?.AUC ?? 0)
-                    .FirstOrDefault().ConfigureAwait(false).ConfigureAwait(false);
+                    .FirstOrDefault().ConfigureAwait(false);
 
                 return bestResult?.BestParameters;
             }
@@ -398,10 +398,10 @@ public class NightlyParameterTuner
             try
             {
                 // Load from model registry
-                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json").ConfigureAwait(false).ConfigureAwait(false);
+                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json").ConfigureAwait(false);
                 if (File.Exists(configPath))
                 {
-                    var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
                     var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
                     if (config?.TryGetValue("parameters", out var paramsObj) == true)
                     {
@@ -433,7 +433,7 @@ public class NightlyParameterTuner
                 ["dropout_rate"] = 0.1,
                 ["l2_regularization"] = 1e-4,
                 ["ensemble_size"] = 5
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
 
             // Adjust defaults based on model family characteristics
             if (modelFamily.Contains("LSTM", StringComparison.OrdinalIgnoreCase))
@@ -542,7 +542,7 @@ public class NightlyParameterTuner
                 parameters[paramName] = SampleFromRange(range);
             }
             
-            var metrics = await EvaluateParametersAsync(modelFamily, parameters, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await EvaluateParametersAsync(modelFamily, parameters, cancellationToken).ConfigureAwait(false);
             
             population.Add(new Individual
             {
@@ -565,7 +565,7 @@ public class NightlyParameterTuner
         var eliteTask = Task.Run(() => 
             population.OrderByDescending(ind => ind.Fitness).Take(population.Count / 5).ToList(), 
             cancellationToken);
-        var elite = await eliteTask.ConfigureAwait(false).ConfigureAwait(false);
+        var elite = await eliteTask.ConfigureAwait(false);
         newPopulation.AddRange(elite);
         
         // Generate offspring through crossover and mutation - parallelized for production
@@ -587,7 +587,7 @@ public class NightlyParameterTuner
         }
         
         // Await all offspring generation and add to population
-        var offspring = await Task.WhenAll(offspringTasks).ConfigureAwait(false).ConfigureAwait(false);
+        var offspring = await Task.WhenAll(offspringTasks).ConfigureAwait(false);
         newPopulation.AddRange(offspring);
         
         return newPopulation;
@@ -741,8 +741,8 @@ public class NightlyParameterTuner
             return currentMetrics.AUC > 0 && currentMetrics.PrAt10 > 0 && currentMetrics.EdgeBps > 0;
         }, cancellationToken);
 
-        var shouldRollback = await analysisTask.ConfigureAwait(false).ConfigureAwait(false);
-        var isValidMetrics = await validationTask.ConfigureAwait(false).ConfigureAwait(false);
+        var shouldRollback = await analysisTask.ConfigureAwait(false);
+        var isValidMetrics = await validationTask.ConfigureAwait(false);
 
         // Only rollback if metrics are valid and show degradation
         return shouldRollback && isValidMetrics;
@@ -797,7 +797,7 @@ public class NightlyParameterTuner
             }, cancellationToken);
 
             // Step 3: Execute rollback operations concurrently
-            var stableVersion = await stableVersionTask.ConfigureAwait(false).ConfigureAwait(false);
+            var stableVersion = await stableVersionTask.ConfigureAwait(false);
             await rollbackConfigTask.ConfigureAwait(false);
 
             // Step 4: Restore stable parameters
@@ -806,7 +806,7 @@ public class NightlyParameterTuner
                 var parameterBackupPath = Path.Combine(_statePath, "backups", $"{modelFamily}_stable_parameters.json");
                 if (File.Exists(parameterBackupPath))
                 {
-                    var parametersJson = await File.ReadAllTextAsync(parameterBackupPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var parametersJson = await File.ReadAllTextAsync(parameterBackupPath, cancellationToken).ConfigureAwait(false);
                     var parameters = JsonSerializer.Deserialize<Dictionary<string, double>>(parametersJson);
                     
                     // Apply stable parameters to model registry via re-registration
@@ -909,7 +909,7 @@ public class NightlyTuningResult
     public string? SkipReason { get; set; }
     public string? ErrorMessage { get; set; }
     public TuningMethod Method { get; set; }
-    public Dictionary<string, double> BestParameters { get; set; } = new();
+    public Dictionary<string, double> BestParameters { get; } = new();
     public ModelMetrics BaselineMetrics { get; set; } = new();
     public ModelMetrics BestMetrics { get; set; } = new();
     public int TrialsCompleted { get; set; }
@@ -923,7 +923,7 @@ public class OptimizationResult
     public TuningMethod Method { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
-    public Dictionary<string, double> BestParameters { get; set; } = new();
+    public Dictionary<string, double> BestParameters { get; } = new();
     public ModelMetrics BaselineMetrics { get; set; } = new();
     public ModelMetrics BestMetrics { get; set; } = new();
     public int TrialsCompleted { get; set; }
@@ -935,14 +935,14 @@ public class TuningSession
     public string SessionId { get; set; } = string.Empty;
     public string ModelFamily { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
-    public Dictionary<string, ParameterRange> ParameterSpace { get; set; } = new();
-    public List<TrialResult> TrialHistory { get; set; } = new();
+    public Dictionary<string, ParameterRange> ParameterSpace { get; } = new();
+    public List<TrialResult> TrialHistory { get; } = new();
 }
 
 public class TrialResult
 {
     public int TrialNumber { get; set; }
-    public Dictionary<string, double> Parameters { get; set; } = new();
+    public Dictionary<string, double> Parameters { get; } = new();
     public ModelMetrics Metrics { get; set; } = new();
     public DateTime Timestamp { get; set; }
 }
@@ -957,7 +957,7 @@ public class ParameterRange
 
 public class Individual
 {
-    public Dictionary<string, double> Parameters { get; set; } = new();
+    public Dictionary<string, double> Parameters { get; } = new();
     public ModelMetrics? Metrics { get; set; }
     public double Fitness { get; set; }
 }

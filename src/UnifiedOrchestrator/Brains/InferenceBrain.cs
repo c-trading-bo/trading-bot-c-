@@ -107,23 +107,23 @@ public class InferenceBrain : IInferenceBrain
             // PPO Decision (if available)
             if (ppoModel != null && ppoVersion != null)
             {
-                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken).ConfigureAwait(false);
             }
             
             // UCB Decision (if available)
             if (ucbModel != null && ucbVersion != null)
             {
-                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken).ConfigureAwait(false);
             }
             
             // LSTM Decision (if available)
             if (lstmModel != null && lstmVersion != null)
             {
-                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken).ConfigureAwait(false);
             }
 
             // Ensemble decision making
-            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken).ConfigureAwait(false);
             
             // Build complete trading decision with full attribution
             var tradingDecision = new TradingDecision
@@ -212,7 +212,7 @@ public class InferenceBrain : IInferenceBrain
             ["PPO"] = _ppoRouter.CurrentVersion,
             ["UCB"] = _ucbRouter.CurrentVersion,
             ["LSTM"] = _lstmRouter.CurrentVersion
-        }).ConfigureAwait(false).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -220,9 +220,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<bool> IsReadyAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
         
         // At least one algorithm must be ready
         return ppoStats.IsHealthy || ucbStats.IsHealthy || lstmStats.IsHealthy;
@@ -233,9 +233,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<InferenceStats> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
         
         return new InferenceStats
         {
@@ -1166,7 +1166,7 @@ internal class PPOAnalysis
 /// </summary>
 internal class UCBAnalysis
 {
-    public List<UCBArm> Arms { get; set; } = new();
+    public List<UCBArm> Arms { get; } = new();
     public int TotalPulls { get; set; }
     public decimal ExplorationThreshold { get; set; }
     public decimal MarketVolatility { get; set; }
@@ -1193,7 +1193,7 @@ internal class LSTMAnalysis
     public decimal PredictedMagnitude { get; set; }
     public decimal PatternConfidence { get; set; }
     public decimal SequenceReliability { get; set; }
-    public List<MarketPattern> RecognizedPatterns { get; set; } = new();
+    public List<MarketPattern> RecognizedPatterns { get; } = new();
     public string TimeHorizon { get; set; } = string.Empty;
 }
 

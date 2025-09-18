@@ -89,10 +89,10 @@ public class ChampionChallengerValidationService : BackgroundService
             ModelType = "ONNX"
         };
         
-        var versionId = await _modelRegistry.RegisterModelAsync(testModel, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var versionId = await _modelRegistry.RegisterModelAsync(testModel, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("✅ Model registered with version: {VersionId}", versionId);
         
-        var retrievedModel = await _modelRegistry.GetModelAsync(versionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var retrievedModel = await _modelRegistry.GetModelAsync(versionId, cancellationToken).ConfigureAwait(false);
         if (retrievedModel != null)
         {
             _logger.LogInformation("✅ Model retrieved successfully");
@@ -104,7 +104,7 @@ public class ChampionChallengerValidationService : BackgroundService
         _logger.LogInformation("🔍 Testing Atomic Model Router...");
         
         var router = _routerFactory.CreateRouter<object>("PPO");
-        var stats = await router.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var stats = await router.GetStatsAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("✅ Router created for PPO - Algorithm: {Algorithm}, Healthy: {Healthy}", 
             stats.Algorithm, stats.IsHealthy);
@@ -116,10 +116,10 @@ public class ChampionChallengerValidationService : BackgroundService
         
         try
         {
-            var isReady = await _inferenceBrain.IsReadyAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var isReady = await _inferenceBrain.IsReadyAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("✅ Inference Brain ready: {Ready}", isReady);
             
-            var versions = await _inferenceBrain.GetChampionVersionsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var versions = await _inferenceBrain.GetChampionVersionsAsync(cancellationToken).ConfigureAwait(false);
             
             // Phase 6B: Validation Bounds - Add defensive checks for version retrieval
             var ppoVersion = versions?.GetValueOrDefault("PPO")?.VersionId;
@@ -143,7 +143,7 @@ public class ChampionChallengerValidationService : BackgroundService
                 AccountBalance = 50000
             };
             
-            var decision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false);
             
             // Phase 6B: Validation Bounds - Add defensive checks for decision properties  
             var safeAction = !string.IsNullOrEmpty(decision.Action) && decision.Action.Length <= 20 ? decision.Action : "UNKNOWN";
@@ -174,7 +174,7 @@ public class ChampionChallengerValidationService : BackgroundService
             Parameters = new Dictionary<string, object> { ["learning_rate"] = 0.001 }
         };
         
-        var trainingResult = await _trainingBrain.TrainChallengerAsync("PPO", config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var trainingResult = await _trainingBrain.TrainChallengerAsync("PPO", config, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("✅ Training completed - Success: {Success}, JobId: {JobId}, Duration: {Duration:F1}s", 
             trainingResult.Success, trainingResult.JobId, trainingResult.TrainingDuration.TotalSeconds);
     }
@@ -185,7 +185,7 @@ public class ChampionChallengerValidationService : BackgroundService
         
         try
         {
-            var status = await _promotionService.GetPromotionStatusAsync("PPO", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var status = await _promotionService.GetPromotionStatusAsync("PPO", cancellationToken).ConfigureAwait(false);
             
             // Phase 6B: Validation Bounds - Add defensive checks for promotion status
             var safeChampionVersionId = !string.IsNullOrEmpty(status.CurrentChampionVersionId) && 
@@ -198,7 +198,7 @@ public class ChampionChallengerValidationService : BackgroundService
             // Test promotion evaluation (without actual promotion)
             if (!string.IsNullOrEmpty(status.CurrentChampionVersionId))
             {
-                var decision = await _promotionService.EvaluatePromotionAsync("PPO", "test_challenger_v1", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var decision = await _promotionService.EvaluatePromotionAsync("PPO", "test_challenger_v1", cancellationToken).ConfigureAwait(false);
                 
                 // Phase 6B: Validation Bounds - Add defensive checks for promotion decision
                 var safeReason = !string.IsNullOrEmpty(decision.Reason) && decision.Reason.Length <= 200 ? 
@@ -219,9 +219,9 @@ public class ChampionChallengerValidationService : BackgroundService
     {
         _logger.LogInformation("🔍 Testing Market Hours Service...");
         
-        var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var currentSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false);
+        var currentSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false);
+        var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("✅ Market Hours - InSafeWindow: {InSafeWindow}, Session: {Session}, NextWindow: {NextWindow}", 
             isInSafeWindow, currentSession, nextSafeWindow?.ToString("yyyy-MM-dd HH:mm UTC") ?? "Unknown");

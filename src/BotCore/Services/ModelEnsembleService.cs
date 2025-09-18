@@ -47,13 +47,13 @@ public class ModelEnsembleService
             var predictions = new List<StrategyPrediction>();
             
             // Get predictions from all loaded strategy selection models
-            var strategyModels = await GetActiveModelsAsync("strategy_selection", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var strategyModels = await GetActiveModelsAsync("strategy_selection", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in strategyModels)
             {
                 try
                 {
-                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVector, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVector, availableStrategies, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -103,13 +103,13 @@ public class ModelEnsembleService
             var predictions = new List<PriceDirectionPrediction>();
             
             // Get predictions from all loaded price prediction models
-            var priceModels = await GetActiveModelsAsync("price_prediction", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var priceModels = await GetActiveModelsAsync("price_prediction", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in priceModels)
             {
                 try
                 {
-                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatures, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatures, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -159,7 +159,7 @@ public class ModelEnsembleService
             var actions = new List<ActionResult>();
             
             // Get actions from all loaded RL models
-            var rlModels = await GetActiveModelsAsync("cvar_ppo", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rlModels = await GetActiveModelsAsync("cvar_ppo", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in rlModels)
             {
@@ -167,7 +167,7 @@ public class ModelEnsembleService
                 {
                     if (model.Model is CVaRPPO cvarAgent)
                     {
-                        var action = await cvarAgent.GetActionAsync(state, deterministic, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var action = await cvarAgent.GetActionAsync(state, deterministic, cancellationToken).ConfigureAwait(false);
                         actions.Add(action);
                     }
                 }
@@ -218,7 +218,7 @@ public class ModelEnsembleService
             // Load model based on type and source
             if (modelPath.EndsWith(".onnx"))
             {
-                model = await _memoryManager.LoadModelAsync<object>(modelPath, "latest").ConfigureAwait(false).ConfigureAwait(false);
+                model = await _memoryManager.LoadModelAsync<object>(modelPath, "latest").ConfigureAwait(false);
             }
             else if (modelName.Contains("cvar_ppo"))
             {
@@ -580,7 +580,7 @@ public class ModelEnsembleService
         var strategy = availableStrategies[random.Next(availableStrategies.Count)];
         
         // PLACEHOLDER: This confidence should come from actual model inference
-        // In production, this would be: var confidence = await model.GetPredictionConfidence(contextVector).ConfigureAwait(false).ConfigureAwait(false);
+        // In production, this would be: var confidence = await model.GetPredictionConfidence(contextVector).ConfigureAwait(false);
         var baseConfidence = 0.7; // This will be replaced by actual model output
         var confidenceVariation = random.NextDouble() * 0.3;
         

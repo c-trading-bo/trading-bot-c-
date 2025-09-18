@@ -152,7 +152,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines)
@@ -190,7 +190,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines.Reverse()) // Search newest entries first
@@ -222,7 +222,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines)
@@ -412,7 +412,7 @@ public class TradingDecisionEvent
     public string Strategy { get; set; } = string.Empty;
     public decimal Confidence { get; set; }
     public string Regime { get; set; } = string.Empty;
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 public class OrderEvent
@@ -423,7 +423,7 @@ public class OrderEvent
     public DateTime Timestamp { get; set; }
     public string Status { get; set; } = string.Empty; // NEW/OPEN/FILLED/CANCELLED/REJECTED
     public string? RejectReason { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class FillEvent
@@ -435,7 +435,7 @@ public class FillEvent
     public decimal FilledQuantity { get; set; }
     public decimal FillPrice { get; set; }
     public decimal Commission { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class OutcomeEvent
@@ -447,7 +447,7 @@ public class OutcomeEvent
     public string OutcomeType { get; set; } = string.Empty; // WIN/LOSS/BREAKEVEN
     public decimal RMultiple { get; set; }
     public TimeSpan HoldingPeriod { get; set; }
-    public Dictionary<string, object> Analytics { get; set; } = new();
+    public Dictionary<string, object> Analytics { get; } = new();
 }
 
 public class TradeJournalConfig

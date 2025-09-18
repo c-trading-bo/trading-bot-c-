@@ -37,7 +37,7 @@ public class MarketContext
     public double Volume { get; set; }
     public double Bid { get; set; }
     public double Ask { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
+    public Dictionary<string, double> TechnicalIndicators { get; } = new();
     public RegimeState? CurrentRegime { get; set; }
     
     // Additional properties for intelligence integration

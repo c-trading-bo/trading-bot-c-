@@ -236,7 +236,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 return true; // No existing lock
             }
 
-            var content = await File.ReadAllTextAsync(_lockPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(_lockPath, cancellationToken).ConfigureAwait(false);
             var existingLock = JsonSerializer.Deserialize<LeaderLockData>(content);
             
             if (existingLock == null)
@@ -399,7 +399,7 @@ public class QuarantineManager : IQuarantineManager
                         ModelId = modelId,
                         State = HealthState.Healthy,
                         BlendWeight = 1.0
-                    }.ConfigureAwait(false).ConfigureAwait(false);
+                    }.ConfigureAwait(false);
                     _modelStatus[modelId] = status;
                 }
 
@@ -450,7 +450,7 @@ public class QuarantineManager : IQuarantineManager
                 {
                     if (!_modelStatus.TryGetValue(modelId, out var status))
                     {
-                        return false.ConfigureAwait(false).ConfigureAwait(false);
+                        return false.ConfigureAwait(false);
                     }
 
                     if (status.State != HealthState.Quarantine)
@@ -492,7 +492,7 @@ public class QuarantineManager : IQuarantineManager
                 return _modelStatus
                     .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                     .Select(kvp => kvp.Key)
-                    .ToList().ConfigureAwait(false).ConfigureAwait(false);
+                    .ToList().ConfigureAwait(false);
             }
         }, cancellationToken);
     }

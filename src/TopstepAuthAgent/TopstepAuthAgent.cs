@@ -32,24 +32,24 @@ namespace TopstepX.Bot.Authentication
                     Encoding.UTF8, "application/json")
             };
 
-            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false).ConfigureAwait(false);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
             {
-                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
             }
 
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct)).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
             return doc.RootElement.GetProperty("token").GetString()!;
         }
 
         public async Task<string?> ValidateAsync(CancellationToken ct)
         {
             var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
-            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false).ConfigureAwait(false);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) return null;
 
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct)).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
             if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
             return null;
         }
@@ -70,7 +70,7 @@ namespace TopstepX.Bot.Extensions
             // Copy content asynchronously
             if (req.Content != null)
             {
-                var contentBytes = await req.Content.ReadAsByteArrayAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var contentBytes = await req.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                 var newContent = new ByteArrayContent(contentBytes);
                 foreach (var h in req.Content.Headers)
                     newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);

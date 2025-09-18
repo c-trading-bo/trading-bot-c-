@@ -26,7 +26,7 @@ namespace OrchestratorAgent
             {
                 _logger.LogInformation("Bot Mechanic health check integration running");
                 // Implement integration with Python bot mechanic via process execution
-                var result = await ExecuteBotMechanicHealthCheck().ConfigureAwait(false).ConfigureAwait(false);
+                var result = await ExecuteBotMechanicHealthCheck().ConfigureAwait(false);
                 return result;
             }
             catch (Exception ex)

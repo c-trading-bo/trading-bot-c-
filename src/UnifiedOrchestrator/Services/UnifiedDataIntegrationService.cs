@@ -205,7 +205,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             // Test connection to historical data endpoint
             try
             {
-                var response = await httpClient.GetAsync("/api/historical/test", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await httpClient.GetAsync("/api/historical/test", cancellationToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation("[DATA-INTEGRATION] Successfully connected to TopstepX historical data API");
@@ -626,7 +626,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         try
         {
             // Feed historical data to brain for training via brain adapter
-            var historicalData = await LoadRecentHistoricalDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var historicalData = await LoadRecentHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (historicalData.Any())
             {
@@ -712,7 +712,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         try
         {
             // Feed live data to brain for real-time inference
-            var liveData = await GetLatestLiveDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var liveData = await GetLatestLiveDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (liveData != null)
             {
@@ -722,7 +722,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 var context = CreateTradingContextFromLiveData(liveData);
                 
                 // Use the brain adapter to make real-time trading decisions
-                var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("[BRAIN-INTEGRATION] Brain made decision: {Action} with confidence {Confidence:F2}", 
                     decision.Action, decision.Confidence);

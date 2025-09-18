@@ -112,7 +112,7 @@ namespace BotCore.Risk
                 try
                 {
                     // Real performance monitoring logic
-                    var cpuUsage = await GetCpuUsageAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var cpuUsage = await GetCpuUsageAsync(cancellationToken).ConfigureAwait(false);
                     var threadPoolInfo = GetThreadPoolInfo();
                     
                     _logger.LogDebug("[CRITICAL-SYSTEM] Performance metrics - CPU: {CpuUsage:F2}%, Thread Pool: {WorkerThreads}/{CompletionPortThreads}",

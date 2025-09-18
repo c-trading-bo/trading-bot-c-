@@ -72,7 +72,7 @@ namespace BotCore.Services
                 };
 
                 // Generate validation windows
-                var windows = await GenerateValidationWindowsAsync(request.StartDate, request.EndDate).ConfigureAwait(false).ConfigureAwait(false);
+                var windows = await GenerateValidationWindowsAsync(request.StartDate, request.EndDate).ConfigureAwait(false);
                 result.TotalWindows = windows.Count;
 
                 _logger.LogInformation("[WALK-FORWARD] Generated {WindowCount} validation windows", windows.Count);
@@ -90,14 +90,14 @@ namespace BotCore.Services
                 }
 
                 // Wait for all validations to complete
-                var windowResults = await Task.WhenAll(validationTasks).ConfigureAwait(false).ConfigureAwait(false);
+                var windowResults = await Task.WhenAll(validationTasks).ConfigureAwait(false);
                 result.WindowResults = windowResults.ToList();
 
                 // Calculate aggregate metrics
                 CalculateAggregateMetrics(result);
 
                 // Validate overall performance
-                result.PassesThresholds = await ValidateOverallPerformanceAsync(result).ConfigureAwait(false).ConfigureAwait(false);
+                result.PassesThresholds = await ValidateOverallPerformanceAsync(result).ConfigureAwait(false);
 
                 result.ValidationCompleted = DateTime.UtcNow;
                 result.ValidationDuration = result.ValidationCompleted - result.ValidationStarted;
@@ -198,7 +198,7 @@ namespace BotCore.Services
                 // 3. Calculate performance metrics
                 
                 // Generate realistic performance metrics based on window characteristics
-                var performance = await SimulateModelPerformance(modelPath, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var performance = await SimulateModelPerformance(modelPath, window, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogDebug("[MODEL-VALIDATION] Model validation completed for window {WindowIndex}: Sharpe={Sharpe:F2}, Drawdown={Drawdown:F2}%",
                     window.WindowIndex, performance.SharpeRatio, performance.MaxDrawdown * 100);
@@ -290,7 +290,7 @@ namespace BotCore.Services
                 if (!File.Exists(_validationHistoryPath))
                     return new List<WalkForwardResult>();
 
-                var historyJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false).ConfigureAwait(false);
+                var historyJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false);
                 var allHistory = JsonSerializer.Deserialize<List<WalkForwardResult>>(historyJson) ?? new List<WalkForwardResult>();
 
                 return allHistory
@@ -330,15 +330,15 @@ namespace BotCore.Services
                 };
 
                 // Step 1: Train model with window-specific seed
-                var modelPath = await TrainModelForWindowAsync(request, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var modelPath = await TrainModelForWindowAsync(request, window, cancellationToken).ConfigureAwait(false);
                 windowResult.ModelPath = modelPath;
 
                 // Step 2: Validate model performance
-                var performance = await ValidateModelAsync(modelPath, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var performance = await ValidateModelAsync(modelPath, window, cancellationToken).ConfigureAwait(false);
                 windowResult.Performance = performance;
 
                 // Step 3: Check if performance meets thresholds
-                windowResult.PassesThresholds = await MeetsPerformanceThresholdsAsync(performance).ConfigureAwait(false).ConfigureAwait(false);
+                windowResult.PassesThresholds = await MeetsPerformanceThresholdsAsync(performance).ConfigureAwait(false);
 
                 windowResult.ProcessingCompleted = DateTime.UtcNow;
                 windowResult.ProcessingDuration = windowResult.ProcessingCompleted - windowResult.ProcessingStarted;
@@ -554,7 +554,7 @@ namespace BotCore.Services
                 
                 if (File.Exists(_validationHistoryPath))
                 {
-                    var existingJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false).ConfigureAwait(false);
+                    var existingJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false);
                     history = JsonSerializer.Deserialize<List<WalkForwardResult>>(existingJson) ?? new List<WalkForwardResult>();
                 }
 
@@ -589,7 +589,7 @@ namespace BotCore.Services
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string ModelType { get; set; } = "ONNX";
-        public Dictionary<string, object> Hyperparameters { get; set; } = new();
+        public Dictionary<string, object> Hyperparameters { get; } = new();
     }
 
     /// <summary>
@@ -670,7 +670,7 @@ namespace BotCore.Services
         public bool PassesThresholds { get; set; }
 
         // Detailed results
-        public List<WindowResult> WindowResults { get; set; } = new();
+        public List<WindowResult> WindowResults { get; } = new();
     }
 
     #endregion

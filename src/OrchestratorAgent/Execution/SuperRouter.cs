@@ -101,7 +101,7 @@ namespace OrchestratorAgent.Execution
                 }
 
                 // Apply ML enhancements before routing
-                var enhancedSig = await EnhanceSignalAsync(sig, ct).ConfigureAwait(false).ConfigureAwait(false);
+                var enhancedSig = await EnhanceSignalAsync(sig, ct).ConfigureAwait(false);
 
                 // Convert Signal to StrategySignal for OrderRouter
                 var strategySig = new BotCore.StrategySignal
@@ -116,7 +116,7 @@ namespace OrchestratorAgent.Execution
                 };
 
                 // Route using base router with contract ID
-                return await _baseRouter.RouteAsync(strategySig, enhancedSig.ContractId, ct).ConfigureAwait(false).ConfigureAwait(false);
+                return await _baseRouter.RouteAsync(strategySig, enhancedSig.ContractId, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -134,7 +134,7 @@ namespace OrchestratorAgent.Execution
                     ClientOrderId = sig.Tag
                 };
                 
-                return await _baseRouter.RouteAsync(fallbackSig, sig.ContractId, ct).ConfigureAwait(false).ConfigureAwait(false);
+                return await _baseRouter.RouteAsync(fallbackSig, sig.ContractId, ct).ConfigureAwait(false);
             }
         }
 

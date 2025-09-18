@@ -56,7 +56,7 @@ namespace OrchestratorAgent.Services
                 // Read ML/RL features
                 if (File.Exists(mlRlPath))
                 {
-                    var mlRlData = await File.ReadAllTextAsync(mlRlPath).ConfigureAwait(false).ConfigureAwait(false);
+                    var mlRlData = await File.ReadAllTextAsync(mlRlPath).ConfigureAwait(false);
                     var mlRlJson = JsonDocument.Parse(mlRlData);
                     
                     intelligence.MlConfidence = mlRlJson.RootElement.GetProperty("model_confidence").GetDecimal();
@@ -70,7 +70,7 @@ namespace OrchestratorAgent.Services
                 // Read regime detection
                 if (File.Exists(regimePath))
                 {
-                    var regimeData = await File.ReadAllTextAsync(regimePath).ConfigureAwait(false).ConfigureAwait(false);
+                    var regimeData = await File.ReadAllTextAsync(regimePath).ConfigureAwait(false);
                     var regimeJson = JsonDocument.Parse(regimeData);
                     
                     intelligence.CurrentRegime = regimeJson.RootElement.GetProperty("current_regime").GetString() ?? "unknown";
@@ -83,7 +83,7 @@ namespace OrchestratorAgent.Services
                 // Read news sentiment
                 if (File.Exists(sentimentPath))
                 {
-                    var sentimentData = await File.ReadAllTextAsync(sentimentPath).ConfigureAwait(false).ConfigureAwait(false);
+                    var sentimentData = await File.ReadAllTextAsync(sentimentPath).ConfigureAwait(false);
                     var sentimentJson = JsonDocument.Parse(sentimentData);
                     
                     intelligence.NewsSentiment = sentimentJson.RootElement.GetProperty("overall_sentiment").GetDecimal();
@@ -118,7 +118,7 @@ namespace OrchestratorAgent.Services
                     return new ZoneAnalysis { Symbol = symbol };
                 }
 
-                var zoneData = await File.ReadAllTextAsync(zonePath).ConfigureAwait(false).ConfigureAwait(false);
+                var zoneData = await File.ReadAllTextAsync(zonePath).ConfigureAwait(false);
                 var zoneJson = JsonDocument.Parse(zoneData);
 
                 var zones = new ZoneAnalysis { Symbol = symbol };
@@ -172,7 +172,7 @@ namespace OrchestratorAgent.Services
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -207,7 +207,7 @@ namespace OrchestratorAgent.Services
                     return new Dictionary<string, Dictionary<string, decimal>>();
                 }
 
-                var correlationData = await File.ReadAllTextAsync(correlationPath).ConfigureAwait(false).ConfigureAwait(false);
+                var correlationData = await File.ReadAllTextAsync(correlationPath).ConfigureAwait(false);
                 var correlationJson = JsonDocument.Parse(correlationData);
 
                 var matrix = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, decimal>>>(
@@ -239,7 +239,7 @@ namespace OrchestratorAgent.Services
                     return new MicrostructureData { Symbol = symbol };
                 }
 
-                var microData = await File.ReadAllTextAsync(microPath).ConfigureAwait(false).ConfigureAwait(false);
+                var microData = await File.ReadAllTextAsync(microPath).ConfigureAwait(false);
                 var microJson = JsonDocument.Parse(microData);
 
                 var data = new MicrostructureData { Symbol = symbol };
@@ -280,7 +280,7 @@ namespace OrchestratorAgent.Services
     public class MarketIntelligence
     {
         public decimal MlConfidence { get; set; }
-        public Dictionary<string, decimal> MlPredictions { get; set; } = new();
+        public Dictionary<string, decimal> MlPredictions { get; } = new();
         public string CurrentRegime { get; set; } = "Unknown";
         public decimal RegimeConfidence { get; set; }
         public decimal NewsSentiment { get; set; }
@@ -291,8 +291,8 @@ namespace OrchestratorAgent.Services
     public class ZoneAnalysis
     {
         public string Symbol { get; set; } = "";
-        public List<decimal> SupplyZones { get; set; } = new();
-        public List<decimal> DemandZones { get; set; } = new();
+        public List<decimal> SupplyZones { get; } = new();
+        public List<decimal> DemandZones { get; } = new();
         public decimal PointOfControl { get; set; }
         public DateTime LastUpdated { get; set; }
     }

@@ -404,7 +404,7 @@ namespace BotCore
                 
                 foreach (var file in inputFiles)
                 {
-                    var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                    var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false);
                     foreach (var line in lines)
                     {
                         if (string.IsNullOrWhiteSpace(line)) continue;

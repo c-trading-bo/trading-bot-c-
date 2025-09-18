@@ -70,7 +70,7 @@ namespace BotCore
             try
             {
                 // Download manifest
-                var manifest = await DownloadManifestAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var manifest = await DownloadManifestAsync().ConfigureAwait(false);
                 if (manifest == null) return;
 
                 // Check if we have this version already
@@ -106,7 +106,7 @@ namespace BotCore
             try
             {
                 // Download manifest
-                var manifestJson = await _http.GetStringAsync(_manifestUrl).ConfigureAwait(false).ConfigureAwait(false);
+                var manifestJson = await _http.GetStringAsync(_manifestUrl).ConfigureAwait(false);
                 var manifest = JsonSerializer.Deserialize<EnhancedModelManifest>(manifestJson, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -185,7 +185,7 @@ namespace BotCore
                 _log.LogDebug("[CloudRlTrainerEnhanced] Downloading {ModelType} model from {Url}", modelType, modelInfo.Url);
 
                 // Download to temp file
-                using var response = await _http.GetAsync(modelInfo.Url).ConfigureAwait(false).ConfigureAwait(false);
+                using var response = await _http.GetAsync(modelInfo.Url).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 await using var fileStream = File.Create(tempPath);
@@ -193,7 +193,7 @@ namespace BotCore
                 await fileStream.FlushAsync().ConfigureAwait(false);
 
                 // Verify checksum
-                var actualChecksum = await ComputeFileChecksumAsync(tempPath).ConfigureAwait(false).ConfigureAwait(false);
+                var actualChecksum = await ComputeFileChecksumAsync(tempPath).ConfigureAwait(false);
                 if (!string.Equals(actualChecksum, modelInfo.Checksum, StringComparison.OrdinalIgnoreCase))
                 {
                     _log.LogError("[CloudRlTrainerEnhanced] Checksum mismatch for {ModelType}: expected {Expected}, got {Actual}",
@@ -231,7 +231,7 @@ namespace BotCore
         {
             using var sha256 = SHA256.Create();
             await using var fileStream = File.OpenRead(filePath);
-            var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false).ConfigureAwait(false);
+            var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 
@@ -243,7 +243,7 @@ namespace BotCore
             public string Version { get; set; } = "";
             public DateTime Timestamp { get; set; }
             public int TrainingSamples { get; set; }
-            public Dictionary<string, EnhancedModelInfo> Models { get; set; } = new();
+            public Dictionary<string, EnhancedModelInfo> Models { get; } = new();
         }
 
         /// <summary>

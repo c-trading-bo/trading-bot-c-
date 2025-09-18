@@ -220,7 +220,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
 
     public async Task<OrderEvidence?> GetOrderEvidenceAsync(string evidenceId)
     {
-        return await Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId)).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId)).ConfigureAwait(false);
     }
 
     public async Task<List<OrderEvidence>> GetActiveOrdersAsync()
@@ -230,12 +230,12 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
             .OrderBy(e => e.CreatedAt)
             .ToList();
 
-        return await Task.FromResult(activeOrders).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(activeOrders).ConfigureAwait(false);
     }
 
     public async Task<bool> IsCustomTagUsedAsync(string customTag)
     {
-        return await Task.FromResult(_usedCustomTags.ContainsKey(customTag)).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(_usedCustomTags.ContainsKey(customTag)).ConfigureAwait(false);
     }
 
     public async Task CancelStaleOrdersAsync()
@@ -367,8 +367,8 @@ public class OrderEvidence
     public string Strategy { get; set; } = string.Empty;
     
     public List<FillEvidence>? Fills { get; set; }
-    public Dictionary<string, object> DecisionContext { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> DecisionContext { get; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
     
     public string? RejectReason { get; set; }
     public string? CancelReason { get; set; }

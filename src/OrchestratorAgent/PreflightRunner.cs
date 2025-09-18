@@ -121,7 +121,7 @@ namespace OrchestratorAgent
             if (_orderTest != null)
             {
                 Step("Running order stream test (place + cancel)…");
-                var ok = await _orderTest().ConfigureAwait(false).ConfigureAwait(false);
+                var ok = await _orderTest().ConfigureAwait(false);
                 if (!ok)
                 {
                     StepFail("Order stream did not emit expected Canceled event");

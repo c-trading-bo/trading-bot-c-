@@ -81,7 +81,7 @@ public class EnhancedAuthenticationService : IHostedService
             var startTime = DateTime.UtcNow;
             
             // Try to get account information to verify authentication
-            var token = await _tokenProvider.GetTokenAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var token = await _tokenProvider.GetTokenAsync().ConfigureAwait(false);
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "AuthService", 

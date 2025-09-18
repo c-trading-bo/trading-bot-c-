@@ -229,7 +229,7 @@ public class MlrlObservabilityService : IDisposable
             var prometheusFormat = GeneratePrometheusFormat();
             var content = new StringContent(prometheusFormat, Encoding.UTF8, "text/plain");
             
-            var response = await _httpClient.PostAsync($"{gatewayUrl}/metrics/job/trading_bot", content).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{gatewayUrl}/metrics/job/trading_bot", content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -256,7 +256,7 @@ public class MlrlObservabilityService : IDisposable
             
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
             
-            var response = await _httpClient.PostAsync($"{grafanaUrl}/api/push", content).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{grafanaUrl}/api/push", content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -375,7 +375,7 @@ internal class MetricValue
     public double Value { get; set; }
     public MetricType Type { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<double> Samples { get; set; } = new();
+    public List<double> Samples { get; } = new();
 }
 
 /// <summary>

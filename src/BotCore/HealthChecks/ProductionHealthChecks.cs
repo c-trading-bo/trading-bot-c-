@@ -117,7 +117,7 @@ public class ProductionHealthCheckEndpoint : IHealthCheckEndpoint
     {
         try
         {
-            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false);
             return new HealthCheckResult(
                 report.Status,
                 $"Overall status: {report.Status}",
@@ -141,7 +141,7 @@ public class ProductionHealthCheckEndpoint : IHealthCheckEndpoint
     {
         try
         {
-            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false);
             var result = new
             {
                 status = report.Status.ToString(),
@@ -201,7 +201,7 @@ public class TopstepXApiHealthCheck : IHealthCheck
             // Check API endpoint availability
             using var response = await _httpClient.GetAsync(
                 $"{_config.Value.ApiBaseUrl}/api/health", 
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             stopwatch.Stop();
 
@@ -271,8 +271,8 @@ public class TopstepXSignalRHealthCheck : IHealthCheck
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(10);
 
-            var userHubCheck = await CheckEndpoint(httpClient, _config.Value.UserHubUrl, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var marketHubCheck = await CheckEndpoint(httpClient, _config.Value.MarketHubUrl, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var userHubCheck = await CheckEndpoint(httpClient, _config.Value.UserHubUrl, cancellationToken).ConfigureAwait(false);
+            var marketHubCheck = await CheckEndpoint(httpClient, _config.Value.MarketHubUrl, cancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object>
             {
@@ -307,7 +307,7 @@ public class TopstepXSignalRHealthCheck : IHealthCheck
     {
         try
         {
-            using var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            using var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
             return (response.IsSuccessStatusCode, $"Status: {response.StatusCode}");
         }
         catch (Exception ex)
@@ -737,7 +737,7 @@ public class HealthCheckPublisherService : BackgroundService
         {
             try
             {
-                var report = await _healthCheckService.CheckHealthAsync(stoppingToken).ConfigureAwait(false).ConfigureAwait(false);
+                var report = await _healthCheckService.CheckHealthAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Log health status
                 var status = report.Status switch

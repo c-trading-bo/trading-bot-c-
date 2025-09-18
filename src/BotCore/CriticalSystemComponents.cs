@@ -47,7 +47,7 @@ namespace TradingBot.Critical
             public string Status { get; set; } = string.Empty;
             public bool IsVerified { get; set; }
             public string ExecutionProof { get; set; } = string.Empty;
-            public List<PartialFill> PartialFills { get; set; } = new();
+            public List<PartialFill> PartialFills { get; } = new();
         }
         
         public class FillRecord
@@ -202,7 +202,7 @@ namespace TradingBot.Critical
                 {
                     try
                     {
-                        var actualStatus = await QueryOrderStatus(order.OrderId).ConfigureAwait(false).ConfigureAwait(false);
+                        var actualStatus = await QueryOrderStatus(order.OrderId).ConfigureAwait(false);
                         
                         if (actualStatus == null)
                         {
@@ -441,10 +441,10 @@ namespace TradingBot.Critical
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetJwtToken());
                 
-                var response = await httpClient.GetAsync($"https://api.topstepx.com/api/Order/{orderId}").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await httpClient.GetAsync($"https://api.topstepx.com/api/Order/{orderId}").ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
+                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var orderData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
                     
                     if (orderData.TryGetProperty("status", out var statusElement))
@@ -519,9 +519,9 @@ namespace TradingBot.Critical
         {
             public DateTime Timestamp { get; set; }
             public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
-            public Dictionary<string, Position> Positions { get; set; } = new();
-            public Dictionary<string, PendingOrder> PendingOrders { get; set; } = new();
-            public Dictionary<string, StrategyState> StrategyStates { get; set; } = new();
+            public Dictionary<string, Position> Positions { get; } = new();
+            public Dictionary<string, PendingOrder> PendingOrders { get; } = new();
+            public Dictionary<string, StrategyState> StrategyStates { get; } = new();
             public RiskMetrics RiskMetrics { get; set; } = new();
             public MarketState MarketState { get; set; } = new();
             public string SystemVersion { get; set; } = string.Empty;
@@ -608,7 +608,7 @@ namespace TradingBot.Critical
         {
             try
             {
-                var stateJson = await File.ReadAllTextAsync(_stateFile).ConfigureAwait(false).ConfigureAwait(false);
+                var stateJson = await File.ReadAllTextAsync(_stateFile).ConfigureAwait(false);
                 var state = JsonSerializer.Deserialize<SystemState>(stateJson);
                 
                 if (state == null)
@@ -623,7 +623,7 @@ namespace TradingBot.Critical
                     // Try backup
                     if (File.Exists(_backupStateFile))
                     {
-                        stateJson = await File.ReadAllTextAsync(_backupStateFile).ConfigureAwait(false).ConfigureAwait(false);
+                        stateJson = await File.ReadAllTextAsync(_backupStateFile).ConfigureAwait(false);
                         state = JsonSerializer.Deserialize<SystemState>(stateJson);
                     }
                 }
@@ -741,7 +741,7 @@ namespace TradingBot.Critical
                 _logger.LogInformation("[POSITION_RECONCILE] Starting position reconciliation");
                 
                 // Get actual positions from broker
-                var brokerPositions = await GetBrokerPositions().ConfigureAwait(false).ConfigureAwait(false);
+                var brokerPositions = await GetBrokerPositions().ConfigureAwait(false);
                 var discrepancies = new List<string>();
                 
                 // Compare saved positions with broker positions
@@ -853,25 +853,25 @@ namespace TradingBot.Critical
             foreach (var position in _activePositions.Values)
             {
                 // Check if stop loss exists
-                var stopLossExists = await CheckOrderExists(position.StopLossOrderId).ConfigureAwait(false).ConfigureAwait(false);
+                var stopLossExists = await CheckOrderExists(position.StopLossOrderId).ConfigureAwait(false);
                 
                 if (!stopLossExists)
                 {
                     // Reattach stop loss
                     var stopPrice = CalculateStopLoss(position);
-                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice).ConfigureAwait(false).ConfigureAwait(false);
+                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice).ConfigureAwait(false);
                     position.StopLossOrderId = stopOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached stop loss for {position.Symbol} at {stopPrice}");
                 }
                 
                 // Check take profit
-                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId).ConfigureAwait(false).ConfigureAwait(false);
+                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId).ConfigureAwait(false);
                 
                 if (!takeProfitExists)
                 {
                     var targetPrice = CalculateTakeProfit(position);
-                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice).ConfigureAwait(false).ConfigureAwait(false);
+                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice).ConfigureAwait(false);
                     position.TakeProfitOrderId = targetOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached take profit for {position.Symbol} at {targetPrice}");
@@ -1310,7 +1310,7 @@ namespace TradingBot.Critical
             public decimal DirectionalExposure { get; set; }
             public decimal DollarExposure { get; set; }
             public decimal CorrelatedExposure { get; set; }
-            public Dictionary<string, decimal> CorrelatedWith { get; set; } = new();
+            public Dictionary<string, decimal> CorrelatedWith { get; } = new();
             public DateTime LastUpdated { get; set; }
         }
         
@@ -1319,7 +1319,7 @@ namespace TradingBot.Critical
             public string AlertType { get; set; } = string.Empty;
             public double CurrentCorrelation { get; set; }
             public double MaxAllowed { get; set; }
-            public List<string> AffectedSymbols { get; set; } = new();
+            public List<string> AffectedSymbols { get; } = new();
             public string RecommendedAction { get; set; } = string.Empty;
         }
         
@@ -1472,7 +1472,7 @@ namespace TradingBot.Critical
                 
                 if (File.Exists(correlationFile))
                 {
-                    var historicalData = await File.ReadAllTextAsync(correlationFile).ConfigureAwait(false).ConfigureAwait(false);
+                    var historicalData = await File.ReadAllTextAsync(correlationFile).ConfigureAwait(false);
                     var correlations = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(historicalData);
                     
                     if (correlations != null)

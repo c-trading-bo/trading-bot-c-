@@ -310,10 +310,10 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<decimal> GetTradingOpportunityScoreAsync(CancellationToken cancellationToken = default)
     {
-        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var volume = await GetVolumeAnalysisAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false);
+        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false);
+        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false);
+        var volume = await GetVolumeAnalysisAsync(cancellationToken).ConfigureAwait(false);
         
         // Multi-factor opportunity scoring
         var regimeScore = GetRegimeScore(regime);
@@ -356,7 +356,7 @@ public class MarketConditionAnalyzer
             (timeOfDay >= new TimeSpan(16, 0, 0) && timeOfDay <= new TimeSpan(17, 0, 0));    // Closing hour
         
         // Check market conditions
-        var opportunityScore = await GetTradingOpportunityScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var opportunityScore = await GetTradingOpportunityScoreAsync(cancellationToken).ConfigureAwait(false);
         var hasGoodConditions = opportunityScore > 0.6m;
         
         return isOptimalTime && hasGoodConditions;
@@ -367,9 +367,9 @@ public class MarketConditionAnalyzer
         _lastAnalysis = DateTime.UtcNow;
         
         // Update all analysis components
-        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false);
+        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false);
+        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogDebug("📊 [MARKET-ANALYZER] Analysis update: Regime={Regime}, Volatility={Volatility}, Trend={Direction}({Strength:F3})",
             regime, volatility, trend.Direction, trend.Strength);

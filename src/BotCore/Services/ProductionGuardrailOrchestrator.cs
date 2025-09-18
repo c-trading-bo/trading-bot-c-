@@ -181,7 +181,7 @@ public class TradeValidationResult
     public string CustomTag { get; set; } = string.Empty;
     public bool IsValid { get; set; }
     public bool IsDryRun { get; set; }
-    public List<string> ValidationErrors { get; set; } = new();
+    public List<string> ValidationErrors { get; } = new();
     
     // Validated and rounded prices
     public decimal RoundedEntry { get; set; }

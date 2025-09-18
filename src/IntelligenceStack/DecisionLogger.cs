@@ -84,7 +84,7 @@ public class DecisionLogger : IDecisionLogger
 
                 if (File.Exists(filePath))
                 {
-                    var lines = await File.ReadAllLinesAsync(filePath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var lines = await File.ReadAllLinesAsync(filePath, cancellationToken).ConfigureAwait(false);
                     
                     foreach (var line in lines)
                     {
@@ -243,7 +243,7 @@ public class DriftMonitor
         try
         {
             // Load baseline asynchronously from persistent storage
-            var baseline = await LoadBaselineAsync(modelId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var baseline = await LoadBaselineAsync(modelId, cancellationToken).ConfigureAwait(false);
             
             if (baseline == null)
             {
@@ -373,7 +373,7 @@ public class DriftMonitor
     private sealed class FeatureBaseline
     {
         public DateTime CreatedAt { get; set; }
-        public Dictionary<string, double> FeatureDistribution { get; set; } = new();
+        public Dictionary<string, double> FeatureDistribution { get; } = new();
         public int SampleCount { get; set; }
     }
 }

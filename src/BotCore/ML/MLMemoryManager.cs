@@ -40,10 +40,10 @@ public class MLMemoryManager : IMLMemoryManager
         public long TotalMemory { get; set; }
         public long UsedMemory { get; set; }
         public long MLMemory { get; set; }
-        public Dictionary<string, long> ModelMemory { get; set; } = new();
+        public Dictionary<string, long> ModelMemory { get; } = new();
         public int LoadedModels { get; set; }
         public int CachedPredictions { get; set; }
-        public List<string> MemoryLeaks { get; set; } = new();
+        public List<string> MemoryLeaks { get; } = new();
     }
 
     public MLMemoryManager(ILogger<MLMemoryManager> logger, OnnxModelLoader onnxLoader)
@@ -104,7 +104,7 @@ public class MLMemoryManager : IMLMemoryManager
         try
         {
             // Load real ONNX model using OnnxModelLoader
-            var model = await LoadModelFromDiskAsync<T>(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+            var model = await LoadModelFromDiskAsync<T>(modelPath).ConfigureAwait(false);
             
             if (model == null)
             {
@@ -173,7 +173,7 @@ public class MLMemoryManager : IMLMemoryManager
             }
 
             // Load ONNX model using professional OnnxModelLoader with validation
-            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
+            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
             
             if (session == null)
             {

@@ -263,7 +263,7 @@ public class ProductionVerificationService : IHostedService
             var healthCheckService = _serviceProvider.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
             if (healthCheckService != null)
             {
-                var healthResult = await healthCheckService.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var healthResult = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
                 _logger.LogInformation("✅ [OBSERVABILITY-VERIFICATION] Health checks: {Status} ({CheckCount} checks)", 
                     healthResult.Status, healthResult.Entries.Count);
             }
@@ -364,8 +364,8 @@ public interface IPerformanceMonitor
 /// </summary>
 public class ProductionPerformanceMetrics
 {
-    public Dictionary<string, TimeSpan> AverageLatencies { get; set; } = new();
-    public Dictionary<string, int> ThroughputCounts { get; set; } = new();
+    public Dictionary<string, TimeSpan> AverageLatencies { get; } = new();
+    public Dictionary<string, int> ThroughputCounts { get; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 

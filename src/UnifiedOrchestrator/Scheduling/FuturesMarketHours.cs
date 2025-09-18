@@ -163,9 +163,9 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<TrainingIntensity> GetRecommendedTrainingIntensityAsync(CancellationToken cancellationToken = default)
     {
-        var isIntensive = await IsInIntensiveTrainingWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var isBackground = await IsInBackgroundTrainingWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var isMarketOpen = await IsMarketOpenAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var isIntensive = await IsInIntensiveTrainingWindowAsync(cancellationToken).ConfigureAwait(false);
+        var isBackground = await IsInBackgroundTrainingWindowAsync(cancellationToken).ConfigureAwait(false);
+        var isMarketOpen = await IsMarketOpenAsync(cancellationToken).ConfigureAwait(false);
 
         if (isIntensive)
         {

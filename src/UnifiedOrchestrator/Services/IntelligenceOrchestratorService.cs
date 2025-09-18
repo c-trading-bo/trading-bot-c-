@@ -256,7 +256,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             TechnicalIndicators = context.TechnicalIndicators
         };
         
-        return await GenerateDecisionAsync(localContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await GenerateDecisionAsync(localContext, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)

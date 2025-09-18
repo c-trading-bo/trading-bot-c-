@@ -158,18 +158,18 @@ namespace BotCore.Brain
 
                 // Load LSTM for price prediction - use your real trained model
                 _lstmPricePredictor = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl_model.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
+                    "models/rl_model.onnx", "v1").ConfigureAwait(false);
                 
                 // CVaR-PPO is already injected and initialized via DI container
                 _logger.LogInformation("✅ [CVAR-PPO] Using direct injection from DI container");
                 
                 // Load meta classifier for market regime - use your test CVaR model
                 _metaClassifier = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl/test_cvar_ppo.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
+                    "models/rl/test_cvar_ppo.onnx", "v1").ConfigureAwait(false);
                 
                 // Load market regime detector - use your main RL model as backup
                 _marketRegimeDetector = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl_model.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
+                    "models/rl_model.onnx", "v1").ConfigureAwait(false);
 
                 IsInitialized = true;
                 _logger.LogInformation("✅ [UNIFIED-BRAIN] All models loaded successfully - Brain is ONLINE with production CVaR-PPO");
@@ -205,20 +205,20 @@ namespace BotCore.Brain
                 _marketContexts[symbol] = context;
                 
                 // 2. DETECT MARKET REGIME using Meta Classifier
-                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken).ConfigureAwait(false);
                 
                 // 3. SELECT OPTIMAL STRATEGY using Neural UCB
-                var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken).ConfigureAwait(false);
                 
                 // 4. PREDICT PRICE MOVEMENT using LSTM
-                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken).ConfigureAwait(false);
                 
                 // 5. OPTIMIZE POSITION SIZE using RL
-                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false);
                 
                 // 6. GENERATE ENHANCED CANDIDATES using brain intelligence
                 var enhancedCandidates = await GenerateEnhancedCandidatesAsync(
-                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken).ConfigureAwait(false);
                 
                 var decision = new BrainDecision
                 {
@@ -488,7 +488,7 @@ namespace BotCore.Brain
                 var availableStrategies = GetAvailableStrategies(context.TimeOfDay, regime);
                 var contextVector = CreateContextVector(context);
                 
-                var selection = await _strategySelector.SelectArmAsync(availableStrategies, contextVector, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var selection = await _strategySelector.SelectArmAsync(availableStrategies, contextVector, cancellationToken).ConfigureAwait(false);
                 
                 return new StrategySelection
                 {
@@ -699,7 +699,7 @@ namespace BotCore.Brain
                     var state = CreateCVaRStateVector(context, strategy, prediction);
                     
                     // Get action from trained CVaR-PPO model
-                    var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken).ConfigureAwait(false);
                     
                     // Convert CVaR-PPO action to contract sizing
                     var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts, context);
@@ -729,7 +729,7 @@ namespace BotCore.Brain
                     (decimal)strategy.Confidence,
                     (decimal)prediction.Probability,
                     new List<Bar>()
-                ).ConfigureAwait(false).ConfigureAwait(false);
+                ).ConfigureAwait(false);
                 
                 contracts = (int)(contracts * Math.Clamp(rlMultiplier, 0.5m, 1.5m));
                 _logger.LogDebug("📊 [LEGACY-RL] Using fallback RL multiplier: {Multiplier:F2}", rlMultiplier);
@@ -1633,7 +1633,7 @@ namespace BotCore.Brain
         public int WinningTrades { get; set; }
         public decimal TotalPnL { get; set; }
         public decimal WinRate { get; set; }
-        public List<long> HoldTimes { get; set; } = new();
+        public List<long> HoldTimes { get; } = new();
     }
 
     public class MarketCondition
@@ -1672,7 +1672,7 @@ namespace BotCore.Brain
         public decimal PriceProbability { get; set; }
         public decimal OptimalPositionMultiplier { get; set; }
         public MarketRegime MarketRegime { get; set; }
-        public List<Candidate> EnhancedCandidates { get; set; } = new();
+        public List<Candidate> EnhancedCandidates { get; } = new();
         public DateTime DecisionTime { get; set; }
         public double ProcessingTimeMs { get; set; }
         public decimal ModelConfidence { get; set; }

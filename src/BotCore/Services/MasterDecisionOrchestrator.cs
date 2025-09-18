@@ -232,7 +232,7 @@ public class MasterDecisionOrchestrator : BackgroundService
             _logger.LogDebug("🎯 [MASTER-DECISION] Making unified decision for {Symbol}", symbol);
             
             // Route through unified decision system
-            var decision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             
             // Ensure decision ID is set
             if (string.IsNullOrEmpty(decision.DecisionId))
@@ -646,7 +646,7 @@ public class LearningEvent
     public bool WasCorrect { get; set; }
     public TimeSpan HoldTime { get; set; }
     public string DecisionSource { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
     public DateTime Timestamp { get; set; }
 }
 
@@ -681,7 +681,7 @@ public class MasterOrchestratorStatus
     public decimal OverallWinRate { get; set; }
     public int LearningQueueSize { get; set; }
     public TradingBot.Abstractions.DecisionServiceStatus ServiceStatus { get; set; } = new();
-    public Dictionary<string, DecisionPerformance> BrainPerformance { get; set; } = new();
+    public Dictionary<string, DecisionPerformance> BrainPerformance { get; } = new();
     public bool SystemHealthy { get; set; }
     public DateTime Timestamp { get; set; }
 }
@@ -690,7 +690,7 @@ public class PerformanceReport
 {
     public DateTime Timestamp { get; set; }
     public OverallStats OverallStats { get; set; } = new();
-    public List<DecisionPerformance> SourcePerformance { get; set; } = new();
+    public List<DecisionPerformance> SourcePerformance { get; } = new();
 }
 
 public class OverallStats

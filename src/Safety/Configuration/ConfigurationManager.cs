@@ -436,7 +436,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
                 throw new FileNotFoundException($"Configuration file not found: {filePath}");
             }
 
-            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var import = JsonSerializer.Deserialize<ConfigurationExport>(json, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -827,7 +827,7 @@ public class ValidationResult
     public string ValidationId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsValid { get; set; }
-    public List<ValidationIssue> Issues { get; set; } = new();
+    public List<ValidationIssue> Issues { get; } = new();
 }
 
 public class ValidationIssue
@@ -842,9 +842,9 @@ public class ConfigurationExport
     public string ExportId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string ExportedBy { get; set; } = string.Empty;
-    public List<ConfigurationItem> Configurations { get; set; } = new();
-    public List<FeatureFlag> FeatureFlags { get; set; } = new();
-    public List<RolloutConfig> Rollouts { get; set; } = new();
+    public List<ConfigurationItem> Configurations { get; } = new();
+    public List<FeatureFlag> FeatureFlags { get; } = new();
+    public List<RolloutConfig> Rollouts { get; } = new();
 }
 
 public enum ConfigurationChangeType

@@ -37,15 +37,15 @@ namespace UnifiedOrchestrator.Services
         public long TotalPredictions { get; set; }
         public double AverageLatencyMs { get; set; }
         public DateTime LastPrediction { get; set; }
-        public List<ModelInfo> Models { get; set; } = new();
+        public List<ModelInfo> Models { get; } = new();
     }
 
     public class PredictionResult
     {
-        public Dictionary<string, double> Outputs { get; set; } = new();
+        public Dictionary<string, double> Outputs { get; } = new();
         public double Confidence { get; set; }
         public double LatencyMs { get; set; }
-        public List<string> ModelsUsed { get; set; } = new();
+        public List<string> ModelsUsed { get; } = new();
         public bool WasBlocked { get; set; }
         public string BlockedReason { get; set; } = "";
     }
@@ -216,7 +216,7 @@ namespace UnifiedOrchestrator.Services
                     try
                     {
                         // Real ONNX model inference instead of simulation
-                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken).ConfigureAwait(false);
                         predictions.Add(modelPrediction);
                         modelsUsed.Add(model.ModelName);
                     }

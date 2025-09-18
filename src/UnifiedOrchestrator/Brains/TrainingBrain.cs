@@ -83,14 +83,14 @@ public class TrainingBrain : ITrainingBrain
             job.CurrentStage = "MODEL_TRAINING";
             
             // Stage 2: Model Training (60% progress)
-            var modelPath = await TrainModelAsync(job, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var modelPath = await TrainModelAsync(job, cancellationToken).ConfigureAwait(false);
             job.Progress = 0.8m;
             
             job.CurrentStage = "ARTIFACT_CREATION";
             
             // Stage 3: Export to artifact (20% progress)
             var metadata = CreateTrainingMetadata(job);
-            var modelVersion = await ExportModelAsync(algorithm, modelPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var modelVersion = await ExportModelAsync(algorithm, modelPath, metadata, cancellationToken).ConfigureAwait(false);
             job.Progress = 1.0m;
             
             job.Status = "COMPLETED";
@@ -152,7 +152,7 @@ public class TrainingBrain : ITrainingBrain
             var artifactFileName = $"{algorithm}_{versionId}.{GetArtifactExtension(modelType)}";
             var artifactPath = Path.Combine(_stagingPath, artifactFileName);
             
-            var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken).ConfigureAwait(false);
             
             // Validate artifact
             if (!await artifactBuilder.ValidateArtifactAsync(finalArtifactPath, cancellationToken))
@@ -161,7 +161,7 @@ public class TrainingBrain : ITrainingBrain
             }
 
             // Get artifact metadata
-            var artifactMetadata = await artifactBuilder.GetArtifactMetadataAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var artifactMetadata = await artifactBuilder.GetArtifactMetadataAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false);
             
             // Create model version
             var modelVersion = new ModelVersion
@@ -202,7 +202,7 @@ public class TrainingBrain : ITrainingBrain
             };
 
             // Register in model registry
-            var registeredVersionId = await _modelRegistry.RegisterModelAsync(modelVersion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var registeredVersionId = await _modelRegistry.RegisterModelAsync(modelVersion, cancellationToken).ConfigureAwait(false);
             modelVersion.VersionId = registeredVersionId;
             
             _logger.LogInformation("Exported model {Algorithm} version {VersionId} to artifact {ArtifactPath}", 
@@ -307,7 +307,7 @@ public class TrainingBrain : ITrainingBrain
         
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Preparing training data from {job.Config.DataStartTime} to {job.Config.DataEndTime}");
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Data source: {job.Config.DataSource}");
-        job.StageData["data_samples"] = await CountActualDataSamples(job.Config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        job.StageData["data_samples"] = await CountActualDataSamples(job.Config, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string> TrainModelAsync(TrainingJob job, CancellationToken cancellationToken)
@@ -598,7 +598,7 @@ internal class TrainingJob
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public string CurrentStage { get; set; } = string.Empty;
-    public List<string> Logs { get; set; } = new();
-    public Dictionary<string, object> StageData { get; set; } = new();
+    public List<string> Logs { get; } = new();
+    public Dictionary<string, object> StageData { get; } = new();
     public string? ErrorMessage { get; set; }
 }

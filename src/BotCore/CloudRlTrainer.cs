@@ -57,7 +57,7 @@ public sealed class CloudRlTrainer : IDisposable
             var apiUrl = "https://api.github.com/repos/kevinsuero072897-collab/trading-bot-c-/releases/latest";
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("TradingBot/1.0");
 
-            var response = await _http.GetStringAsync(apiUrl).ConfigureAwait(false).ConfigureAwait(false);
+            var response = await _http.GetStringAsync(apiUrl).ConfigureAwait(false);
             var release = JsonSerializer.Deserialize<JsonElement>(response);
 
             if (release.TryGetProperty("tag_name", out var tagElement))
@@ -68,7 +68,7 @@ public sealed class CloudRlTrainer : IDisposable
                 string? lastCheckedTag = null;
                 if (File.Exists(lastCheckFile))
                 {
-                    lastCheckedTag = await File.ReadAllTextAsync(lastCheckFile).ConfigureAwait(false).ConfigureAwait(false);
+                    lastCheckedTag = await File.ReadAllTextAsync(lastCheckFile).ConfigureAwait(false);
                 }
 
                 if (latestTag != lastCheckedTag)
@@ -107,7 +107,7 @@ public sealed class CloudRlTrainer : IDisposable
 
                     _log.LogInformation("[CloudRlTrainer] Downloading models: {AssetName}", assetName);
 
-                    var modelBytes = await _http.GetByteArrayAsync(downloadUrl).ConfigureAwait(false).ConfigureAwait(false);
+                    var modelBytes = await _http.GetByteArrayAsync(downloadUrl).ConfigureAwait(false);
                     var tempFile = Path.Combine(_modelDir, assetName);
                     await File.WriteAllBytesAsync(tempFile, modelBytes).ConfigureAwait(false);
 

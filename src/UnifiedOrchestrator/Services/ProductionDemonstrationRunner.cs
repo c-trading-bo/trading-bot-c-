@@ -89,17 +89,17 @@ public class ProductionDemonstrationRunner
 
             // 6. Enum Mapping Coverage Validation (REQUESTED IN PR REVIEW)
             _logger.LogWarning("✅ [DEMO-STEP-6] Testing ConvertPriceDirectionToTradingAction() enum mapping coverage...");
-            var enumValidationReport = await _enumValidation.ValidateEnumMappingCoverageAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var enumValidationReport = await _enumValidation.ValidateEnumMappingCoverageAsync(cancellationToken).ConfigureAwait(false);
             await SaveArtifactAsync($"{demoId}-enum-mapping-coverage.json", enumValidationReport).ConfigureAwait(false);
 
             // 7. ValidationReport → PromotionTestReport Regression Tests (REQUESTED IN PR REVIEW)
             _logger.LogWarning("✅ [DEMO-STEP-7] Running ValidationReport → PromotionTestReport regression tests...");
-            var regressionReport = await _regressionService.RunRegressionTestsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var regressionReport = await _regressionService.RunRegressionTestsAsync(cancellationToken).ConfigureAwait(false);
             await SaveArtifactAsync($"{demoId}-regression-test-report.json", regressionReport).ConfigureAwait(false);
 
             // 8. Complete Production Readiness Report
             _logger.LogWarning("✅ [DEMO-STEP-8] Generating comprehensive production readiness report...");
-            var productionReport = await _validationService.RunCompleteValidationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var productionReport = await _validationService.RunCompleteValidationAsync(cancellationToken).ConfigureAwait(false);
             await SaveArtifactAsync($"{demoId}-complete-production-report.json", productionReport).ConfigureAwait(false);
 
             result.EndTime = DateTime.UtcNow;
@@ -144,7 +144,7 @@ public class ProductionDemonstrationRunner
         for (int i = 0; i < 5; i++)
         {
             testContext.CurrentPrice += (decimal)(new Random().NextDouble() - 0.5) * 2;
-            var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false);
             
             decisions.Add(new
             {
@@ -184,7 +184,7 @@ public class ProductionDemonstrationRunner
             "UnifiedTradingBrain", 
             "InferenceBrain", 
             TimeSpan.FromHours(1), 
-            cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         var statisticalProof = new
         {
@@ -230,7 +230,7 @@ public class ProductionDemonstrationRunner
             ExpectedRollbackTimeMs = 100
         };
 
-        var rollbackResult = await _rollbackService.ExecuteRollbackDrillAsync(rollbackConfig, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var rollbackResult = await _rollbackService.ExecuteRollbackDrillAsync(rollbackConfig, cancellationToken).ConfigureAwait(false);
 
         var rollbackProof = new
         {
@@ -315,8 +315,8 @@ public class ProductionDemonstrationRunner
     /// </summary>
     private async Task DemonstrateDataIntegrationAsync(string demoId, CancellationToken cancellationToken)
     {
-        var historicalStatus = await _dataIntegration.GetHistoricalDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
-        var liveStatus = await _dataIntegration.GetLiveDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var historicalStatus = await _dataIntegration.GetHistoricalDataStatusAsync().ConfigureAwait(false);
+        var liveStatus = await _dataIntegration.GetLiveDataStatusAsync().ConfigureAwait(false);
 
         var dataIntegrationProof = new
         {

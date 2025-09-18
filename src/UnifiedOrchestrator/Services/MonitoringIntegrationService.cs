@@ -77,7 +77,7 @@ public class MonitoringIntegrationService : IHostedService
         // Health check endpoint
         _app.MapGet("/health", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false);
             return Results.Ok(new
             {
                 status = "healthy",
@@ -89,7 +89,7 @@ public class MonitoringIntegrationService : IHostedService
         // Prometheus metrics endpoint
         _app.MapGet("/metrics", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false);
             var metricsData = metrics.GetMetrics();
             
             // Convert to Prometheus format
@@ -116,14 +116,14 @@ public class MonitoringIntegrationService : IHostedService
                 category = parsedCategory;
             }
 
-            var entries = await _tradingLogger.GetRecentEntriesAsync(count, category).ConfigureAwait(false).ConfigureAwait(false);
+            var entries = await _tradingLogger.GetRecentEntriesAsync(count, category).ConfigureAwait(false);
             return Results.Ok(entries);
         });
 
         // Performance metrics endpoint
         _app.MapGet("/metrics/performance", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false);
             return Results.Ok(metrics.GetMetrics());
         });
 

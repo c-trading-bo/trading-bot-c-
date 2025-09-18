@@ -283,6 +283,6 @@ namespace TradingBot.Monitoring
         public double ConfidenceDrift { get; set; }
         public bool HasFeatureDrift { get; set; }
         public bool IsHealthy { get; set; }
-        public List<string> HealthIssues { get; set; } = new();
+        public List<string> HealthIssues { get; } = new();
     }
 }

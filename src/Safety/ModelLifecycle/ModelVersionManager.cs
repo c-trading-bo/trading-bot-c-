@@ -79,7 +79,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
         try
         {
             // Calculate file hash for integrity
-            var hash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false).ConfigureAwait(false);
+            var hash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false);
             var newMetadata = metadata with { Hash = hash };
             
             _modelCache[hash] = newMetadata;
@@ -173,7 +173,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
         
         try
         {
-            var currentHash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false).ConfigureAwait(false);
+            var currentHash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false);
             var isValid = currentHash == modelHash;
             
             if (!isValid)
@@ -195,7 +195,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
     {
         using var sha256 = SHA256.Create();
         await using var stream = File.OpenRead(filePath);
-        var hashBytes = await sha256.ComputeHashAsync(stream).ConfigureAwait(false).ConfigureAwait(false);
+        var hashBytes = await sha256.ComputeHashAsync(stream).ConfigureAwait(false);
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
     
@@ -208,7 +208,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
         
         try
         {
-            var json = await File.ReadAllTextAsync(_metadataFile).ConfigureAwait(false).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(_metadataFile).ConfigureAwait(false);
             var models = JsonSerializer.Deserialize<List<ModelMetadata>>(json);
             
             if (models != null)

@@ -120,7 +120,7 @@ namespace BotCore
             _log.LogDebug("[ModelUpdater] Checking for model updates...");
 
             // Download and verify manifest
-            var manifestJson = await DownloadManifestAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var manifestJson = await DownloadManifestAsync(cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(manifestJson))
             {
                 _log.LogWarning("[ModelUpdater] Failed to download manifest");
@@ -158,7 +158,7 @@ namespace BotCore
             }
 
             // Download and install new models
-            var updateSuccess = await UpdateModelsAsync(manifest, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var updateSuccess = await UpdateModelsAsync(manifest, cancellationToken).ConfigureAwait(false);
             if (updateSuccess)
             {
                 _currentManifestHash = manifestHash;
@@ -171,10 +171,10 @@ namespace BotCore
         {
             try
             {
-                using var response = await _http.GetAsync(_manifestUrl, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                using var response = await _http.GetAsync(_manifestUrl, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 _log.LogDebug("[ModelUpdater] Downloaded manifest ({Bytes} bytes)", content.Length);
 
                 return content;
@@ -250,7 +250,7 @@ namespace BotCore
             {
                 // This would depend on your position agent implementation
                 // For now, assume we have a method to check if any positions are open
-                var hasPositions = await _positionAgent.HasActivePositionsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var hasPositions = await _positionAgent.HasActivePositionsAsync(cancellationToken).ConfigureAwait(false);
                 return !hasPositions;
             }
             catch (Exception ex)
@@ -268,7 +268,7 @@ namespace BotCore
             {
                 try
                 {
-                    var success = await UpdateSingleModelAsync(modelName, modelInfo, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var success = await UpdateSingleModelAsync(modelName, modelInfo, cancellationToken).ConfigureAwait(false);
                     if (!success)
                     {
                         allSuccessful = false;
@@ -298,7 +298,7 @@ namespace BotCore
             try
             {
                 // Download model to temporary file
-                using var response = await _http.GetAsync(modelInfo.Url, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                using var response = await _http.GetAsync(modelInfo.Url, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 await using var fileStream = File.Create(tempPath);
@@ -307,7 +307,7 @@ namespace BotCore
                 fileStream.Close();
 
                 // Verify checksum
-                var actualChecksum = await ComputeFileChecksumAsync(tempPath).ConfigureAwait(false).ConfigureAwait(false);
+                var actualChecksum = await ComputeFileChecksumAsync(tempPath).ConfigureAwait(false);
                 if (!string.Equals(actualChecksum, modelInfo.Checksum, StringComparison.OrdinalIgnoreCase))
                 {
                     _log.LogError("[ModelUpdater] Checksum mismatch for {ModelName}: expected {Expected}, got {Actual}",
@@ -369,7 +369,7 @@ namespace BotCore
         {
             using var sha256 = SHA256.Create();
             await using var fileStream = File.OpenRead(filePath);
-            var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false).ConfigureAwait(false);
+            var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 
@@ -377,7 +377,7 @@ namespace BotCore
         {
             public string Version { get; set; } = "";
             public DateTime Timestamp { get; set; }
-            public Dictionary<string, ModelInfo> Models { get; set; } = new();
+            public Dictionary<string, ModelInfo> Models { get; } = new();
         }
 
         public class ModelInfo

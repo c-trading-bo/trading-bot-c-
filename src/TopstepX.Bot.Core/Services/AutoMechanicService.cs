@@ -147,7 +147,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 if (File.Exists(_statusPath))
                 {
-                    var statusJson = await File.ReadAllTextAsync(_statusPath).ConfigureAwait(false).ConfigureAwait(false);
+                    var statusJson = await File.ReadAllTextAsync(_statusPath).ConfigureAwait(false);
                     return JsonConvert.DeserializeObject(statusJson) ?? new { status = "unknown" };
                 }
             }

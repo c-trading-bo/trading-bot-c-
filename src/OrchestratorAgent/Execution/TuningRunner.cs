@@ -106,7 +106,7 @@ public static class TuningRunner
     {
         // 1) Fetch 1m bars for the requested window via /api/History/retrieveBars
         log.LogInformation("[Tune:S2] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S2] Bars fetched: {N}", bars.Count);
         if (bars.Count < 120)
         {
@@ -281,7 +281,7 @@ public static class TuningRunner
     public static async Task RunS2SummaryAsync(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Backtest:S2] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:S2] Bars fetched: {N}", bars.Count);
         if (bars.Count < 120)
         {
@@ -404,7 +404,7 @@ public static class TuningRunner
     {
         // 1) Fetch 1m bars for the requested window
         log.LogInformation("[Tune:S3] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S3] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200)
         {
@@ -557,7 +557,7 @@ public static class TuningRunner
     public static async Task RunS3SummaryAsync(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Backtest:S3] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:S3] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200)
         {
@@ -579,7 +579,7 @@ public static class TuningRunner
             var s3cfg = Environment.GetEnvironmentVariable("S3_CONFIG_PATH");
             if (!string.IsNullOrWhiteSpace(s3cfg) && File.Exists(s3cfg))
             {
-                var json = await File.ReadAllTextAsync(s3cfg, ct).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(s3cfg, ct).ConfigureAwait(false);
                 try { BotCore.Strategy.S3Strategy.ApplyTuningJson(json); } catch { }
             }
         }
@@ -698,7 +698,7 @@ public static class TuningRunner
     public static async Task RunS6Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Tune:S6] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S6] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200) { log.LogWarning("[Tune:S6] Not enough bars: {N}", bars.Count); return; }
 
@@ -784,7 +784,7 @@ public static class TuningRunner
     public static async Task RunS11Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Tune:S11] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S11] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200) { log.LogWarning("[Tune:S11] Not enough bars: {N}", bars.Count); return; }
 
@@ -870,7 +870,7 @@ public static class TuningRunner
     {
         if (string.IsNullOrWhiteSpace(strategyId)) return;
         log.LogInformation("[Backtest:{Strat}] Fetching bars for {Cid} {From:u} → {To:u}…", strategyId, contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:{Strat}] Bars fetched: {N}", strategyId, bars.Count);
         if (bars.Count < 200)
         {
@@ -1018,9 +1018,9 @@ public static class TuningRunner
             limit = 20000,
             includePartialBar = false
         };
-        using var resp = await http.PostAsJsonAsync("/api/History/retrieveBars", payload, ct).ConfigureAwait(false).ConfigureAwait(false);
+        using var resp = await http.PostAsJsonAsync("/api/History/retrieveBars", payload, ct).ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
-        var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+        var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(text);
         var arr = doc.RootElement.GetProperty("bars");
         var list = new List<Bar>(arr.GetArrayLength());

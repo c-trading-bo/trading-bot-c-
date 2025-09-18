@@ -34,7 +34,7 @@ namespace TopstepX.Bot.Core.Services
             public decimal UnrealizedPnL { get; set; }
             public decimal RealizedPnL { get; set; }
             public DateTime LastUpdate { get; set; }
-            public List<Fill> Fills { get; set; } = new();
+            public List<Fill> Fills { get; } = new();
             public decimal MarketValue { get; set; }
             public decimal DailyPnL { get; set; }
         }

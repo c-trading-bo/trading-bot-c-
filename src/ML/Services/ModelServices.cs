@@ -71,7 +71,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         try
         {
             // Step 1: Validate model integrity and security
-            var validationResult = await _validationService.ValidateModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+            var validationResult = await _validationService.ValidateModelAsync(modelPath).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 _logger.LogError("[MODEL-REGISTRY] Model validation failed for {ModelName} v{Version}: {Reason}",
@@ -80,7 +80,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             }
             
             // Step 2: Security scan
-            var securityResult = await _securityService.ScanModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
+            var securityResult = await _securityService.ScanModelAsync(modelPath).ConfigureAwait(false);
             if (!securityResult.IsSecure)
             {
                 _logger.LogError("[MODEL-REGISTRY] Security scan failed for {ModelName} v{Version}: {Issues}",
@@ -90,7 +90,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             
             // Step 3: Acquire distributed lock for atomic registration
             var lockKey = $"model_registry:{modelName}";
-            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false).ConfigureAwait(false);
+            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false);
             if (!distributedLock.IsAcquired)
             {
                 _logger.LogWarning("[MODEL-REGISTRY] Failed to acquire distributed lock for {ModelName}", modelName);
@@ -102,7 +102,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             File.Copy(modelPath, stagingPath);
             
             // Step 5: Performance baseline test
-            var baselineResult = await _performanceTracker.RunBaselineTestAsync(stagingPath, metrics).ConfigureAwait(false).ConfigureAwait(false);
+            var baselineResult = await _performanceTracker.RunBaselineTestAsync(stagingPath, metrics).ConfigureAwait(false);
             if (!baselineResult.PassedBaseline)
             {
                 _logger.LogWarning("[MODEL-REGISTRY] Model {ModelName} v{Version} failed baseline performance test",
@@ -137,7 +137,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
                 Status = ModelStatus.Active,
                 LastAccessTime = DateTime.UtcNow,
                 AccessCount = 0
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
             
             await UpdateDatabaseRegistryAsync(registryEntry).ConfigureAwait(false);
             _modelCache[GetModelKey(modelName, version)] = registryEntry;
@@ -305,7 +305,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         try
         {
             var lockKey = $"model_registry:{modelName}";
-            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false).ConfigureAwait(false);
+            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false);
             
             if (!distributedLock.IsAcquired)
             {
@@ -356,7 +356,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         var entry = GetModelFromDatabase(modelName, version);
         if (entry == null) return new ModelAnalytics { ModelName = modelName, Version = version ?? "latest" };
         
-        var performanceHistory = await _performanceTracker.GetPerformanceHistoryAsync(modelName, version).ConfigureAwait(false).ConfigureAwait(false);
+        var performanceHistory = await _performanceTracker.GetPerformanceHistoryAsync(modelName, version).ConfigureAwait(false);
         
         return new ModelAnalytics
         {
@@ -523,14 +523,14 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         try
         {
             // Step 1: Get relevant feature names from index
-            var relevantFeatures = await _indexService.GetFeaturesInTimeRangeAsync(startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
+            var relevantFeatures = await _indexService.GetFeaturesInTimeRangeAsync(startDate, endDate).ConfigureAwait(false);
             
             // Step 2: Parallel feature retrieval with caching
             var retrievalTasks = relevantFeatures.Select(async featureName =>
             {
                 try
                 {
-                    var data = await GetFeatureDataAsync(featureName, startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
+                    var data = await GetFeatureDataAsync(featureName, startDate, endDate).ConfigureAwait(false);
                     return (featureName, data);
                 }
                 catch (Exception ex)
@@ -541,7 +541,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 }
             });
             
-            var retrievedFeatures = await Task.WhenAll(retrievalTasks).ConfigureAwait(false).ConfigureAwait(false);
+            var retrievedFeatures = await Task.WhenAll(retrievalTasks).ConfigureAwait(false);
             
             // Step 3: Assemble results
             foreach (var (featureName, data) in retrievedFeatures)
@@ -576,7 +576,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         try
         {
             // Step 1: Validate feature data
-            var validationResult = await _validator.ValidateAsync(featureName, values, timestamp).ConfigureAwait(false).ConfigureAwait(false);
+            var validationResult = await _validator.ValidateAsync(featureName, values, timestamp).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("[FEATURE-STORE] Feature validation failed for {FeatureName}: {Reason}",
@@ -585,7 +585,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             }
             
             // Step 2: Check/update schema
-            var schema = await EnsureFeatureSchemaAsync(featureName, values).ConfigureAwait(false).ConfigureAwait(false);
+            var schema = await EnsureFeatureSchemaAsync(featureName, values).ConfigureAwait(false);
             
             // Step 3: Store in appropriate format (compressed vs raw)
             var shouldCompress = timestamp < DateTime.UtcNow.AddDays(-CompressionThresholdDays);
@@ -636,7 +636,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         try
         {
             // Get from multiple sources for completeness
-            var indexFeatures = await _indexService.GetAllFeatureNamesAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var indexFeatures = await _indexService.GetAllFeatureNamesAsync().ConfigureAwait(false);
             var schemaFeatures = _schemaRegistry.Keys.ToArray();
             var cacheFeatures = _featureCache.Keys.ToArray();
             
@@ -670,13 +670,13 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         
         try
         {
-            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false);
             
             var latestTasks = features.Select(async featureName =>
             {
                 try
                 {
-                    var data = await GetLatestFeatureDataAsync(featureName, count).ConfigureAwait(false).ConfigureAwait(false);
+                    var data = await GetLatestFeatureDataAsync(featureName, count).ConfigureAwait(false);
                     return (featureName, data);
                 }
                 catch (Exception ex)
@@ -687,7 +687,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 }
             });
             
-            var latestFeatures = await Task.WhenAll(latestTasks).ConfigureAwait(false).ConfigureAwait(false);
+            var latestFeatures = await Task.WhenAll(latestTasks).ConfigureAwait(false);
             
             foreach (var (featureName, data) in latestFeatures)
             {
@@ -713,10 +713,10 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     {
         try
         {
-            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
-            var totalStorageSize = await CalculateStorageSizeAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false);
+            var totalStorageSize = await CalculateStorageSizeAsync().ConfigureAwait(false);
             var cacheMetrics = CalculateCacheMetrics();
-            var compressionRatio = await CalculateCompressionRatioAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var compressionRatio = await CalculateCompressionRatioAsync().ConfigureAwait(false);
             
             return new FeatureStoreAnalytics
             {
@@ -728,7 +728,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 MemoryUsageMB = cacheMetrics.MemoryUsageMB,
                 LastCompressionRun = _lastCompressionRun,
                 IndexHealth = await _indexService.GetHealthScoreAsync()
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -749,7 +749,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         }
         
         // Load from storage
-        var data = await LoadFeatureFromStorageAsync(featureName, startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
+        var data = await LoadFeatureFromStorageAsync(featureName, startDate, endDate).ConfigureAwait(false);
         
         // Cache the result
         await CacheFeatureDataAsync(cacheKey, data).ConfigureAwait(false);
@@ -766,7 +766,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             return cachedData.Values;
         }
         
-        var data = await LoadLatestFeatureFromStorageAsync(featureName, count).ConfigureAwait(false).ConfigureAwait(false);
+        var data = await LoadLatestFeatureFromStorageAsync(featureName, count).ConfigureAwait(false);
         await CacheFeatureDataAsync(cacheKey, data).ConfigureAwait(false);
         
         return data;
@@ -911,7 +911,7 @@ public class ValidationResult
 public class SecurityResult
 {
     public bool IsSecure { get; set; }
-    public List<string> SecurityIssues { get; set; } = new();
+    public List<string> SecurityIssues { get; } = new();
     public double SecurityScore { get; set; }
 }
 
@@ -930,7 +930,7 @@ public class ModelAnalytics
     public int AccessCount { get; set; }
     public long FileSize { get; set; }
     public ModelMetrics CurrentMetrics { get; set; } = new();
-    public List<PerformanceMetric> PerformanceHistory { get; set; } = new();
+    public List<PerformanceMetric> PerformanceHistory { get; } = new();
     public ModelStatus Status { get; set; }
     public double ValidationScore { get; set; }
     public double SecurityScore { get; set; }

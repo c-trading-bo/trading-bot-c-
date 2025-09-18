@@ -112,10 +112,10 @@ public class ContinuousOperationService : BackgroundService
         try
         {
             _state.LastUpdateTime = DateTime.UtcNow;
-            _state.IsMarketOpen = await _marketHours.IsMarketOpenAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            _state.CurrentMarketSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            _state.TrainingIntensity = await _marketHours.GetRecommendedTrainingIntensityAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            _state.IsInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            _state.IsMarketOpen = await _marketHours.IsMarketOpenAsync(cancellationToken).ConfigureAwait(false);
+            _state.CurrentMarketSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false);
+            _state.TrainingIntensity = await _marketHours.GetRecommendedTrainingIntensityAsync(cancellationToken).ConfigureAwait(false);
+            _state.IsInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false);
             _state.ActiveTrainingJobs = _activeJobs.Count;
             _state.DaysSinceStart = (DateTime.UtcNow - _state.StartTime).Days;
         }
@@ -322,7 +322,7 @@ public class ContinuousOperationService : BackgroundService
                 try
                 {
                     jobStatus.Status = "RUNNING";
-                    var result = await _trainingBrain.TrainChallengerAsync(algorithm, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var result = await _trainingBrain.TrainChallengerAsync(algorithm, config, cancellationToken).ConfigureAwait(false);
                     
                     jobStatus.Status = result.Success ? "COMPLETED" : "FAILED";
                     jobStatus.EndTime = DateTime.UtcNow;
@@ -458,10 +458,10 @@ public class ContinuousOperationService : BackgroundService
             var algorithms = new[] { "PPO", "UCB", "LSTM" };
             var syncTasks = algorithms.Select(async algorithm =>
             {
-                var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
                 if (champion != null)
                 {
-                    var isValid = await _modelRegistry.ValidateArtifactAsync(champion.VersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var isValid = await _modelRegistry.ValidateArtifactAsync(champion.VersionId, cancellationToken).ConfigureAwait(false);
                     if (!isValid)
                     {
                         _logger.LogWarning("[24/7-OPS] Champion model artifact validation failed for {Algorithm}: {VersionId}",
@@ -753,8 +753,8 @@ public class OperationLog
 public class ContinuousOperationStatus
 {
     public ContinuousOperationState State { get; set; } = new();
-    public List<TrainingJobStatus> ActiveJobs { get; set; } = new();
-    public List<OperationLog> RecentLogs { get; set; } = new();
+    public List<TrainingJobStatus> ActiveJobs { get; } = new();
+    public List<OperationLog> RecentLogs { get; } = new();
     public AutomatedPromotionStatus AutomatedPromotionStatus { get; set; } = new();
 }
 

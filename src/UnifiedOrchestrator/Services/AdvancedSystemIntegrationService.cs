@@ -89,13 +89,13 @@ public class AdvancedSystemIntegrationService
             var isValid = true;
             
             // Validate ML integration
-            isValid &= await ValidateMLIntegrationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            isValid &= await ValidateMLIntegrationAsync(cancellationToken).ConfigureAwait(false);
             
             // Validate RL integration  
-            isValid &= await ValidateRLIntegrationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            isValid &= await ValidateRLIntegrationAsync(cancellationToken).ConfigureAwait(false);
             
             // Validate cloud integration
-            isValid &= await ValidateCloudIntegrationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            isValid &= await ValidateCloudIntegrationAsync(cancellationToken).ConfigureAwait(false);
             
             if (isValid)
             {

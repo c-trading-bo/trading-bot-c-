@@ -108,7 +108,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
 
     public async Task<bool> ShouldRestrictTradingAsync(string symbol, TimeSpan lookAhead)
     {
-        var restriction = await GetTradingRestrictionAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
+        var restriction = await GetTradingRestrictionAsync(symbol).ConfigureAwait(false);
         
         if (restriction.IsRestricted)
         {
@@ -118,7 +118,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
 
         // Check for upcoming high-impact events
-        var upcomingEvents = await GetUpcomingEventsAsync(lookAhead).ConfigureAwait(false).ConfigureAwait(false);
+        var upcomingEvents = await GetUpcomingEventsAsync(lookAhead).ConfigureAwait(false);
         var relevantEvents = upcomingEvents.Where(e => 
             e.AffectedSymbols.Contains(symbol) || 
             e.Impact >= EventImpact.Critical ||
@@ -184,7 +184,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         try
         {
             // Load economic events from configuration and external data sources
-            var realEvents = await LoadRealEconomicEventsAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var realEvents = await LoadRealEconomicEventsAsync().ConfigureAwait(false);
 
             lock (_lockObject)
             {
@@ -214,7 +214,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
 
             if (!string.IsNullOrEmpty(economicDataSource) && !string.IsNullOrEmpty(economicApiKey))
             {
-                events = await LoadFromExternalSourceAsync(economicDataSource, economicApiKey).ConfigureAwait(false).ConfigureAwait(false);
+                events = await LoadFromExternalSourceAsync(economicDataSource, economicApiKey).ConfigureAwait(false);
             }
             else
             {
@@ -222,7 +222,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                 var dataFile = Path.Combine(Directory.GetCurrentDirectory(), "data", "economic_events.json");
                 if (File.Exists(dataFile))
                 {
-                    events = await LoadFromLocalFileAsync(dataFile).ConfigureAwait(false).ConfigureAwait(false);
+                    events = await LoadFromLocalFileAsync(dataFile).ConfigureAwait(false);
                 }
                 else
                 {
@@ -255,7 +255,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
     {
         try
         {
-            var jsonContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false).ConfigureAwait(false);
+            var jsonContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var events = System.Text.Json.JsonSerializer.Deserialize<List<EconomicEvent>>(jsonContent) ?? new List<EconomicEvent>();
             _logger.LogInformation("[EconomicEventManager] Loaded {Count} events from local file: {File}", events.Count, filePath);
             return events;

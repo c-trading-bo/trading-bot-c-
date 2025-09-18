@@ -149,7 +149,7 @@ public class MetaLearner
                     continue;
                 
                 // Fast adaptation on support set
-                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false).ConfigureAwait(false);
+                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false);
                 
                 // Evaluate on query set
                 var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);
@@ -465,7 +465,7 @@ public class TaskExperience
 public class TaskData
 {
     public string TaskId { get; set; } = string.Empty;
-    public List<TaskExperience> Experiences { get; set; } = new();
+    public List<TaskExperience> Experiences { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }

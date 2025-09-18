@@ -80,7 +80,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             ErrorRate = currentHealth.ErrorRate,
             AverageLatencyMs = currentHealth.AverageLatencyMs,
             StatusMessage = currentHealth.StatusMessage
-        }).ConfigureAwait(false).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     public async Task StartMonitoringAsync()

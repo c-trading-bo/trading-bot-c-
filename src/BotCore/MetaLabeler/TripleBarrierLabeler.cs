@@ -45,7 +45,7 @@ public class TripleBarrierLabeler
 
         foreach (var signal in signals)
         {
-            var label = await ComputeTripleBarrierLabelAsync(signal, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var label = await ComputeTripleBarrierLabelAsync(signal, ct).ConfigureAwait(false);
             if (label != null)
             {
                 labeled.Add(label);
@@ -67,7 +67,7 @@ public class TripleBarrierLabeler
                 signal.Symbol,
                 signal.Timestamp,
                 endTime,
-                ct).ConfigureAwait(false).ConfigureAwait(false);
+                ct).ConfigureAwait(false);
 
             if (!priceData.Any())
                 return null;

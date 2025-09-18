@@ -39,7 +39,7 @@ namespace OrchestratorAgent.Ops
                         decimal? net = null, gross = null, fees = null!;
                         try
                         {
-                            var pnl = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
+                            var pnl = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct).ConfigureAwait(false);
                             if (pnl.ValueKind == JsonValueKind.Object)
                             {
                                 if (pnl.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;

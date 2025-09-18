@@ -80,7 +80,7 @@ public class ShadowTestConfig
     public decimal SignificanceLevel { get; set; } = 0.05m; // p < 0.05
     public bool RequireBehaviorAlignment { get; set; } = true;
     public decimal MinAlignmentThreshold { get; set; } = 0.8m; // 80% alignment
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
 }
 
 /// <summary>
@@ -98,7 +98,7 @@ public class ShadowTestStatus
     public decimal Progress { get; set; } // 0.0 to 1.0
     public int TradesRecorded { get; set; }
     public int SessionsRecorded { get; set; }
-    public Dictionary<string, object> IntermediateResults { get; set; } = new();
+    public Dictionary<string, object> IntermediateResults { get; } = new();
 }
 
 /// <summary>
@@ -113,7 +113,7 @@ public class PromotionStatus
     public bool HasPendingPromotion { get; set; }
     public string? PendingChallengerVersionId { get; set; }
     public DateTime? ScheduledPromotionTime { get; set; }
-    public List<string> RecentPromotions { get; set; } = new();
+    public List<string> RecentPromotions { get; } = new();
     public bool CanRollback { get; set; }
 }
 
@@ -127,7 +127,7 @@ public class PromotionSchedule
     public bool RequireSafeWindow { get; set; } = true;
     public TimeSpan MaxDelay { get; set; } = TimeSpan.FromHours(24);
     public string ApprovedBy { get; set; } = string.Empty;
-    public Dictionary<string, object> Conditions { get; set; } = new();
+    public Dictionary<string, object> Conditions { get; } = new();
     
     // Required properties per production specification  
     public string Algorithm { get; set; } = string.Empty;

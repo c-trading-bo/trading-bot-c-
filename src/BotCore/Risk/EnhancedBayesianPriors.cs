@@ -124,7 +124,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         string session,
         CancellationToken ct = default)
     {
-        var estimate = await GetPriorAsync(strategy, config, regime, session, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var estimate = await GetPriorAsync(strategy, config, regime, session, ct).ConfigureAwait(false);
 
         // Sample from Beta distribution with shrinkage
         var alpha = estimate.EffectiveSampleSize * estimate.Mean;

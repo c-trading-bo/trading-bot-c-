@@ -515,7 +515,7 @@ public class TradingOutcome
     public string MarketConditions { get; set; } = string.Empty;
     public double ModelConfidence { get; set; }
     public string ActualOutcome { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; set; } = new();
+    public Dictionary<string, object> TradingContext { get; } = new();
 }
 
 public class PredictionFeedback
@@ -529,7 +529,7 @@ public class PredictionFeedback
     public decimal ImpactOnPnL { get; set; }
     public double OriginalConfidence { get; set; }
     public string MarketContext { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; set; } = new();
+    public Dictionary<string, object> TradingContext { get; } = new();
 }
 
 public class PerformanceMetrics
@@ -543,7 +543,7 @@ public class PerformanceMetrics
     public double WinRate { get; set; }
     public double AccuracyVolatility { get; set; }
     public decimal TotalPnL { get; set; }
-    public List<double> AccuracyHistory { get; set; } = new();
+    public List<double> AccuracyHistory { get; } = new();
     public DateTime FirstTrade { get; set; }
     public DateTime LastUpdate { get; set; }
 }
@@ -561,9 +561,9 @@ public class PerformanceIssue
 public class ModelRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
-    public List<string> Strategies { get; set; } = new();
+    public List<string> Strategies { get; } = new();
     public string Reason { get; set; } = string.Empty;
-    public List<PerformanceMetrics> PerformanceMetrics { get; set; } = new();
+    public List<PerformanceMetrics> PerformanceMetrics { get; } = new();
     public double TriggerThreshold { get; set; }
     public int MinSamples { get; set; }
 }
@@ -572,8 +572,8 @@ public class EnsembleRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public Dictionary<string, ModelPerformance> ModelPerformance { get; set; } = new();
-    public List<PerformanceMetrics> OverallPerformance { get; set; } = new();
+    public Dictionary<string, ModelPerformance> ModelPerformance { get; } = new();
+    public List<PerformanceMetrics> OverallPerformance { get; } = new();
     public double TriggerThreshold { get; set; }
 }
 
@@ -584,8 +584,8 @@ public class PerformanceSummary
     public int TotalTrades { get; set; }
     public double OverallAccuracy { get; set; }
     public decimal OverallPnL { get; set; }
-    public List<PerformanceMetrics> StrategyMetrics { get; set; } = new();
-    public Dictionary<string, ModelPerformance> ModelMetrics { get; set; } = new();
+    public List<PerformanceMetrics> StrategyMetrics { get; } = new();
+    public Dictionary<string, ModelPerformance> ModelMetrics { get; } = new();
     public DateTime LastRetrainingTrigger { get; set; }
 }
 

@@ -61,7 +61,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
             // Check all discovered components
             foreach (var (componentName, componentInfo) in _discoveredComponents)
             {
-                var healthCheck = await CheckComponentHealthAsync(componentName, componentInfo).ConfigureAwait(false).ConfigureAwait(false);
+                var healthCheck = await CheckComponentHealthAsync(componentName, componentInfo).ConfigureAwait(false);
                 healthResults.Add((componentName, healthCheck.IsHealthy, healthCheck.Message, componentInfo.Category));
             }
 
@@ -621,7 +621,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
         {
             if (componentInfo.HealthCheckMethod != null)
             {
-                return await Task.FromResult(componentInfo.HealthCheckMethod.Invoke()).ConfigureAwait(false).ConfigureAwait(false);
+                return await Task.FromResult(componentInfo.HealthCheckMethod.Invoke()).ConfigureAwait(false);
             }
 
             // Default health check based on component type

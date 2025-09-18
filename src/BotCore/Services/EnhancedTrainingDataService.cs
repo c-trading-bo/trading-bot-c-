@@ -46,7 +46,7 @@ namespace BotCore
             var tradeId = signalData.Id ?? $"trade_{_tradeCounter}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
 
             // Collect comprehensive features at trade time
-            var features = await GetCurrentMarketFeaturesAsync(signalData).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await GetCurrentMarketFeaturesAsync(signalData).ConfigureAwait(false);
 
             var tradeData = new TradeData
             {
@@ -110,7 +110,7 @@ namespace BotCore
             if (!File.Exists(completedFile))
                 return 0;
 
-            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false).ConfigureAwait(false);
+            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false);
             return lines.Length;
         }
 
@@ -124,7 +124,7 @@ namespace BotCore
                 return null;
             }
 
-            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false).ConfigureAwait(false);
+            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false);
 
             if (lines.Length < minSamples)
             {
@@ -360,7 +360,7 @@ namespace BotCore
         public string StrategyUsed { get; set; } = "";
         public decimal StopLoss { get; set; }
         public decimal TakeProfit { get; set; }
-        public List<decimal> Features { get; set; } = new();
+        public List<decimal> Features { get; } = new();
         public string Session { get; set; } = "";
         public string Regime { get; set; } = "";
         public decimal Atr { get; set; }

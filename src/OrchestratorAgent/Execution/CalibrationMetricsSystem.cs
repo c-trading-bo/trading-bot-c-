@@ -449,7 +449,7 @@ namespace OrchestratorAgent.Execution
     public class CalibrationReport
     {
         public DateTime GeneratedAt { get; set; }
-        public List<ContextCalibrationReport> ContextReports { get; set; } = new();
+        public List<ContextCalibrationReport> ContextReports { get; } = new();
         public double OverallBrierScore { get; set; }
         public double OverallReliability { get; set; }
         public int TotalPredictions { get; set; }

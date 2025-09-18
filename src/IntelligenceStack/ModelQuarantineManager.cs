@@ -192,7 +192,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     return _modelHealth
                         .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                         .Select(kvp => kvp.Key)
-                        .ToList().ConfigureAwait(false).ConfigureAwait(false);
+                        .ToList().ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -526,7 +526,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<QuarantineState>(content);
             
             if (state != null)
@@ -580,7 +580,7 @@ public class ModelHealthReport
     public int WatchModels { get; set; }
     public int DegradeModels { get; set; }
     public int QuarantinedModels { get; set; }
-    public Dictionary<string, ModelHealthDetail> ModelDetails { get; set; } = new();
+    public Dictionary<string, ModelHealthDetail> ModelDetails { get; } = new();
 }
 
 public class ModelHealthDetail
@@ -600,8 +600,8 @@ public class ModelHealthDetail
 
 public class QuarantineState
 {
-    public Dictionary<string, ModelHealthState> ModelHealth { get; set; } = new();
-    public Dictionary<string, int> ShadowDecisionCounts { get; set; } = new();
+    public Dictionary<string, ModelHealthState> ModelHealth { get; } = new();
+    public Dictionary<string, int> ShadowDecisionCounts { get; } = new();
     public DateTime LastSaved { get; set; }
 }
 

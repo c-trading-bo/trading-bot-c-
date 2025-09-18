@@ -71,7 +71,7 @@ public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<st
             _log.LogInformation("[Retune] Continuous retune window: {Since:yyyy-MM-dd} -> {Until:yyyy-MM-dd}", since, until);
 
             // Ensure JWT if allowed
-            try { var tok = await _getJwt().ConfigureAwait(false).ConfigureAwait(false); if (!string.IsNullOrWhiteSpace(tok)) { /* HttpClient header set upstream */ } } catch { }
+            try { var tok = await _getJwt().ConfigureAwait(false); if (!string.IsNullOrWhiteSpace(tok)) { /* HttpClient header set upstream */ } } catch { }
 
             var results = new System.Collections.Generic.List<object>();
             foreach (var root in _roots)

@@ -120,7 +120,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
             await Database.EnsureCreatedAsync().ConfigureAwait(false);
             
             // Test a simple query
-            var tradeCount = await Trades.CountAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var tradeCount = await Trades.CountAsync().ConfigureAwait(false);
             _logger.LogInformation("[DATABASE] Connection successful. Trade count: {TradeCount}", tradeCount);
         }
         catch (Exception ex)
@@ -132,7 +132,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SaveTradeAsync(TradeRecord trade)
     {
-        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false);
         try
         {
             var entity = new TradeEntity
@@ -165,11 +165,11 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SavePositionAsync(PositionRecord position)
     {
-        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false);
         try
         {
             var existing = await Positions
-                .FirstOrDefaultAsync(p => p.AccountId == position.AccountId && p.Symbol == position.Symbol).ConfigureAwait(false).ConfigureAwait(false);
+                .FirstOrDefaultAsync(p => p.AccountId == position.AccountId && p.Symbol == position.Symbol).ConfigureAwait(false);
 
             if (existing != null)
             {
@@ -214,7 +214,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
             var entities = await Trades
                 .Where(t => t.Timestamp >= from && t.Timestamp <= to)
                 .OrderByDescending(t => t.Timestamp)
-                .ToListAsync().ConfigureAwait(false).ConfigureAwait(false);
+                .ToListAsync().ConfigureAwait(false);
 
             return entities.Select(e => new TradeRecord
             {
@@ -238,10 +238,10 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SaveOrderAsync(OrderRecord order)
     {
-        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false);
         try
         {
-            var existing = await Orders.FirstOrDefaultAsync(o => o.OrderId == order.OrderId).ConfigureAwait(false).ConfigureAwait(false);
+            var existing = await Orders.FirstOrDefaultAsync(o => o.OrderId == order.OrderId).ConfigureAwait(false);
 
             if (existing != null)
             {

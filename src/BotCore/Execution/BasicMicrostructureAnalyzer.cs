@@ -23,9 +23,9 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
     public async Task<MicrostructureState> AnalyzeCurrentStateAsync(string symbol, CancellationToken ct = default)
     {
-        var quote = await _marketData.GetCurrentQuoteAsync(symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
-        var recentTrades = await _marketData.GetRecentTradesAsync(symbol, TimeSpan.FromMinutes(5), ct).ConfigureAwait(false).ConfigureAwait(false);
-        var volume = await _marketData.GetRecentVolumeAsync(symbol, TimeSpan.FromMinutes(1), ct).ConfigureAwait(false).ConfigureAwait(false);
+        var quote = await _marketData.GetCurrentQuoteAsync(symbol, ct).ConfigureAwait(false);
+        var recentTrades = await _marketData.GetRecentTradesAsync(symbol, TimeSpan.FromMinutes(5), ct).ConfigureAwait(false);
+        var volume = await _marketData.GetRecentVolumeAsync(symbol, TimeSpan.FromMinutes(1), ct).ConfigureAwait(false);
 
         var spread = quote.AskPrice - quote.BidPrice;
         var midPrice = (quote.BidPrice + quote.AskPrice) / 2;
@@ -73,7 +73,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         MicrostructureState? currentState = null,
         CancellationToken ct = default)
     {
-        currentState ??= await AnalyzeCurrentStateAsync(symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
+        currentState ??= await AnalyzeCurrentStateAsync(symbol, ct).ConfigureAwait(false);
 
         // Base slippage from spread
         var baseSlippageBps = currentState.SpreadBps / 2;
@@ -118,7 +118,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         MicrostructureState? currentState = null,
         CancellationToken ct = default)
     {
-        currentState ??= await AnalyzeCurrentStateAsync(symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
+        currentState ??= await AnalyzeCurrentStateAsync(symbol, ct).ConfigureAwait(false);
 
         // Distance from current market
         var marketPrice = isBuy ? currentState.AskPrice : currentState.BidPrice;
@@ -157,11 +157,11 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         MicrostructureState? currentState = null,
         CancellationToken ct = default)
     {
-        currentState ??= await AnalyzeCurrentStateAsync(intent.Symbol, ct).ConfigureAwait(false).ConfigureAwait(false);
+        currentState ??= await AnalyzeCurrentStateAsync(intent.Symbol, ct).ConfigureAwait(false);
 
         // Get predictions
         var marketSlippage = await PredictMarketOrderSlippageAsync(
-            intent.Symbol, intent.Quantity, intent.IsBuy, currentState, ct).ConfigureAwait(false).ConfigureAwait(false);
+            intent.Symbol, intent.Quantity, intent.IsBuy, currentState, ct).ConfigureAwait(false);
 
         var limitFillProb = intent.LimitPrice.HasValue
             ? await EstimateLimitOrderFillProbabilityAsync(
@@ -176,7 +176,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         var limitOrderSlippage = CalculateLimitOrderSlippage(intent, bestLimitPrice, currentState);
         var limitOrderFillProb = await EstimateLimitOrderFillProbabilityAsync(
             intent.Symbol, bestLimitPrice, intent.Quantity,
-            intent.IsBuy, intent.MaxWaitTime, currentState, ct).ConfigureAwait(false).ConfigureAwait(false);
+            intent.IsBuy, intent.MaxWaitTime, currentState, ct).ConfigureAwait(false);
         var limitOrderEV = CalculateExpectedValue(intent, limitOrderSlippage, limitOrderFillProb);
 
         // Choose optimal strategy

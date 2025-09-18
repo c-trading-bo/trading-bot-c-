@@ -58,7 +58,7 @@ namespace TradingBot.Abstractions
                         _logger.LogDebug("[OrderManager] Attempting cancel via {Broker} for order {OrderId}", 
                             adapter.BrokerName, orderId);
                         
-                        var result = await adapter.CancelOrderAsync(orderId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        var result = await adapter.CancelOrderAsync(orderId, cancellationToken).ConfigureAwait(false);
                         if (result)
                         {
                             _logger.LogInformation("[OrderManager] ✅ Order {OrderId} cancelled successfully via {Broker}: {Reason}", 
@@ -88,7 +88,7 @@ namespace TradingBot.Abstractions
 
             try
             {
-                var result = await brokerAdapter.CancelOrderAsync(orderId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var result = await brokerAdapter.CancelOrderAsync(orderId, cancellationToken).ConfigureAwait(false);
                 
                 if (result)
                 {
@@ -120,7 +120,7 @@ namespace TradingBot.Abstractions
             
             foreach (var orderId in orderIds)
             {
-                results[orderId] = await CancelOrderAsync(orderId, brokerName, reason, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                results[orderId] = await CancelOrderAsync(orderId, brokerName, reason, cancellationToken).ConfigureAwait(false);
             }
             
             var successCount = results.Values.Count(r => r);

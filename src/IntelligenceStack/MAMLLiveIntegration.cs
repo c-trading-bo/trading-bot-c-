@@ -110,12 +110,12 @@ public class MamlLiveIntegration
             var adaptationStep = await PerformInnerLoopAdaptationAsync(
                 modelState, 
                 examples, 
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             // Validate adaptation step
             var validationResult = await ValidateAdaptationAsync(
                 adaptationStep, 
-                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (!validationResult.IsValid)
             {
@@ -223,7 +223,7 @@ public class MamlLiveIntegration
                 {
                     // FAIL FAST: No synthetic training examples allowed
                     // Load real training examples from actual trading outcomes
-                    var realExamples = await LoadRealTrainingExamplesAsync(regime, 20, CancellationToken.None).ConfigureAwait(false).ConfigureAwait(false);
+                    var realExamples = await LoadRealTrainingExamplesAsync(regime, 20, CancellationToken.None).ConfigureAwait(false);
                     if (realExamples.Count > 0)
                     {
                         await AdaptToRegimeAsync(regime, realExamples, CancellationToken.None).ConfigureAwait(false);
@@ -289,7 +289,7 @@ public class MamlLiveIntegration
         return await Task.Run(async () =>
         {
             // Simulate async gradient computation with external ML compute services
-            await Task.Delay(20, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await Task.Delay(20, cancellationToken).ConfigureAwait(false);
             
             // Simplified MAML inner loop - in production would use actual gradient computation
             var step = new AdaptationStep
@@ -335,7 +335,7 @@ public class MamlLiveIntegration
             // Check if performance gain is reasonable
             if (step.PerformanceGain < -0.1)
             {
-                return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" }.ConfigureAwait(false).ConfigureAwait(false);
+                return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" }.ConfigureAwait(false);
             }
 
             // Check if weight changes are within reasonable bounds
@@ -380,7 +380,7 @@ public class MamlLiveIntegration
         return await Task.Run(() =>
         {
             // Get recent adaptation history
-            var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>()).ConfigureAwait(false).ConfigureAwait(false);
+            var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>()).ConfigureAwait(false);
             var recentHistory = history.TakeLast(10).ToList();
             
             if (recentHistory.Count < 5)
@@ -552,7 +552,7 @@ public class MamlLiveIntegration
             var examples = new List<TrainingExample>();
             
             // Attempt to load from trading history database
-            var tradingExamples = await LoadFromTradingHistoryDatabase(regime, count, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var tradingExamples = await LoadFromTradingHistoryDatabase(regime, count, cancellationToken).ConfigureAwait(false);
             if (tradingExamples.Count > 0)
             {
                 _logger.LogInformation("[MAML-LIVE] Loaded {Count} real training examples from trading database for regime {Regime}", 
@@ -561,7 +561,7 @@ public class MamlLiveIntegration
             }
             
             // Fallback: Attempt to load from external data sources
-            var externalExamples = await LoadFromExternalDataSources(regime, count, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var externalExamples = await LoadFromExternalDataSources(regime, count, cancellationToken).ConfigureAwait(false);
             if (externalExamples.Count > 0)
             {
                 _logger.LogInformation("[MAML-LIVE] Loaded {Count} training examples from external sources for regime {Regime}", 
@@ -646,7 +646,7 @@ public class MamlAdaptationResult
     public bool Success { get; set; }
     public bool RolledBack { get; set; }
     public string? SkippedReason { get; set; }
-    public Dictionary<string, double> WeightChanges { get; set; } = new();
+    public Dictionary<string, double> WeightChanges { get; } = new();
     public double PerformanceImprovement { get; set; }
 }
 
@@ -656,14 +656,14 @@ public class MamlStatus
     public DateTime LastUpdate { get; set; }
     public int MaxWeightChangePct { get; set; }
     public double RollbackMultiplier { get; set; }
-    public Dictionary<string, MamlRegimeStatus> RegimeStates { get; set; } = new();
+    public Dictionary<string, MamlRegimeStatus> RegimeStates { get; } = new();
 }
 
 public class MamlRegimeStatus
 {
     public DateTime LastAdaptation { get; set; }
     public int AdaptationCount { get; set; }
-    public Dictionary<string, double> CurrentWeights { get; set; } = new();
+    public Dictionary<string, double> CurrentWeights { get; } = new();
     public double BaselinePerformance { get; set; }
     public double RecentPerformanceGain { get; set; }
     public bool IsStable { get; set; }
@@ -672,8 +672,8 @@ public class MamlRegimeStatus
 public class MamlModelState
 {
     public string RegimeKey { get; set; } = string.Empty;
-    public Dictionary<string, double> CurrentWeights { get; set; } = new();
-    public Dictionary<string, double> BaselineWeights { get; set; } = new();
+    public Dictionary<string, double> CurrentWeights { get; } = new();
+    public Dictionary<string, double> BaselineWeights { get; } = new();
     public DateTime LastAdaptation { get; set; }
     public DateTime? LastRollback { get; set; }
     public int AdaptationCount { get; set; }
@@ -684,7 +684,7 @@ public class AdaptationStep
 {
     public DateTime Timestamp { get; set; }
     public int ExampleCount { get; set; }
-    public Dictionary<string, double> WeightChanges { get; set; } = new();
+    public Dictionary<string, double> WeightChanges { get; } = new();
     public double PerformanceGain { get; set; }
 }
 

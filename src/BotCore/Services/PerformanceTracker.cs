@@ -110,7 +110,7 @@ public class PerformanceTracker
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
 
             // Load existing metrics
-            var metrics = await LoadPersonalMetricsAsync() ?? new PersonalMetrics().ConfigureAwait(false).ConfigureAwait(false);
+            var metrics = await LoadPersonalMetricsAsync() ?? new PersonalMetrics().ConfigureAwait(false);
 
             // Update trade counts
             metrics.TotalTrades++;
@@ -210,7 +210,7 @@ public class PerformanceTracker
             using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             var cloudLogger = loggerFactory.CreateLogger<CloudDataUploader>();
             var cloudUploader = new CloudDataUploader(cloudLogger);
-            var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData).ConfigureAwait(false).ConfigureAwait(false);
+            var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData).ConfigureAwait(false);
             
             if (uploadSuccess)
             {
@@ -295,7 +295,7 @@ public class PerformanceTracker
             if (!File.Exists(metricsFile))
                 return null;
 
-            var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false);
             return JsonSerializer.Deserialize<PersonalMetrics>(json, _jsonOptions);
         }
         catch (Exception ex)
@@ -321,7 +321,7 @@ public class PerformanceTracker
     {
         try
         {
-            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false).ConfigureAwait(false);
+            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false);
             if (trades.Count == 0) return 0.0;
             
             var winningTrades = trades.Count(t => t.PnLDollar > 0);
@@ -338,7 +338,7 @@ public class PerformanceTracker
     {
         try
         {
-            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false).ConfigureAwait(false);
+            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false);
             var winningTrades = trades.Where(t => t.PnLDollar > 0).ToList();
             
             if (winningTrades.Count == 0) return 0m;
@@ -356,7 +356,7 @@ public class PerformanceTracker
     {
         try
         {
-            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false).ConfigureAwait(false);
+            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false);
             var losingTrades = trades.Where(t => t.PnLDollar < 0).ToList();
             
             if (losingTrades.Count == 0) return 0m;
@@ -374,7 +374,7 @@ public class PerformanceTracker
     {
         try
         {
-            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false).ConfigureAwait(false);
+            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false);
             var grossProfit = trades.Where(t => t.PnLDollar > 0).Sum(t => t.PnLDollar);
             var grossLoss = Math.Abs(trades.Where(t => t.PnLDollar < 0).Sum(t => t.PnLDollar));
             
@@ -393,7 +393,7 @@ public class PerformanceTracker
     {
         try
         {
-            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false).ConfigureAwait(false);
+            var trades = await LoadTradesForStrategyAsync(strategy).ConfigureAwait(false);
             if (trades.Count < 2) return 0.0;
             
             var returns = trades.Select(t => (double)t.PnLDollar).ToArray();
@@ -441,7 +441,7 @@ public class PerformanceTracker
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var dailyTrades = JsonSerializer.Deserialize<List<TradeRecord>>(json, _jsonOptions);
                     
                     if (dailyTrades != null)
@@ -475,7 +475,7 @@ public class PerformanceTracker
             var trades = new List<object>();
             if (File.Exists(logFile))
             {
-                var json = await File.ReadAllTextAsync(logFile).ConfigureAwait(false).ConfigureAwait(false);
+                var json = await File.ReadAllTextAsync(logFile).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) trades = existing;
             }
@@ -528,7 +528,7 @@ public class TradeRecord
     public decimal MaxDrawdown { get; set; }
     public decimal MaxFavorable { get; set; }
 
-    public List<string> Tags { get; set; } = new();
+    public List<string> Tags { get; } = new();
     public string? Notes { get; set; }
 }
 
@@ -548,7 +548,7 @@ public class PersonalMetrics
     public double TotalRMultiple { get; set; }
     public double AverageRMultiple { get; set; }
 
-    public Dictionary<string, StrategyMetrics> StrategyPerformance { get; set; } = new();
+    public Dictionary<string, StrategyMetrics> StrategyPerformance { get; } = new();
 
     public DateTime LastUpdated { get; set; }
     public DateTime LastTradeTime { get; set; }

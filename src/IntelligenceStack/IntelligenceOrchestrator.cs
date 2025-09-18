@@ -110,7 +110,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             _logger.LogInformation("[INTELLIGENCE] Initializing intelligence stack...");
 
             // Run comprehensive startup validation
-            var validationResult = await RunStartupValidationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var validationResult = await RunStartupValidationAsync(cancellationToken).ConfigureAwait(false);
             if (!validationResult.AllTestsPassed)
             {
                 _logger.LogCritical("[INTELLIGENCE] Startup validation failed - trading disabled!");
@@ -155,24 +155,24 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 context.Symbol, context.Price);
 
             // 1. Detect current market regime
-            var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
             
             // 2. Extract features
-            var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
             
             // 3. Get active model for current regime
-            var model = await GetModelForRegimeAsync(regime.Type, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var model = await GetModelForRegimeAsync(regime.Type, cancellationToken).ConfigureAwait(false);
             if (model == null)
             {
                 return CreateSafeDecision("No active model available for current regime");
             }
 
             // 4. Make raw prediction
-            var rawConfidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rawConfidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
             
             // 5. Apply calibration
             var calibratedConfidence = await _calibrationManager.CalibrateConfidenceAsync(
-                model.Id, rawConfidence, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                model.Id, rawConfidence, cancellationToken).ConfigureAwait(false);
 
             // 6. Apply confidence gating
             if (calibratedConfidence < _config.ML.Confidence.MinConfidence)
@@ -203,7 +203,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)
     {
-        return await _startupValidator.ValidateSystemAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await _startupValidator.ValidateSystemAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData data, CancellationToken cancellationToken = default)
@@ -220,7 +220,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await _featureEngineer.ProcessMarketDataAsync(data, async (features) =>
             {
                 // Real prediction implementation using ensemble models and regime detection
-                var prediction = await CalculateRealPredictionAsync(features, data, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var prediction = await CalculateRealPredictionAsync(features, data, cancellationToken).ConfigureAwait(false);
                 return prediction.Confidence;
             }, cancellationToken);
 
@@ -349,7 +349,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 try
                 {
                     var familyName = $"regime_{regimeType}";
-                    var model = await _modelRegistry.GetModelAsync(familyName, "latest", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var model = await _modelRegistry.GetModelAsync(familyName, "latest", cancellationToken).ConfigureAwait(false);
                     
                     lock (_lock)
                     {
@@ -385,7 +385,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         // Fallback to default model
         try
         {
-            return await _modelRegistry.GetModelAsync("default", "latest", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            return await _modelRegistry.GetModelAsync("default", "latest", cancellationToken).ConfigureAwait(false);
         }
         catch (FileNotFoundException ex)
         {
@@ -428,7 +428,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await Task.Run(async () =>
         {
             // Simulate async model inference with ONNX runtime
-            await Task.Delay(10, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
             
             // Simplified prediction - in production would use ONNX runtime
             // Return a sample confidence based on spread and volume
@@ -451,7 +451,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken) : 
             new RegimeState { Type = RegimeType.Range, Confidence = 0.5 }.ConfigureAwait(false);
         var regimeScore = regimeState.Confidence;
-        var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
         
         // Adjust confidence based on regime detection
         var adjustedConfidence = confidence * regimeScore;
@@ -515,8 +515,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 Timestamp = DateTime.UtcNow
             };
 
-            var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-            var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
+            var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
             
             var prediction = new MLPrediction
             {
@@ -584,10 +584,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     Timestamp = DateTime.UtcNow
                 };
 
-                var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
                 
                 // Apply updated feature weights from FeatureEngineer immediately
-                var currentWeights = await _featureEngineer.GetCurrentWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var currentWeights = await _featureEngineer.GetCurrentWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false);
                 var weightedFeatures = ApplyFeatureWeights(features, currentWeights);
                 
                 // Convert weighted features to float array for ONNX input
@@ -601,7 +601,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 // Validate feature vector shape before calling PredictAsync
                 if (featureArray.Length > 0 && featureArray.Length <= 100) // Reasonable bounds check
                 {
-                    var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken).ConfigureAwait(false);
                     
                     string direction;
                     if (ensemblePrediction.EnsembleResult > 0.55f)
@@ -647,7 +647,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             // Fallback to simplified prediction logic if ONNX not available
-            var fallbackPrediction = await GetLatestPredictionAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var fallbackPrediction = await GetLatestPredictionAsync(symbol, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("[ONLINE_PREDICTION] Using fallback prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}", 
                 symbol, strategyId, fallbackPrediction.Confidence);
             
@@ -665,7 +665,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     public async Task<MLPrediction?> GetLivePredictionAsync(string symbol, string strategyId, CancellationToken cancellationToken = default)
     {
-        return await GetOnlinePredictionAsync(symbol, strategyId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await GetOnlinePredictionAsync(symbol, strategyId, cancellationToken).ConfigureAwait(false);
     }
 
     private double CalculatePositionSize(double confidence)
@@ -850,7 +850,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             // Extract market context from workflow context
             var marketContext = ExtractMarketContextFromWorkflow(context);
-            var decision = await MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false);
             
             var result = new WorkflowExecutionResult { Success = true };
             result.Results["decision"] = decision;
@@ -1062,7 +1062,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
                 var url = $"{_cloudFlowOptions.CloudEndpoint}/{endpoint}";
-                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -1070,7 +1070,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 }
 
                 // Log non-success response
-                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogWarning("[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}", 
                     response.StatusCode, responseContent);
 
@@ -1131,7 +1131,7 @@ public class CloudTradeRecord
     public DateTime EntryTime { get; set; }
     public DateTime ExitTime { get; set; }
     public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -1144,7 +1144,7 @@ public class CloudServiceMetrics
     public double FeatureDrift { get; set; }
     public int ActiveModels { get; set; }
     public long MemoryUsageMB { get; set; }
-    public Dictionary<string, double> CustomMetrics { get; set; } = new();
+    public Dictionary<string, double> CustomMetrics { get; } = new();
 }
 
 /// <summary>
@@ -1158,7 +1158,7 @@ public class MLPrediction
     public string ModelId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsValid { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 #endregion

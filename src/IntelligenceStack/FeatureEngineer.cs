@@ -100,7 +100,7 @@ public class FeatureEngineer : IDisposable
             foreach (var (featureName, featureValue) in features.Features)
             {
                 var marginalContribution = await CalculateMarginalContributionAsync(
-                    tracker, featureName, featureValue, predictions, outcomes, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    tracker, featureName, featureValue, predictions, outcomes, cancellationToken).ConfigureAwait(false);
                 
                 shapValues[featureName] = Math.Abs(marginalContribution);
             }
@@ -142,7 +142,7 @@ public class FeatureEngineer : IDisposable
             var importanceScores = new Dictionary<string, double>();
             
             // Get baseline prediction
-            var baselinePrediction = await predictionFunction(features).ConfigureAwait(false).ConfigureAwait(false);
+            var baselinePrediction = await predictionFunction(features).ConfigureAwait(false);
             
             // Calculate importance by permuting each feature
             foreach (var (featureName, originalValue) in features.Features)
@@ -173,7 +173,7 @@ public class FeatureEngineer : IDisposable
                 permutedFeatures.Features[featureName] = medianValue;
 
                 // Get prediction with permuted feature
-                var permutedPrediction = await predictionFunction(permutedFeatures).ConfigureAwait(false).ConfigureAwait(false);
+                var permutedPrediction = await predictionFunction(permutedFeatures).ConfigureAwait(false);
                 
                 // Calculate importance as absolute change in prediction
                 var importance = Math.Abs(baselinePrediction - permutedPrediction);
@@ -262,7 +262,7 @@ public class FeatureEngineer : IDisposable
         CancellationToken cancellationToken = default)
     {
         // Perform async weight retrieval with persistence layer
-        return await LoadWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await LoadWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public class FeatureEngineer : IDisposable
         try
         {
             // Extract features from market data
-            var features = await ExtractFeaturesFromMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var features = await ExtractFeaturesFromMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
             
             if (features == null || features.Features.Count == 0)
             {
@@ -300,7 +300,7 @@ public class FeatureEngineer : IDisposable
             var recentOutcomes = tracker.GetRecentOutcomes();
 
             // Calculate rolling SHAP values
-            var shapValues = await CalculateRollingSHAPAsync(strategyId, features, recentPredictions, recentOutcomes, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var shapValues = await CalculateRollingSHAPAsync(strategyId, features, recentPredictions, recentOutcomes, cancellationToken).ConfigureAwait(false);
 
             // Update feature weights based on importance
             await UpdateFeatureWeightsAsync(strategyId, features, shapValues, cancellationToken).ConfigureAwait(false);
@@ -384,7 +384,7 @@ public class FeatureEngineer : IDisposable
             }, cancellationToken);
 
             // Step 2: Get feature history asynchronously
-            var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken).ConfigureAwait(false);
             
             if (featureHistory.Count < 10)
             {
@@ -392,10 +392,10 @@ public class FeatureEngineer : IDisposable
             }
 
             // Step 3: Calculate correlation coefficient asynchronously
-            var correlation = await Task.Run(() => CalculateCorrelation(featureHistory, predictions), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var correlation = await Task.Run(() => CalculateCorrelation(featureHistory, predictions), cancellationToken).ConfigureAwait(false);
             
             // Step 4: Calculate contribution as correlation weighted by recent performance
-            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(10).Average(), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(10).Average(), cancellationToken).ConfigureAwait(false);
             var marginalContribution = correlation * recentAccuracy * featureValue;
 
             return marginalContribution;
@@ -508,7 +508,7 @@ public class FeatureEngineer : IDisposable
                         if (recentFeatures != null)
                         {
                             var shapValues = await CalculateRollingSHAPAsync(
-                                strategyId, recentFeatures, recentPredictions, recentOutcomes).ConfigureAwait(false).ConfigureAwait(false);
+                                strategyId, recentFeatures, recentPredictions, recentOutcomes).ConfigureAwait(false);
                             
                             await UpdateFeatureWeightsAsync(strategyId, recentFeatures, shapValues).ConfigureAwait(false);
                         }
@@ -686,7 +686,7 @@ public class FeatureWeightsLog
 {
     public string StrategyId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
-    public Dictionary<string, double> Weights { get; set; } = new();
+    public Dictionary<string, double> Weights { get; } = new();
     public int TotalFeatures { get; set; }
     public int LowValueFeatures { get; set; }
     public int HighValueFeatures { get; set; }

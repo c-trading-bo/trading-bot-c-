@@ -239,7 +239,7 @@ namespace OrchestratorAgent
             try
             {
                 var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct)
-                               ?? [].ConfigureAwait(false).ConfigureAwait(false);
+                               ?? [].ConfigureAwait(false);
                 foreach (var p in parents)
                 {
                     bool hasBr = false;
@@ -286,7 +286,7 @@ namespace OrchestratorAgent
                 string? symbol = null!;
                 try
                 {
-                    var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct).ConfigureAwait(false).ConfigureAwait(false);
+                    var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct).ConfigureAwait(false);
                     if (parent.ValueKind == System.Text.Json.JsonValueKind.Object)
                     {
                         if (parent.TryGetProperty("symbol", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.String) symbol = s.GetString();
@@ -445,7 +445,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false).ConfigureAwait(false);
+                var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false);
                 return list ?? [];
             }
             catch (Exception ex)
@@ -459,7 +459,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct).ConfigureAwait(false).ConfigureAwait(false);
+                var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct).ConfigureAwait(false);
                 return list ?? [];
             }
             catch (Exception ex)

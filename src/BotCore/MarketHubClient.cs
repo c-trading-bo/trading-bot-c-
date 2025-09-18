@@ -66,7 +66,7 @@ namespace BotCore
             _contractId = contractId ?? throw new ArgumentNullException(nameof(contractId));
             if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
-            _conn = await BuildMarketHubAsync().ConfigureAwait(false).ConfigureAwait(false);
+            _conn = await BuildMarketHubAsync().ConfigureAwait(false);
             AttachLifecycleHandlers(appLifetime);
             await _conn.StartAsync(startToken).ConfigureAwait(false);
 
@@ -150,7 +150,7 @@ namespace BotCore
                 url = $"{rtcBase}/hubs/market";
             }
             string? jwt;
-            try { jwt = await _getJwtAsync().ConfigureAwait(false).ConfigureAwait(false); } catch { jwt = null; }
+            try { jwt = await _getJwtAsync().ConfigureAwait(false); } catch { jwt = null; }
             // Suppress noisy repeats of the same URL/JWT log
             var nowLog = DateTime.UtcNow;
             if (nowLog - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
@@ -366,7 +366,7 @@ namespace BotCore
                     {
                         await Task.Delay(delay, appCt).ConfigureAwait(false);
                         try { if (_conn is not null) await _conn.DisposeAsync().ConfigureAwait(false); } catch { }
-                        _conn = await BuildMarketHubAsync().ConfigureAwait(false).ConfigureAwait(false);
+                        _conn = await BuildMarketHubAsync().ConfigureAwait(false);
                         AttachLifecycleHandlers(appCt);
                         using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
                         connectCts.CancelAfter(TimeSpan.FromSeconds(15));

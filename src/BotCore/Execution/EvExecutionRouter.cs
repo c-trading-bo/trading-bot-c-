@@ -34,7 +34,7 @@ public class EvExecutionRouter : IExecutionRouter
         try
         {
             var intent = CreateTradeIntent(signal, marketContext);
-            var recommendation = await _microstructureAnalyzer.GetExecutionRecommendationAsync(intent, null, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var recommendation = await _microstructureAnalyzer.GetExecutionRecommendationAsync(intent, null, ct).ConfigureAwait(false);
 
             var decision = new ExecutionDecision
             {

@@ -182,10 +182,10 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
     {
         if (_latencyTrackers.TryGetValue(operationName, out var tracker))
         {
-            return await Task.FromResult(tracker.GetMetrics()).ConfigureAwait(false).ConfigureAwait(false);
+            return await Task.FromResult(tracker.GetMetrics()).ConfigureAwait(false);
         }
 
-        return await Task.FromResult(new LatencyMetrics { OperationName = operationName }).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(new LatencyMetrics { OperationName = operationName }).ConfigureAwait(false);
     }
 
     public async Task SendToDeadLetterQueueAsync<T>(T item, string reason, string? correlationId = null)
@@ -257,7 +257,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
             _logger.LogError(ex, "[OBSERVABILITY] Error retrieving dead letter items for queue: {QueueName}", queueName);
         }
 
-        return await Task.FromResult(items).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(items).ConfigureAwait(false);
     }
 
     public async Task ProcessGracefulShutdownAsync(CancellationToken cancellationToken)
@@ -377,7 +377,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         {
             _ = Task.Run(async () =>
             {
-                var metrics = await GetResourceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var metrics = await GetResourceMetricsAsync().ConfigureAwait(false);
                 OnResourceMetricsUpdated.Invoke(metrics);
                 
                 // Check for resource alerts

@@ -165,7 +165,7 @@ public class StrategyPerformanceAnalyzer
         
         foreach (var strategy in strategies)
         {
-            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken).ConfigureAwait(false);
             
             // Apply volatility adjustments
             score = ApplyVolatilityAdjustment(strategy, score, volatility);
@@ -839,7 +839,7 @@ public class StrategyPerformanceAnalyzer
 public class StrategyAnalysis
 {
     public string StrategyName { get; set; } = "";
-    public List<AnalyzerTradeOutcome> AllTrades { get; set; } = new();
+    public List<AnalyzerTradeOutcome> AllTrades { get; } = new();
     public decimal TotalPnL { get; set; }
     public decimal WinRate { get; set; }
     public decimal ProfitFactor { get; set; }
@@ -876,7 +876,7 @@ public class StrategyRecommendation
     public decimal Score { get; set; }
     public decimal Confidence { get; set; }
     public string Reasoning { get; set; } = "";
-    public Dictionary<string, decimal> AlternativeStrategies { get; set; } = new();
+    public Dictionary<string, decimal> AlternativeStrategies { get; } = new();
 }
 
 public class StrategyAlert

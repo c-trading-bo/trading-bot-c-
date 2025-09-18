@@ -58,7 +58,7 @@ public class ProductionResilienceService
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var result = await operation(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var result = await operation(cancellationToken).ConfigureAwait(false);
                 
                 // Success - reset circuit breaker
                 if (circuitBreaker.State == CircuitState.HalfOpen)
@@ -123,10 +123,10 @@ public class ProductionResilienceService
     {
         return await ExecuteWithResilienceAsync(operationName, async (ct) =>
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct).ConfigureAwait(false).ConfigureAwait(false);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct).ConfigureAwait(false);
             timeoutCts.CancelAfter(_config.HttpTimeout);
             
-            return await httpOperation(httpClient, timeoutCts.Token).ConfigureAwait(false).ConfigureAwait(false);
+            return await httpOperation(httpClient, timeoutCts.Token).ConfigureAwait(false);
         }, cancellationToken);
     }
 

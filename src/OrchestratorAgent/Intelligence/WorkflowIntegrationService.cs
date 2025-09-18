@@ -49,7 +49,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(intelligencePath).ConfigureAwait(false).ConfigureAwait(false);
+                var jsonContent = await File.ReadAllTextAsync(intelligencePath).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<MarketIntelligence>(jsonContent);
                 
                 _logger.LogInformation("Loaded market intelligence: Regime={Regime}, Confidence={Confidence}, Bias={Bias}", 
@@ -78,7 +78,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(correlationPath).ConfigureAwait(false).ConfigureAwait(false);
+                var jsonContent = await File.ReadAllTextAsync(correlationPath).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<CorrelationData>(jsonContent);
                 
                 _logger.LogDebug("Loaded correlation data with {Count} instrument correlations", 
@@ -107,7 +107,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(zonePath).ConfigureAwait(false).ConfigureAwait(false);
+                var jsonContent = await File.ReadAllTextAsync(zonePath).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<ZoneAnalysis>(jsonContent);
                 
                 _logger.LogDebug("Loaded zone analysis for {Symbol}: {SupplyCount} supply, {DemandCount} demand zones", 
@@ -136,7 +136,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(sentimentPath).ConfigureAwait(false).ConfigureAwait(false);
+                var jsonContent = await File.ReadAllTextAsync(sentimentPath).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<SentimentData>(jsonContent);
                 
                 _logger.LogDebug("Loaded sentiment data: Score={Score}, Sources={Sources}", 
@@ -178,7 +178,7 @@ namespace OrchestratorAgent.Intelligence
                 var jsonPayload = JsonSerializer.Serialize(payload);
                 var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -238,7 +238,7 @@ namespace OrchestratorAgent.Intelligence
         public bool IsFomcDay { get; set; }
         public bool IsCpiDay { get; set; }
         public DateTimeOffset Timestamp { get; set; }
-        public Dictionary<string, decimal> ModelPredictions { get; set; } = new();
+        public Dictionary<string, decimal> ModelPredictions { get; } = new();
         
         // Additional properties for strategy-specific intelligence
         public decimal? MomentumStrength { get; set; }
@@ -250,15 +250,15 @@ namespace OrchestratorAgent.Intelligence
 
     public class CorrelationData
     {
-        public Dictionary<string, decimal> Correlations { get; set; } = new();
+        public Dictionary<string, decimal> Correlations { get; } = new();
         public DateTimeOffset Timestamp { get; set; }
         public string BasePair { get; set; } = "";
     }
 
     public class ZoneAnalysis
     {
-        public List<Zone> SupplyZones { get; set; } = new();
-        public List<Zone> DemandZones { get; set; } = new();
+        public List<Zone> SupplyZones { get; } = new();
+        public List<Zone> DemandZones { get; } = new();
         public decimal POC { get; set; } // Point of Control
         public decimal CurrentPrice { get; set; }
         public DateTimeOffset Timestamp { get; set; }
@@ -277,8 +277,8 @@ namespace OrchestratorAgent.Intelligence
     public class SentimentData
     {
         public decimal OverallScore { get; set; } // -1 to 1 scale
-        public Dictionary<string, decimal> Sources { get; set; } = new();
+        public Dictionary<string, decimal> Sources { get; } = new();
         public DateTimeOffset Timestamp { get; set; }
-        public List<string> KeyTopics { get; set; } = new();
+        public List<string> KeyTopics { get; } = new();
     }
 }

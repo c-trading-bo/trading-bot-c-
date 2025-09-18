@@ -251,7 +251,7 @@ public class AutonomousPerformanceTracker
         }
         
         // Generate insights outside the lock
-        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken).ConfigureAwait(false);
         
         lock (_trackingLock)
         {
@@ -774,8 +774,8 @@ public class DailyPerformanceReport
     public decimal LargestLoss { get; set; }
     public string BestStrategy { get; set; } = "";
     public string WorstStrategy { get; set; } = "";
-    public List<string> TradingInsights { get; set; } = new();
-    public List<OptimizationRecommendation> OptimizationRecommendations { get; set; } = new();
+    public List<string> TradingInsights { get; } = new();
+    public List<OptimizationRecommendation> OptimizationRecommendations { get; } = new();
 }
 
 /// <summary>
@@ -789,7 +789,7 @@ public class LearningInsight
     public string InsightType { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Confidence { get; set; }
-    public Dictionary<string, object> MarketConditions { get; set; } = new();
+    public Dictionary<string, object> MarketConditions { get; } = new();
 }
 
 /// <summary>
@@ -798,7 +798,7 @@ public class LearningInsight
 public class StrategyLearning
 {
     public string StrategyName { get; set; } = "";
-    public List<LearningInsight> Insights { get; set; } = new();
+    public List<LearningInsight> Insights { get; } = new();
 }
 
 /// <summary>

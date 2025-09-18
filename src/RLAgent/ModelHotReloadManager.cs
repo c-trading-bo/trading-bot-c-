@@ -94,7 +94,7 @@ public class ModelHotReloadManager : IDisposable
                 modelPath, candidateModelName);
 
             // Step 1: Load candidate model
-            var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token).ConfigureAwait(false).ConfigureAwait(false);
+            var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (!loadSuccess)
             {
                 _logger.LogError("[HOT_RELOAD] Failed to load candidate model: {ModelPath}", modelPath);
@@ -102,7 +102,7 @@ public class ModelHotReloadManager : IDisposable
             }
 
             // Step 2: Run smoke tests
-            var smokeTestPassed = await RunSmokeTestsAsync(candidateModelName).ConfigureAwait(false).ConfigureAwait(false);
+            var smokeTestPassed = await RunSmokeTestsAsync(candidateModelName).ConfigureAwait(false);
             if (!smokeTestPassed)
             {
                 _logger.LogError("[HOT_RELOAD] Smoke tests failed for candidate model: {CandidateName}", candidateModelName);
@@ -150,7 +150,7 @@ public class ModelHotReloadManager : IDisposable
             {
                 foreach (var input in goldenInputs)
                 {
-                    var prediction = await _onnxEnsemble.PredictAsync(input, _cancellationTokenSource.Token).ConfigureAwait(false).ConfigureAwait(false);
+                    var prediction = await _onnxEnsemble.PredictAsync(input, _cancellationTokenSource.Token).ConfigureAwait(false);
                     
                     // Validate prediction is within expected bounds
                     if (prediction.Confidence < 0.0 || prediction.Confidence > 1.0)

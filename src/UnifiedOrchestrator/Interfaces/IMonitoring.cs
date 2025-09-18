@@ -59,8 +59,8 @@ public class DriftDetectionResult
     public decimal Threshold { get; set; }
     public DateTime DetectionTime { get; set; } = DateTime.UtcNow;
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Metrics { get; set; } = new();
-    public List<string> RecommendedActions { get; set; } = new();
+    public Dictionary<string, object> Metrics { get; } = new();
+    public List<string> RecommendedActions { get; } = new();
 }
 
 /// <summary>
@@ -73,7 +73,7 @@ public class DriftMonitoringStatus
     public DateTime LastCheck { get; set; }
     public int ChecksPerformed { get; set; }
     public int DriftEventsDetected { get; set; }
-    public List<DriftDetectionResult> RecentDriftEvents { get; set; } = new();
+    public List<DriftDetectionResult> RecentDriftEvents { get; } = new();
 }
 
 /// <summary>
@@ -85,8 +85,8 @@ public class HealthGateResult
     public bool IsHealthy { get; set; }
     public decimal HealthScore { get; set; } // 0.0 = unhealthy, 1.0 = perfectly healthy
     public DateTime LastCheck { get; set; } = DateTime.UtcNow;
-    public List<string> HealthIssues { get; set; } = new();
-    public List<string> Warnings { get; set; } = new();
-    public Dictionary<string, object> HealthMetrics { get; set; } = new();
+    public List<string> HealthIssues { get; } = new();
+    public List<string> Warnings { get; } = new();
+    public Dictionary<string, object> HealthMetrics { get; } = new();
     public bool SafeToTrade { get; set; }
 }

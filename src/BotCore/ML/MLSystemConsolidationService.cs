@@ -50,7 +50,7 @@ public sealed class MLSystemConsolidationService
 
         if (File.Exists(enhancedMLFile))
         {
-            var content = await File.ReadAllTextAsync(enhancedMLFile).ConfigureAwait(false).ConfigureAwait(false);
+            var content = await File.ReadAllTextAsync(enhancedMLFile).ConfigureAwait(false);
             
             if (content.Contains("public class MLMemoryManager"))
             {
@@ -209,7 +209,7 @@ public sealed class MLSystemConsolidationService
             return;
         }
 
-        var content = await File.ReadAllTextAsync(action.SourcePath).ConfigureAwait(false).ConfigureAwait(false);
+        var content = await File.ReadAllTextAsync(action.SourcePath).ConfigureAwait(false);
         
         // Create backup
         var backupPath = action.SourcePath + ".backup." + DateTime.Now.ToString("yyyyMMdd_HHmmss");
@@ -281,7 +281,7 @@ public sealed class MLSystemConsolidationService
     /// </summary>
     public async Task<string> GenerateConsolidationReportAsync()
     {
-        var plan = await AnalyzeDuplicateSystemsAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var plan = await AnalyzeDuplicateSystemsAsync().ConfigureAwait(false);
         
         var report = $@"
 === ML System Consolidation Report ===

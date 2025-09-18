@@ -38,7 +38,7 @@ namespace UnifiedOrchestrator.Services
         public string ModelName { get; set; } = "";
         public DateTime BacktestStart { get; set; }
         public DateTime BacktestEnd { get; set; }
-        public List<BacktestWindowResult> WindowResults { get; set; } = new();
+        public List<BacktestWindowResult> WindowResults { get; } = new();
         public BacktestWindowResult OverallMetrics { get; set; } = new();
         public bool WasSuccessful { get; set; }
         public string ErrorMessage { get; set; } = "";
@@ -84,7 +84,7 @@ namespace UnifiedOrchestrator.Services
 
                 while (currentDate.AddDays(_options.TrainingWindowDays + _options.TestWindowDays) <= endDate)
                 {
-                    var windowResult = await RunBacktestWindowAsync(modelName, currentDate, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var windowResult = await RunBacktestWindowAsync(modelName, currentDate, cancellationToken).ConfigureAwait(false);
                     windowResults.Add(windowResult);
 
                     _logger.LogDebug("Completed backtest window: Training {TrainingStart}-{TrainingEnd}, Test {TestStart}-{TestEnd}, Accuracy: {Accuracy:F3}",
@@ -139,7 +139,7 @@ namespace UnifiedOrchestrator.Services
                 }
 
                 // Simulate model testing on test window
-                var testResults = await SimulateModelTestingAsync(modelName, testStart, testEnd, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var testResults = await SimulateModelTestingAsync(modelName, testStart, testEnd, cancellationToken).ConfigureAwait(false);
                 
                 windowResult.Accuracy = testResults.accuracy;
                 windowResult.Precision = testResults.precision;

@@ -401,11 +401,11 @@ namespace TopstepX.Bot.Core.Services
                 var json = JsonSerializer.Serialize(orderPayload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("/api/Order/place", content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync("/api/Order/place", content, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
                     
                     var orderId = orderResponse.TryGetProperty("orderId", out var orderIdElement) 
@@ -420,7 +420,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     _logger.LogWarning("[ORDER] API rejection: {StatusCode} - {Content}", response.StatusCode, errorContent);
                     return OrderResult.Failed($"API Error: {response.StatusCode} - {errorContent}");
                 }
@@ -519,7 +519,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // PHASE 1: Feature Engineering - Transform raw market data into ML-ready features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
                 
                 // PHASE 2: Time-Optimized Strategy Selection - Use existing optimization
                 // Note: Simplifying to use available methods
@@ -540,7 +540,7 @@ namespace TopstepX.Bot.Core.Services
                 
                 // PHASE 5: ML/RL BRAIN ENHANCEMENT - Use UnifiedTradingBrain for intelligent decisions
                 var brainDecision = await _unifiedTradingBrain.MakeIntelligentDecisionAsync(
-                    symbol, env, levels, bars, _riskEngine, cancellationToken: default).ConfigureAwait(false).ConfigureAwait(false);
+                    symbol, env, levels, bars, _riskEngine, cancellationToken: default).ConfigureAwait(false);
                 var mlEnhancedCandidates = brainDecision.EnhancedCandidates;
                 
                 _logger.LogInformation("[ML/RL-BRAIN] 🧠 Brain Decision: Strategy={Strategy} ({Confidence:P1}), Direction={Direction} ({Probability:P1}), Size={SizeMultiplier:F2}x",
@@ -605,7 +605,7 @@ namespace TopstepX.Bot.Core.Services
                     "ML-Enhanced", // strategy name
                     TradingBot.RLAgent.RegimeType.Trend, // default regime
                     mlMarketData, 
-                    CancellationToken.None).ConfigureAwait(false).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
 
                 _logger.LogDebug("[ML/RL-FEATURES] Generated feature vector for {Symbol} with {FeatureCount} features", 
                     symbol, featureVector?.Features.Length ?? 0);
@@ -803,7 +803,7 @@ namespace TopstepX.Bot.Core.Services
                 };
 
                 // Place the order
-                var result = await PlaceOrderAsync(orderRequest).ConfigureAwait(false).ConfigureAwait(false);
+                var result = await PlaceOrderAsync(orderRequest).ConfigureAwait(false);
                 
                 _logger.LogInformation("[STRATEGY] Strategy {StrategyId} signal executed: {Symbol} {Side} Qty={Qty} Entry={Entry} Stop={Stop} Target={Target} Result={Success}",
                     candidate.strategy_id, candidate.symbol, candidate.side, candidate.qty, 
@@ -1199,7 +1199,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate real-time features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1220,7 +1220,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogDebug("[ML/RL-REALTIME] Would update streaming features for {Symbol}", symbol);
 
                 // Check if conditions are met for immediate strategy evaluation
-                var shouldEvaluate = await ShouldTriggerImmediateEvaluationAsync(symbol, featureVector).ConfigureAwait(false).ConfigureAwait(false);
+                var shouldEvaluate = await ShouldTriggerImmediateEvaluationAsync(symbol, featureVector).ConfigureAwait(false);
                 if (shouldEvaluate)
                 {
                     _logger.LogInformation("[ML/RL-REALTIME] Triggering immediate strategy evaluation for {Symbol} due to market conditions", symbol);
@@ -1488,7 +1488,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate features for position management decision
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1734,14 +1734,14 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Initialize the TopstepX adapter service
-                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 
                 if (initialized)
                 {
                     _logger.LogInformation("✅ TopstepX adapter initialized successfully");
                     
                     // Check adapter health
-                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
                     _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}% - Status: {Status}", 
                         healthScore.HealthScore, healthScore.Status);
                 }
@@ -1847,7 +1847,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("[PROD-READY] Initializing production readiness components...");
 
                 // Step 1: Initialize enhanced market data flow
-                var marketFlowSuccess = await _marketDataFlow.InitializeDataFlowAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var marketFlowSuccess = await _marketDataFlow.InitializeDataFlowAsync().ConfigureAwait(false);
                 if (marketFlowSuccess)
                 {
                     _logger.LogInformation("[PROD-READY] ✅ Enhanced market data flow initialized");
@@ -1858,7 +1858,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // Step 2: Seed with historical data  
-                var seedingSuccess = await _historicalBridge.SeedTradingSystemAsync(_readinessConfig.SeedingContracts).ConfigureAwait(false).ConfigureAwait(false);
+                var seedingSuccess = await _historicalBridge.SeedTradingSystemAsync(_readinessConfig.SeedingContracts).ConfigureAwait(false);
                 if (seedingSuccess)
                 {
                     _seededBars = _readinessConfig.MinSeededBars; // Assume successful seeding

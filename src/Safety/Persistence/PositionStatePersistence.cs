@@ -28,14 +28,14 @@ public class PositionStateSnapshot
     public Guid SnapshotId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string Version { get; set; } = "1.0";
-    public Dictionary<string, PositionInfo> OpenPositions { get; set; } = new();
-    public Dictionary<string, OrderIntent> PendingOrders { get; set; } = new();
-    public List<TradeEvent> RecentTrades { get; set; } = new();
+    public Dictionary<string, PositionInfo> OpenPositions { get; } = new();
+    public Dictionary<string, OrderIntent> PendingOrders { get; } = new();
+    public List<TradeEvent> RecentTrades { get; } = new();
     public decimal TotalExposure { get; set; }
     public decimal UnrealizedPnL { get; set; }
     public decimal RealizedPnL { get; set; }
     public string SessionId { get; set; } = string.Empty;
-    public Dictionary<string, object> CustomState { get; set; } = new();
+    public Dictionary<string, object> CustomState { get; } = new();
     
     // Integrity protection
     public string HashCode { get; set; } = string.Empty;
@@ -55,7 +55,7 @@ public class PositionInfo
     public DateTime OpenTime { get; set; }
     public DateTime LastUpdate { get; set; }
     public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -91,7 +91,7 @@ public class TradeEvent
     public decimal Price { get; set; }
     public decimal PnL { get; set; }
     public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 /// <summary>
@@ -110,8 +110,8 @@ public class SessionSummary
     public int LosingTrades { get; set; }
     public decimal WinRate { get; set; }
     public decimal SharpeRatio { get; set; }
-    public List<string> Strategies { get; set; } = new();
-    public Dictionary<string, decimal> StrategyPnL { get; set; } = new();
+    public List<string> Strategies { get; } = new();
+    public Dictionary<string, decimal> StrategyPnL { get; } = new();
     public string TerminationReason { get; set; } = string.Empty;
 }
 
@@ -216,7 +216,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
                 _logger.LogError("[PERSISTENCE] Position state integrity check failed - hash mismatch");
                 
                 // Try to load from backup
-                var backupSnapshot = await TryLoadFromBackupAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var backupSnapshot = await TryLoadFromBackupAsync().ConfigureAwait(false);
                 if (backupSnapshot != null)
                 {
                     _logger.LogInformation("[PERSISTENCE] Loaded position state from backup");
@@ -324,7 +324,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var session = JsonSerializer.Deserialize<SessionSummary>(json, _jsonOptions);
                     if (session != null)
                     {
@@ -391,7 +391,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
     {
         try
         {
-            var snapshot = await LoadPositionStateAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var snapshot = await LoadPositionStateAsync().ConfigureAwait(false);
             if (snapshot == null)
             {
                 return true; // No state to validate
@@ -436,7 +436,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(backupFile).ConfigureAwait(false).ConfigureAwait(false);
+                    var json = await File.ReadAllTextAsync(backupFile).ConfigureAwait(false);
                     var snapshot = JsonSerializer.Deserialize<PositionStateSnapshot>(json, _jsonOptions);
                     
                     if (snapshot != null && CalculateHashCode(snapshot) == snapshot.HashCode)

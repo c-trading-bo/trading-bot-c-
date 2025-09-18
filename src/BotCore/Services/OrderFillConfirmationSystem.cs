@@ -43,7 +43,7 @@ namespace TopstepX.Bot.Core.Services
             public string OrderType { get; set; } = string.Empty;
             public DateTime SubmittedTime { get; set; }
             public string Status { get; set; } = "PENDING";
-            public List<FillConfirmation> Fills { get; set; } = new();
+            public List<FillConfirmation> Fills { get; } = new();
             public string? RejectReason { get; set; }
             public bool IsVerified { get; set; }
             public int VerificationAttempts { get; set; }
@@ -132,7 +132,7 @@ namespace TopstepX.Bot.Core.Services
                     request.ClientOrderId, request.Side, request.Symbol, request.Quantity, request.Price, request.OrderType);
                 
                 // Submit order to TopstepX API
-                var orderResponse = await SubmitOrderToApiAsync(request, accountId).ConfigureAwait(false).ConfigureAwait(false);
+                var orderResponse = await SubmitOrderToApiAsync(request, accountId).ConfigureAwait(false);
                 
                 if (orderResponse.IsSuccess)
                 {
@@ -197,17 +197,17 @@ namespace TopstepX.Bot.Core.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
                 // FIXED: Use correct ProjectX endpoint
-                var response = await _httpClient.PostAsync("/api/Order/place", content).ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync("/api/Order/place", content).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var orderResponse = JsonSerializer.Deserialize<ApiOrderResponse>(responseContent);
                     return orderResponse ?? ApiOrderResponse.Failed("Failed to parse response");
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     _logger.LogWarning("API order rejection: {StatusCode} - {Content}", response.StatusCode, errorContent);
                     return ApiOrderResponse.Failed($"HTTP {response.StatusCode}: {errorContent}");
                 }
@@ -383,11 +383,11 @@ namespace TopstepX.Bot.Core.Services
             {
                 if (string.IsNullOrEmpty(order.GatewayOrderId)) return;
                 
-                var response = await _httpClient.GetAsync($"/api/orders/{order.GatewayOrderId}").ConfigureAwait(false).ConfigureAwait(false);
+                var response = await _httpClient.GetAsync($"/api/orders/{order.GatewayOrderId}").ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var orderDetails = JsonSerializer.Deserialize<ApiOrderDetails>(content);
                     
                     if (orderDetails != null)
@@ -426,7 +426,7 @@ namespace TopstepX.Bot.Core.Services
                     var json = JsonSerializer.Serialize(cancelPayload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
                     
-                    var response = await _httpClient.PostAsync("/api/Order/cancel", content).ConfigureAwait(false).ConfigureAwait(false);
+                    var response = await _httpClient.PostAsync("/api/Order/cancel", content).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {

@@ -116,7 +116,7 @@ public class ProductionReadinessStartupService : IHostedService
                 verificationService.LogServiceRegistrations();
                 
                 // Perform full verification
-                var result = await verificationService.VerifyProductionReadinessAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var result = await verificationService.VerifyProductionReadinessAsync().ConfigureAwait(false);
                 
                 if (result.IsProductionReady)
                 {

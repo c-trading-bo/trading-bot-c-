@@ -106,8 +106,8 @@ namespace BotCore.Services
                 : 1.0;
 
             // ML Enhancement: Get market regime using real ONNX model inference
-            var regime = await GetMarketRegimeAsync(instrument, data, bars).ConfigureAwait(false).ConfigureAwait(false);
-            var mlAdjustment = await GetMLAdjustmentAsync(regime.Name, session, instrument).ConfigureAwait(false).ConfigureAwait(false);
+            var regime = await GetMarketRegimeAsync(instrument, data, bars).ConfigureAwait(false);
+            var mlAdjustment = await GetMLAdjustmentAsync(regime.Name, session, instrument).ConfigureAwait(false);
 
             // Evaluate each strategy
             var signals = new List<BotCore.Models.Signal>();
@@ -205,10 +205,10 @@ namespace BotCore.Services
                 // Use existing ONNX model for regime classification
                 if (_onnxLoader != null)
                 {
-                    var session = await _onnxLoader.LoadModelAsync("models/regime_detector.onnx", validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
+                    var session = await _onnxLoader.LoadModelAsync("models/regime_detector.onnx", validateInference: false).ConfigureAwait(false);
                     if (session != null)
                     {
-                        var regimePrediction = await RunRegimeInferenceAsync(session, features).ConfigureAwait(false).ConfigureAwait(false);
+                        var regimePrediction = await RunRegimeInferenceAsync(session, features).ConfigureAwait(false);
                         return ClassifyRegime(regimePrediction, features);
                     }
                 }

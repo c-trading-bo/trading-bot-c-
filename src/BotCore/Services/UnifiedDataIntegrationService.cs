@@ -134,7 +134,7 @@ public class UnifiedDataIntegrationService : BackgroundService
         try
         {
             // Detect current contracts (Z25 → H26 rollover logic)
-            var currentContracts = await _contractManager.GetCurrentContractsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var currentContracts = await _contractManager.GetCurrentContractsAsync(cancellationToken).ConfigureAwait(false);
             
             if (currentContracts.ContainsKey("ES"))
             {
@@ -430,7 +430,7 @@ public class UnifiedDataIntegrationService : BackgroundService
         try
         {
             // Check if rollover is needed (e.g., approaching December 2025 expiry)
-            var rolloverNeeded = await _contractManager.CheckRolloverNeededAsync(_currentESContract, _currentNQContract, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rolloverNeeded = await _contractManager.CheckRolloverNeededAsync(_currentESContract, _currentNQContract, cancellationToken).ConfigureAwait(false);
             
             if (rolloverNeeded.ESNeedsRollover || rolloverNeeded.NQNeedsRollover)
             {
@@ -697,7 +697,7 @@ public class ContractDataStatus
 
 public class DataIntegrationStatus
 {
-    public List<ContractDataStatus> ContractStatuses { get; set; } = new();
+    public List<ContractDataStatus> ContractStatuses { get; } = new();
     public string CurrentESContract { get; set; } = string.Empty;
     public string CurrentNQContract { get; set; } = string.Empty;
     public int ConfiguredMinBars { get; set; }

@@ -99,7 +99,7 @@ public class SystemHealthMonitoringService : IHostedService
                 connections = await CheckConnectionHealth(),
                 memory = await CheckMemoryHealth(),
                 threadPool = await GetThreadPoolStatus()
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "HealthMonitor", 
                 "Health check completed", healthData).ConfigureAwait(false);
@@ -158,7 +158,7 @@ public class SystemHealthMonitoringService : IHostedService
             tokenProvider = tokenProvider?.IsTokenValid ?? false,
             topstepXAdapter = CheckTopstepXAdapterHealth(),
             authenticationService = await CheckAuthenticationHealthAsync()
-        }.ConfigureAwait(false).ConfigureAwait(false);
+        }.ConfigureAwait(false);
 
         return serviceChecks;
     }
@@ -183,7 +183,7 @@ public class SystemHealthMonitoringService : IHostedService
             var tokenProvider = _serviceProvider.GetService<ITokenProvider>();
             if (tokenProvider == null) return false;
             
-            var token = await tokenProvider.GetTokenAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var token = await tokenProvider.GetTokenAsync().ConfigureAwait(false);
             return !string.IsNullOrEmpty(token);
         }
         catch
@@ -199,7 +199,7 @@ public class SystemHealthMonitoringService : IHostedService
             userHub = await CheckHubConnection("User"),
             marketHub = await CheckHubConnection("Market"),
             httpClient = await CheckHttpClientHealth()
-        }.ConfigureAwait(false).ConfigureAwait(false);
+        }.ConfigureAwait(false);
 
         return connectionHealth;
     }
@@ -233,7 +233,7 @@ public class SystemHealthMonitoringService : IHostedService
         {
             // Quick health check to TopstepX API
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await httpClient.GetAsync("https://api.topstepx.com/health").ConfigureAwait(false).ConfigureAwait(false);
+            var response = await httpClient.GetAsync("https://api.topstepx.com/health").ConfigureAwait(false);
             
             return new 
             { 

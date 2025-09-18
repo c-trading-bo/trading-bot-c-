@@ -63,7 +63,7 @@ public class PromotionService : IPromotionService
                 algorithm, challengerVersionId);
 
             // 1. Validate challenger exists
-            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null)
             {
                 decision.ShouldPromote = false;
@@ -73,7 +73,7 @@ public class PromotionService : IPromotionService
             }
 
             // 2. Validate champion exists
-            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
             if (champion == null)
             {
                 decision.ShouldPromote = false;
@@ -147,7 +147,7 @@ public class PromotionService : IPromotionService
                 algorithm, challengerVersionId, reason);
 
             // Pre-promotion validation
-            var decision = await EvaluatePromotionAsync(algorithm, challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var decision = await EvaluatePromotionAsync(algorithm, challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (!decision.ShouldPromote)
             {
                 _logger.LogWarning("Promotion blocked for {Algorithm}: {Reason}", algorithm, decision.Reason);
@@ -163,7 +163,7 @@ public class PromotionService : IPromotionService
             }
 
             // Load challenger model
-            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null)
             {
                 _logger.LogError("Challenger model {ChallengerVersionId} not found", challengerVersionId);
@@ -171,7 +171,7 @@ public class PromotionService : IPromotionService
             }
 
             // Load challenger artifact for atomic swap
-            var challengerModel = await LoadModelArtifactAsync(challenger, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challengerModel = await LoadModelArtifactAsync(challenger, cancellationToken).ConfigureAwait(false);
             if (challengerModel == null)
             {
                 _logger.LogError("Failed to load challenger artifact for {ChallengerVersionId}", challengerVersionId);
@@ -195,7 +195,7 @@ public class PromotionService : IPromotionService
             _promotionContexts[algorithm] = promotionContext;
 
             // ATOMIC SWAP - This is the critical section
-            var swapSuccess = await router.SwapAsync(challengerModel, challenger, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var swapSuccess = await router.SwapAsync(challengerModel, challenger, cancellationToken).ConfigureAwait(false);
             if (!swapSuccess)
             {
                 _logger.LogError("Atomic swap failed for {Algorithm}", algorithm);
@@ -219,9 +219,9 @@ public class PromotionService : IPromotionService
                     ["atomic_swap_success"] = swapSuccess,
                     ["validation_decision"] = decision
                 }
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
 
-            var registrySuccess = await _modelRegistry.PromoteToChampionAsync(algorithm, challengerVersionId, promotionRecord, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var registrySuccess = await _modelRegistry.PromoteToChampionAsync(algorithm, challengerVersionId, promotionRecord, cancellationToken).ConfigureAwait(false);
             if (!registrySuccess)
             {
                 _logger.LogError("Failed to update model registry for {Algorithm} promotion", algorithm);
@@ -285,7 +285,7 @@ public class PromotionService : IPromotionService
             }
 
             // Get previous champion model version
-            var previousChampion = await _modelRegistry.GetModelAsync(context.PreviousChampionVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var previousChampion = await _modelRegistry.GetModelAsync(context.PreviousChampionVersionId, cancellationToken).ConfigureAwait(false);
             if (previousChampion == null)
             {
                 _logger.LogError("Previous champion model {PreviousChampionVersionId} not found for rollback", 
@@ -294,7 +294,7 @@ public class PromotionService : IPromotionService
             }
 
             // INSTANT ATOMIC ROLLBACK - Critical performance requirement < 100ms
-            var rollbackSuccess = await router.SwapAsync(context.PreviousChampionModel, previousChampion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rollbackSuccess = await router.SwapAsync(context.PreviousChampionModel, previousChampion, cancellationToken).ConfigureAwait(false);
             if (!rollbackSuccess)
             {
                 _logger.LogError("❌ Atomic rollback swap failed for {Algorithm}", algorithm);
@@ -302,7 +302,7 @@ public class PromotionService : IPromotionService
             }
 
             // Update registry to record rollback
-            var rollbackSuccess2 = await _modelRegistry.RollbackToPreviousAsync(algorithm, reason, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rollbackSuccess2 = await _modelRegistry.RollbackToPreviousAsync(algorithm, reason, cancellationToken).ConfigureAwait(false);
 
             stopwatch.Stop();
             var rollbackTime = stopwatch.Elapsed.TotalMilliseconds;
@@ -332,8 +332,8 @@ public class PromotionService : IPromotionService
     /// </summary>
     public async Task<PromotionStatus> GetPromotionStatusAsync(string algorithm, CancellationToken cancellationToken = default)
     {
-        var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
-        var promotionHistory = await _modelRegistry.GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
+        var promotionHistory = await _modelRegistry.GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false);
         var lastPromotion = promotionHistory.FirstOrDefault();
 
         var status = new PromotionStatus
@@ -352,7 +352,7 @@ public class PromotionService : IPromotionService
         {
             status.HasPendingPromotion = true;
             status.PendingChallengerVersionId = scheduledChallengerVersionId;
-            status.ScheduledPromotionTime = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            status.ScheduledPromotionTime = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return status;
@@ -368,7 +368,7 @@ public class PromotionService : IPromotionService
         try
         {
             // Validate challenger exists and is ready
-            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null || !challenger.IsValidated)
             {
                 throw new ArgumentException($"Challenger {challengerVersionId} not found or not validated");
@@ -397,7 +397,7 @@ public class PromotionService : IPromotionService
 
                     // Execute promotion
                     var success = await PromoteToChampionAsync(algorithm, challengerVersionId, 
-                        $"Scheduled promotion by {schedule.ApprovedBy}", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                        $"Scheduled promotion by {schedule.ApprovedBy}", cancellationToken).ConfigureAwait(false);
 
                     if (success)
                     {
@@ -431,11 +431,11 @@ public class PromotionService : IPromotionService
 
     private async Task ValidateTimingGatesAsync(PromotionDecision decision, CancellationToken cancellationToken)
     {
-        decision.IsInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        decision.IsInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false);
         
         if (!decision.IsInSafeWindow)
         {
-            var nextWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var nextWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false);
             decision.NextSafeWindow = nextWindow?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? "Unknown";
             decision.ValidationErrors.Add($"Not in safe promotion window. Next window: {decision.NextSafeWindow}");
         }
@@ -443,7 +443,7 @@ public class PromotionService : IPromotionService
 
     private async Task ValidatePositionStateAsync(PromotionDecision decision, CancellationToken cancellationToken)
     {
-        decision.IsFlat = await _positionService.IsCurrentlyFlatAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        decision.IsFlat = await _positionService.IsCurrentlyFlatAsync(cancellationToken).ConfigureAwait(false);
         
         if (!decision.IsFlat)
         {
@@ -493,7 +493,7 @@ public class PromotionService : IPromotionService
         await Task.CompletedTask.ConfigureAwait(false);
         
         // Validate artifact integrity
-        decision.PassedSchemaValidation = await _modelRegistry.ValidateArtifactAsync(challenger.VersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        decision.PassedSchemaValidation = await _modelRegistry.ValidateArtifactAsync(challenger.VersionId, cancellationToken).ConfigureAwait(false);
         
         if (!decision.PassedSchemaValidation)
         {
@@ -513,7 +513,7 @@ public class PromotionService : IPromotionService
         await Task.CompletedTask.ConfigureAwait(false);
         
         // Check if this is a major version change
-        var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
         if (champion != null)
         {
             var championMajorVersion = ExtractMajorVersion(champion.VersionId);
@@ -526,7 +526,7 @@ public class PromotionService : IPromotionService
         }
 
         // Check promotion frequency
-        var promotionHistory = await _modelRegistry.GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var promotionHistory = await _modelRegistry.GetPromotionHistoryAsync(algorithm, cancellationToken).ConfigureAwait(false);
         var recentPromotions = promotionHistory.Count(p => p.PromotedAt > DateTime.UtcNow.AddDays(-1));
         
         if (recentPromotions > 2)
@@ -599,7 +599,7 @@ public class ProductionPositionService : IPositionService
     {
         try
         {
-            var positions = await GetAllPositionsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var positions = await GetAllPositionsAsync(cancellationToken).ConfigureAwait(false);
             var hasOpenPositions = positions.Values.Any(pos => Math.Abs(pos) > 0.001m);
             
             _logger.LogDebug("Position check: {HasPositions} open positions", hasOpenPositions ? "Has" : "No");
@@ -617,7 +617,7 @@ public class ProductionPositionService : IPositionService
     {
         try
         {
-            var positions = await GetAllPositionsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var positions = await GetAllPositionsAsync(cancellationToken).ConfigureAwait(false);
             positions.TryGetValue(symbol, out var position);
             
             _logger.LogDebug("Position for {Symbol}: {Position}", symbol, position);
@@ -643,7 +643,7 @@ public class ProductionPositionService : IPositionService
             }
 
             // Get positions from TopstepX API
-            var positionsResponse = await _topstepXClient.GetAccountPositionsAsync(accountId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var positionsResponse = await _topstepXClient.GetAccountPositionsAsync(accountId, cancellationToken).ConfigureAwait(false);
             var positions = new Dictionary<string, decimal>();
 
             // Parse positions from API response

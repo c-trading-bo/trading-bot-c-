@@ -76,7 +76,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
             riskAssessment.Warnings.Add("Approaching maximum daily loss limit");
         }
 
-        return await Task.FromResult(riskAssessment).ConfigureAwait(false).ConfigureAwait(false);
+        return await Task.FromResult(riskAssessment).ConfigureAwait(false);
     }
 
     private decimal CalculateRiskScore(TradingBot.Abstractions.TradingDecision decision)

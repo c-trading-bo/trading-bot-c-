@@ -71,7 +71,7 @@ public class FeatureSchema
 {
     public string Version { get; set; } = string.Empty;
     public string Checksum { get; set; } = string.Empty;
-    public Dictionary<string, FeatureDefinition> Features { get; set; } = new();
+    public Dictionary<string, FeatureDefinition> Features { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -118,7 +118,7 @@ public class ModelRegistration
     public string FeaturesVersion { get; set; } = string.Empty;
     public ModelMetrics Metrics { get; set; } = new();
     public byte[] ModelData { get; set; } = Array.Empty<byte>();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class ModelMetrics
@@ -155,7 +155,7 @@ public class CalibrationMap
 {
     public string ModelId { get; set; } = string.Empty;
     public CalibrationMethod Method { get; set; }
-    public Dictionary<string, double> Parameters { get; set; } = new();
+    public Dictionary<string, double> Parameters { get; } = new();
     public double BrierScore { get; set; }
     public double LogLoss { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -214,7 +214,7 @@ public class TradeRecord
     public double FillPrice { get; set; }
     public DateTime FillTime { get; set; } = DateTime.UtcNow;
     public string StrategyId { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 #endregion

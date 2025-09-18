@@ -77,7 +77,7 @@ public class RLAdvisorSystem
             var state = CreateStateVector(context);
             
             // Get action from RL agent
-            var rlAction = await agent.GetActionAsync(state, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var rlAction = await agent.GetActionAsync(state, cancellationToken).ConfigureAwait(false);
             
             // Convert to exit recommendation
             var recommendation = new RLAdvisorRecommendation
@@ -223,7 +223,7 @@ public class RLAdvisorSystem
             };
 
             // Generate training episodes from historical data
-            var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false);
             
             result.EpisodesGenerated = episodes.Count;
             _logger.LogInformation("[RL_ADVISOR] Generated {Count} training episodes", episodes.Count);
@@ -236,7 +236,7 @@ public class RLAdvisorSystem
                 var agent = GetOrCreateAgent(agentKey);
                 agent.AgentType = agentType;
                 
-                var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken).ConfigureAwait(false);
                 result.AgentResults[agentType] = agentResult;
                 
                 _logger.LogInformation("[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}", 
@@ -543,21 +543,21 @@ public class RLAdvisorSystem
         // Production-grade episode generation from historical market data
         return await Task.Run(async () =>
         {
-            var episodes = new List<TrainingEpisode>().ConfigureAwait(false).ConfigureAwait(false);
+            var episodes = new List<TrainingEpisode>().ConfigureAwait(false);
             
             // Step 1: Load historical market data asynchronously via SDK adapter
             var marketDataTask = LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate);
             var tradeDataTask = Task.Run(() => LoadHistoricalTradeData(symbol, startDate, endDate), cancellationToken);
             
-            var marketData = await marketDataTask.ConfigureAwait(false).ConfigureAwait(false);
-            var tradeData = await tradeDataTask.ConfigureAwait(false).ConfigureAwait(false);
+            var marketData = await marketDataTask.ConfigureAwait(false);
+            var tradeData = await tradeDataTask.ConfigureAwait(false);
             
             // Step 2: Generate episodes based on market regimes and volatility clusters
-            var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false);
             
             foreach (var window in episodeWindows)
             {
-                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false);
                 episodes.Add(episode);
             }
             
@@ -603,8 +603,8 @@ public class RLAdvisorSystem
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
-            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
             await process.WaitForExitAsync().ConfigureAwait(false);
 
             if (process.ExitCode != 0)
@@ -736,7 +736,7 @@ public class RLAdvisorSystem
     {
         return await Task.Run(() =>
         {
-            var windows = new List<EpisodeWindow>().ConfigureAwait(false).ConfigureAwait(false);
+            var windows = new List<EpisodeWindow>().ConfigureAwait(false);
             
             for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
@@ -769,7 +769,7 @@ public class RLAdvisorSystem
                 EndTime = window.EndTime,
                 InitialState = ExtractMarketFeatures(marketData[window.StartIndex]),
                 Actions = new List<(double[] state, RLActionResult action, double reward)>()
-            }.ConfigureAwait(false).ConfigureAwait(false);
+            }.ConfigureAwait(false);
             
             // Generate state-action-reward sequences from market movements
             for (int i = window.StartIndex; i < window.EndIndex - 1; i++)
@@ -894,7 +894,7 @@ public class RLAdvisorSystem
             var stateFile = Path.Combine(_statePath, "rl_advisor_state.json");
             if (File.Exists(stateFile))
             {
-                var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
                 var state = JsonSerializer.Deserialize<RLAdvisorState>(content);
                 
                 if (state != null)
@@ -1084,7 +1084,7 @@ public class ExitDecisionContext
     public double CurrentVolatility { get; set; }
     public string MarketRegime { get; set; } = string.Empty;
     public bool UsesCVaR { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
+    public Dictionary<string, double> TechnicalIndicators { get; } = new();
 }
 
 public class ExitOutcome
@@ -1113,7 +1113,7 @@ public class RLAdvisorStatus
     public bool OrderInfluenceEnabled { get; set; }
     public int MinShadowDecisions { get; set; }
     public int MinEdgeBps { get; set; }
-    public Dictionary<string, RLAgentStatus> AgentStates { get; set; } = new();
+    public Dictionary<string, RLAgentStatus> AgentStates { get; } = new();
 }
 
 public class RLAgentStatus
@@ -1138,7 +1138,7 @@ public class RLTrainingResult
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public int EpisodesGenerated { get; set; }
-    public Dictionary<RLAgentType, AgentTrainingResult> AgentResults { get; set; } = new();
+    public Dictionary<RLAgentType, AgentTrainingResult> AgentResults { get; } = new();
 }
 
 public class AgentTrainingResult
@@ -1155,7 +1155,7 @@ public class TrainingEpisode
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public double[] InitialState { get; set; } = Array.Empty<double>();
-    public List<(double[] state, RLActionResult action, double reward)> Actions { get; set; } = new();
+    public List<(double[] state, RLActionResult action, double reward)> Actions { get; } = new();
 }
 
 public class RLAdvisorState

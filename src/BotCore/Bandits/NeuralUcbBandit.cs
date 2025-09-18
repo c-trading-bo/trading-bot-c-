@@ -58,7 +58,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
         foreach (var armId in availableArms)
         {
             var arm = _arms[armId];
-            var (prediction, uncertainty) = await arm.PredictWithUncertaintyAsync(context, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var (prediction, uncertainty) = await arm.PredictWithUncertaintyAsync(context, ct).ConfigureAwait(false);
             var ucbValue = prediction + _config.ExplorationWeight * uncertainty;
 
             selections.Add((armId, ucbValue, prediction, uncertainty));
@@ -119,7 +119,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
 
         foreach (var kvp in _arms.ToList()) // ToList to avoid lock issues
         {
-            var armStats = await kvp.Value.GetStatisticsAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+            var armStats = await kvp.Value.GetStatisticsAsync(ct).ConfigureAwait(false);
             stats[kvp.Key] = new ArmStatistics
             {
                 ArmId = kvp.Key,
@@ -146,7 +146,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
         {
             if (arm.UpdateCount == 0) continue;
 
-            var armImportance = await arm.ComputeFeatureImportanceAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+            var armImportance = await arm.ComputeFeatureImportanceAsync(ct).ConfigureAwait(false);
             var armWeight = (decimal)arm.UpdateCount;
             totalWeight += armWeight;
 
@@ -211,10 +211,10 @@ internal class NeuralUcbArm
 
         // Get network prediction
         var features = context.ToArray(_config.InputDimension);
-        var prediction = await _network.PredictAsync(features, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var prediction = await _network.PredictAsync(features, ct).ConfigureAwait(false);
 
         // Estimate uncertainty using ensemble or dropout
-        var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false).ConfigureAwait(false);
+        var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false);
 
         return (Math.Max(0m, Math.Min(1m, prediction)), uncertainty);
     }
@@ -255,7 +255,7 @@ internal class NeuralUcbArm
             AverageUncertainty = await GetAverageUncertaintyAsync(ct),
             LastUpdated = LastUpdated,
             LastTraining = LastTraining
-        }.ConfigureAwait(false).ConfigureAwait(false);
+        }.ConfigureAwait(false);
     }
 
     public async Task<Dictionary<string, decimal>> ComputeFeatureImportanceAsync(CancellationToken ct = default)
@@ -271,7 +271,7 @@ internal class NeuralUcbArm
 
         foreach (var context in recentContexts)
         {
-            var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct).ConfigureAwait(false).ConfigureAwait(false);
+            var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct).ConfigureAwait(false);
 
             var featureKeys = context.Features.Keys.OrderBy(k => k).ToList();
             for (int i = 0; i < Math.Min(gradients.Length, featureKeys.Count); i++)
@@ -309,7 +309,7 @@ internal class NeuralUcbArm
         for (int i = 0; i < _config.UncertaintyEstimationSamples; i++)
         {
             var features = context.ToArray(_config.InputDimension);
-            var prediction = await _network.PredictWithDropoutAsync(features, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var prediction = await _network.PredictWithDropoutAsync(features, ct).ConfigureAwait(false);
             predictions.Add(prediction);
         }
 
@@ -379,7 +379,7 @@ internal class NeuralUcbArm
         var uncertainties = new List<decimal>();
         foreach (var context in recentContexts)
         {
-            var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false).ConfigureAwait(false);
+            var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false);
             uncertainties.Add(uncertainty);
         }
 
@@ -453,7 +453,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         
         try
         {
-            _session = await _onnxLoader.LoadModelAsync(_modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
+            _session = await _onnxLoader.LoadModelAsync(_modelPath, validateInference: true).ConfigureAwait(false);
             if (_session != null)
             {
                 _isInitialized = true;
@@ -502,7 +502,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         // For ONNX models, dropout is handled during training, not inference
         // For uncertainty estimation, we can add noise to input features
         var noisyFeatures = features.Select(f => f + (decimal)(_random.NextDouble() - 0.5) * 0.01m).ToArray();
-        return await PredictAsync(noisyFeatures, ct).ConfigureAwait(false).ConfigureAwait(false);
+        return await PredictAsync(noisyFeatures, ct).ConfigureAwait(false);
     }
 
     public async Task TrainAsync(decimal[][] features, decimal[] targets, CancellationToken ct = default)
@@ -523,13 +523,13 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         // For UCB, we can approximate gradients using finite differences
         var gradients = new decimal[features.Length];
         var epsilon = 0.001m;
-        var basePrediction = await PredictAsync(features).ConfigureAwait(false).ConfigureAwait(false);
+        var basePrediction = await PredictAsync(features).ConfigureAwait(false);
         
         for (int i = 0; i < features.Length; i++)
         {
             var perturbedFeatures = features.ToArray();
             perturbedFeatures[i] += epsilon;
-            var perturbedPrediction = await PredictAsync(perturbedFeatures).ConfigureAwait(false).ConfigureAwait(false);
+            var perturbedPrediction = await PredictAsync(perturbedFeatures).ConfigureAwait(false);
             gradients[i] = (perturbedPrediction - basePrediction) / epsilon;
         }
         

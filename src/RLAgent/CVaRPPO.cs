@@ -372,7 +372,7 @@ public class CVaRPPO : IDisposable
             var metadataPath = Path.Combine(modelPath, "metadata.json");
             if (File.Exists(metadataPath))
             {
-                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                 var metadata = JsonSerializer.Deserialize<ModelMetadata>(metadataJson);
                 
                 if (metadata != null)

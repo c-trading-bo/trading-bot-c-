@@ -50,7 +50,7 @@ public class PartialFillOrder
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastFillAt { get; set; }
     public DateTime? CompletedAt { get; set; }
-    public List<FillExecution> Fills { get; set; } = new();
+    public List<FillExecution> Fills { get; } = new();
     public int FillCount => Fills.Count;
     public bool IsActive => Status == OrderFillStatus.Pending || Status == OrderFillStatus.PartiallyFilled;
     public TimeSpan Age => DateTime.UtcNow - CreatedAt;
@@ -59,7 +59,7 @@ public class PartialFillOrder
     public decimal Slippage { get; set; }
     public decimal TotalFillValue => Fills.Sum(f => f.FilledQuantity * f.FillPrice);
     public string FailureReason { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -72,7 +72,7 @@ public class FillExecution
     public decimal FilledQuantity { get; set; }
     public decimal FillPrice { get; set; }
     public decimal FillValue => FilledQuantity * FillPrice;
-    public Dictionary<string, object> ExecutionDetails { get; set; } = new();
+    public Dictionary<string, object> ExecutionDetails { get; } = new();
 }
 
 /// <summary>
