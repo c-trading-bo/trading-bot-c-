@@ -1,0 +1,25 @@
+{
+  "BanditConfig": {
+    "ExplorationWeight": 0.15,
+    "InputDimension": 24,
+    "HiddenDimension": 64,
+    "MinSamplesForLearning": 20
+  },
+  "PolicyConfig": {
+    "BlockDevelopmentTrading": true,
+    "AuthorizedSymbols": ["ES", "NQ", "MES", "MNQ"],
+    "EnforceTradingHours": false,
+    "TradingStartHour": 14,
+    "TradingEndHour": 21,
+    "EmergencyStop": false
+  },
+  "StateConfig": {
+    "StateDirectory": "./state/compatibility",
+    "PersistenceIntervalMinutes": 5,
+    "MaxCacheSize": 10000
+  },
+  "ConfigPaths": [
+    "./config/strategies",
+    "./config/compatibility"
+  ]
+}

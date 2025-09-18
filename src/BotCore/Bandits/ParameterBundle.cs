@@ -47,6 +47,19 @@ public record ParameterBundle
         !string.IsNullOrEmpty(Strategy) &&
         Mult >= 1.0m && Mult <= 1.6m &&
         Thr >= 0.60m && Thr <= 0.70m;
+    
+    /// <summary>
+    /// Create a safe default parameter bundle
+    /// </summary>
+    public static ParameterBundle CreateSafeDefault()
+    {
+        return new ParameterBundle
+        {
+            Strategy = "S2",
+            Mult = 1.0m,
+            Thr = 0.65m
+        };
+    }
 }
 
 /// <summary>

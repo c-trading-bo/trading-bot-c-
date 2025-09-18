@@ -1,0 +1,35 @@
+{
+  "Strategy": "S2",
+  "BaseParameters": {
+    "DefaultMultiplier": 1.2,
+    "DefaultThreshold": 0.65,
+    "MaxPositionSize": 3,
+    "MinConfidence": 0.6,
+    "PreferredTimeframe": "5m",
+    "RiskTolerance": "Moderate"
+  },
+  "RiskParameters": {
+    "MaxDrawdown": 0.03,
+    "StopLossMultiplier": 2.0,
+    "TakeProfitMultiplier": 1.5,
+    "MaxDailyLoss": 500,
+    "PositionSizeLimit": 5
+  },
+  "MarketConditionOverrides": {
+    "Volatile": {
+      "DefaultMultiplier": 1.0,
+      "DefaultThreshold": 0.70,
+      "MaxPositionSize": 2
+    },
+    "Trending": {
+      "DefaultMultiplier": 1.4,
+      "DefaultThreshold": 0.62,
+      "MaxPositionSize": 4
+    },
+    "Ranging": {
+      "DefaultMultiplier": 1.1,
+      "DefaultThreshold": 0.65,
+      "MaxPositionSize": 3
+    }
+  }
+}
