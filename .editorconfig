@@ -98,3 +98,7 @@ dotnet_diagnostic.S2583.severity = error   # Conditionally executed code should 
 dotnet_diagnostic.S2589.severity = error   # Boolean expressions should not be gratuitous
 dotnet_diagnostic.S2681.severity = error   # Multiline blocks should be enclosed in curly braces
 dotnet_diagnostic.S3010.severity = error   # Static fields should not be updated in constructors
+
+# Empty file and folder detection (Build Integrity)
+dotnet_diagnostic.CTB0001.severity = error # Empty source file detected
+dotnet_diagnostic.CTB0002.severity = error # Empty folder detected

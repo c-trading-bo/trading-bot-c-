@@ -209,6 +209,25 @@ namespace TradingBot.Safety.Analyzers
             isEnabledByDefault: true,
             description: "Compilation errors caught by analyzer before build failure.");
 
+        // Empty file and folder detection rules
+        public static readonly DiagnosticDescriptor EmptyFileRule = new DiagnosticDescriptor(
+            "CTB0001",
+            "Empty source file detected",
+            "File '{0}' contains no code and should be removed or implemented.",
+            "BuildIntegrity",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Empty source files are not allowed in production code.");
+
+        public static readonly DiagnosticDescriptor EmptyFolderRule = new DiagnosticDescriptor(
+            "CTB0002",
+            "Empty folder detected",
+            "Folder '{0}' contains no non-empty source files.",
+            "BuildIntegrity",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Empty folders are not allowed in production code.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 SuppressMessageWithoutProof,
@@ -231,7 +250,9 @@ namespace TradingBot.Safety.Analyzers
                 ReadOnlyPropertyAssignment,
                 MissingInterfaceMethod,
                 TypeMismatchDetected,
-                CompilationErrorDetected);
+                CompilationErrorDetected,
+                EmptyFileRule,
+                EmptyFolderRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -254,6 +275,9 @@ namespace TradingBot.Safety.Analyzers
             context.RegisterSyntaxNodeAction(AnalyzeThrowStatement, SyntaxKind.ThrowStatement);
             context.RegisterSyntaxTreeAction(AnalyzeSourceFile);
             
+            // Empty file check
+            context.RegisterSyntaxTreeAction(AnalyzeSyntaxTree);
+            
             // 1. SYNTAX TREE ANALYSIS - Runs before semantic analysis
             context.RegisterSyntaxTreeAction(AnalyzeSyntaxTreeForErrors);
             
@@ -262,6 +286,9 @@ namespace TradingBot.Safety.Analyzers
             
             // 3. COMPILATION CALLBACK - Intercept compilation errors
             context.RegisterCompilationAction(AnalyzeCompilationErrors);
+            
+            // Empty folder check
+            context.RegisterCompilationAction(AnalyzeFolders);
         }
 
         private static void AnalyzeSuppressMessageAttribute(SyntaxNodeAnalysisContext context)
@@ -1051,6 +1078,75 @@ namespace TradingBot.Safety.Analyzers
                             $"{errorCode}: {message}");
                         context.ReportDiagnostic(preDiagnostic);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Analyze syntax tree for empty files - CTB0001
+        /// </summary>
+        private static void AnalyzeSyntaxTree(SyntaxTreeAnalysisContext context)
+        {
+            if (!IsInProductionCode(context.Tree.FilePath))
+                return;
+
+            var root = context.Tree.GetRoot(context.CancellationToken);
+            bool hasCode = root.DescendantNodes().Any(n =>
+                n is NamespaceDeclarationSyntax ||
+                n is ClassDeclarationSyntax ||
+                n is StructDeclarationSyntax ||
+                n is InterfaceDeclarationSyntax ||
+                n is RecordDeclarationSyntax ||
+                n is EnumDeclarationSyntax ||
+                n is DelegateDeclarationSyntax);
+
+            if (!hasCode)
+            {
+                var filePath = context.Tree.FilePath;
+                context.ReportDiagnostic(Diagnostic.Create(EmptyFileRule, Location.None, filePath));
+            }
+        }
+
+        /// <summary>
+        /// Analyze compilation for empty folders - CTB0002
+        /// </summary>
+        private static void AnalyzeFolders(CompilationAnalysisContext context)
+        {
+            var allFiles = context.Compilation.SyntaxTrees
+                .Where(t => IsInProductionCode(t.FilePath))
+                .Select(t => t.FilePath)
+                .Where(f => !string.IsNullOrEmpty(f))
+                .ToList();
+
+            if (!allFiles.Any()) return;
+
+            var groupedByFolder = allFiles.GroupBy(Path.GetDirectoryName);
+
+            foreach (var folder in groupedByFolder)
+            {
+                if (string.IsNullOrEmpty(folder.Key)) continue;
+
+                bool hasNonEmpty = folder.Any(file =>
+                {
+                    var syntaxTree = context.Compilation.SyntaxTrees
+                        .FirstOrDefault(t => t.FilePath == file);
+                    
+                    if (syntaxTree == null) return false;
+                    
+                    var root = syntaxTree.GetRoot();
+                    return root.DescendantNodes().Any(n =>
+                        n is NamespaceDeclarationSyntax ||
+                        n is ClassDeclarationSyntax ||
+                        n is StructDeclarationSyntax ||
+                        n is InterfaceDeclarationSyntax ||
+                        n is RecordDeclarationSyntax ||
+                        n is EnumDeclarationSyntax ||
+                        n is DelegateDeclarationSyntax);
+                });
+
+                if (!hasNonEmpty)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(EmptyFolderRule, Location.None, folder.Key));
                 }
             }
         }
