@@ -77,15 +77,15 @@ public class ModelHotReloadManager : IDisposable
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+            LogMessages.ModelHotReloadError(_logger, "Error handling model file change event", ex);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+            LogMessages.ModelHotReloadError(_logger, "Error handling model file change event", ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+            LogMessages.ModelHotReloadError(_logger, "Error handling model file change event", ex);
         }
     }
 

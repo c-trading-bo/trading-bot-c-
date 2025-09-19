@@ -105,13 +105,13 @@ public class SoftActorCritic : IDisposable
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[SAC] Invalid arguments for action selection");
+            LogMessages.SACActionSelectionArgumentError(_logger, ex);
             // Return safe default action (no position change)
             return new double[_config.ActionDimension];
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SAC] Invalid operation during action selection");
+            LogMessages.SACActionSelectionOperationError(_logger, ex);
             // Return safe default action (no position change)
             return new double[_config.ActionDimension];
         }
@@ -202,14 +202,13 @@ public class SoftActorCritic : IDisposable
                 TotalSteps = _totalSteps
             };
             
-            _logger.LogDebug("[SAC] Training completed: Actor={ActorLoss:F4}, Critic1={CriticLoss1:F4}, Critic2={CriticLoss2:F4}, Value={ValueLoss:F4}, Entropy={Entropy:F4}", 
-                actorLoss, criticLoss1, criticLoss2, valueLoss, entropy);
+            LogMessages.SACTrainingCompleted(_logger, actorLoss, criticLoss1, criticLoss2, valueLoss, entropy);
             
             return result;
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SAC] Training failed due to invalid operation");
+            LogMessages.SACTrainingOperationFailed(_logger, ex);
             return new Models.SacTrainingResult
             {
                 Success = false,
@@ -218,7 +217,7 @@ public class SoftActorCritic : IDisposable
         }
         catch (OutOfMemoryException ex)
         {
-            _logger.LogError(ex, "[SAC] Training failed due to memory exhaustion");
+            LogMessages.SACTrainingMemoryFailed(_logger, ex);
             return new Models.SacTrainingResult
             {
                 Success = false,
@@ -227,7 +226,7 @@ public class SoftActorCritic : IDisposable
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogInformation(ex, "[SAC] Training was cancelled");
+            LogMessages.SACTrainingCancelled(_logger, ex);
             return new Models.SacTrainingResult
             {
                 Success = false,

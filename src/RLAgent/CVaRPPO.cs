@@ -179,7 +179,7 @@ public class CVaRPPO : IDisposable
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments during training");
+            LogMessages.CVaRPPOTrainingArgumentError(_logger, ex);
             return new TrainingResult
             {
                 Episode = _currentEpisode,
@@ -244,14 +244,13 @@ public class CVaRPPO : IDisposable
                 Timestamp = DateTime.UtcNow
             };
 
-            _logger.LogDebug("[CVAR_PPO] Action selected: {Action} (prob: {Prob:F3}, value: {Value:F3}, cvar: {CVaR:F3})", 
-                action, actionProb, valueEstimate, cvarEstimate);
+            LogMessages.CVaRPPOActionSelected(_logger, action, actionProb, valueEstimate, cvarEstimate);
 
             return Task.FromResult(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments for action selection");
+            LogMessages.CVaRPPOActionSelectionArgumentError(_logger, ex);
             
             // Return safe default action
             var defaultResult = new ActionResult
@@ -284,8 +283,7 @@ public class CVaRPPO : IDisposable
             _experienceBuffer.TryDequeue(out _);
         }
         
-        _logger.LogDebug("[CVAR_PPO] Added experience - Action: {Action}, Reward: {Reward:F3}, Done: {Done}", 
-            experience.Action, experience.Reward, experience.Done);
+        LogMessages.CVaRPPOExperienceAdded(_logger, experience.Action, experience.Reward, experience.Done);
     }
 
     /// <summary>
@@ -345,17 +343,17 @@ public class CVaRPPO : IDisposable
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Access denied when saving model");
+            LogMessages.CVaRPPOModelSaveAccessDenied(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to access restrictions", ex);
         }
         catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Directory not found when saving model");
+            LogMessages.CVaRPPOModelSaveDirectoryNotFound(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to missing directory", ex);
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] IO error when saving model");
+            LogMessages.CVaRPPOModelSaveIOError(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to IO error", ex);
         }
     }
@@ -369,7 +367,7 @@ public class CVaRPPO : IDisposable
         {
             if (!Directory.Exists(modelPath))
             {
-                _logger.LogError("[CVAR_PPO] Model path does not exist: {ModelPath}", modelPath);
+                LogMessages.CVaRPPOModelPathNotExists(_logger, modelPath);
                 return false;
             }
 
@@ -380,7 +378,7 @@ public class CVaRPPO : IDisposable
 
             if (!File.Exists(policyPath) || !File.Exists(valuePath) || !File.Exists(cvarPath))
             {
-                _logger.LogError("[CVAR_PPO] Missing network files in: {ModelPath}", modelPath);
+                LogMessages.CVaRPPOMissingNetworkFiles(_logger, modelPath);
                 return false;
             }
 
@@ -411,17 +409,17 @@ public class CVaRPPO : IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Model file not found: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOModelFileNotFound(_logger, modelPath, ex);
             return false;
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Access denied loading model: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOModelLoadAccessDenied(_logger, modelPath, ex);
             return false;
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid model file: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOInvalidModelFile(_logger, modelPath, ex);
             return false;
         }
     }

@@ -490,7 +490,7 @@ public class OnnxEnsembleWrapper : IDisposable
             try
             {
                 sessionOptions.AppendExecutionProvider_CUDA();
-                _logger.LogInformation("[RL-ENSEMBLE] GPU acceleration enabled for ONNX inference");
+                LogMessages.OnnxGpuAccelerationEnabled(_logger);
             }
             catch (Exception ex)
             {
@@ -516,8 +516,9 @@ public class OnnxEnsembleWrapper : IDisposable
             var inputInfo = modelSession.Session.InputMetadata.First();
             var outputInfo = modelSession.Session.OutputMetadata.First();
             
-            _logger.LogDebug("[RL-ENSEMBLE] Model validation passed: {ModelName} - Input: {InputShape}, Output: {OutputShape}",
-                modelSession.Name, string.Join("x", inputInfo.Value.Dimensions), string.Join("x", outputInfo.Value.Dimensions));
+            LogMessages.OnnxModelValidationDebug(_logger, modelSession.Name, 
+                string.Join("x", inputInfo.Value.Dimensions), 
+                string.Join("x", outputInfo.Value.Dimensions));
         }
         catch (Exception ex)
         {
@@ -608,7 +609,7 @@ public class OnnxEnsembleWrapper : IDisposable
             _cancellationTokenSource.Dispose();
             _disposed = true;
             
-            _logger.LogInformation("[RL-ENSEMBLE] ONNX Ensemble Wrapper disposed");
+            LogMessages.OnnxDisposedDebug(_logger);
         }
     }
 }
