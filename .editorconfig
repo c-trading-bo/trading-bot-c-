@@ -99,6 +99,29 @@ dotnet_diagnostic.S2589.severity = error   # Boolean expressions should not be g
 dotnet_diagnostic.S2681.severity = error   # Multiline blocks should be enclosed in curly braces
 dotnet_diagnostic.S3010.severity = error   # Static fields should not be updated in constructors
 
+# Production Rule Enforcement Analyzer (All rules build-breaking)
+dotnet_diagnostic.PRE001.severity = error  # SuppressMessage without RuntimeProof justification
+dotnet_diagnostic.PRE002.severity = error  # Pragma warning disable detected
+dotnet_diagnostic.PRE003.severity = error  # Commented-out analyzer rule detected
+dotnet_diagnostic.PRE004.severity = error  # EditorConfig severity downgrade detected
+dotnet_diagnostic.PRE005.severity = error  # Hardcoded business value detected
+dotnet_diagnostic.PRE006.severity = error  # Placeholder/Mock/Stub pattern detected
+dotnet_diagnostic.PRE007.severity = error  # Fixed-size array detected
+dotnet_diagnostic.PRE008.severity = error  # Empty/placeholder async operation detected
+dotnet_diagnostic.PRE009.severity = error  # Development/testing-only comment detected
+dotnet_diagnostic.PRE010.severity = error  # Weak random number generation detected
+dotnet_diagnostic.PRE011.severity = error  # Numeric literal in business logic detected
+dotnet_diagnostic.PRE012.severity = error  # Empty method body detected
+dotnet_diagnostic.PRE013.severity = error  # Short method without proper attributes detected
+dotnet_diagnostic.PRE014.severity = error  # Python pass statement detected
+dotnet_diagnostic.PRE015.severity = error  # Unused parameter or member detected
+dotnet_diagnostic.PRE016.severity = error  # Mock pattern detected in production code
+dotnet_diagnostic.PRE017.severity = error  # Legacy namespace detected in production code
+dotnet_diagnostic.PRE018.severity = error  # Read-only property assignment detected
+dotnet_diagnostic.PRE019.severity = error  # Missing interface method detected
+dotnet_diagnostic.PRE020.severity = error  # Type mismatch detected
+dotnet_diagnostic.PRE021.severity = error  # Compilation error intercepted
+
 # Empty file and folder detection (Build Integrity)
 dotnet_diagnostic.CTB0001.severity = error # Empty source file detected
 dotnet_diagnostic.CTB0002.severity = error # Empty folder detected
