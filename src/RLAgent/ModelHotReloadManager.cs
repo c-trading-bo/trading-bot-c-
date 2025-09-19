@@ -94,7 +94,7 @@ public class ModelHotReloadManager : IDisposable
     /// </summary>
     private async Task ProcessHotReloadAsync(string modelPath)
     {
-        if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token))
+        if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token).ConfigureAwait(false))
         {
             _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
             return;

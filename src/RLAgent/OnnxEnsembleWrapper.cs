@@ -188,7 +188,7 @@ public class OnnxEnsembleWrapper : IDisposable
         };
 
         // Submit to queue
-        if (!await _inferenceWriter.WaitToWriteAsync(cancellationToken))
+        if (!await _inferenceWriter.WaitToWriteAsync(cancellationToken).ConfigureAwait(false))
         {
             throw new InvalidOperationException("Inference queue is closed");
         }
@@ -274,7 +274,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             try
             {
-                if (await _inferenceQueue.Reader.WaitToReadAsync(cts.Token))
+                if (await _inferenceQueue.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false))
                 {
                     while (_inferenceQueue.Reader.TryRead(out var request) && batch.Count < _options.MaxBatchSize)
                     {

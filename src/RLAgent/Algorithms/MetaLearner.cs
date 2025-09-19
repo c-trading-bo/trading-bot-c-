@@ -127,7 +127,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
-            throw; // Rethrow system exceptions as-is
+            throw new InvalidOperationException($"Meta-learning task adaptation failed due to memory exhaustion for task: {taskId}", ex);
         }
     }
 
@@ -212,7 +212,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during meta-training");
-            throw; // Rethrow system exceptions as-is
+            throw new InvalidOperationException("Meta-learning training failed due to memory exhaustion during batch processing", ex);
         }
     }
 

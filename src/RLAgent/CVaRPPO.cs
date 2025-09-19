@@ -343,10 +343,20 @@ public class CVaRPPO : IDisposable
             
             return modelPath;
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error saving model");
-            throw;
+            _logger.LogError(ex, "[CVAR_PPO] Access denied when saving model");
+            throw new InvalidOperationException("Failed to save model due to access restrictions", ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Directory not found when saving model");
+            throw new InvalidOperationException("Failed to save model due to missing directory", ex);
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] IO error when saving model");
+            throw new InvalidOperationException("Failed to save model due to IO error", ex);
         }
     }
 
