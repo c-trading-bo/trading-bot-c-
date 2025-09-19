@@ -104,6 +104,9 @@ jobs:
     strategy:
       fail-fast: true
       max-parallel: 1
+      matrix:
+        include:
+          - mode: defense-system
 
     steps:
       - name: "📥 Checkout Repository"
