@@ -526,16 +526,24 @@ public class ActorNetwork : IDisposable
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
-        _weightsInput = new double[_inputDim, _hiddenDim];
+        _weightsInput = new double[_inputDim][];
+        for (int i = 0; i < _inputDim; i++)
+        {
+            _weightsInput[i] = new double[_hiddenDim];
+        }
         _biasHidden = new double[_hiddenDim];
-        _weightsOutput = new double[_hiddenDim, _outputDim];
+        _weightsOutput = new double[_hiddenDim][];
+        for (int i = 0; i < _hiddenDim; i++)
+        {
+            _weightsOutput[i] = new double[_outputDim];
+        }
         _biasOutput = new double[_outputDim];
         
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
@@ -544,7 +552,7 @@ public class ActorNetwork : IDisposable
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsOutput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }
@@ -565,7 +573,7 @@ public class ActorNetwork : IDisposable
             hidden[i] = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += state[j] * _weightsInput[j, i];
+                hidden[i] += state[j] * _weightsInput[j][i];
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
@@ -576,7 +584,7 @@ public class ActorNetwork : IDisposable
             output[i] = _biasOutput[i];
             for (int j = 0; j < _hiddenDim; j++)
             {
-                output[i] += hidden[j] * _weightsOutput[j, i];
+                output[i] += hidden[j] * _weightsOutput[j][i];
             }
             output[i] = Math.Tanh(output[i]); // Tanh for bounded actions
         }
@@ -652,9 +660,9 @@ public class CriticNetwork
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput = null!;
+    private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
-    private double[,] _weightsOutput = null!;
+    private double[][] _weightsOutput = null!;
     private double[] _biasOutput = null!;
 
     public CriticNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
@@ -673,16 +681,24 @@ public class CriticNetwork
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
-        _weightsInput = new double[_inputDim, _hiddenDim];
+        _weightsInput = new double[_inputDim][];
+        for (int i = 0; i < _inputDim; i++)
+        {
+            _weightsInput[i] = new double[_hiddenDim];
+        }
         _biasHidden = new double[_hiddenDim];
-        _weightsOutput = new double[_hiddenDim, _outputDim];
+        _weightsOutput = new double[_hiddenDim][];
+        for (int i = 0; i < _hiddenDim; i++)
+        {
+            _weightsOutput[i] = new double[_outputDim];
+        }
         _biasOutput = new double[_outputDim];
         
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
@@ -691,7 +707,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsOutput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }
@@ -705,7 +721,7 @@ public class CriticNetwork
             hidden[i] = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += input[j] * _weightsInput[j, i];
+                hidden[i] += input[j] * _weightsInput[j][i];
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
@@ -713,7 +729,7 @@ public class CriticNetwork
         var output = 0.0;
         for (int j = 0; j < _hiddenDim; j++)
         {
-            output += hidden[j] * _weightsOutput[j, 0];
+            output += hidden[j] * _weightsOutput[j][0];
         }
         output += _biasOutput[0];
         
@@ -747,7 +763,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _weightsInput.GetLength(1); j++)
             {
-                _weightsInput[i, j] = tau * source._weightsInput[i, j] + (1 - tau) * _weightsInput[i, j];
+                _weightsInput[i][j] = tau * source._weightsInput[i][j] + (1 - tau) * _weightsInput[i][j];
             }
         }
         
@@ -760,7 +776,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _weightsOutput.GetLength(1); j++)
             {
-                _weightsOutput[i, j] = tau * source._weightsOutput[i, j] + (1 - tau) * _weightsOutput[i, j];
+                _weightsOutput[i][j] = tau * source._weightsOutput[i][j] + (1 - tau) * _weightsOutput[i][j];
             }
         }
         
@@ -790,9 +806,9 @@ public class ValueNetwork
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput = null!;
+    private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
-    private double[,] _weightsOutput = null!;
+    private double[][] _weightsOutput = null!;
     private double[] _biasOutput = null!;
 
     public ValueNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
@@ -811,16 +827,24 @@ public class ValueNetwork
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
-        _weightsInput = new double[_inputDim, _hiddenDim];
+        _weightsInput = new double[_inputDim][];
+        for (int i = 0; i < _inputDim; i++)
+        {
+            _weightsInput[i] = new double[_hiddenDim];
+        }
         _biasHidden = new double[_hiddenDim];
-        _weightsOutput = new double[_hiddenDim, _outputDim];
+        _weightsOutput = new double[_hiddenDim][];
+        for (int i = 0; i < _hiddenDim; i++)
+        {
+            _weightsOutput[i] = new double[_outputDim];
+        }
         _biasOutput = new double[_outputDim];
         
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
@@ -829,7 +853,7 @@ public class ValueNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
+                _weightsOutput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }
@@ -843,7 +867,7 @@ public class ValueNetwork
             hidden[i] = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += input[j] * _weightsInput[j, i];
+                hidden[i] += input[j] * _weightsInput[j][i];
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
@@ -851,7 +875,7 @@ public class ValueNetwork
         var output = 0.0;
         for (int j = 0; j < _hiddenDim; j++)
         {
-            output += hidden[j] * _weightsOutput[j, 0];
+            output += hidden[j] * _weightsOutput[j][0];
         }
         output += _biasOutput[0];
         

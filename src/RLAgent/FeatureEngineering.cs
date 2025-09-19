@@ -32,7 +32,6 @@ public class FeatureEngineering : IDisposable
     private const int MaxFeatureHistoryPeriods = 26;
     private const int DefaultLookbackPeriods = 10;
     private const int FeatureImportanceTopCount = 5;
-    private const int MaxImportanceHistorySize = 100;
     
     // LoggerMessage delegates for performance
     private static readonly Action<ILogger, Exception?> LogDailyReportError =
@@ -41,11 +40,11 @@ public class FeatureEngineering : IDisposable
     private static readonly Action<ILogger, string, string, Exception?> LogTopFeatures =
         LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(2, nameof(LogTopFeatures)), "[FEATURE_ENG] Top features for {FeatureKey}: {TopFeatures}");
     
-    private static readonly Action<ILogger, string, int, Exception?> LogFeatureReport =
-        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(3, nameof(LogFeatureReport)), "[FEATURE_ENG] Generated daily feature report with {SymbolCount} symbols");
+    private static readonly Action<ILogger, int, Exception?> LogFeatureReport =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(3, nameof(LogFeatureReport)), "[FEATURE_ENG] Generated daily feature report with {SymbolCount} symbols");
     
-    private static readonly Action<ILogger, string, Exception?> LogFeatureReportGeneration =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4, nameof(LogFeatureReportGeneration)), "[FEATURE_ENG] Generating daily feature importance report...");
+    private static readonly Action<ILogger, Exception?> LogFeatureReportGeneration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4, nameof(LogFeatureReportGeneration)), "[FEATURE_ENG] Generating daily feature importance report...");
     
     private static readonly Action<ILogger, Exception?> LogCleanupError =
         LoggerMessage.Define(LogLevel.Error, new EventId(5, nameof(LogCleanupError)), "[FEATURE_ENG] Error during cleanup timer");
@@ -894,7 +893,7 @@ public class FeatureEngineering : IDisposable
     {
         try
         {
-            LogFeatureReportGeneration(_logger, "Starting report generation", null);
+            LogFeatureReportGeneration(_logger, null);
             
             var report = new FeatureImportanceReport
             {
@@ -1034,6 +1033,8 @@ public class FeatureState
 /// </summary>
 public class FeatureImportanceTracker
 {
+    private const int MaxImportanceHistorySize = 100;
+    
     private readonly Dictionary<string, List<double>> _importanceHistory = new();
     private readonly object _lock = new();
 

@@ -930,6 +930,10 @@ public class PolicyNetwork : IDisposable
 /// </summary>
 public class ValueNetwork : IDisposable
 {
+    private const double WeightInitializationRange = 2.0;
+    private const double OutputWeightInitializationScale = 0.1;
+    private const double LearningRateDefault = 0.001;
+    
     private readonly int _stateSize;
     private readonly int _hiddenSize;
     private double[][] _weights1 = null!;

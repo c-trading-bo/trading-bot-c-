@@ -507,7 +507,7 @@ public class MetaTrainingResult
     public double MetaLoss { get; set; }
     public int TasksUsed { get; set; }
     public int MetaUpdates { get; set; }
-    public Dictionary<string, AdaptationSummary>? AdaptationHistory { get; set; }
+    public Dictionary<string, AdaptationSummary>? AdaptationHistory { get; init; }
 }
 
 /// <summary>
