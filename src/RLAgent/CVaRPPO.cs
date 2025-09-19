@@ -38,11 +38,6 @@ public class CVaRPPO : IDisposable
     private const double LossMovingAverageWeight = 0.9;
     private const double NewLossWeight = 0.1;
     private const int DefaultHistorySize = 20;
-    private const double TensorDimensionFactor = 2;
-    private const double NetworkInitializationScale = 0.1;
-    private const double WeightInitializationRange = 2.0; // For weight initialization range (-1, 1) * 2
-    private const double OutputWeightInitializationScale = 0.1;
-    private const double LearningRateDefault = 0.001;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
     // Cached JSON serializer options
