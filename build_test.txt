@@ -1,0 +1,38 @@
+MSBuild version 17.8.32+74df0b3f5 for .NET
+  Determining projects to restore...
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceAgent/IntelligenceAgent.csproj (in 9.37 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/Abstractions/Abstractions.csproj (in 9.38 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/Infrastructure/Alerts/Alerts.csproj (in 9.35 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/UpdaterAgent/UpdaterAgent.csproj (in 4.1 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/OrchestratorAgent/OrchestratorAgent.csproj (in 23.98 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/BotCore.csproj (in 14.6 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/TopstepAuthAgent/TopstepAuthAgent.csproj (in 25 ms).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/StrategyAgent/StrategyAgent.csproj (in 83 ms).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/Strategies/Strategies.csproj (in 56 ms).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/Safety/Safety.csproj (in 2.19 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/Monitoring/Monitoring.csproj (in 3 ms).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/ML/ML.csproj (in 1.46 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/ML/HistoricalTrainer/HistoricalTrainer.csproj (in 15 ms).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj (in 4.75 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj (in 1.08 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/src/UnifiedOrchestrator/UnifiedOrchestrator.csproj (in 16.65 sec).
+  Restored /home/runner/work/trading-bot-c-/trading-bot-c-/tests/Unit/MLRLAuditTests.csproj (in 20.77 sec).
+  TopstepAuthAgent -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/TopstepAuthAgent/bin/Release/net8.0/TopstepAuthAgent.dll
+  UpdaterAgent -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/UpdaterAgent/bin/Release/net8.0/UpdaterAgent.dll
+  IntelligenceAgent -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceAgent/bin/Release/net8.0/IntelligenceAgent.dll
+  Alerts -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/Infrastructure/Alerts/bin/Release/net8.0/TradingBot.Infrastructure.Alerts.dll
+  Monitoring -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/Monitoring/bin/Release/net8.0/TradingBot.Monitoring.dll
+  Abstractions -> /home/runner/work/trading-bot-c-/trading-bot-c-/src/Abstractions/bin/Release/net8.0/Abstractions.dll
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(15,12): error CS0579: Duplicate 'System.Reflection.AssemblyFileVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(16,12): error CS0579: Duplicate 'System.Reflection.AssemblyInformationalVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(19,12): error CS0579: Duplicate 'System.Reflection.AssemblyVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+
+Build FAILED.
+
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(15,12): error CS0579: Duplicate 'System.Reflection.AssemblyFileVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(16,12): error CS0579: Duplicate 'System.Reflection.AssemblyInformationalVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/obj/Release/net8.0/RLAgent.AssemblyInfo.cs(19,12): error CS0579: Duplicate 'System.Reflection.AssemblyVersionAttribute' attribute [/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:51.72

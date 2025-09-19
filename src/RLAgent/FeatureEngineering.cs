@@ -157,13 +157,13 @@ public class FeatureEngineering : IDisposable
             state.LastUpdate = DateTime.UtcNow;
             state.FeatureCount = cleanedFeatures.Count;
             
-            LogMessages.FeaturesGenerated(_logger, cleanedFeatures.Count, symbol, strategy, regime);
+            LogMessages.FeaturesGenerated(_logger, cleanedFeatures.Count, symbol, strategy, regime.ToString());
 
             return featureVector;
         }
         catch (Exception ex)
         {
-            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime, ex);
+            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime.ToString(), ex);
             
             // Return empty feature vector as fallback
             return new FeatureVector
@@ -201,7 +201,7 @@ public class FeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime, ex);
+            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime.ToString(), ex);
         }
     }
 
