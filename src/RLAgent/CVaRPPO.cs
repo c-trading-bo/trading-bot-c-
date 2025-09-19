@@ -526,8 +526,8 @@ public class CVaRPPO : IDisposable
         var cvarIndex = Math.Max(0, (int)(sortedRewards.Length * _config.CVaRAlpha) - 1);
         
         // Average of worst α% of outcomes
-        var cvarRewards = sortedRewards.Take(cvarIndex + 1);
-        return cvarRewards.Any() ? cvarRewards.Average() : 0.0;
+        var cvarRewards = sortedRewards.Take(cvarIndex + 1).ToArray();
+        return cvarRewards.Length > 0 ? cvarRewards.Average() : 0.0;
     }
 
     private MiniBatchLosses TrainMiniBatch(Experience[] batch, double[] advantages, double[] cvarTargets)

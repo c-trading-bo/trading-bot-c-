@@ -51,6 +51,7 @@ public class FeatureEngineering : IDisposable
     private static readonly string[] TechnicalFeatureNames = { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" };
     private static readonly string[] MicrostructureFeatureNames = { "spread_bps", "spread_zscore", "order_flow_imbalance", "tick_run", "trade_direction_ema" };
     private static readonly string[] TimeFeatureNames = { "time_of_day", "is_monday", "is_friday", "is_market_hours", "is_opening_hour", "is_closing_hour" };
+    private static readonly string[] RegimeFeatureNames = { "regime_range", "regime_trend", "regime_volatility", "regime_lowvol", "regime_highvol" };
     private static readonly double[] VolumeSentinelValues = { 0.0, 0.0, 0.0 };
     private static readonly string[] VolumeFeatureNames = { "volume_ratio", "volume_trend", "volume_volatility" };
     
@@ -269,8 +270,7 @@ public class FeatureEngineering : IDisposable
                 _ => new StreamingSymbolAggregator(tick.Symbol, _config));
             var features = await aggregator.ProcessTickAsync(tick, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogTrace("[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}", 
-                tick.Symbol, tick.Price, tick.Volume);
+            LogMessages.FeatureStreamingTickProcessed(_logger, tick.Symbol, tick.Price, tick.Volume);
             
             return features;
         }
@@ -556,7 +556,7 @@ public class FeatureEngineering : IDisposable
             regime == RegimeType.HighVol ? 1.0 : 0.0
         });
 
-        featureNames.AddRange(new[] { "regime_range", "regime_trend", "regime_volatility", "regime_lowvol", "regime_highvol" });
+        featureNames.AddRange(RegimeFeatureNames);
     }
 
     /// <summary>
@@ -611,13 +611,13 @@ public class FeatureEngineering : IDisposable
                 if (state.LastValidValues.TryGetValue(featureName, out var lastValid))
                 {
                     feature = lastValid;
-                    _logger.LogDebug("[FEATURE_ENG] Forward-filled NaN for feature: {FeatureName}", featureName);
+                    LogMessages.FeatureForwardFilled(_logger, featureName);
                 }
                 else
                 {
                     // Use default sentinel value
                     feature = GetDefaultSentinelValue(featureName);
-                    _logger.LogDebug("[FEATURE_ENG] Applied sentinel value for feature: {FeatureName}", featureName);
+                    LogMessages.FeatureAppliedSentinel(_logger, featureName);
                 }
             }
             

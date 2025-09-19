@@ -506,6 +506,10 @@ internal static class LogMessages
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9013, nameof(FeatureEngineeringDebug)),
             "[FEATURE_ENG] {Message}");
 
+    private static readonly Action<ILogger, string, double, double, Exception?> _featureStreamingTickProcessed =
+        LoggerMessage.Define<string, double, double>(LogLevel.Trace, new EventId(9014, nameof(FeatureStreamingTickProcessed)),
+            "[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}");
+
     // Model Hot Reload Messages
     private static readonly Action<ILogger, string, Exception?> _modelHotReloadError =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6008, nameof(ModelHotReloadError)),
@@ -523,8 +527,8 @@ internal static class LogMessages
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6011, nameof(ModelHotReloadDebug)),
             "[HOT_RELOAD] {Message}");
 
-    private static readonly Action<ILogger, string, string, Exception?> _modelHotReloadWarningParam =
-        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(6012, nameof(ModelHotReloadWarningParam)),
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadWarningParam =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(6012, nameof(ModelHotReloadWarningParam)),
             "[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}");
 
     private static readonly Action<ILogger, string, Exception?> _modelHotReloadFailedLoad =
@@ -539,20 +543,20 @@ internal static class LogMessages
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(6015, nameof(ModelHotReloadCompleted)),
             "[HOT_RELOAD] Hot-reload completed successfully: {CandidateName} is now live");
 
-    private static readonly Action<ILogger, string, string, Exception?> _modelHotReloadFileNotFound =
-        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(6016, nameof(ModelHotReloadFileNotFound)),
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadFileNotFound =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6016, nameof(ModelHotReloadFileNotFound)),
             "[HOT_RELOAD] Model file not found during hot-reload: {ModelPath}");
 
-    private static readonly Action<ILogger, string, string, Exception?> _modelHotReloadAccessDenied =
-        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(6017, nameof(ModelHotReloadAccessDenied)),
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadAccessDenied =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6017, nameof(ModelHotReloadAccessDenied)),
             "[HOT_RELOAD] Access denied during hot-reload: {ModelPath}");
 
-    private static readonly Action<ILogger, string, string, Exception?> _modelHotReloadInvalidOperation =
-        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(6018, nameof(ModelHotReloadInvalidOperation)),
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadInvalidOperation =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6018, nameof(ModelHotReloadInvalidOperation)),
             "[HOT_RELOAD] Invalid operation during hot-reload: {ModelPath}");
 
-    private static readonly Action<ILogger, string, string, Exception?> _modelHotReloadOutOfMemory =
-        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(6019, nameof(ModelHotReloadOutOfMemory)),
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadOutOfMemory =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6019, nameof(ModelHotReloadOutOfMemory)),
             "[HOT_RELOAD] Out of memory during hot-reload: {ModelPath}");
 
     private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestStart =
@@ -646,19 +650,20 @@ internal static class LogMessages
     public static void OnnxDisposedDebug(ILogger logger) => _onnxDisposedDebug(logger, null);
     
     public static void FeatureEngineeringDebug(ILogger logger, string message) => _featureEngineeringDebug(logger, message, null);
+    public static void FeatureStreamingTickProcessed(ILogger logger, string symbol, double price, double volume) => _featureStreamingTickProcessed(logger, symbol, price, volume, null);
     
     public static void ModelHotReloadError(ILogger logger, string message, Exception ex) => _modelHotReloadError(logger, message, ex);
     public static void ModelHotReloadWarning(ILogger logger, string message, Exception ex) => _modelHotReloadWarning(logger, message, ex);
     public static void ModelHotReloadInfo(ILogger logger, string message) => _modelHotReloadInfo(logger, message, null);
     public static void ModelHotReloadDebug(ILogger logger, string message) => _modelHotReloadDebug(logger, message, null);
-    public static void ModelHotReloadWarningParam(ILogger logger, string modelPath) => _modelHotReloadWarningParam(logger, "Hot-reload already in progress, skipping", modelPath, null);
+    public static void ModelHotReloadWarningParam(ILogger logger, string modelPath) => _modelHotReloadWarningParam(logger, modelPath, null);
     public static void ModelHotReloadFailedLoad(ILogger logger, string modelPath) => _modelHotReloadFailedLoad(logger, modelPath, null);
     public static void ModelHotReloadSmokeTestFailed(ILogger logger, string candidateName) => _modelHotReloadSmokeTestFailed(logger, candidateName, null);
     public static void ModelHotReloadCompleted(ILogger logger, string candidateName) => _modelHotReloadCompleted(logger, candidateName, null);
-    public static void ModelHotReloadFileNotFound(ILogger logger, string modelPath, Exception ex) => _modelHotReloadFileNotFound(logger, "Model file not found during hot-reload", modelPath, ex);
-    public static void ModelHotReloadAccessDenied(ILogger logger, string modelPath, Exception ex) => _modelHotReloadAccessDenied(logger, "Access denied during hot-reload", modelPath, ex);
-    public static void ModelHotReloadInvalidOperation(ILogger logger, string modelPath, Exception ex) => _modelHotReloadInvalidOperation(logger, "Invalid operation during hot-reload", modelPath, ex);
-    public static void ModelHotReloadOutOfMemory(ILogger logger, string modelPath, Exception ex) => _modelHotReloadOutOfMemory(logger, "Out of memory during hot-reload", modelPath, ex);
+    public static void ModelHotReloadFileNotFound(ILogger logger, string modelPath, Exception ex) => _modelHotReloadFileNotFound(logger, modelPath, ex);
+    public static void ModelHotReloadAccessDenied(ILogger logger, string modelPath, Exception ex) => _modelHotReloadAccessDenied(logger, modelPath, ex);
+    public static void ModelHotReloadInvalidOperation(ILogger logger, string modelPath, Exception ex) => _modelHotReloadInvalidOperation(logger, modelPath, ex);
+    public static void ModelHotReloadOutOfMemory(ILogger logger, string modelPath, Exception ex) => _modelHotReloadOutOfMemory(logger, modelPath, ex);
     public static void ModelHotReloadSmokeTestStart(ILogger logger, string modelName) => _modelHotReloadSmokeTestStart(logger, modelName, null);
     public static void ModelHotReloadSmokeTestConfidenceFailed(ILogger logger, double confidence) => _modelHotReloadSmokeTestConfidenceFailed(logger, confidence, null);
     public static void ModelHotReloadSmokeTestAnomalyFailed(ILogger logger) => _modelHotReloadSmokeTestAnomalyFailed(logger, null);

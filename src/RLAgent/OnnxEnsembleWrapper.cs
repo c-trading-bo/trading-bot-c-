@@ -492,7 +492,15 @@ public class OnnxEnsembleWrapper : IDisposable
                 sessionOptions.AppendExecutionProvider_CUDA();
                 LogMessages.OnnxGpuAccelerationEnabled(_logger);
             }
-            catch (Exception ex)
+            catch (NotSupportedException ex)
+            {
+                LogMessages.GpuAccelerationFailed(_logger, ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogMessages.GpuAccelerationFailed(_logger, ex);
+            }
+            catch (PlatformNotSupportedException ex)
             {
                 LogMessages.GpuAccelerationFailed(_logger, ex);
             }

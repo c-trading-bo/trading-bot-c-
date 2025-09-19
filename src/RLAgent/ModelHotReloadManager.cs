@@ -96,7 +96,7 @@ public class ModelHotReloadManager : IDisposable
     {
         if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token).ConfigureAwait(false))
         {
-            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
+            LogMessages.ModelHotReloadWarningParam(_logger, modelPath);
             return;
         }
 
@@ -111,7 +111,7 @@ public class ModelHotReloadManager : IDisposable
             var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (!loadSuccess)
             {
-                _logger.LogError("[HOT_RELOAD] Failed to load candidate model: {ModelPath}", modelPath);
+                LogMessages.ModelHotReloadFailedLoad(_logger, modelPath);
                 return;
             }
 
@@ -119,7 +119,7 @@ public class ModelHotReloadManager : IDisposable
             var smokeTestPassed = await RunSmokeTestsAsync(candidateModelName).ConfigureAwait(false);
             if (!smokeTestPassed)
             {
-                _logger.LogError("[HOT_RELOAD] Smoke tests failed for candidate model: {CandidateName}", candidateModelName);
+                LogMessages.ModelHotReloadSmokeTestFailed(_logger, candidateModelName);
                 await _onnxEnsemble.UnloadModelAsync(candidateModelName).ConfigureAwait(false);
                 return;
             }
@@ -133,26 +133,26 @@ public class ModelHotReloadManager : IDisposable
             }
 
             // Step 4: Rename candidate to live model name (optional - can keep candidate name)
-            _logger.LogInformation("[HOT_RELOAD] Hot-reload completed successfully: {CandidateName} is now live", candidateModelName);
+            LogMessages.ModelHotReloadCompleted(_logger, candidateModelName);
             
             // Update model registry for tracking
             UpdateModelRegistry(fileName, candidateModelName);
         }
         catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Model file not found during hot-reload: {ModelPath}", modelPath);
+            LogMessages.ModelHotReloadFileNotFound(_logger, modelPath, ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Access denied during hot-reload: {ModelPath}", modelPath);
+            LogMessages.ModelHotReloadAccessDenied(_logger, modelPath, ex);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Invalid operation during hot-reload: {ModelPath}", modelPath);
+            LogMessages.ModelHotReloadInvalidOperation(_logger, modelPath, ex);
         }
         catch (OutOfMemoryException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Out of memory during hot-reload: {ModelPath}", modelPath);
+            LogMessages.ModelHotReloadOutOfMemory(_logger, modelPath, ex);
         }
         finally
         {
@@ -167,7 +167,7 @@ public class ModelHotReloadManager : IDisposable
     {
         try
         {
-            _logger.LogDebug("[HOT_RELOAD] Running smoke tests for: {ModelName}", modelName);
+            LogMessages.ModelHotReloadSmokeTestStart(_logger, modelName);
 
             // Generate deterministic golden inputs for testing
             var goldenInputs = GenerateGoldenInputs();
@@ -181,20 +181,20 @@ public class ModelHotReloadManager : IDisposable
                     // Validate prediction is within expected bounds
                     if (prediction.Confidence < 0.0 || prediction.Confidence > 1.0)
                     {
-                        _logger.LogError("[HOT_RELOAD] Smoke test failed - confidence out of bounds: {Confidence}", prediction.Confidence);
+                        LogMessages.ModelHotReloadSmokeTestConfidenceFailed(_logger, prediction.Confidence);
                         return false;
                     }
 
                     if (prediction.IsAnomaly && _options.FailOnAnomalies)
                     {
-                        _logger.LogError("[HOT_RELOAD] Smoke test failed - anomaly detected in golden input");
+                        LogMessages.ModelHotReloadSmokeTestAnomalyFailed(_logger);
                         return false;
                     }
 
                     // Check for NaN or infinite values
                     if (double.IsNaN(prediction.EnsembleResult) || double.IsInfinity(prediction.EnsembleResult))
                     {
-                        _logger.LogError("[HOT_RELOAD] Smoke test failed - invalid prediction result: {Result}", prediction.EnsembleResult);
+                        LogMessages.ModelHotReloadSmokeTestInvalidResult(_logger, prediction.EnsembleResult);
                         return false;
                     }
                 }
@@ -205,17 +205,17 @@ public class ModelHotReloadManager : IDisposable
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Smoke test failed due to invalid operation: {ModelName}", modelName);
+            LogMessages.ModelHotReloadSmokeTestInvalidOperationFailed(_logger, modelName, ex);
             return false;
         }
         catch (OutOfMemoryException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Smoke test failed due to memory exhaustion: {ModelName}", modelName);
+            LogMessages.ModelHotReloadSmokeTestMemoryFailed(_logger, modelName, ex);
             return false;
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Smoke test timed out: {ModelName}", modelName);
+            LogMessages.ModelHotReloadSmokeTestTimeout(_logger, modelName, ex);
             return false;
         }
     }
@@ -284,15 +284,15 @@ public class ModelHotReloadManager : IDisposable
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "[HOT_RELOAD] Access denied when updating model registry");
+            LogMessages.ModelHotReloadRegistryAccessDenied(_logger, ex);
         }
         catch (DirectoryNotFoundException ex)
         {
-            _logger.LogWarning(ex, "[HOT_RELOAD] Directory not found when updating model registry");
+            LogMessages.ModelHotReloadRegistryDirectoryNotFound(_logger, ex);
         }
         catch (IOException ex)
         {
-            _logger.LogWarning(ex, "[HOT_RELOAD] IO error when updating model registry");
+            LogMessages.ModelHotReloadRegistryIOError(_logger, ex);
         }
     }
 
@@ -348,7 +348,7 @@ public class ModelHotReloadManager : IDisposable
             _cancellationTokenSource?.Dispose();
             _reloadSemaphore?.Dispose();
             
-            _logger.LogInformation("[HOT_RELOAD] Model hot-reload manager disposed");
+            LogMessages.ModelHotReloadManagerDisposed(_logger);
         }
     }
 }
