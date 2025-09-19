@@ -197,13 +197,11 @@ public class FeatureEngineering : IDisposable
             
             tracker.UpdateImportance(featureNames, importanceScores);
             
-            _logger.LogDebug("[FEATURE_ENG] Updated importance for {FeatureCount} features: {FeatureKey}", 
-                featureNames.Length, featureKey);
+            LogMessages.FeatureImportanceUpdated(_logger, featureNames.Length, featureKey);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[FEATURE_ENG] Error updating feature importance for {Symbol} {Strategy} {Regime}", 
-                symbol, strategy, regime);
+            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime, ex);
         }
     }
 
@@ -227,7 +225,7 @@ public class FeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Failed to process streaming tick for {Symbol}: {ErrorMessage}", tick.Symbol, ex.Message);
+            LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
             throw new InvalidOperationException($"Failed to process streaming tick for symbol {tick.Symbol}", ex);
         }
     }
@@ -292,7 +290,7 @@ public class FeatureEngineering : IDisposable
                 if (_streamingAggregators.TryRemove(symbol, out var aggregator))
                 {
                     aggregator.Dispose();
-                    _logger.LogDebug("[FEATURE_ENG] Cleaned up stale streaming aggregator for {Symbol}", symbol);
+                    LogMessages.StaleAggregatorCleaned(_logger, symbol);
                 }
             }
 
@@ -954,7 +952,7 @@ public class FeatureEngineering : IDisposable
 
             _cancellationTokenSource.Dispose();
             _disposed = true;
-            _logger.LogInformation("[FEATURE_ENG] Disposed successfully");
+            LogMessages.FeatureEngineeringDisposed2(_logger);
         }
     }
 }

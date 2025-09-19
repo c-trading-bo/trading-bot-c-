@@ -254,6 +254,15 @@ internal static class LogMessages
         LoggerMessage.Define<double, double, double>(LogLevel.Debug, new EventId(10008, nameof(RiskCalculated)),
             "[POSITION_SIZING] Risk calculation: Price={Price:F2}, Stop={Stop:F2}, Risk={Risk:F2}");
 
+    // Additional Feature Engineering Messages
+    private static readonly Action<ILogger, string, Exception?> _featureAppliedSentinel =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9011, nameof(FeatureAppliedSentinel)),
+            "[FEATURE_ENG] Applied sentinel value for feature: {FeatureName}");
+
+    private static readonly Action<ILogger, Exception?> _featureEngineeringDisposed2 =
+        LoggerMessage.Define(LogLevel.Information, new EventId(9012, nameof(FeatureEngineeringDisposed2)),
+            "[FEATURE_ENG] Disposed successfully");
+
     // Public methods for high-performance logging
     public static void SacAlgorithmCreated(ILogger logger, string config) => _sacAlgorithmCreated(logger, config, null);
     public static void MetaLearningAlgorithmCreated(ILogger logger, string config) => _metaLearningAlgorithmCreated(logger, config, null);
@@ -320,4 +329,6 @@ internal static class LogMessages
     public static void RiskRejected(ILogger logger, string symbol) => _riskRejected(logger, symbol, null);
     public static void StepChangeLimited(ILogger logger, string symbol, int currentContracts, int newContracts, int limitedContracts) => _stepChangeLimited(logger, symbol, currentContracts, newContracts, limitedContracts, null);
     public static void RiskCalculated(ILogger logger, double price, double stop, double risk) => _riskCalculated(logger, price, stop, risk, null);
+    public static void FeatureAppliedSentinel(ILogger logger, string featureName) => _featureAppliedSentinel(logger, featureName, null);
+    public static void FeatureEngineeringDisposed2(ILogger logger) => _featureEngineeringDisposed2(logger, null);
 }

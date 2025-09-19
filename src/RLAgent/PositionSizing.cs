@@ -110,16 +110,14 @@ public class PositionSizing
                     Timestamp = DateTime.UtcNow
                 };
 
-                _logger.LogDebug("[POSITION_SIZING] {Symbol} {Strategy} {Regime}: Kelly={Kelly:F3}, SAC={SAC:F3}, Clip={Clip:F3}, Final={Final} contracts", 
-                    request.Symbol, request.Strategy, request.Regime, kellyFraction, sacFraction, regimeClip, finalContracts);
+                LogMessages.PositionSizingCalculated(_logger, request.Symbol, request.Strategy, request.Regime, kellyFraction, sacFraction, regimeClip, finalContracts);
 
                 return result;
             }
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[POSITION_SIZING] Invalid arguments for position sizing {Symbol} {Strategy}", 
-                request.Symbol, request.Strategy);
+            LogMessages.PositionSizingArgumentError(_logger, request.Symbol, request.Strategy, ex);
             
             return new PositionSizeResult
             {
@@ -131,8 +129,7 @@ public class PositionSizing
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[POSITION_SIZING] Invalid operation for position sizing {Symbol} {Strategy}", 
-                request.Symbol, request.Strategy);
+            LogMessages.PositionSizingOperationError(_logger, request.Symbol, request.Strategy, ex);
             
             return new PositionSizeResult
             {
@@ -144,8 +141,7 @@ public class PositionSizing
         }
         catch (DivideByZeroException ex)
         {
-            _logger.LogError(ex, "[POSITION_SIZING] Division by zero in position sizing {Symbol} {Strategy}", 
-                request.Symbol, request.Strategy);
+            LogMessages.PositionSizingDivisionError(_logger, request.Symbol, request.Strategy, ex);
             
             return new PositionSizeResult
             {
@@ -287,8 +283,7 @@ public class PositionSizing
             var direction = newContracts > currentContracts ? 1 : -1;
             var limitedContracts = currentContracts + (direction * _config.MaxStepChange);
             
-            _logger.LogInformation("[POSITION_SIZING] Step change limited: {Symbol} {CurrentContracts} → {NewContracts} limited to {LimitedContracts}", 
-                request.Symbol, currentContracts, newContracts, limitedContracts);
+            LogMessages.StepChangeLimited(_logger, request.Symbol, currentContracts, newContracts, limitedContracts);
             
             return limitedContracts;
         }
@@ -311,8 +306,7 @@ public class PositionSizing
         
         var risk = Math.Abs(roundedPrice - roundedStop);
         
-        _logger.LogDebug("[POSITION_SIZING] Risk calculation: Price={Price:F2}, Stop={Stop:F2}, Risk={Risk:F2}", 
-            roundedPrice, roundedStop, risk);
+        LogMessages.RiskCalculated(_logger, roundedPrice, roundedStop, risk);
         
         return risk;
     }
