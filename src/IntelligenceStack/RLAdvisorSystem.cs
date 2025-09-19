@@ -701,7 +701,7 @@ public class RLAdvisorSystem
             var timePeriod = endDate - startDate;
             var estimatedTrades = (int)(timePeriod.TotalDays * 2); // Approx 2 trades per day
             
-            for (int i; i < estimatedTrades; i++)
+            for (int i = 0; i < estimatedTrades; i++)
             {
                 // Use cryptographically secure random for production trading system
                 using var rng = RandomNumberGenerator.Create();
