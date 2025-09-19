@@ -249,7 +249,6 @@
             <button class="tab active" onclick="showTab('overview')">📊 Overview</button>
             <button class="tab" onclick="showTab('trading')">💹 Trading</button>
             <button class="tab" onclick="showTab('intelligence')">🧠 Intelligence</button>
-            <button class="tab" onclick="showTab('mechanic')">🔧 Bot Mechanic</button>
             <button class="tab" onclick="showTab('monitoring')">📈 Monitoring</button>
         </div>
 
@@ -262,12 +261,6 @@
                     <div class="metric">
                         <span>Trading Bot</span>
                         <span class="metric-value" id="bot-status">
-                            <span class="loading-spinner"></span> Checking...
-                        </span>
-                    </div>
-                    <div class="metric">
-                        <span>Bot Mechanic</span>
-                        <span class="metric-value" id="mechanic-status">
                             <span class="loading-spinner"></span> Checking...
                         </span>
                     </div>
@@ -351,18 +344,6 @@
             </div>
         </div>
 
-        <!-- Bot Mechanic Tab -->
-        <div id="mechanic" class="tab-content">
-            <div class="dashboard-grid">
-                <div class="card">
-                    <h3>🔧 Local Bot Mechanic</h3>
-                    <div class="iframe-container">
-                        <iframe src="http://localhost:5051/mechanic/dashboard" title="Bot Mechanic Dashboard"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Monitoring Tab -->
         <div id="monitoring" class="tab-content">
             <div class="dashboard-grid">
@@ -378,7 +359,6 @@
         <!-- Links -->
         <div class="links">
             <a href="http://localhost:5050" target="_blank">🌐 Main Bot Dashboard</a>
-            <a href="http://localhost:5051/mechanic/dashboard" target="_blank">🔧 Bot Mechanic</a>
             <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank">🔄 GitHub Actions</a>
             <a href="http://localhost:5050/healthz" target="_blank">💊 Health Check</a>
         </div>
@@ -421,26 +401,6 @@
                 document.getElementById('main-status').className = 'status-indicator status-error';
             }
 
-            try {
-                // Update mechanic status
-                const mechanicResponse = await fetch('http://localhost:5051/mechanic/api/status');
-                if (mechanicResponse.ok) {
-                    const mechanicData = await mechanicResponse.json();
-                    
-                    document.getElementById('mechanic-status').innerHTML = 
-                        mechanicData.is_healthy ? '✅ Healthy' : `⚠️ ${mechanicData.issues_count} Issues`;
-                    
-                    document.getElementById('health-score').textContent = mechanicData.health_score + '%';
-                    document.getElementById('issues-count').textContent = mechanicData.issues_count;
-                    document.getElementById('features-count').textContent = mechanicData.feature_count;
-                    document.getElementById('repairs-count').textContent = mechanicData.recent_repairs?.length || 0;
-                } else {
-                    document.getElementById('mechanic-status').innerHTML = '❌ Offline';
-                }
-            } catch (error) {
-                document.getElementById('mechanic-status').innerHTML = '❌ Offline';
-            }
-
             // Update intelligence status (placeholder)
             document.getElementById('intelligence-status').innerHTML = '✅ Active';
             document.getElementById('data-status').innerHTML = '✅ Flowing';
@@ -451,40 +411,6 @@
         }
 
         // Actions
-        async function triggerHealthCheck() {
-            addLogEntry('🔍 Starting health check...', 'info');
-            
-            try {
-                const response = await fetch('http://localhost:5051/mechanic/scan');
-                if (response.ok) {
-                    addLogEntry('✅ Health check completed', 'success');
-                } else {
-                    addLogEntry('❌ Health check failed', 'error');
-                }
-            } catch (error) {
-                addLogEntry('❌ Health check error: ' + error.message, 'error');
-            }
-            
-            await updateSystemStatus();
-        }
-
-        async function triggerAutoFix() {
-            addLogEntry('🔧 Starting auto-fix...', 'info');
-            
-            try {
-                const response = await fetch('http://localhost:5051/mechanic/fix');
-                if (response.ok) {
-                    addLogEntry('✅ Auto-fix completed', 'success');
-                } else {
-                    addLogEntry('❌ Auto-fix failed', 'error');
-                }
-            } catch (error) {
-                addLogEntry('❌ Auto-fix error: ' + error.message, 'error');
-            }
-            
-            await updateSystemStatus();
-        }
-
         function refreshAll() {
             addLogEntry('🔄 Refreshing all data...', 'info');
             
