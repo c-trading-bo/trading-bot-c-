@@ -28,7 +28,7 @@ internal static class LogMessages
 
     private static readonly Action<ILogger, string, int, Exception?> _taskAdaptationStarted =
         LoggerMessage.Define<string, int>(LogLevel.Debug, new EventId(2002, nameof(TaskAdaptationStarted)),
-            "[META] Adapting to task: {TaskId} with {SupportSize} examples");
+            "[META] Adapting to task: {TaskId} with {SupportSize} training instances");
 
     private static readonly Action<ILogger, double, int, int, Exception?> _metaTrainingCompleted =
         LoggerMessage.Define<double, int, int>(LogLevel.Information, new EventId(2003, nameof(MetaTrainingCompleted)),
@@ -332,4 +332,347 @@ internal static class LogMessages
     public static void RiskCalculated(ILogger logger, double price, double stop, double risk) => _riskCalculated(logger, price, stop, risk, null);
     public static void FeatureAppliedSentinel(ILogger logger, string featureName) => _featureAppliedSentinel(logger, featureName, null);
     public static void FeatureEngineeringDisposed2(ILogger logger) => _featureEngineeringDisposed2(logger, null);
+
+    // Additional CVaR-PPO specific messages
+    private static readonly Action<ILogger, Exception?> _cvarPpoTrainingArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3010, nameof(CVaRPPOTrainingArgumentError)),
+            "[CVAR_PPO] Invalid arguments during training");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoActionSelectionArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3011, nameof(CVaRPPOActionSelectionArgumentError)),
+            "[CVAR_PPO] Invalid arguments for action selection");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoActionSelectionOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3012, nameof(CVaRPPOActionSelectionOperationError)),
+            "[CVAR_PPO] Invalid operation during action selection");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoActionSelectionMemoryError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3013, nameof(CVaRPPOActionSelectionMemoryError)),
+            "[CVAR_PPO] Out of memory during action selection");
+
+    private static readonly Action<ILogger, double, double, double, double, Exception?> _cvarPpoActionSelected =
+        LoggerMessage.Define<double, double, double, double>(LogLevel.Debug, new EventId(3014, nameof(CVaRPPOActionSelected)),
+            "[CVAR_PPO] Action selected: {Action} (prob: {Prob:F3}, value: {Value:F3}, cvar: {CVaR:F3})");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoUpdateParametersError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3015, nameof(CVaRPPOUpdateParametersError)),
+            "[CVAR_PPO] Error updating network parameters");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoUpdateParametersArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3016, nameof(CVaRPPOUpdateParametersArgumentError)),
+            "[CVAR_PPO] Invalid arguments for parameter update");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoUpdateParametersOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3017, nameof(CVaRPPOUpdateParametersOperationError)),
+            "[CVAR_PPO] Invalid operation during parameter update");
+
+    private static readonly Action<ILogger, double, Exception?> _cvarPpoGradientClipped =
+        LoggerMessage.Define<double>(LogLevel.Debug, new EventId(3018, nameof(CVaRPPOGradientClipped)),
+            "[CVAR_PPO] Gradient clipped: norm={Norm:F3}");
+
+    private static readonly Action<ILogger, double, double, bool, Exception?> _cvarPpoExperienceAdded =
+        LoggerMessage.Define<double, double, bool>(LogLevel.Debug, new EventId(3019, nameof(CVaRPPOExperienceAdded)),
+            "[CVAR_PPO] Added experience - Action: {Action}, Reward: {Reward:F3}, Done: {Done}");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoModelSaveAccessDenied =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3020, nameof(CVaRPPOModelSaveAccessDenied)),
+            "[CVAR_PPO] Access denied when saving model");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoModelSaveDirectoryNotFound =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3021, nameof(CVaRPPOModelSaveDirectoryNotFound)),
+            "[CVAR_PPO] Directory not found when saving model");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoModelSaveIOError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3022, nameof(CVaRPPOModelSaveIOError)),
+            "[CVAR_PPO] IO error when saving model");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoModelPathNotExists =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3023, nameof(CVaRPPOModelPathNotExists)),
+            "[CVAR_PPO] Model path does not exist: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoMissingNetworkFiles =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3024, nameof(CVaRPPOMissingNetworkFiles)),
+            "[CVAR_PPO] Missing network files in: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoModelFileNotFound =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3025, nameof(CVaRPPOModelFileNotFound)),
+            "[CVAR_PPO] Model file not found: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoModelLoadAccessDenied =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3026, nameof(CVaRPPOModelLoadAccessDenied)),
+            "[CVAR_PPO] Access denied loading model: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoInvalidModelFile =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3027, nameof(CVaRPPOInvalidModelFile)),
+            "[CVAR_PPO] Invalid model file: {ModelPath}");
+
+    // SAC specific messages  
+    private static readonly Action<ILogger, Exception?> _sacActionSelectionArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4002, nameof(SACActionSelectionArgumentError)),
+            "[SAC] Invalid arguments for action selection");
+
+    private static readonly Action<ILogger, Exception?> _sacActionSelectionOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4003, nameof(SACActionSelectionOperationError)),
+            "[SAC] Invalid operation during action selection");
+
+    private static readonly Action<ILogger, Exception?> _sacActionSelectionMemoryError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4004, nameof(SACActionSelectionMemoryError)),
+            "[SAC] Out of memory during action selection");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4005, nameof(SACTrainingDebug)),
+            "[SAC] Starting training iteration");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4006, nameof(SACTrainingArgumentError)),
+            "[SAC] Invalid arguments for training");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4007, nameof(SACTrainingOperationError)),
+            "[SAC] Invalid operation during training");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingMemoryError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4008, nameof(SACTrainingMemoryError)),
+            "[SAC] Out of memory during training");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingCancelled =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4009, nameof(SACTrainingCancelled)),
+            "[SAC] Training was cancelled");
+
+    private static readonly Action<ILogger, double, double, double, double, double, Exception?> _sacTrainingCompleted =
+        LoggerMessage.Define<double, double, double, double, double>(LogLevel.Debug, new EventId(4010, nameof(SACTrainingCompleted)),
+            "[SAC] Training completed: Actor={ActorLoss:F4}, Critic1={CriticLoss1:F4}, Critic2={CriticLoss2:F4}, Value={ValueLoss:F4}, Entropy={Entropy:F4}");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingOperationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4011, nameof(SACTrainingOperationFailed)),
+            "[SAC] Training failed due to invalid operation");
+
+    private static readonly Action<ILogger, Exception?> _sacTrainingMemoryFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4012, nameof(SACTrainingMemoryFailed)),
+            "[SAC] Training failed due to memory exhaustion");
+
+    // MetaLearner specific messages
+    private static readonly Action<ILogger, int, int, double, Exception?> _metaAdaptationStep =
+        LoggerMessage.Define<int, int, double>(LogLevel.Debug, new EventId(2004, nameof(MetaAdaptationStep)),
+            "[META] Adaptation step {Step}/{TotalSteps}, loss: {Loss:F4}");
+
+    private static readonly Action<ILogger, string, double, Exception?> _metaExperienceStored =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(2005, nameof(MetaExperienceStored)),
+            "[META] Stored experience for task: {TaskId}, reward: {Reward:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTaskAdaptationArgumentError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2006, nameof(MetaTaskAdaptationArgumentError)),
+            "[META] Invalid arguments for task adaptation: {TaskId}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTaskAdaptationOperationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2007, nameof(MetaTaskAdaptationOperationError)),
+            "[META] Invalid operation during task adaptation: {TaskId}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTaskAdaptationMemoryError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2008, nameof(MetaTaskAdaptationMemoryError)),
+            "[META] Out of memory during task adaptation: {TaskId}");
+
+    private static readonly Action<ILogger, double, int, int, Exception?> _metaTrainingInfo =
+        LoggerMessage.Define<double, int, int>(LogLevel.Information, new EventId(2009, nameof(MetaTrainingInfo)),
+            "[META] Meta-training progress: loss={Loss:F4}, updates={Updates}, episodes={Episodes}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTrainingArgumentError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2010, nameof(MetaTrainingArgumentError)),
+            "[META] Invalid arguments for meta-training: {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTrainingOperationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2011, nameof(MetaTrainingOperationError)),
+            "[META] Invalid operation during meta-training: {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _metaTrainingMemoryError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2012, nameof(MetaTrainingMemoryError)),
+            "[META] Out of memory during meta-training: {Message}");
+
+    // ONNX specific messages
+    private static readonly Action<ILogger, Exception?> _onnxGpuAccelerationEnabled =
+        LoggerMessage.Define(LogLevel.Information, new EventId(8018, nameof(OnnxGpuAccelerationEnabled)),
+            "[RL-ENSEMBLE] GPU acceleration enabled for ONNX inference");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _onnxModelValidationDebug =
+        LoggerMessage.Define<string, string, string>(LogLevel.Debug, new EventId(8019, nameof(OnnxModelValidationDebug)),
+            "[RL-ENSEMBLE] Model validation passed: {ModelName} - Input: {InputShape}, Output: {OutputShape}");
+
+    private static readonly Action<ILogger, Exception?> _onnxDisposedDebug =
+        LoggerMessage.Define(LogLevel.Information, new EventId(8020, nameof(OnnxDisposedDebug)),
+            "[RL-ENSEMBLE] ONNX Ensemble Wrapper disposed");
+
+    // Feature Engineering Debug Messages  
+    private static readonly Action<ILogger, string, Exception?> _featureEngineeringDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9013, nameof(FeatureEngineeringDebug)),
+            "[FEATURE_ENG] {Message}");
+
+    private static readonly Action<ILogger, string, double, double, Exception?> _featureStreamingTickProcessed =
+        LoggerMessage.Define<string, double, double>(LogLevel.Trace, new EventId(9014, nameof(FeatureStreamingTickProcessed)),
+            "[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}");
+
+    // Model Hot Reload Messages
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6008, nameof(ModelHotReloadError)),
+            "[HOT_RELOAD] {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(6009, nameof(ModelHotReloadWarning)),
+            "[HOT_RELOAD] {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadInfo =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(6010, nameof(ModelHotReloadInfo)),
+            "[HOT_RELOAD] {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6011, nameof(ModelHotReloadDebug)),
+            "[HOT_RELOAD] {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadWarningParam =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(6012, nameof(ModelHotReloadWarningParam)),
+            "[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadFailedLoad =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6013, nameof(ModelHotReloadFailedLoad)),
+            "[HOT_RELOAD] Failed to load candidate model: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, nameof(ModelHotReloadSmokeTestFailed)),
+            "[HOT_RELOAD] Smoke tests failed for candidate model: {CandidateName}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadCompleted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(6015, nameof(ModelHotReloadCompleted)),
+            "[HOT_RELOAD] Hot-reload completed successfully: {CandidateName} is now live");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadFileNotFound =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6016, nameof(ModelHotReloadFileNotFound)),
+            "[HOT_RELOAD] Model file not found during hot-reload: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadAccessDenied =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6017, nameof(ModelHotReloadAccessDenied)),
+            "[HOT_RELOAD] Access denied during hot-reload: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadInvalidOperation =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6018, nameof(ModelHotReloadInvalidOperation)),
+            "[HOT_RELOAD] Invalid operation during hot-reload: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadOutOfMemory =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6019, nameof(ModelHotReloadOutOfMemory)),
+            "[HOT_RELOAD] Out of memory during hot-reload: {ModelPath}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestStart =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6020, nameof(ModelHotReloadSmokeTestStart)),
+            "[HOT_RELOAD] Running smoke tests for: {ModelName}");
+
+    private static readonly Action<ILogger, double, Exception?> _modelHotReloadSmokeTestConfidenceFailed =
+        LoggerMessage.Define<double>(LogLevel.Error, new EventId(6021, nameof(ModelHotReloadSmokeTestConfidenceFailed)),
+            "[HOT_RELOAD] Smoke test failed - confidence out of bounds: {Confidence}");
+
+    private static readonly Action<ILogger, Exception?> _modelHotReloadSmokeTestAnomalyFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6022, nameof(ModelHotReloadSmokeTestAnomalyFailed)),
+            "[HOT_RELOAD] Smoke test failed - anomaly detected in golden input");
+
+    private static readonly Action<ILogger, double, Exception?> _modelHotReloadSmokeTestInvalidResult =
+        LoggerMessage.Define<double>(LogLevel.Error, new EventId(6023, nameof(ModelHotReloadSmokeTestInvalidResult)),
+            "[HOT_RELOAD] Smoke test failed - invalid prediction result: {Result}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestInvalidOperationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6024, nameof(ModelHotReloadSmokeTestInvalidOperationFailed)),
+            "[HOT_RELOAD] Smoke test failed due to invalid operation: {ModelName}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestMemoryFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6025, nameof(ModelHotReloadSmokeTestMemoryFailed)),
+            "[HOT_RELOAD] Smoke test failed due to memory exhaustion: {ModelName}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelHotReloadSmokeTestTimeout =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6026, nameof(ModelHotReloadSmokeTestTimeout)),
+            "[HOT_RELOAD] Smoke test timed out: {ModelName}");
+
+    private static readonly Action<ILogger, Exception?> _modelHotReloadRegistryAccessDenied =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6027, nameof(ModelHotReloadRegistryAccessDenied)),
+            "[HOT_RELOAD] Access denied when updating model registry");
+
+    private static readonly Action<ILogger, Exception?> _modelHotReloadRegistryDirectoryNotFound =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6028, nameof(ModelHotReloadRegistryDirectoryNotFound)),
+            "[HOT_RELOAD] Directory not found when updating model registry");
+
+    private static readonly Action<ILogger, Exception?> _modelHotReloadRegistryIOError =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6029, nameof(ModelHotReloadRegistryIOError)),
+            "[HOT_RELOAD] IO error when updating model registry");
+
+    private static readonly Action<ILogger, Exception?> _modelHotReloadManagerDisposed =
+        LoggerMessage.Define(LogLevel.Information, new EventId(6030, nameof(ModelHotReloadManagerDisposed)),
+            "[HOT_RELOAD] Model hot-reload manager disposed");
+
+    // Public methods for the new messages
+    public static void CVaRPPOTrainingArgumentError(ILogger logger, Exception ex) => _cvarPpoTrainingArgumentError(logger, ex);
+    public static void CVaRPPOActionSelectionArgumentError(ILogger logger, Exception ex) => _cvarPpoActionSelectionArgumentError(logger, ex);
+    public static void CVaRPPOActionSelectionOperationError(ILogger logger, Exception ex) => _cvarPpoActionSelectionOperationError(logger, ex);
+    public static void CVaRPPOActionSelectionMemoryError(ILogger logger, Exception ex) => _cvarPpoActionSelectionMemoryError(logger, ex);
+    public static void CVaRPPOActionSelected(ILogger logger, double action, double prob, double value, double cvar) => _cvarPpoActionSelected(logger, action, prob, value, cvar, null);
+    public static void CVaRPPOUpdateParametersError(ILogger logger, Exception ex) => _cvarPpoUpdateParametersError(logger, ex);
+    public static void CVaRPPOUpdateParametersArgumentError(ILogger logger, Exception ex) => _cvarPpoUpdateParametersArgumentError(logger, ex);
+    public static void CVaRPPOUpdateParametersOperationError(ILogger logger, Exception ex) => _cvarPpoUpdateParametersOperationError(logger, ex);
+    public static void CVaRPPOGradientClipped(ILogger logger, double norm) => _cvarPpoGradientClipped(logger, norm, null);
+    public static void CVaRPPOExperienceAdded(ILogger logger, double action, double reward, bool done) => _cvarPpoExperienceAdded(logger, action, reward, done, null);
+    public static void CVaRPPOModelSaveAccessDenied(ILogger logger, Exception ex) => _cvarPpoModelSaveAccessDenied(logger, ex);
+    public static void CVaRPPOModelSaveDirectoryNotFound(ILogger logger, Exception ex) => _cvarPpoModelSaveDirectoryNotFound(logger, ex);
+    public static void CVaRPPOModelSaveIOError(ILogger logger, Exception ex) => _cvarPpoModelSaveIOError(logger, ex);
+    public static void CVaRPPOModelPathNotExists(ILogger logger, string modelPath) => _cvarPpoModelPathNotExists(logger, modelPath, null);
+    public static void CVaRPPOMissingNetworkFiles(ILogger logger, string modelPath) => _cvarPpoMissingNetworkFiles(logger, modelPath, null);
+    public static void CVaRPPOModelFileNotFound(ILogger logger, string modelPath, Exception ex) => _cvarPpoModelFileNotFound(logger, modelPath, ex);
+    public static void CVaRPPOModelLoadAccessDenied(ILogger logger, string modelPath, Exception ex) => _cvarPpoModelLoadAccessDenied(logger, modelPath, ex);
+    public static void CVaRPPOInvalidModelFile(ILogger logger, string modelPath, Exception ex) => _cvarPpoInvalidModelFile(logger, modelPath, ex);
+    
+    public static void SACActionSelectionArgumentError(ILogger logger, Exception ex) => _sacActionSelectionArgumentError(logger, ex);
+    public static void SACActionSelectionOperationError(ILogger logger, Exception ex) => _sacActionSelectionOperationError(logger, ex);
+    public static void SACActionSelectionMemoryError(ILogger logger, Exception ex) => _sacActionSelectionMemoryError(logger, ex);
+    public static void SACTrainingDebug(ILogger logger) => _sacTrainingDebug(logger, null);
+    public static void SACTrainingArgumentError(ILogger logger, Exception ex) => _sacTrainingArgumentError(logger, ex);
+    public static void SACTrainingOperationError(ILogger logger, Exception ex) => _sacTrainingOperationError(logger, ex);
+    public static void SACTrainingMemoryError(ILogger logger, Exception ex) => _sacTrainingMemoryError(logger, ex);
+    public static void SACTrainingCancelled(ILogger logger, Exception ex) => _sacTrainingCancelled(logger, ex);
+    public static void SACTrainingCompleted(ILogger logger, double actorLoss, double criticLoss1, double criticLoss2, double valueLoss, double entropy) => _sacTrainingCompleted(logger, actorLoss, criticLoss1, criticLoss2, valueLoss, entropy, null);
+    public static void SACTrainingOperationFailed(ILogger logger, Exception ex) => _sacTrainingOperationFailed(logger, ex);
+    public static void SACTrainingMemoryFailed(ILogger logger, Exception ex) => _sacTrainingMemoryFailed(logger, ex);
+    
+    public static void MetaAdaptationStep(ILogger logger, int step, int totalSteps, double loss) => _metaAdaptationStep(logger, step, totalSteps, loss, null);
+    public static void MetaExperienceStored(ILogger logger, string taskId, double reward) => _metaExperienceStored(logger, taskId, reward, null);
+    public static void MetaTaskAdaptationArgumentError(ILogger logger, string taskId, Exception ex) => _metaTaskAdaptationArgumentError(logger, taskId, ex);
+    public static void MetaTaskAdaptationOperationError(ILogger logger, string taskId, Exception ex) => _metaTaskAdaptationOperationError(logger, taskId, ex);
+    public static void MetaTaskAdaptationMemoryError(ILogger logger, string taskId, Exception ex) => _metaTaskAdaptationMemoryError(logger, taskId, ex);
+    public static void MetaTrainingInfo(ILogger logger, double loss, int updates, int episodes) => _metaTrainingInfo(logger, loss, updates, episodes, null);
+    public static void MetaTrainingArgumentError(ILogger logger, string message, Exception ex) => _metaTrainingArgumentError(logger, message, ex);
+    public static void MetaTrainingOperationError(ILogger logger, string message, Exception ex) => _metaTrainingOperationError(logger, message, ex);
+    public static void MetaTrainingMemoryError(ILogger logger, string message, Exception ex) => _metaTrainingMemoryError(logger, message, ex);
+    
+    public static void OnnxGpuAccelerationEnabled(ILogger logger) => _onnxGpuAccelerationEnabled(logger, null);
+    public static void OnnxModelValidationDebug(ILogger logger, string modelName, string inputShape, string outputShape) => _onnxModelValidationDebug(logger, modelName, inputShape, outputShape, null);
+    public static void OnnxDisposedDebug(ILogger logger) => _onnxDisposedDebug(logger, null);
+    
+    public static void FeatureEngineeringDebug(ILogger logger, string message) => _featureEngineeringDebug(logger, message, null);
+    public static void FeatureStreamingTickProcessed(ILogger logger, string symbol, double price, double volume) => _featureStreamingTickProcessed(logger, symbol, price, volume, null);
+    
+    public static void ModelHotReloadError(ILogger logger, string message, Exception ex) => _modelHotReloadError(logger, message, ex);
+    public static void ModelHotReloadWarning(ILogger logger, string message, Exception ex) => _modelHotReloadWarning(logger, message, ex);
+    public static void ModelHotReloadInfo(ILogger logger, string message) => _modelHotReloadInfo(logger, message, null);
+    public static void ModelHotReloadDebug(ILogger logger, string message) => _modelHotReloadDebug(logger, message, null);
+    public static void ModelHotReloadWarningParam(ILogger logger, string modelPath) => _modelHotReloadWarningParam(logger, modelPath, null);
+    public static void ModelHotReloadFailedLoad(ILogger logger, string modelPath) => _modelHotReloadFailedLoad(logger, modelPath, null);
+    public static void ModelHotReloadSmokeTestFailed(ILogger logger, string candidateName) => _modelHotReloadSmokeTestFailed(logger, candidateName, null);
+    public static void ModelHotReloadCompleted(ILogger logger, string candidateName) => _modelHotReloadCompleted(logger, candidateName, null);
+    public static void ModelHotReloadFileNotFound(ILogger logger, string modelPath, Exception ex) => _modelHotReloadFileNotFound(logger, modelPath, ex);
+    public static void ModelHotReloadAccessDenied(ILogger logger, string modelPath, Exception ex) => _modelHotReloadAccessDenied(logger, modelPath, ex);
+    public static void ModelHotReloadInvalidOperation(ILogger logger, string modelPath, Exception ex) => _modelHotReloadInvalidOperation(logger, modelPath, ex);
+    public static void ModelHotReloadOutOfMemory(ILogger logger, string modelPath, Exception ex) => _modelHotReloadOutOfMemory(logger, modelPath, ex);
+    public static void ModelHotReloadSmokeTestStart(ILogger logger, string modelName) => _modelHotReloadSmokeTestStart(logger, modelName, null);
+    public static void ModelHotReloadSmokeTestConfidenceFailed(ILogger logger, double confidence) => _modelHotReloadSmokeTestConfidenceFailed(logger, confidence, null);
+    public static void ModelHotReloadSmokeTestAnomalyFailed(ILogger logger) => _modelHotReloadSmokeTestAnomalyFailed(logger, null);
+    public static void ModelHotReloadSmokeTestInvalidResult(ILogger logger, double result) => _modelHotReloadSmokeTestInvalidResult(logger, result, null);
+    public static void ModelHotReloadSmokeTestInvalidOperationFailed(ILogger logger, string modelName, Exception ex) => _modelHotReloadSmokeTestInvalidOperationFailed(logger, modelName, ex);
+    public static void ModelHotReloadSmokeTestMemoryFailed(ILogger logger, string modelName, Exception ex) => _modelHotReloadSmokeTestMemoryFailed(logger, modelName, ex);
+    public static void ModelHotReloadSmokeTestTimeout(ILogger logger, string modelName, Exception ex) => _modelHotReloadSmokeTestTimeout(logger, modelName, ex);
+    public static void ModelHotReloadRegistryAccessDenied(ILogger logger, Exception ex) => _modelHotReloadRegistryAccessDenied(logger, ex);
+    public static void ModelHotReloadRegistryDirectoryNotFound(ILogger logger, Exception ex) => _modelHotReloadRegistryDirectoryNotFound(logger, ex);
+    public static void ModelHotReloadRegistryIOError(ILogger logger, Exception ex) => _modelHotReloadRegistryIOError(logger, ex);
+    public static void ModelHotReloadManagerDisposed(ILogger logger) => _modelHotReloadManagerDisposed(logger, null);
 }

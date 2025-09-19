@@ -7,7 +7,7 @@ namespace TradingBot.RLAgent;
 
 /// <summary>
 /// Position Sizing system implementing CVaR/Kelly & SAC blend
-/// Implements requirement 5.1: Wire CVaR/Kelly & SAC blend to trading logic, remove stubs
+/// Implements requirement 5.1: Wire CVaR/Kelly & SAC blend to trading logic, implement production logic
 /// </summary>
 public class PositionSizing
 {
@@ -328,16 +328,22 @@ public class PositionSizing
         {
             request.MLPrediction?.Confidence ?? DEFAULT_ML_CONFIDENCE,
             request.MLPrediction?.ExpectedReturn ?? DEFAULT_ML_EXPECTED_RETURN,
-            (double)(request.Regime switch { 
-                RegimeType.Trend => TREND_REGIME_VALUE, 
-                RegimeType.Range => RANGE_REGIME_VALUE, 
-                RegimeType.HighVol => HIGH_VOL_REGIME_VALUE, 
-                _ => DEFAULT_REGIME_VALUE 
-            }),
+            GetRegimeValue(request.Regime),
             request.CurrentVolatility,
             request.CurrentPosition?.UnrealizedPnL ?? 0.0,
             request.TimeInPosition.TotalHours,
             request.IsLatencyDegraded ? 1.0 : 0.0
+        };
+    }
+
+    private static double GetRegimeValue(RegimeType regime)
+    {
+        return regime switch
+        {
+            RegimeType.Trend => TREND_REGIME_VALUE,
+            RegimeType.Range => RANGE_REGIME_VALUE,
+            RegimeType.HighVol => HIGH_VOL_REGIME_VALUE,
+            _ => DEFAULT_REGIME_VALUE
         };
     }
 

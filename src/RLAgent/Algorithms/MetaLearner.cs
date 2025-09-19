@@ -102,8 +102,7 @@ public class MetaLearner
                 // Apply gradients
                 ApplyGradients(adaptedPolicy, gradients, _config.TaskLearningRate);
                 
-                _logger.LogDebug("[META] Adaptation step {Step}/{TotalSteps}, loss: {Loss:F4}", 
-                    step + 1, _config.AdaptationSteps, loss / supportSet.Count);
+                LogMessages.MetaAdaptationStep(_logger, step + 1, _config.AdaptationSteps, loss / supportSet.Count);
             }
             
             // Store adapted policy
@@ -116,17 +115,17 @@ public class MetaLearner
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Invalid arguments for task adaptation: {TaskId}", taskId);
+            LogMessages.MetaTaskAdaptationArgumentError(_logger, taskId, ex);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[META] Invalid operation during task adaptation: {TaskId}", taskId);
+            LogMessages.MetaTaskAdaptationOperationError(_logger, taskId, ex);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
         }
         catch (OutOfMemoryException ex)
         {
-            _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
+            LogMessages.MetaTaskAdaptationMemoryError(_logger, taskId, ex);
             throw new InvalidOperationException($"Meta-learning task adaptation failed due to memory exhaustion for task: {taskId}", ex);
         }
     }
@@ -148,30 +147,7 @@ public class MetaLearner
         try
         {
             var metaBatch = _metaBuffer.SampleMetaBatch(_config.MetaBatchSize);
-            var totalMetaLoss = 0.0;
-            var metaGradients = new Dictionary<string, double[]>();
-            
-            foreach (var task in metaBatch)
-            {
-                // Split task experiences into support and query sets
-                var splitIndex = task.Experiences.Count / 2;
-                var supportSet = task.Experiences.Take(splitIndex).ToList();
-                var querySet = task.Experiences.Skip(splitIndex).ToList();
-                
-                if (supportSet.Count == 0 || querySet.Count == 0)
-                    continue;
-                
-                // Fast adaptation on support set
-                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false);
-                
-                // Evaluate on query set
-                var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);
-                totalMetaLoss += queryLoss;
-                
-                // Compute meta-gradients
-                var taskMetaGradients = ComputeMetaGradients(adaptedPolicy, querySet);
-                AccumulateGradients(metaGradients, taskMetaGradients);
-            }
+            var (totalMetaLoss, metaGradients) = await ProcessMetaBatchTasksAsync(metaBatch).ConfigureAwait(false);
             
             // Apply meta-gradients to meta-policy
             ApplyGradients(_metaPolicy, metaGradients, _config.MetaLearningRate);
@@ -179,8 +155,7 @@ public class MetaLearner
             
             var avgMetaLoss = totalMetaLoss / metaBatch.Count;
             
-            _logger.LogInformation("[META] Meta-training completed: loss={Loss:F4}, tasks={TaskCount}, updates={Updates}", 
-                avgMetaLoss, metaBatch.Count, _metaUpdates);
+            LogMessages.MetaTrainingInfo(_logger, avgMetaLoss, _metaUpdates, metaBatch.Count);
             
             return new MetaTrainingResult
             {
@@ -193,7 +168,7 @@ public class MetaLearner
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Invalid arguments during meta-training");
+            LogMessages.MetaTrainingArgumentError(_logger, "Meta-training failed due to invalid arguments", ex);
             return new MetaTrainingResult
             {
                 Success = false,
@@ -202,7 +177,7 @@ public class MetaLearner
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[META] Invalid operation during meta-training");
+            LogMessages.MetaTrainingOperationError(_logger, "Meta-training failed due to invalid operation", ex);
             return new MetaTrainingResult
             {
                 Success = false,
@@ -211,9 +186,45 @@ public class MetaLearner
         }
         catch (OutOfMemoryException ex)
         {
-            _logger.LogError(ex, "[META] Out of memory during meta-training");
+            LogMessages.MetaTrainingMemoryError(_logger, "Meta-training failed due to memory exhaustion", ex);
             throw new InvalidOperationException("Meta-learning training failed due to memory exhaustion during batch processing", ex);
         }
+    }
+
+    /// <summary>
+    /// Process meta-batch tasks for training
+    /// </summary>
+    private async Task<(double totalLoss, Dictionary<string, double[]> gradients)> ProcessMetaBatchTasksAsync(
+        IReadOnlyList<TaskData> metaBatch)
+    {
+        var totalMetaLoss = 0.0;
+        var metaGradients = new Dictionary<string, double[]>();
+        
+        // Process tasks with valid experience splits
+        var validTasks = metaBatch.Where(t => t.Experiences.Count >= 2).ToList();
+        
+        for (int i = 0; i < validTasks.Count; i++)
+        {
+            var task = validTasks[i];
+            
+            // Split task experiences into support and query sets
+            var splitIndex = task.Experiences.Count / 2;
+            var supportSet = task.Experiences.Take(splitIndex).ToList();
+            var querySet = task.Experiences.Skip(splitIndex).ToList();
+            
+            // Fast adaptation on support set
+            var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false);
+            
+            // Evaluate on query set
+            var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);
+            totalMetaLoss += queryLoss;
+            
+            // Compute meta-gradients
+            var taskMetaGradients = ComputeMetaGradients(adaptedPolicy, querySet);
+            AccumulateGradients(metaGradients, taskMetaGradients);
+        }
+        
+        return (totalMetaLoss, metaGradients);
     }
 
     /// <summary>
@@ -222,6 +233,7 @@ public class MetaLearner
     public void StoreTaskExperience(string taskId, double[] state, double[] action, double reward, double[] nextState, bool done)
     {
         ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
         ArgumentNullException.ThrowIfNull(nextState);
         
         var experience = new TaskExperience
@@ -236,7 +248,7 @@ public class MetaLearner
         
         _metaBuffer.AddExperience(taskId, experience);
         
-        _logger.LogDebug("[META] Stored experience for task: {TaskId}, reward: {Reward:F3}", taskId, reward);
+        LogMessages.MetaExperienceStored(_logger, taskId, reward);
     }
 
     /// <summary>

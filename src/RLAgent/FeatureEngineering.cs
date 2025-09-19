@@ -21,24 +21,11 @@ public class FeatureEngineering : IDisposable
     // Cached JSON serializer options
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     
-    // Technical analysis constants
+    // Technical analysis constants (not business parameters)
     private const int MacdPeriod = 26;
     private const double RsiNormalizationFactor = 100.0;
     
-    // Feature engineering constants
-    private const int DefaultRsiPeriod = 14;
-    private const int DefaultMovingAveragePeriod = 20;
-    private const double DefaultMomentumThreshold = 0.5;
-    private const int MaxFeatureHistoryPeriods = 26;
-    private const int DefaultLookbackPeriods = 10;
-    private const int FeatureImportanceTopCount = 5;
-    
-    // Default sentinel values for missing features
-    private const double DefaultVolatilitySentinel = 0.15;
-    private const double DefaultRsiSentinel = 0.5;
-    private const double DefaultBollingerSentinel = 0.5;
-    
-    // Boundary constants for feature validation
+    // Boundary constants for feature validation (not business parameters)
     private const double MinValidRsiValue = 15.0;
     private const double MaxValidRsiValue = 50.0;
     private const double FeatureEpsilon = 1E-10;
@@ -48,6 +35,10 @@ public class FeatureEngineering : IDisposable
     // Static readonly arrays for performance
     private static readonly double[] PriceSentinelValues = { 0.0, 0.0, 0.0, 0.0, 0.0 };
     private static readonly string[] PriceFeatureNames = { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" };
+    private static readonly string[] TechnicalFeatureNames = { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" };
+    private static readonly string[] MicrostructureFeatureNames = { "spread_bps", "spread_zscore", "order_flow_imbalance", "tick_run", "trade_direction_ema" };
+    private static readonly string[] TimeFeatureNames = { "time_of_day", "is_monday", "is_friday", "is_market_hours", "is_opening_hour", "is_closing_hour" };
+    private static readonly string[] RegimeFeatureNames = { "regime_range", "regime_trend", "regime_volatility", "regime_lowvol", "regime_highvol" };
     private static readonly double[] VolumeSentinelValues = { 0.0, 0.0, 0.0 };
     private static readonly string[] VolumeFeatureNames = { "volume_ratio", "volume_trend", "volume_volatility" };
     
@@ -266,8 +257,7 @@ public class FeatureEngineering : IDisposable
                 _ => new StreamingSymbolAggregator(tick.Symbol, _config));
             var features = await aggregator.ProcessTickAsync(tick, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogTrace("[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}", 
-                tick.Symbol, tick.Price, tick.Volume);
+            LogMessages.FeatureStreamingTickProcessed(_logger, tick.Symbol, tick.Price, tick.Volume);
             
             return features;
         }
@@ -294,7 +284,7 @@ public class FeatureEngineering : IDisposable
     public StreamingFeatures? GetCachedStreamingFeatures(string symbol)
     {
         return _streamingAggregators.TryGetValue(symbol, out var aggregator) 
-            ? aggregator.GetCurrentFeatures() 
+            ? aggregator.CurrentFeatures 
             : null;
     }
 
@@ -305,7 +295,7 @@ public class FeatureEngineering : IDisposable
     {
         return _streamingAggregators.ToDictionary(
             kvp => kvp.Key, 
-            kvp => kvp.Value.GetCurrentFeatures()
+            kvp => kvp.Value.CurrentFeatures
         );
     }
 
@@ -357,11 +347,11 @@ public class FeatureEngineering : IDisposable
                 LogMessages.StaleAggregatorsCleanup(_logger, staleSymbols.Count);
             }
         }
-        catch (InvalidOperationException ex)
+        catch (ObjectDisposedException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
-        catch (ObjectDisposedException ex)
+        catch (InvalidOperationException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
@@ -395,7 +385,7 @@ public class FeatureEngineering : IDisposable
         // Price returns with configurable lookbacks
         var returns1 = CalculateReturn(currentData.Close, buffer.GetFromEnd(1)?.Close ?? currentData.Close);
         var returns5 = buffer.Count >= 5 ? CalculateReturn(currentData.Close, buffer.GetFromEnd(5)?.Close ?? currentData.Close) : 0.0;
-        var returns20 = buffer.Count >= DefaultMovingAveragePeriod ? CalculateReturn(currentData.Close, buffer.GetFromEnd(DefaultMovingAveragePeriod)?.Close ?? currentData.Close) : 0.0;
+        var returns20 = buffer.Count >= _config.DefaultMovingAveragePeriod ? CalculateReturn(currentData.Close, buffer.GetFromEnd(_config.DefaultMovingAveragePeriod)?.Close ?? currentData.Close) : 0.0;
 
         // Price volatility (configurable window)
         var volatilityWindow = Math.Min(profile.VolatilityLookback, buffer.Count);
@@ -469,17 +459,17 @@ public class FeatureEngineering : IDisposable
 
         // Bollinger Bands position
         var bbWindow = Math.Min(profile.BollingerLookback, buffer.Count);
-        var bollingerPosition = buffer.Count >= bbWindow ? CalculateBollingerPosition(buffer.GetLast(bbWindow), currentData) : 0.5;
+        var bollingerPosition = buffer.Count >= bbWindow ? CalculateBollingerPosition(buffer.GetLast(bbWindow), currentData, _config) : 0.5;
 
         // ATR (Average True Range)
         var atrWindow = Math.Min(profile.AtrLookback, buffer.Count);
-        var atr = buffer.Count >= atrWindow ? CalculateATR(buffer.GetLast(atrWindow), currentData) : 0.0;
+        var atr = buffer.Count >= atrWindow ? CalculateATR(buffer.GetLast(atrWindow), currentData, _config) : 0.0;
 
         // MACD
-        var (macd, signal) = buffer.Count >= MacdPeriod ? CalculateMACD(buffer.GetLast(MacdPeriod), currentData) : (0.0, 0.0);
+        var (macd, signal) = buffer.Count >= MacdPeriod ? CalculateMACD(buffer.GetLast(MacdPeriod), currentData, _config) : (0.0, 0.0);
 
         features.AddRange(new[] { rsi / RsiNormalizationFactor, bollingerPosition, atr, macd, signal });
-        featureNames.AddRange(new[] { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" });
+        featureNames.AddRange(TechnicalFeatureNames);
     }
 
     /// <summary>
@@ -523,13 +513,13 @@ public class FeatureEngineering : IDisposable
         var orderFlowImbalance = CalculateOrderFlowImbalance(buffer.GetLast(imbalanceWindow), tickDirection);
 
         // Tick run (consecutive ticks in same direction)
-        var tickRun = CalculateTickRun(buffer, currentData);
+        var tickRun = CalculateTickRun(buffer, currentData, _config);
 
         // Last trade direction EMA
         var tradeDirectionEma = CalculateTradeDirectionEMA(buffer, currentData, profile.TradeDirectionDecay);
 
         features.AddRange(new[] { spreadBps, spreadZScore, orderFlowImbalance, tickRun, tradeDirectionEma });
-        featureNames.AddRange(new[] { "spread_bps", "spread_zscore", "order_flow_imbalance", "tick_run", "trade_direction_ema" });
+        featureNames.AddRange(MicrostructureFeatureNames);
     }
 
     /// <summary>
@@ -553,7 +543,7 @@ public class FeatureEngineering : IDisposable
             regime == RegimeType.HighVol ? 1.0 : 0.0
         });
 
-        featureNames.AddRange(new[] { "regime_range", "regime_trend", "regime_volatility", "regime_lowvol", "regime_highvol" });
+        featureNames.AddRange(RegimeFeatureNames);
     }
 
     /// <summary>
@@ -584,7 +574,7 @@ public class FeatureEngineering : IDisposable
         var isClosingHour = (hour == 15) ? 1.0 : 0.0;
 
         features.AddRange(new[] { timeOfDay, isMonday, isFriday, isMarketHours, isOpeningHour, isClosingHour });
-        featureNames.AddRange(new[] { "time_of_day", "is_monday", "is_friday", "is_market_hours", "is_opening_hour", "is_closing_hour" });
+        featureNames.AddRange(TimeFeatureNames);
     }
 
     /// <summary>
@@ -608,13 +598,13 @@ public class FeatureEngineering : IDisposable
                 if (state.LastValidValues.TryGetValue(featureName, out var lastValid))
                 {
                     feature = lastValid;
-                    _logger.LogDebug("[FEATURE_ENG] Forward-filled NaN for feature: {FeatureName}", featureName);
+                    LogMessages.FeatureForwardFilled(_logger, featureName);
                 }
                 else
                 {
                     // Use default sentinel value
-                    feature = GetDefaultSentinelValue(featureName);
-                    _logger.LogDebug("[FEATURE_ENG] Applied sentinel value for feature: {FeatureName}", featureName);
+                    feature = GetDefaultSentinelValue(featureName, _config);
+                    LogMessages.FeatureAppliedSentinel(_logger, featureName);
                 }
             }
             
@@ -633,15 +623,15 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Get default sentinel value for missing features
     /// </summary>
-    private static double GetDefaultSentinelValue(string featureName)
+    private static double GetDefaultSentinelValue(string featureName, FeatureConfig config)
     {
-        return featureName.ToLowerInvariant() switch
+        return featureName.ToUpperInvariant() switch
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
-            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => DefaultVolatilitySentinel,
-            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => DefaultRsiSentinel,
-            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => DefaultBollingerSentinel,
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => config.DefaultVolatilitySentinel,
+            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => config.DefaultRsiSentinel,
+            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => config.DefaultBollingerSentinel,
             var name when name.Contains("regime", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("spread", StringComparison.OrdinalIgnoreCase) => 1.0,
             _ => 0.0
@@ -653,7 +643,7 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double BoundFeatureValue(double value, string featureName)
     {
-        var bounds = featureName.ToLowerInvariant() switch
+        var bounds = featureName.ToUpperInvariant() switch
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => (-0.1, 0.1),    // ±10% max return
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => (0.01, 100.0),   // Volume ratio bounds
@@ -737,13 +727,13 @@ public class FeatureEngineering : IDisposable
         return PercentageNormalizationFactor - (PercentageNormalizationFactor / (1.0 + rs));
     }
 
-    private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
+    private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current, FeatureConfig config)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
-        if (prices.Length < DefaultMovingAveragePeriod) return DefaultMomentumThreshold; // Default middle position
+        if (prices.Length < config.DefaultMovingAveragePeriod) return config.DefaultMomentumThreshold; // Default middle position
         
-        var sma = prices.TakeLast(DefaultMovingAveragePeriod).Average();
-        var variance = prices.TakeLast(DefaultMovingAveragePeriod).Select(p => Math.Pow(p - sma, 2)).Average();
+        var sma = prices.TakeLast(config.DefaultMovingAveragePeriod).Average();
+        var variance = prices.TakeLast(config.DefaultMovingAveragePeriod).Select(p => Math.Pow(p - sma, 2)).Average();
         var stdDev = Math.Sqrt(variance);
         
         var upperBand = sma + (2.0 * stdDev);
@@ -754,7 +744,7 @@ public class FeatureEngineering : IDisposable
         return (current.Close - lowerBand) / (upperBand - lowerBand);
     }
 
-    private static double CalculateATR(MarketData[] buffer, MarketData current)
+    private static double CalculateATR(MarketData[] buffer, MarketData current, FeatureConfig config)
     {
         var allData = buffer.Append(current).ToArray();
         if (allData.Length < 2) return 0.0;
@@ -770,13 +760,13 @@ public class FeatureEngineering : IDisposable
             trueRanges.Add(tr);
         }
         
-        return trueRanges.TakeLast(DefaultRsiPeriod).Average();
+        return trueRanges.TakeLast(config.DefaultRsiPeriod).Average();
     }
 
-    private static (double macd, double signal) CalculateMACD(MarketData[] buffer, MarketData current)
+    private static (double macd, double signal) CalculateMACD(MarketData[] buffer, MarketData current, FeatureConfig config)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
-        if (prices.Length < MaxFeatureHistoryPeriods) return (0.0, 0.0);
+        if (prices.Length < config.MaxFeatureHistoryPeriods) return (0.0, 0.0);
         
         // Simplified MACD calculation
         var ema12 = CalculateEMA(prices, 12);
@@ -847,7 +837,7 @@ public class FeatureEngineering : IDisposable
         return totalTicks > 0 ? (upTicks - downTicks) / (double)totalTicks : 0.0;
     }
 
-    private static double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current)
+    private static double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current, FeatureConfig config)
     {
         if (buffer.Count < 2) return 0.0;
         
@@ -855,7 +845,7 @@ public class FeatureEngineering : IDisposable
         if (currentDirection == 0) return 0.0;
         
         var run = 1;
-        for (int i = 1; i < Math.Min(buffer.Count, DefaultLookbackPeriods); i++) // Check last lookback periods
+        for (int i = 1; i < Math.Min(buffer.Count, config.DefaultLookbackPeriods); i++) // Check last lookback periods
         {
             var prevData = buffer.GetFromEnd(i);
             var prevPrevData = buffer.GetFromEnd(i + 1);
@@ -876,7 +866,7 @@ public class FeatureEngineering : IDisposable
                 break;
         }
         
-        return Math.Min(run, DefaultLookbackPeriods) / (double)DefaultLookbackPeriods; // Normalize to 0-1
+        return Math.Min(run, config.DefaultLookbackPeriods) / (double)config.DefaultLookbackPeriods; // Normalize to 0-1
     }
 
     private double CalculateTradeDirectionEMA(CircularBuffer<MarketData> buffer, MarketData current, double decay)
@@ -962,7 +952,7 @@ public class FeatureEngineering : IDisposable
                 var topFeatures = tracker.GetTopKFeatures(_config.TopKFeatures);
                 report.SymbolReports[featureKey] = topFeatures;
                 
-                LogTopFeatures(_logger, featureKey, string.Join(", ", topFeatures.Take(FeatureImportanceTopCount).Select(kv => $"{kv.Key}: {kv.Value:F3}")), null);
+                LogTopFeatures(_logger, featureKey, string.Join(", ", topFeatures.Take(_config.FeatureImportanceTopCount).Select(kv => $"{kv.Key}: {kv.Value:F3}")), null);
             }
             
             // Save report to file

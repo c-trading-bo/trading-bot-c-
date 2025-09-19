@@ -77,109 +77,29 @@ public class CVaRPPO : IDisposable
             LogMessages.CVaRPPOTrainingStarted(_logger, _currentEpisode, _experienceBuffer.Count);
 
             var startTime = DateTime.UtcNow;
-            var result = new TrainingResult
-            {
-                Episode = _currentEpisode,
-                StartTime = startTime
-            };
+            var result = CreateInitialTrainingResult(startTime);
 
             // Check if we have enough experiences
             if (_experienceBuffer.Count < _config.MinExperiencesForTraining)
             {
-                result.Success = false;
-                result.ErrorMessage = $"Insufficient experiences: {_experienceBuffer.Count} < {_config.MinExperiencesForTraining}";
-                return result;
+                return CreateInsufficientExperiencesResult(result);
             }
 
-            // Collect experiences from buffer (without lock for async operation)
-            List<Experience> experiences;
-            lock (_trainingLock)
-            {
-                experiences = CollectExperiences();
-            }
-            
-            if (experiences.Count == 0)
-            {
-                result.Success = false;
-                result.ErrorMessage = "No valid experiences collected";
-                return result;
-            }
+            // Collect experiences from buffer
+            var experiences = CollectExperiencesForTraining(result);
+            if (experiences == null) return result;
 
-            // Calculate advantages and CVaR targets
-            var (advantages, cvarTargets) = CalculateAdvantagesAndCVaR(experiences);
-            
-            // Training loop
-            var totalPolicyLoss = 0.0;
-            var totalValueLoss = 0.0;
-            var totalCVaRLoss = 0.0;
-            var totalEntropy = 0.0;
+            // Perform training
+            PerformTrainingIteration(experiences, result);
 
-            for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
-            {
-                // Shuffle experiences using cryptographically secure random
-                using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-                var shuffledIndices = Enumerable.Range(0, experiences.Count).OrderBy(x => {
-                    var bytes = new byte[4];
-                    rng.GetBytes(bytes);
-                    return BitConverter.ToUInt32(bytes, 0);
-                }).ToArray();
-                
-                // Mini-batch training
-                for (int i = 0; i < experiences.Count; i += _config.BatchSize)
-                {
-                    var batchIndices = shuffledIndices.Skip(i).Take(_config.BatchSize).ToArray();
-                    var batchExperiences = batchIndices.Select(idx => experiences[idx]).ToArray();
-                    var batchAdvantages = batchIndices.Select(idx => advantages[idx]).ToArray();
-                    var batchCVaRTargets = batchIndices.Select(idx => cvarTargets[idx]).ToArray();
-
-                    // Forward pass and loss calculation
-                    var losses = TrainMiniBatch(batchExperiences, batchAdvantages, batchCVaRTargets);
-                    
-                    totalPolicyLoss += losses.PolicyLoss;
-                    totalValueLoss += losses.ValueLoss;
-                    totalCVaRLoss += losses.CVaRLoss;
-                    totalEntropy += losses.Entropy;
-                }
-            }
-
-            // Calculate average losses
-            var numBatches = (int)Math.Ceiling((double)experiences.Count / _config.BatchSize) * _config.PPOEpochs;
-            result.PolicyLoss = totalPolicyLoss / numBatches;
-            result.ValueLoss = totalValueLoss / numBatches;
-            result.CVaRLoss = totalCVaRLoss / numBatches;
-            result.Entropy = totalEntropy / numBatches;
-            result.TotalLoss = result.PolicyLoss + result.ValueLoss + result.CVaRLoss;
-
-            // Update averages and state (with lock)
-            lock (_trainingLock)
-            {
-                _averageLoss = _averageLoss * LossMovingAverageWeight + result.TotalLoss * NewLossWeight;
-                _averageReward = experiences.Count > 0 ? experiences.Average(e => e.Reward) : 0.0;
-
-                // Track performance
-                _lossHistory.Add(result.TotalLoss);
-                _rewardHistory.Add(_averageReward);
-                _cvarHistory.Add(result.CVaRLoss);
-
-                _currentEpisode++;
-                _lastTrainingTime = DateTime.UtcNow;
-            }
-
-            result.AverageReward = _averageReward;
-            result.ExperiencesUsed = experiences.Count;
-            result.Success = true;
-            result.EndTime = DateTime.UtcNow;
-
-            LogMessages.CVaRPPOTrainingCompleted(_logger, _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
-
-            // Save checkpoint if performance improved
-            await SaveCheckpointIfImproved(result, cancellationToken).ConfigureAwait(false);
+            // Finalize results
+            await FinalizeTrainingResultAsync(experiences, result, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments during training");
+            LogMessages.CVaRPPOTrainingArgumentError(_logger, ex);
             return new TrainingResult
             {
                 Episode = _currentEpisode,
@@ -189,6 +109,130 @@ public class CVaRPPO : IDisposable
                 EndTime = DateTime.UtcNow
             };
         }
+    }
+
+    private TrainingResult CreateInitialTrainingResult(DateTime startTime)
+    {
+        return new TrainingResult
+        {
+            Episode = _currentEpisode,
+            StartTime = startTime
+        };
+    }
+
+    private TrainingResult CreateInsufficientExperiencesResult(TrainingResult result)
+    {
+        result.Success = false;
+        result.ErrorMessage = $"Insufficient experiences: {_experienceBuffer.Count} < {_config.MinExperiencesForTraining}";
+        return result;
+    }
+
+    private List<Experience>? CollectExperiencesForTraining(TrainingResult result)
+    {
+        List<Experience> experiences;
+        lock (_trainingLock)
+        {
+            experiences = CollectExperiences();
+        }
+        
+        if (experiences.Count == 0)
+        {
+            result.Success = false;
+            result.ErrorMessage = "No valid experiences collected";
+            return null;
+        }
+        
+        return experiences;
+    }
+
+    private void PerformTrainingIteration(List<Experience> experiences, TrainingResult result)
+    {
+        // Calculate advantages and CVaR targets
+        var (advantages, cvarTargets) = CalculateAdvantagesAndCVaR(experiences);
+        
+        // Training loop
+        var totalPolicyLoss = 0.0;
+        var totalValueLoss = 0.0;
+        var totalCVaRLoss = 0.0;
+        var totalEntropy = 0.0;
+
+        for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
+        {
+            var shuffledIndices = CreateShuffledIndices(experiences.Count);
+            
+            // Mini-batch training
+            for (int i = 0; i < experiences.Count; i += _config.BatchSize)
+            {
+                var (batchExperiences, batchAdvantages, batchCVaRTargets) = CreateTrainingBatch(
+                    experiences, advantages, cvarTargets, shuffledIndices, i);
+
+                var losses = TrainMiniBatch(batchExperiences, batchAdvantages, batchCVaRTargets);
+                
+                totalPolicyLoss += losses.PolicyLoss;
+                totalValueLoss += losses.ValueLoss;
+                totalCVaRLoss += losses.CVaRLoss;
+                totalEntropy += losses.Entropy;
+            }
+        }
+
+        // Calculate average losses
+        var numBatches = (int)Math.Ceiling((double)experiences.Count / _config.BatchSize) * _config.PPOEpochs;
+        result.PolicyLoss = totalPolicyLoss / numBatches;
+        result.ValueLoss = totalValueLoss / numBatches;
+        result.CVaRLoss = totalCVaRLoss / numBatches;
+        result.Entropy = totalEntropy / numBatches;
+        result.TotalLoss = result.PolicyLoss + result.ValueLoss + result.CVaRLoss;
+    }
+
+    private static int[] CreateShuffledIndices(int count)
+    {
+        // Shuffle experiences using cryptographically secure random
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        return Enumerable.Range(0, count).OrderBy(x => {
+            var bytes = new byte[4];
+            rng.GetBytes(bytes);
+            return BitConverter.ToUInt32(bytes, 0);
+        }).ToArray();
+    }
+
+    private (Experience[], double[], double[]) CreateTrainingBatch(
+        List<Experience> experiences, double[] advantages, double[] cvarTargets,
+        int[] shuffledIndices, int startIndex)
+    {
+        var batchIndices = shuffledIndices.Skip(startIndex).Take(_config.BatchSize).ToArray();
+        var batchExperiences = batchIndices.Select(idx => experiences[idx]).ToArray();
+        var batchAdvantages = batchIndices.Select(idx => advantages[idx]).ToArray();
+        var batchCVaRTargets = batchIndices.Select(idx => cvarTargets[idx]).ToArray();
+        
+        return (batchExperiences, batchAdvantages, batchCVaRTargets);
+    }
+
+    private Task FinalizeTrainingResultAsync(List<Experience> experiences, TrainingResult result, CancellationToken cancellationToken)
+    {
+        // Update averages and state (with lock)
+        lock (_trainingLock)
+        {
+            _averageLoss = _averageLoss * LossMovingAverageWeight + result.TotalLoss * NewLossWeight;
+            _averageReward = experiences.Count > 0 ? experiences.Average(e => e.Reward) : 0.0;
+
+            // Track performance
+            _lossHistory.Add(result.TotalLoss);
+            _rewardHistory.Add(_averageReward);
+            _cvarHistory.Add(result.CVaRLoss);
+
+            _currentEpisode++;
+            _lastTrainingTime = DateTime.UtcNow;
+        }
+
+        result.AverageReward = _averageReward;
+        result.ExperiencesUsed = experiences.Count;
+        result.Success = true;
+        result.EndTime = DateTime.UtcNow;
+
+        LogMessages.CVaRPPOTrainingCompleted(_logger, _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
+
+        // Save checkpoint if performance improved
+        return SaveCheckpointIfImproved(result, cancellationToken);
     }
 
     /// <summary>
@@ -244,14 +288,13 @@ public class CVaRPPO : IDisposable
                 Timestamp = DateTime.UtcNow
             };
 
-            _logger.LogDebug("[CVAR_PPO] Action selected: {Action} (prob: {Prob:F3}, value: {Value:F3}, cvar: {CVaR:F3})", 
-                action, actionProb, valueEstimate, cvarEstimate);
+            LogMessages.CVaRPPOActionSelected(_logger, action, actionProb, valueEstimate, cvarEstimate);
 
             return Task.FromResult(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments for action selection");
+            LogMessages.CVaRPPOActionSelectionArgumentError(_logger, ex);
             
             // Return safe default action
             var defaultResult = new ActionResult
@@ -284,8 +327,7 @@ public class CVaRPPO : IDisposable
             _experienceBuffer.TryDequeue(out _);
         }
         
-        _logger.LogDebug("[CVAR_PPO] Added experience - Action: {Action}, Reward: {Reward:F3}, Done: {Done}", 
-            experience.Action, experience.Reward, experience.Done);
+        LogMessages.CVaRPPOExperienceAdded(_logger, experience.Action, experience.Reward, experience.Done);
     }
 
     /// <summary>
@@ -345,17 +387,17 @@ public class CVaRPPO : IDisposable
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Access denied when saving model");
+            LogMessages.CVaRPPOModelSaveAccessDenied(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to access restrictions", ex);
         }
         catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Directory not found when saving model");
+            LogMessages.CVaRPPOModelSaveDirectoryNotFound(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to missing directory", ex);
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] IO error when saving model");
+            LogMessages.CVaRPPOModelSaveIOError(_logger, ex);
             throw new InvalidOperationException("Failed to save model due to IO error", ex);
         }
     }
@@ -369,7 +411,7 @@ public class CVaRPPO : IDisposable
         {
             if (!Directory.Exists(modelPath))
             {
-                _logger.LogError("[CVAR_PPO] Model path does not exist: {ModelPath}", modelPath);
+                LogMessages.CVaRPPOModelPathNotExists(_logger, modelPath);
                 return false;
             }
 
@@ -380,7 +422,7 @@ public class CVaRPPO : IDisposable
 
             if (!File.Exists(policyPath) || !File.Exists(valuePath) || !File.Exists(cvarPath))
             {
-                _logger.LogError("[CVAR_PPO] Missing network files in: {ModelPath}", modelPath);
+                LogMessages.CVaRPPOMissingNetworkFiles(_logger, modelPath);
                 return false;
             }
 
@@ -411,17 +453,17 @@ public class CVaRPPO : IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Model file not found: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOModelFileNotFound(_logger, modelPath, ex);
             return false;
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Access denied loading model: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOModelLoadAccessDenied(_logger, modelPath, ex);
             return false;
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Invalid model file: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOInvalidModelFile(_logger, modelPath, ex);
             return false;
         }
     }
@@ -528,8 +570,8 @@ public class CVaRPPO : IDisposable
         var cvarIndex = Math.Max(0, (int)(sortedRewards.Length * _config.CVaRAlpha) - 1);
         
         // Average of worst α% of outcomes
-        var cvarRewards = sortedRewards.Take(cvarIndex + 1);
-        return cvarRewards.Any() ? cvarRewards.Average() : 0.0;
+        var cvarRewards = sortedRewards.Take(cvarIndex + 1).ToArray();
+        return cvarRewards.Length > 0 ? cvarRewards.Average() : 0.0;
     }
 
     private MiniBatchLosses TrainMiniBatch(Experience[] batch, double[] advantages, double[] cvarTargets)
