@@ -45,6 +45,8 @@ public class MetaLearner
     
     public MetaLearner(ILogger<MetaLearner> logger, MetaLearningConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _config = config;
         

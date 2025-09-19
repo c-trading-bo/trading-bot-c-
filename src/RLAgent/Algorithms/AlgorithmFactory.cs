@@ -130,6 +130,8 @@ public static class AlgorithmFactory
     /// </summary>
     public static string GetAlgorithmDescription(string algorithmType)
     {
+        ArgumentNullException.ThrowIfNull(algorithmType);
+        
         return algorithmType.ToUpperInvariant() switch
         {
             "SAC" => "Soft Actor-Critic - Off-policy algorithm with continuous actions and automatic entropy tuning",
@@ -144,6 +146,8 @@ public static class AlgorithmFactory
     /// </summary>
     public static bool IsAlgorithmSupported(string algorithmType)
     {
+        ArgumentNullException.ThrowIfNull(algorithmType);
+        
         return algorithmType.ToUpperInvariant() switch
         {
             "SAC" or "META" or "MAML" or "CVAR_PPO" or "PPO" => true,
@@ -308,6 +312,10 @@ public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 
     public void StoreExperience(double[] state, double[] action, double reward, double[] nextState, bool done)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(nextState);
+        
         // Convert to CVaR-PPO format
         var actionValue = action.Length > 0 ? (int)Math.Round(action[0]) : 0;
         var experience = new Experience
