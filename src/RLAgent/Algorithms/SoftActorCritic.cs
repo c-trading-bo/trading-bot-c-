@@ -505,9 +505,9 @@ public class ActorNetwork : IDisposable
     private bool _disposed;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput = null!;
+    private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
-    private double[,] _weightsOutput = null!;
+    private double[][] _weightsOutput = null!;
     private double[] _biasOutput = null!;
 
     public ActorNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
