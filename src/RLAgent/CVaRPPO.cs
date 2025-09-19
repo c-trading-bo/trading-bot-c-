@@ -179,9 +179,9 @@ public class CVaRPPO : IDisposable
 
             return result;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Training failed");
+            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments during training");
             return new TrainingResult
             {
                 Episode = _currentEpisode,
@@ -249,9 +249,9 @@ public class CVaRPPO : IDisposable
 
             return Task.FromResult(result);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error getting action");
+            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments for action selection");
             
             // Return safe default action
             var defaultResult = new ActionResult

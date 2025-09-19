@@ -112,16 +112,42 @@ public class PositionSizing
                 return result;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[POSITION_SIZING] Error calculating position size for {Symbol} {Strategy}", 
+            _logger.LogError(ex, "[POSITION_SIZING] Invalid arguments for position sizing {Symbol} {Strategy}", 
                 request.Symbol, request.Strategy);
             
             return new PositionSizeResult
             {
                 RequestedContracts = request.RequestedContracts,
                 FinalContracts = 0,
-                Reasoning = $"Error: {ex.Message}",
+                Reasoning = $"Invalid arguments: {ex.Message}",
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[POSITION_SIZING] Invalid operation for position sizing {Symbol} {Strategy}", 
+                request.Symbol, request.Strategy);
+            
+            return new PositionSizeResult
+            {
+                RequestedContracts = request.RequestedContracts,
+                FinalContracts = 0,
+                Reasoning = $"Invalid operation: {ex.Message}",
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (DivideByZeroException ex)
+        {
+            _logger.LogError(ex, "[POSITION_SIZING] Division by zero in position sizing {Symbol} {Strategy}", 
+                request.Symbol, request.Strategy);
+            
+            return new PositionSizeResult
+            {
+                RequestedContracts = request.RequestedContracts,
+                FinalContracts = 0,
+                Reasoning = $"Math error: {ex.Message}",
                 Timestamp = DateTime.UtcNow
             };
         }

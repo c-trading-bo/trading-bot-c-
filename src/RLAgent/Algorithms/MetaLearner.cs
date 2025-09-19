@@ -114,10 +114,20 @@ public class MetaLearner
             
             return Task.FromResult(adaptedPolicy);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Failed to adapt to task: {TaskId}", taskId);
+            _logger.LogError(ex, "[META] Invalid arguments for task adaptation: {TaskId}", taskId);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[META] Invalid operation during task adaptation: {TaskId}", taskId);
+            return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
+        }
+        catch (OutOfMemoryException)
+        {
+            _logger.LogError("[META] Out of memory during task adaptation: {TaskId}", taskId);
+            throw; // Rethrow memory issues
         }
     }
 
@@ -181,14 +191,28 @@ public class MetaLearner
                 AdaptationHistory = GetAdaptationSummary()
             };
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Meta-training failed");
+            _logger.LogError(ex, "[META] Invalid arguments during meta-training");
             return new MetaTrainingResult
             {
                 Success = false,
                 Message = ex.Message
             };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[META] Invalid operation during meta-training");
+            return new MetaTrainingResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+        catch (OutOfMemoryException)
+        {
+            _logger.LogError("[META] Out of memory during meta-training");
+            throw; // Rethrow memory issues
         }
     }
 
