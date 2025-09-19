@@ -180,6 +180,80 @@ internal static class LogMessages
         LoggerMessage.Define(LogLevel.Information, new EventId(8017, nameof(OnnxEnsembleDisposed)),
             "[RL-ENSEMBLE] ONNX Ensemble Wrapper disposed");
 
+    // Feature Engineering Messages
+    private static readonly Action<ILogger, int, Exception?> _featureEngineeringInitialized =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(9001, nameof(FeatureEngineeringInitialized)),
+            "[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation");
+
+    private static readonly Action<ILogger, int, string, string, string, Exception?> _featuresGenerated =
+        LoggerMessage.Define<int, string, string, string>(LogLevel.Debug, new EventId(9002, nameof(FeaturesGenerated)),
+            "[FEATURE_ENG] Generated {FeatureCount} features for {Symbol} {Strategy} {Regime}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _featureGenerationError =
+        LoggerMessage.Define<string, string, string>(LogLevel.Error, new EventId(9003, nameof(FeatureGenerationError)),
+            "[FEATURE_ENG] Error generating features for {Symbol} {Strategy} {Regime}");
+
+    private static readonly Action<ILogger, int, string, Exception?> _featureImportanceUpdated =
+        LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(9004, nameof(FeatureImportanceUpdated)),
+            "[FEATURE_ENG] Updated importance for {FeatureCount} features: {FeatureKey}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _featureImportanceError =
+        LoggerMessage.Define<string, string, string>(LogLevel.Warning, new EventId(9005, nameof(FeatureImportanceError)),
+            "[FEATURE_ENG] Error updating feature importance for {Symbol} {Strategy} {Regime}");
+
+    private static readonly Action<ILogger, string, string, Exception?> _streamingTickError =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(9006, nameof(StreamingTickError)),
+            "[FEATURE_ENG] Failed to process streaming tick for {Symbol}: {ErrorMessage}");
+
+    private static readonly Action<ILogger, string, Exception?> _staleAggregatorCleaned =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9007, nameof(StaleAggregatorCleaned)),
+            "[FEATURE_ENG] Cleaned up stale streaming aggregator for {Symbol}");
+
+    private static readonly Action<ILogger, int, Exception?> _staleAggregatorsCleanup =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(9008, nameof(StaleAggregatorsCleanup)),
+            "[FEATURE_ENG] Cleaned up {Count} stale streaming symbol aggregators");
+
+    private static readonly Action<ILogger, Exception?> _streamingCleanupError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(9009, nameof(StreamingCleanupError)),
+            "[FEATURE_ENG] Error during streaming cleanup");
+
+    private static readonly Action<ILogger, string, Exception?> _featureForwardFilled =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9010, nameof(FeatureForwardFilled)),
+            "[FEATURE_ENG] Forward-filled NaN for feature: {FeatureName}");
+
+    // Position Sizing Messages
+    private static readonly Action<ILogger, double, Exception?> _positionSizingInitialized =
+        LoggerMessage.Define<double>(LogLevel.Information, new EventId(10001, nameof(PositionSizingInitialized)),
+            "[POSITION_SIZING] Initialized with max allocation: {MaxAllocation}, regime-based clipping enabled");
+
+    private static readonly Action<ILogger, string, string, string, double, double, double, int, Exception?> _positionSizingCalculated =
+        LoggerMessage.Define<string, string, string, double, double, double, int>(LogLevel.Debug, new EventId(10002, nameof(PositionSizingCalculated)),
+            "[POSITION_SIZING] {Symbol} {Strategy} {Regime}: Kelly={Kelly:F3}, SAC={SAC:F3}, Clip={Clip:F3}, Final={Final} contracts");
+
+    private static readonly Action<ILogger, string, string, Exception?> _positionSizingArgumentError =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(10003, nameof(PositionSizingArgumentError)),
+            "[POSITION_SIZING] Invalid arguments for position sizing {Symbol} {Strategy}");
+
+    private static readonly Action<ILogger, string, string, Exception?> _positionSizingOperationError =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(10004, nameof(PositionSizingOperationError)),
+            "[POSITION_SIZING] Invalid operation for position sizing {Symbol} {Strategy}");
+
+    private static readonly Action<ILogger, string, string, Exception?> _positionSizingDivisionError =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(10005, nameof(PositionSizingDivisionError)),
+            "[POSITION_SIZING] Division by zero in position sizing {Symbol} {Strategy}");
+
+    private static readonly Action<ILogger, string, Exception?> _riskRejected =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(10006, nameof(RiskRejected)),
+            "[POSITION_SIZING] Risk ≤ 0 detected, rejecting position: {Symbol}");
+
+    private static readonly Action<ILogger, string, int, int, int, Exception?> _stepChangeLimited =
+        LoggerMessage.Define<string, int, int, int>(LogLevel.Information, new EventId(10007, nameof(StepChangeLimited)),
+            "[POSITION_SIZING] Step change limited: {Symbol} {CurrentContracts} → {NewContracts} limited to {LimitedContracts}");
+
+    private static readonly Action<ILogger, double, double, double, Exception?> _riskCalculated =
+        LoggerMessage.Define<double, double, double>(LogLevel.Debug, new EventId(10008, nameof(RiskCalculated)),
+            "[POSITION_SIZING] Risk calculation: Price={Price:F2}, Stop={Stop:F2}, Risk={Risk:F2}");
+
     // Public methods for high-performance logging
     public static void SacAlgorithmCreated(ILogger logger, string config) => _sacAlgorithmCreated(logger, config, null);
     public static void MetaLearningAlgorithmCreated(ILogger logger, string config) => _metaLearningAlgorithmCreated(logger, config, null);
@@ -228,4 +302,22 @@ internal static class LogMessages
     public static void ModelValidationFailed(ILogger logger, string modelName, Exception ex) => _modelValidationFailed(logger, modelName, ex);
     public static void BatchProcessingTimeout(ILogger logger, Exception ex) => _batchProcessingTimeout(logger, ex);
     public static void OnnxEnsembleDisposed(ILogger logger) => _onnxEnsembleDisposed(logger, null);
+    public static void FeatureEngineeringInitialized(ILogger logger, int profileCount) => _featureEngineeringInitialized(logger, profileCount, null);
+    public static void FeaturesGenerated(ILogger logger, int featureCount, string symbol, string strategy, string regime) => _featuresGenerated(logger, featureCount, symbol, strategy, regime, null);
+    public static void FeatureGenerationError(ILogger logger, string symbol, string strategy, string regime, Exception ex) => _featureGenerationError(logger, symbol, strategy, regime, ex);
+    public static void FeatureImportanceUpdated(ILogger logger, int featureCount, string featureKey) => _featureImportanceUpdated(logger, featureCount, featureKey, null);
+    public static void FeatureImportanceError(ILogger logger, string symbol, string strategy, string regime, Exception ex) => _featureImportanceError(logger, symbol, strategy, regime, ex);
+    public static void StreamingTickError(ILogger logger, string symbol, string errorMessage, Exception ex) => _streamingTickError(logger, symbol, errorMessage, ex);
+    public static void StaleAggregatorCleaned(ILogger logger, string symbol) => _staleAggregatorCleaned(logger, symbol, null);
+    public static void StaleAggregatorsCleanup(ILogger logger, int count) => _staleAggregatorsCleanup(logger, count, null);
+    public static void StreamingCleanupError(ILogger logger, Exception ex) => _streamingCleanupError(logger, ex);
+    public static void FeatureForwardFilled(ILogger logger, string featureName) => _featureForwardFilled(logger, featureName, null);
+    public static void PositionSizingInitialized(ILogger logger, double maxAllocation) => _positionSizingInitialized(logger, maxAllocation, null);
+    public static void PositionSizingCalculated(ILogger logger, string symbol, string strategy, string regime, double kelly, double sac, double clip, int final) => _positionSizingCalculated(logger, symbol, strategy, regime, kelly, sac, clip, final, null);
+    public static void PositionSizingArgumentError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingArgumentError(logger, symbol, strategy, ex);
+    public static void PositionSizingOperationError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingOperationError(logger, symbol, strategy, ex);
+    public static void PositionSizingDivisionError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingDivisionError(logger, symbol, strategy, ex);
+    public static void RiskRejected(ILogger logger, string symbol) => _riskRejected(logger, symbol, null);
+    public static void StepChangeLimited(ILogger logger, string symbol, int currentContracts, int newContracts, int limitedContracts) => _stepChangeLimited(logger, symbol, currentContracts, newContracts, limitedContracts, null);
+    public static void RiskCalculated(ILogger logger, double price, double stop, double risk) => _riskCalculated(logger, price, stop, risk, null);
 }

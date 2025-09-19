@@ -92,8 +92,7 @@ public class FeatureEngineering : IDisposable
         // Daily feature importance reporting timer
         _dailyReportTimer = new Timer(OnDailyReportTimer, null, TimeSpan.FromDays(1), TimeSpan.FromDays(1));
 
-        _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation", 
-            _config.RegimeProfiles.Count);
+        LogMessages.FeatureEngineeringInitialized(_logger, _config.RegimeProfiles.Count);
     }
 
     /// <summary>
@@ -158,15 +157,13 @@ public class FeatureEngineering : IDisposable
             state.LastUpdate = DateTime.UtcNow;
             state.FeatureCount = cleanedFeatures.Count;
             
-            _logger.LogDebug("[FEATURE_ENG] Generated {FeatureCount} features for {Symbol} {Strategy} {Regime}", 
-                cleanedFeatures.Count, symbol, strategy, regime);
+            LogMessages.FeaturesGenerated(_logger, cleanedFeatures.Count, symbol, strategy, regime);
 
             return featureVector;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Error generating features for {Symbol} {Strategy} {Regime}", 
-                symbol, strategy, regime);
+            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime, ex);
             
             // Return empty feature vector as fallback
             return new FeatureVector
@@ -301,12 +298,12 @@ public class FeatureEngineering : IDisposable
 
             if (staleSymbols.Any())
             {
-                _logger.LogInformation("[FEATURE_ENG] Cleaned up {Count} stale streaming symbol aggregators", staleSymbols.Count);
+                LogMessages.StaleAggregatorsCleanup(_logger, staleSymbols.Count);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Error during streaming cleanup");
+            LogMessages.StreamingCleanupError(_logger, ex);
         }
     }
 

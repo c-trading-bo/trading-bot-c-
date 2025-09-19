@@ -48,8 +48,7 @@ public class PositionSizing
         _logger = logger;
         _config = config;
         
-        _logger.LogInformation("[POSITION_SIZING] Initialized with max allocation: {MaxAllocation}, regime-based clipping enabled", 
-            _config.MaxAllocationPerSymbol);
+        LogMessages.PositionSizingInitialized(_logger, _config.MaxAllocationPerSymbol);
     }
 
     /// <summary>
@@ -192,7 +191,7 @@ public class PositionSizing
         var risk = CalculateRiskFromPrice(request.Price, request.StopPrice);
         if (risk <= 0)
         {
-            _logger.LogWarning("[POSITION_SIZING] Risk ≤ 0 detected, rejecting position: {Symbol}", request.Symbol);
+            LogMessages.RiskRejected(_logger, request.Symbol);
             return 0.0;
         }
         
