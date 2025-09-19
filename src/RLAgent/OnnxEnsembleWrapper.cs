@@ -190,7 +190,7 @@ public class OnnxEnsembleWrapper : IDisposable
             AverageLatencyMs = CalculateAverageLatency(),
             MemoryUsageMB = GC.GetTotalMemory(false) / BytesToMegabytes,
             QueueSize = _inferenceQueue.Reader.CanCount ? _inferenceQueue.Reader.Count : -1,
-            IsHealthy = loadedModels.Any() && !_disposed
+            IsHealthy = loadedModels.Count > 0 && !_disposed
         };
     }
 
@@ -314,7 +314,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private async Task<EnsemblePrediction[]> RunEnsembleInferenceAsync(float[][] batchFeatures)
     {
         var modelSessions = _modelSessions.Values.ToList();
-        if (!modelSessions.Any())
+        if (modelSessions.Count == 0)
         {
             throw new InvalidOperationException("No models loaded");
         }
@@ -385,7 +385,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
         // Run inference
         using var results = modelSession.Session.Run(inputs);
-        var outputTensor = results.First().AsTensor<float>();
+        var outputTensor = results[0].AsTensor<float>();
 
         // Extract predictions
         var predictions = new ModelPrediction[batchSize];
@@ -405,7 +405,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
     private static EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
     {
-        if (!prediction.Predictions.Any())
+        if (prediction.Predictions.Count == 0)
         {
             prediction.EnsembleResult = 0.0f;
             prediction.Confidence = 0.0;

@@ -346,17 +346,14 @@ public class SoftActorCritic : IDisposable
     /// <summary>
     /// Get current training statistics
     /// </summary>
-    public Models.SacStatistics GetStatistics()
+    public Models.SacStatistics Statistics => new Models.SacStatistics
     {
-        return new Models.SacStatistics
-        {
-            TotalSteps = _totalSteps,
-            AverageReward = _averageReward,
-            Entropy = _entropy,
-            BufferSize = _replayBuffer.Count,
-            MaxBufferSize = _config.BufferSize
-        };
-    }
+        TotalSteps = _totalSteps,
+        AverageReward = _averageReward,
+        Entropy = _entropy,
+        BufferSize = _replayBuffer.Count,
+        MaxBufferSize = _config.BufferSize
+    };
 
     /// <summary>
     /// Dispose pattern implementation

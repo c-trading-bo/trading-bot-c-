@@ -208,11 +208,14 @@ public class StreamingSymbolAggregator : IDisposable
         }
     }
 
-    public StreamingFeatures GetCurrentFeatures()
+    public StreamingFeatures CurrentFeatures
     {
-        lock (_lock)
+        get
         {
-            return _currentFeatures;
+            lock (_lock)
+            {
+                return _currentFeatures;
+            }
         }
     }
 
@@ -420,8 +423,8 @@ public class MicrostructureCalculator : IDisposable
 
     private double CalculateAverageSpread()
     {
-        var spreads = _ticks.Select(t => t.Ask - t.Bid).Where(s => s > 0);
-        return spreads.Any() ? spreads.Average() : 0;
+        var spreads = _ticks.Select(t => t.Ask - t.Bid).Where(s => s > 0).ToArray();
+        return spreads.Length > 0 ? spreads.Average() : 0;
     }
 
     private double CalculateOrderFlowImbalance()
@@ -448,7 +451,7 @@ public class MicrostructureCalculator : IDisposable
             }
         }
         
-        return priceChanges.Any() ? priceChanges.Average() : 0;
+        return priceChanges.Count > 0 ? priceChanges.Average() : 0;
     }
 
     private double GetLastTickDirection()
@@ -483,9 +486,9 @@ public class MicrostructureCalculator : IDisposable
         {
             var midPrice = (t.Bid + t.Ask) / 2;
             return midPrice > 0 ? 2 * Math.Abs(t.Price - midPrice) / midPrice : 0;
-        }).Where(s => s > 0);
+        }).Where(s => s > 0).ToArray();
         
-        return effectiveSpreads.Any() ? effectiveSpreads.Average() : 0;
+        return effectiveSpreads.Length > 0 ? effectiveSpreads.Average() : 0;
     }
 
     public void Dispose()

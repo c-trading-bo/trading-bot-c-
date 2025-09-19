@@ -250,10 +250,7 @@ public class MetaLearner
     /// <summary>
     /// Get meta-policy for general use
     /// </summary>
-    public PolicyNetwork GetMetaPolicy()
-    {
-        return _metaPolicy;
-    }
+    public PolicyNetwork MetaPolicy => _metaPolicy;
 
     /// <summary>
     /// Fast adaptation without storing the adapted policy
@@ -451,7 +448,7 @@ public class MetaLearner
             TaskCount = _metaBuffer.TaskCount,
             TotalExperiences = _metaBuffer.TotalExperiences,
             AdaptedTasks = _taskPolicies.Count,
-            AverageAdaptationPerformance = _adaptationHistory.Values.Any() ? 
+            AverageAdaptationPerformance = _adaptationHistory.Values.Count > 0 ? 
                 _adaptationHistory.Values.Average(h => h.LastPerformance) : 0.0
         };
     }
