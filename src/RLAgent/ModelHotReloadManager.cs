@@ -23,6 +23,9 @@ public class ModelHotReloadManager : IDisposable
     private readonly FileSystemWatcher _fileWatcher;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
+    
+    // Cached JSON serializer options
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private bool _disposed;
 
     public ModelHotReloadManager(
@@ -244,7 +247,7 @@ public class ModelHotReloadManager : IDisposable
                 ["reload_count"] = GetReloadCount() + 1
             };
 
-            var json = System.Text.Json.JsonSerializer.Serialize(registry, new JsonSerializerOptions { WriteIndented = true });
+            var json = System.Text.Json.JsonSerializer.Serialize(registry, JsonOptions);
             File.WriteAllText(registryPath, json);
         }
         catch (Exception ex)

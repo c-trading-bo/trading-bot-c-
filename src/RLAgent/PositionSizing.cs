@@ -24,6 +24,9 @@ public class PositionSizing
     private const double DEFAULT_ML_CONFIDENCE = 0.5;
     private const double DEFAULT_ML_EXPECTED_RETURN = 0.0;
     
+    // Floating point tolerance
+    private const double FLOATING_POINT_TOLERANCE = 1e-10;
+    
     // Regime mapping constants
     private const int TREND_REGIME_VALUE = 1;
     private const int RANGE_REGIME_VALUE = 2;
@@ -55,6 +58,8 @@ public class PositionSizing
     public PositionSizeResult CalculatePositionSize(
         PositionSizeRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         try
         {
             var symbolKey = GetSymbolKey(request.Symbol, request.Strategy);
@@ -112,16 +117,42 @@ public class PositionSizing
                 return result;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[POSITION_SIZING] Error calculating position size for {Symbol} {Strategy}", 
+            _logger.LogError(ex, "[POSITION_SIZING] Invalid arguments for position sizing {Symbol} {Strategy}", 
                 request.Symbol, request.Strategy);
             
             return new PositionSizeResult
             {
                 RequestedContracts = request.RequestedContracts,
                 FinalContracts = 0,
-                Reasoning = $"Error: {ex.Message}",
+                Reasoning = $"Invalid arguments: {ex.Message}",
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[POSITION_SIZING] Invalid operation for position sizing {Symbol} {Strategy}", 
+                request.Symbol, request.Strategy);
+            
+            return new PositionSizeResult
+            {
+                RequestedContracts = request.RequestedContracts,
+                FinalContracts = 0,
+                Reasoning = $"Invalid operation: {ex.Message}",
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (DivideByZeroException ex)
+        {
+            _logger.LogError(ex, "[POSITION_SIZING] Division by zero in position sizing {Symbol} {Strategy}", 
+                request.Symbol, request.Strategy);
+            
+            return new PositionSizeResult
+            {
+                RequestedContracts = request.RequestedContracts,
+                FinalContracts = 0,
+                Reasoning = $"Math error: {ex.Message}",
                 Timestamp = DateTime.UtcNow
             };
         }
@@ -338,7 +369,7 @@ public class PositionSizing
         reasons.Add($"SAC: {sacFraction:F3}");
         reasons.Add($"Regime clip: {regimeClip:F3}");
         
-        if (blendedFraction != cappedFraction)
+        if (Math.Abs(blendedFraction - cappedFraction) > FLOATING_POINT_TOLERANCE)
             reasons.Add("Caps applied");
             
         if (finalContracts == 0)
@@ -546,8 +577,16 @@ public class SacState : IDisposable
     
     public double ProposeFraction(double[] marketFeatures, RegimeType regime)
     {
+        ArgumentNullException.ThrowIfNull(marketFeatures);
+        
         // Simplified SAC implementation - in practice would use trained neural network
         var baseProposal = _baseProposals.GetValueOrDefault(regime, SAC_DEFAULT_FALLBACK);
+        
+        // Ensure we have enough features
+        if (marketFeatures.Length < 2)
+        {
+            return baseProposal; // Return base proposal if insufficient features
+        }
         
         // Adjust based on confidence and expected return
         var confidence = marketFeatures[0];

@@ -43,11 +43,17 @@ public class SoftActorCritic
     
     // Training statistics
     private int _totalSteps;
-    private double _averageReward = 0.0;
+    private double _averageReward;
     private double _entropy;
+    
+    // Constants for moving average
+    private const double RewardMovingAverageDecay = 0.99;
+    private const double RewardMovingAverageWeight = 0.01;
     
     public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _config = config;
         
@@ -98,11 +104,22 @@ public class SoftActorCritic
             
             return action;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[SAC] Failed to select action");
+            _logger.LogError(ex, "[SAC] Invalid arguments for action selection");
             // Return safe default action (no position change)
             return new double[_config.ActionDimension];
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[SAC] Invalid operation during action selection");
+            // Return safe default action (no position change)
+            return new double[_config.ActionDimension];
+        }
+        catch (OutOfMemoryException)
+        {
+            _logger.LogError("[SAC] Out of memory during action selection");
+            throw; // Rethrow memory issues
         }
     }
 
@@ -123,7 +140,7 @@ public class SoftActorCritic
         _replayBuffer.Add(experience);
         
         // Update moving average reward
-        _averageReward = 0.99 * _averageReward + 0.01 * reward;
+        _averageReward = RewardMovingAverageDecay * _averageReward + RewardMovingAverageWeight * reward;
     }
 
     /// <summary>
@@ -149,10 +166,10 @@ public class SoftActorCritic
             var batch = _replayBuffer.SampleBatch(batchSize);
             
             // Extract batch data
-            var states = batch.Select(e => e.State).ToArray();
-            var actions = batch.Select(e => e.Action).ToArray();
+            var states = batch.Select(e => e.State.ToArray()).ToArray();
+            var actions = batch.Select(e => e.Action.ToArray()).ToArray();
             var rewards = batch.Select(e => e.Reward).ToArray();
-            var nextStates = batch.Select(e => e.NextState).ToArray();
+            var nextStates = batch.Select(e => e.NextState.ToArray()).ToArray();
             var dones = batch.Select(e => e.Done).ToArray();
             
             // Train critic networks
@@ -367,10 +384,10 @@ public class SacConfig
 /// </summary>
 public class Experience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
-    public double[] Action { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Action { get; set; } = Array.Empty<double>();
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
 }
 

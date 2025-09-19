@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 
 namespace TradingBot.RLAgent;
@@ -16,6 +17,14 @@ public class FeatureEngineering : IDisposable
     private readonly ConcurrentDictionary<string, FeatureState> _featureStates = new();
     private readonly ConcurrentDictionary<string, CircularBuffer<MarketData>> _marketDataBuffers = new();
     private readonly ConcurrentDictionary<string, FeatureImportanceTracker> _importanceTrackers = new();
+    
+    // Cached JSON serializer options
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
+    // Technical analysis constants
+    private const int MacdPeriod = 26;
+    private const double RsiNormalizationFactor = 100.0;
+    private const int ImportanceHistoryMaxSize = 100;
     
     // Streaming aggregation components (merged from StreamingFeatureAggregator)
     private readonly ConcurrentDictionary<string, StreamingSymbolAggregator> _streamingAggregators = new();
@@ -366,9 +375,9 @@ public class FeatureEngineering : IDisposable
         var atr = buffer.Count >= atrWindow ? CalculateATR(buffer.GetLast(atrWindow), currentData) : 0.0;
 
         // MACD
-        var (macd, signal) = buffer.Count >= 26 ? CalculateMACD(buffer.GetLast(26), currentData) : (0.0, 0.0);
+        var (macd, signal) = buffer.Count >= MacdPeriod ? CalculateMACD(buffer.GetLast(MacdPeriod), currentData) : (0.0, 0.0);
 
-        features.AddRange(new[] { rsi / 100.0, bollingerPosition, atr, macd, signal });
+        features.AddRange(new[] { rsi / RsiNormalizationFactor, bollingerPosition, atr, macd, signal });
         featureNames.AddRange(new[] { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" });
     }
 
@@ -525,15 +534,15 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double GetDefaultSentinelValue(string featureName)
     {
-        return featureName.ToLower() switch
+        return featureName.ToLowerInvariant() switch
         {
-            var name when name.Contains("return") => 0.0,
-            var name when name.Contains("ratio") => 1.0,
-            var name when name.Contains("volatility") => 0.15,
-            var name when name.Contains("rsi") => 0.5,
-            var name when name.Contains("bollinger") => 0.5,
-            var name when name.Contains("regime") => 0.0,
-            var name when name.Contains("spread") => 1.0,
+            var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
+            var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => 0.15,
+            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("regime", StringComparison.OrdinalIgnoreCase) => 0.0,
+            var name when name.Contains("spread", StringComparison.OrdinalIgnoreCase) => 1.0,
             _ => 0.0
         };
     }
@@ -543,13 +552,13 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double BoundFeatureValue(double value, string featureName)
     {
-        var bounds = featureName.ToLower() switch
+        var bounds = featureName.ToLowerInvariant() switch
         {
-            var name when name.Contains("return") => (-0.1, 0.1),    // ±10% max return
-            var name when name.Contains("ratio") => (0.01, 100.0),   // Volume ratio bounds
-            var name when name.Contains("volatility") => (0.0, 2.0), // 0-200% volatility
-            var name when name.Contains("zscore") => (-5.0, 5.0),    // Z-score bounds
-            var name when name.Contains("spread_bps") => (0.0, 100.0), // 0-100 bps spread
+            var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => (-0.1, 0.1),    // ±10% max return
+            var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => (0.01, 100.0),   // Volume ratio bounds
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => (0.0, 2.0), // 0-200% volatility
+            var name when name.Contains("zscore", StringComparison.OrdinalIgnoreCase) => (-5.0, 5.0),    // Z-score bounds
+            var name when name.Contains("spread_bps", StringComparison.OrdinalIgnoreCase) => (0.0, 100.0), // 0-100 bps spread
             _ => (double.MinValue, double.MaxValue)
         };
         
@@ -621,7 +630,7 @@ public class FeatureEngineering : IDisposable
         var avgGain = gains.TakeLast(14).Average();
         var avgLoss = losses.TakeLast(14).Average();
         
-        if (avgLoss == 0) return 100.0;
+        if (Math.Abs(avgLoss) < 1e-10) return 100.0;
         
         var rs = avgGain / avgLoss;
         return 100.0 - (100.0 / (1.0 + rs));
@@ -701,7 +710,12 @@ public class FeatureEngineering : IDisposable
         var last = buffer.GetFromEnd(0);
         if (last == null) return 0;
         
-        return current.Close > last.Close ? 1 : (current.Close < last.Close ? -1 : 0);
+        if (current.Close > last.Close) 
+            return 1;
+        else if (current.Close < last.Close) 
+            return -1;
+        else 
+            return 0;
     }
 
     private static double CalculateOrderFlowImbalance(MarketData[] buffer, int currentTickDirection)
@@ -713,7 +727,13 @@ public class FeatureEngineering : IDisposable
         
         for (int i = 1; i < buffer.Length; i++)
         {
-            var direction = buffer[i].Close > buffer[i - 1].Close ? 1 : (buffer[i].Close < buffer[i - 1].Close ? -1 : 0);
+            int direction;
+            if (buffer[i].Close > buffer[i - 1].Close)
+                direction = 1;
+            else if (buffer[i].Close < buffer[i - 1].Close)
+                direction = -1;
+            else
+                direction = 0;
             if (direction > 0) upTicks++;
             else if (direction < 0) downTicks++;
         }
@@ -726,7 +746,7 @@ public class FeatureEngineering : IDisposable
         return totalTicks > 0 ? (upTicks - downTicks) / (double)totalTicks : 0.0;
     }
 
-    private double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current)
+    private static double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current)
     {
         if (buffer.Count < 2) return 0.0;
         
@@ -741,7 +761,13 @@ public class FeatureEngineering : IDisposable
             
             if (prevData == null || prevPrevData == null) break;
             
-            var prevDirection = prevData.Close > prevPrevData.Close ? 1 : (prevData.Close < prevPrevData.Close ? -1 : 0);
+            int prevDirection;
+            if (prevData.Close > prevPrevData.Close)
+                prevDirection = 1;
+            else if (prevData.Close < prevPrevData.Close)
+                prevDirection = -1;
+            else
+                prevDirection = 0;
             
             if (prevDirection == currentDirection)
                 run++;
@@ -795,7 +821,7 @@ public class FeatureEngineering : IDisposable
         {
             try
             {
-                await GenerateDailyFeatureReportAsync(state).ConfigureAwait(false);
+                await GenerateDailyFeatureReportAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -807,7 +833,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Generate daily feature importance report
     /// </summary>
-    private async Task GenerateDailyFeatureReportAsync(object? state)
+    private async Task GenerateDailyFeatureReportAsync()
     {
         try
         {
@@ -828,16 +854,28 @@ public class FeatureEngineering : IDisposable
             }
             
             // Save report to file
-            var reportJson = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            var reportJson = JsonSerializer.Serialize(report, JsonOptions);
             var reportPath = Path.Combine("reports", $"feature_importance_{DateTime.UtcNow:yyyyMMdd}.json");
             Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
             await File.WriteAllTextAsync(reportPath, reportJson).ConfigureAwait(false);
             
             _logger.LogInformation("[FEATURE_ENG] Daily feature importance report saved: {ReportPath}", reportPath);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Error generating daily feature importance report");
+            _logger.LogError(ex, "[FEATURE_ENG] Access denied while generating daily feature importance report");
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Directory not found while generating daily feature importance report");
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] IO error while generating daily feature importance report");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Invalid operation while generating daily feature importance report");
         }
     }
 
@@ -884,7 +922,7 @@ public class FeatureConfig
     // Streaming configuration (merged from StreamingFeatureAggregator)
     public int StreamingStaleThresholdSeconds { get; set; } = 30;
     public int StreamingCleanupAfterMinutes { get; set; } = 30;
-    public List<TimeSpan> StreamingTimeWindows { get; set; } = new() 
+    public Collection<TimeSpan> StreamingTimeWindows { get; } = new() 
     {
         TimeSpan.FromSeconds(10),
         TimeSpan.FromMinutes(1),
@@ -919,8 +957,8 @@ public class FeatureVector
     public string Strategy { get; set; } = string.Empty;
     public RegimeType Regime { get; set; }
     public DateTime Timestamp { get; set; }
-    public double[] Features { get; set; } = Array.Empty<double>();
-    public string[] FeatureNames { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<double> Features { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<string> FeatureNames { get; set; } = Array.Empty<string>();
     public int FeatureCount { get; set; }
     public bool HasMissingValues { get; set; }
 }
@@ -1094,13 +1132,9 @@ public class StreamingSymbolAggregator : IDisposable
         }
 
         // Add time window features using configured windows
-        foreach (var kvp in _windowAggregators)
+        foreach (var kvp in _windowAggregators.Where(w => _config.StreamingTimeWindows.Contains(w.Key)))
         {
-            // Validate against config to ensure we're using configured windows
-            if (_config.StreamingTimeWindows.Contains(kvp.Key))
-            {
-                features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
-            }
+            features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
         }
 
         return features;
@@ -1321,7 +1355,12 @@ public class MicrostructureCalculator : IDisposable
         var last = _ticks[_ticks.Count - 1];
         var previous = _ticks[_ticks.Count - 2];
         
-        return last.Price > previous.Price ? 1 : (last.Price < previous.Price ? -1 : 0);
+        if (last.Price > previous.Price) 
+            return 1;
+        else if (last.Price < previous.Price) 
+            return -1;
+        else 
+            return 0;
     }
 
     private double CalculateVolumeImbalance()

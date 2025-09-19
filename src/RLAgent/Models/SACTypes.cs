@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using TradingBot.Abstractions;
 
 namespace TradingBot.RLAgent.Models;
@@ -36,14 +37,14 @@ public class SacConfig
 /// </summary>
 public class SacState
 {
-    public double[] Features { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Features { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public double Price { get; set; }
     public double Volume { get; set; }
     public Dictionary<string, double> TechnicalIndicators { get; } = new();
     
-    public int Dimension => Features.Length;
+    public int Dimension => Features.Count;
     
     public SacState()
     {
@@ -52,6 +53,8 @@ public class SacState
     
     public SacState(double[] features) : this()
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         Features = (double[])features.Clone();
     }
     
@@ -76,7 +79,13 @@ public class SacState
         };
         
         // Calculate base fraction based on RSI (mean reversion)
-        var rsiFraction = (rsi > 70) ? -0.3 : (rsi < 30) ? 0.3 : 0.0;
+        double rsiFraction;
+        if (rsi > 70)
+            rsiFraction = -0.3;
+        else if (rsi < 30)
+            rsiFraction = 0.3;
+        else
+            rsiFraction = 0.0;
         
         // Adjust for momentum using market features
         var momentumFraction = marketFeatures.Length > 0 ? Math.Sign(marketFeatures[0]) * Math.Min(Math.Abs(marketFeatures[0]) * 0.5, 0.2) : 0.0;
@@ -146,7 +155,7 @@ public class SacStatistics
     public TimeSpan TotalTrainingTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
     public Dictionary<string, double> NetworkLosses { get; } = new();
-    public List<double> RewardHistory { get; } = new();
+    public Collection<double> RewardHistory { get; } = new();
     
     public SacStatistics()
     {

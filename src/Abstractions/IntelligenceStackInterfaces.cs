@@ -17,6 +17,7 @@ public interface IRegimeDetector
     Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default);
     Task<RegimeTransition> CheckTransitionAsync(RegimeState currentState, CancellationToken cancellationToken = default);
     bool IsInDwellPeriod(RegimeState state);
+    double GetLatestRegimeScore();
 }
 
 public class RegimeState
@@ -220,6 +221,10 @@ public class TradeRecord
     public DateTime FillTime { get; set; } = DateTime.UtcNow;
     public string StrategyId { get; set; } = string.Empty;
     public Dictionary<string, object> Metadata { get; } = new();
+    
+    // Additional properties for compatibility
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public double Price { get; set; }
 }
 
 #endregion

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -30,11 +31,20 @@ public class OnnxEnsembleWrapper : IDisposable
     private readonly Task _batchProcessingTask;
     private readonly AnomalyDetector _anomalyDetector;
     private bool _disposed;
+    
+    // Constants
+    private const int BytesToMegabytes = 1024 * 1024;
+    private const double DefaultEnsembleConfidence = 0.5;
+    private const double ConfidenceScalingFactor = 0.1;
+    private const double BaseConfidenceOffset = 0.5;
+    private const double DefaultLatencyMs = 50.0;
 
     public OnnxEnsembleWrapper(
         ILogger<OnnxEnsembleWrapper> logger,
         IOptions<OnnxEnsembleOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        
         _logger = logger;
         _options = options.Value;
 
@@ -131,6 +141,8 @@ public class OnnxEnsembleWrapper : IDisposable
     /// </summary>
     public async Task<EnsemblePrediction> PredictAsync(float[] features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         // Input anomaly detection
         var isAnomaly = _anomalyDetector.IsAnomaly(features);
         if (isAnomaly && _options.BlockAnomalousInputs)
@@ -177,7 +189,7 @@ public class OnnxEnsembleWrapper : IDisposable
             LoadedModels = loadedModels.Count,
             TotalInferences = loadedModels.Sum(m => m.InferenceCount),
             AverageLatencyMs = CalculateAverageLatency(),
-            MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024),
+            MemoryUsageMB = GC.GetTotalMemory(false) / BytesToMegabytes,
             QueueSize = _inferenceQueue.Reader.CanCount ? _inferenceQueue.Reader.Count : -1,
             IsHealthy = loadedModels.Any() && !_disposed
         };
@@ -266,7 +278,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             foreach (var group in featureGroups)
             {
-                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false);
+                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features.ToArray()).ToArray()).ConfigureAwait(false);
                 
                 for (int i = 0; i < group.Count; i++)
                 {
@@ -352,7 +364,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return results;
     }
 
-    private async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
+    private static async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
     {
         // Brief yield for async context in CPU-intensive operation
         await Task.Yield();
@@ -413,7 +425,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Fallback to simple average
             prediction.EnsembleResult = (float)prediction.Predictions.Values.Average(p => p.Value);
-            prediction.Confidence = 0.5;
+            prediction.Confidence = DefaultEnsembleConfidence;
         }
 
         return prediction;
@@ -496,13 +508,13 @@ public class OnnxEnsembleWrapper : IDisposable
     {
         // Simple confidence calculation - could be enhanced based on model type
         var value = Math.Abs(outputTensor[batchIndex, 0]);
-        return Math.Min(1.0, value * 0.1 + 0.5); // Basic mapping
+        return Math.Min(1.0, value * ConfidenceScalingFactor + BaseConfidenceOffset); // Basic mapping
     }
 
     private static double CalculateAverageLatency()
     {
         // Track actual inference latencies from performance metrics
-        return 50.0; // Conservative estimate for production SLA
+        return DefaultLatencyMs; // Conservative estimate for production SLA
     }
 
     #endregion
@@ -559,7 +571,7 @@ public class OnnxEnsembleOptions
     public bool ClampInputs { get; set; } = true;
     public bool BlockAnomalousInputs { get; set; } = true;
     public double AnomalyThreshold { get; set; } = 3.0;
-    public List<InputBounds>? InputBounds { get; set; }
+    public Collection<InputBounds>? InputBounds { get; }
 }
 
 /// <summary>
@@ -589,7 +601,7 @@ public class ModelSession
 /// </summary>
 public class InferenceRequest
 {
-    public float[] Features { get; set; } = Array.Empty<float>();
+    public IReadOnlyList<float> Features { get; set; } = Array.Empty<float>();
     public TaskCompletionSource<EnsemblePrediction> TaskCompletionSource { get; set; } = null!;
     public DateTime RequestTime { get; set; }
     public bool IsAnomaly { get; set; }
@@ -635,6 +647,7 @@ public class EnsembleStatus
 /// </summary>
 public class AnomalyDetector
 {
+    private const int MinimumSampleCount = 10;
     private readonly double _threshold;
     private readonly Dictionary<int, (double sum, double sumSquared, int count)> _featureStats = new();
 
@@ -645,6 +658,8 @@ public class AnomalyDetector
 
     public bool IsAnomaly(float[] features)
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         bool isAnomaly = false;
 
         for (int i = 0; i < features.Length; i++)
@@ -653,7 +668,7 @@ public class AnomalyDetector
             
             if (_featureStats.TryGetValue(i, out var stats))
             {
-                if (stats.count > 10) // Need some data for meaningful statistics
+                if (stats.count > MinimumSampleCount) // Need some data for meaningful statistics
                 {
                     var mean = stats.sum / stats.count;
                     var variance = (stats.sumSquared / stats.count) - (mean * mean);

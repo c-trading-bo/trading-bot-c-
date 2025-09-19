@@ -45,6 +45,8 @@ public class MetaLearner
     
     public MetaLearner(ILogger<MetaLearner> logger, MetaLearningConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _config = config;
         
@@ -108,14 +110,24 @@ public class MetaLearner
             _taskPolicies[taskId] = adaptedPolicy;
             
             // Update adaptation history
-            UpdateAdaptationHistory(taskId, supportSet.Count, adaptedPolicy);
+            UpdateAdaptationHistory(taskId, supportSet.Count);
             
             return Task.FromResult(adaptedPolicy);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Failed to adapt to task: {TaskId}", taskId);
+            _logger.LogError(ex, "[META] Invalid arguments for task adaptation: {TaskId}", taskId);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[META] Invalid operation during task adaptation: {TaskId}", taskId);
+            return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
+        }
+        catch (OutOfMemoryException)
+        {
+            _logger.LogError("[META] Out of memory during task adaptation: {TaskId}", taskId);
+            throw; // Rethrow memory issues
         }
     }
 
@@ -179,14 +191,28 @@ public class MetaLearner
                 AdaptationHistory = GetAdaptationSummary()
             };
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[META] Meta-training failed");
+            _logger.LogError(ex, "[META] Invalid arguments during meta-training");
             return new MetaTrainingResult
             {
                 Success = false,
                 Message = ex.Message
             };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[META] Invalid operation during meta-training");
+            return new MetaTrainingResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+        catch (OutOfMemoryException)
+        {
+            _logger.LogError("[META] Out of memory during meta-training");
+            throw; // Rethrow memory issues
         }
     }
 
@@ -365,7 +391,7 @@ public class MetaLearner
     /// <summary>
     /// Update adaptation history for a task
     /// </summary>
-    private void UpdateAdaptationHistory(string taskId, int supportSetSize, PolicyNetwork adaptedPolicy)
+    private void UpdateAdaptationHistory(string taskId, int supportSetSize)
     {
         if (!_adaptationHistory.TryGetValue(taskId, out var history))
         {
@@ -600,6 +626,10 @@ public class PolicyNetwork
 
     // Network parameters
     private readonly Dictionary<string, double[]> _parameters;
+    
+    // Constants for Xavier initialization
+    private const double XavierScaleMultiplier = 2.0;
+    private const double RandomRangeMultiplier = 2;
 
     public PolicyNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
     {
@@ -615,7 +645,7 @@ public class PolicyNetwork
     private void InitializeParameters()
     {
         // Initialize weights and biases
-        var scale = Math.Sqrt(2.0 / _inputDim);
+        var scale = Math.Sqrt(XavierScaleMultiplier / _inputDim);
         
         _parameters["input_weights"] = new double[_inputDim * _hiddenDim];
         _parameters["hidden_bias"] = new double[_hiddenDim];
@@ -625,13 +655,13 @@ public class PolicyNetwork
         // Xavier initialization
         for (int i = 0; i < _parameters["input_weights"].Length; i++)
         {
-            _parameters["input_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
+            _parameters["input_weights"][i] = (GenerateSecureRandomDouble() * RandomRangeMultiplier - 1) * scale;
         }
         
-        scale = Math.Sqrt(2.0 / _hiddenDim);
+        scale = Math.Sqrt(XavierScaleMultiplier / _hiddenDim);
         for (int i = 0; i < _parameters["output_weights"].Length; i++)
         {
-            _parameters["output_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
+            _parameters["output_weights"][i] = (GenerateSecureRandomDouble() * RandomRangeMultiplier - 1) * scale;
         }
     }
 

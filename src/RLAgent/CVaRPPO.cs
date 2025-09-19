@@ -27,13 +27,24 @@ public class CVaRPPO : IDisposable
     
     // Training state
     private int _currentEpisode;
-    private double _averageReward = 0.0;
-    private double _averageLoss = 0.0;
+    private double _averageReward;
+    private double _averageLoss;
     private DateTime _lastTrainingTime = DateTime.MinValue;
     
     // Model versioning
     private string _currentModelVersion = "1.0.0";
+    
+    // Training constants
+    private const double LossMovingAverageWeight = 0.9;
+    private const double NewLossWeight = 0.1;
+    private const int DefaultHistorySize = 20;
+    private const double NetworkUpdateLearningRate = 0.001;
+    private const double TensorDimensionFactor = 2;
+    private const double NetworkInitializationScale = 0.1;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
+    
+    // Cached JSON serializer options
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     
     // Performance tracking
     private readonly CircularBuffer<double> _rewardHistory = new(1000);
@@ -147,7 +158,7 @@ public class CVaRPPO : IDisposable
             // Update averages and state (with lock)
             lock (_trainingLock)
             {
-                _averageLoss = _averageLoss * 0.9 + result.TotalLoss * 0.1;
+                _averageLoss = _averageLoss * LossMovingAverageWeight + result.TotalLoss * NewLossWeight;
                 _averageReward = experiences.Count > 0 ? experiences.Average(e => e.Reward) : 0.0;
 
                 // Track performance
@@ -172,9 +183,9 @@ public class CVaRPPO : IDisposable
 
             return result;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Training failed");
+            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments during training");
             return new TrainingResult
             {
                 Episode = _currentEpisode,
@@ -242,9 +253,9 @@ public class CVaRPPO : IDisposable
 
             return Task.FromResult(result);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error getting action");
+            _logger.LogError(ex, "[CVAR_PPO] Invalid arguments for action selection");
             
             // Return safe default action
             var defaultResult = new ActionResult
@@ -314,7 +325,7 @@ public class CVaRPPO : IDisposable
                 }
             };
 
-            var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
             await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Create checkpoint record
@@ -411,9 +422,9 @@ public class CVaRPPO : IDisposable
             ExperienceBufferSize = _experienceBuffer.Count,
             LastTrainingTime = _lastTrainingTime,
             CurrentModelVersion = _currentModelVersion,
-            RecentRewards = _rewardHistory.GetAll().TakeLast(20).ToArray(),
-            RecentLosses = _lossHistory.GetAll().TakeLast(20).ToArray(),
-            RecentCVaRLosses = _cvarHistory.GetAll().TakeLast(20).ToArray()
+            RecentRewards = _rewardHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
+            RecentLosses = _lossHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
+            RecentCVaRLosses = _cvarHistory.GetAll().TakeLast(DefaultHistorySize).ToArray()
         };
     }
 
@@ -446,7 +457,7 @@ public class CVaRPPO : IDisposable
         var cvarTargets = new double[experiences.Count];
         
         // Calculate values for GAE (Generalized Advantage Estimation)
-        var values = experiences.Select(e => _valueNetwork.Forward(e.State)[0]).ToArray();
+        var values = experiences.Select(e => _valueNetwork.Forward(e.State.ToArray())[0]).ToArray();
         
         // GAE calculation
         var gaeAdvantage = 0.0;
@@ -518,7 +529,7 @@ public class CVaRPPO : IDisposable
             var cvarTarget = cvarTargets[i];
             
             // Policy loss (PPO clipped objective)
-            var newPolicyOutput = _policyNetwork.Forward(experience.State);
+            var newPolicyOutput = _policyNetwork.Forward(experience.State.ToArray());
             var newActionProbs = SoftmaxActivation(newPolicyOutput);
             var newLogProb = Math.Log(Math.Max(newActionProbs[experience.Action], 1e-8));
             
@@ -534,12 +545,12 @@ public class CVaRPPO : IDisposable
             policyLoss -= _config.EntropyCoeff * entropyBonus;
             
             // Value loss
-            var newValueEstimate = _valueNetwork.Forward(experience.State)[0];
+            var newValueEstimate = _valueNetwork.Forward(experience.State.ToArray())[0];
             var valueDelta = experience.Return - newValueEstimate;
             valueLoss += valueDelta * valueDelta;
             
             // CVaR loss
-            var newCVaREstimate = _cvarNetwork.Forward(experience.State)[0];
+            var newCVaREstimate = _cvarNetwork.Forward(experience.State.ToArray())[0];
             var cvarDelta = cvarTarget - newCVaREstimate;
             cvarLoss += cvarDelta * cvarDelta;
         }
@@ -657,10 +668,10 @@ public class CVaRPPOConfig
 /// </summary>
 public class Experience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
     public int Action { get; set; }
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
     public double LogProbability { get; set; }
     public double ValueEstimate { get; set; }
@@ -678,7 +689,7 @@ public class ActionResult
     public double LogProbability { get; set; }
     public double ValueEstimate { get; set; }
     public double CVaREstimate { get; set; }
-    public double[] ActionProbabilities { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> ActionProbabilities { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
 }
 

@@ -164,7 +164,7 @@ namespace BotCore
                     if (p.ValueKind == JsonValueKind.String && long.TryParse(p.GetString(), out val)) return true;
                 }
             }
-            val; return false;
+            val = 0; return false;
         }
     }
 }
