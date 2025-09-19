@@ -123,14 +123,14 @@ public class OnnxEnsembleWrapper : IDisposable
             if (_modelSessions.TryRemove(modelName, out var modelSession))
             {
                 modelSession.Session.Dispose();
-                _logger.LogInformation("[RL-ENSEMBLE] Model unloaded: {ModelName}", modelName);
+                LogMessages.ModelUnloaded(_logger, modelName);
                 return true;
             }
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL-ENSEMBLE] Failed to unload model: {ModelName}", modelName);
+            LogMessages.ModelUnloadFailed(_logger, modelName, ex);
             return false;
         }
     }
@@ -234,7 +234,7 @@ public class OnnxEnsembleWrapper : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL-ENSEMBLE] Error in batch processing task");
+            LogMessages.BatchProcessingError(_logger, ex);
         }
     }
 
@@ -297,11 +297,11 @@ public class OnnxEnsembleWrapper : IDisposable
             }
 
             var totalLatency = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogDebug("[RL-ENSEMBLE] Processed batch of {BatchSize} in {LatencyMs:F2}ms", batch.Count, totalLatency);
+            LogMessages.BatchProcessed(_logger, batch.Count, totalLatency);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL-ENSEMBLE] Error processing inference batch");
+            LogMessages.InferenceBatchError(_logger, ex);
             
             // Complete all requests with error
             foreach (var request in batch)
@@ -348,7 +348,7 @@ public class OnnxEnsembleWrapper : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RL-ENSEMBLE] Error in model inference: {ModelName}", modelSession.Name);
+                LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
             }
         }).ToArray();
 

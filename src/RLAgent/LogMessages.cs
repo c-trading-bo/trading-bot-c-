@@ -152,6 +152,34 @@ internal static class LogMessages
         LoggerMessage.Define(LogLevel.Error, new EventId(8010, nameof(InferenceBatchError)),
             "[RL-ENSEMBLE] Error processing inference batch");
 
+    private static readonly Action<ILogger, string, Exception?> _modelInferenceError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8011, nameof(ModelInferenceError)),
+            "[RL-ENSEMBLE] Error in model inference: {ModelName}");
+
+    private static readonly Action<ILogger, Exception?> _gpuAccelerationEnabled =
+        LoggerMessage.Define(LogLevel.Information, new EventId(8012, nameof(GpuAccelerationEnabled)),
+            "[RL-ENSEMBLE] GPU acceleration enabled for ONNX inference");
+
+    private static readonly Action<ILogger, Exception?> _gpuAccelerationFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(8013, nameof(GpuAccelerationFailed)),
+            "[RL-ENSEMBLE] Failed to enable GPU acceleration, falling back to CPU");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _modelValidationPassed =
+        LoggerMessage.Define<string, string, string>(LogLevel.Debug, new EventId(8014, nameof(ModelValidationPassed)),
+            "[RL-ENSEMBLE] Model validation passed: {ModelName} - Input: {InputShape}, Output: {OutputShape}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelValidationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8015, nameof(ModelValidationFailed)),
+            "[RL-ENSEMBLE] Model validation failed: {ModelName}");
+
+    private static readonly Action<ILogger, Exception?> _batchProcessingTimeout =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(8016, nameof(BatchProcessingTimeout)),
+            "[RL-ENSEMBLE] Timeout waiting for batch processing task to complete");
+
+    private static readonly Action<ILogger, Exception?> _onnxEnsembleDisposed =
+        LoggerMessage.Define(LogLevel.Information, new EventId(8017, nameof(OnnxEnsembleDisposed)),
+            "[RL-ENSEMBLE] ONNX Ensemble Wrapper disposed");
+
     // Public methods for high-performance logging
     public static void SacAlgorithmCreated(ILogger logger, string config) => _sacAlgorithmCreated(logger, config, null);
     public static void MetaLearningAlgorithmCreated(ILogger logger, string config) => _metaLearningAlgorithmCreated(logger, config, null);
@@ -193,4 +221,11 @@ internal static class LogMessages
     public static void BatchProcessingError(ILogger logger, Exception ex) => _batchProcessingError(logger, ex);
     public static void BatchProcessed(ILogger logger, int batchSize, double latencyMs) => _batchProcessed(logger, batchSize, latencyMs, null);
     public static void InferenceBatchError(ILogger logger, Exception ex) => _inferenceBatchError(logger, ex);
+    public static void ModelInferenceError(ILogger logger, string modelName, Exception ex) => _modelInferenceError(logger, modelName, ex);
+    public static void GpuAccelerationEnabled(ILogger logger) => _gpuAccelerationEnabled(logger, null);
+    public static void GpuAccelerationFailed(ILogger logger, Exception ex) => _gpuAccelerationFailed(logger, ex);
+    public static void ModelValidationPassed(ILogger logger, string modelName, string inputShape, string outputShape) => _modelValidationPassed(logger, modelName, inputShape, outputShape, null);
+    public static void ModelValidationFailed(ILogger logger, string modelName, Exception ex) => _modelValidationFailed(logger, modelName, ex);
+    public static void BatchProcessingTimeout(ILogger logger, Exception ex) => _batchProcessingTimeout(logger, ex);
+    public static void OnnxEnsembleDisposed(ILogger logger) => _onnxEnsembleDisposed(logger, null);
 }
