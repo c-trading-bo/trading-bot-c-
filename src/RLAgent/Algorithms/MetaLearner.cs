@@ -61,8 +61,7 @@ public class MetaLearner
         _metaBuffer = new MetaExperienceBuffer(config.MetaBufferSize);
         _adaptationHistory = new Dictionary<string, AdaptationHistory>();
         
-        _logger.LogInformation("[META] Initialized meta-learner with state_dim={StateDim}, action_dim={ActionDim}", 
-            config.StateDimension, config.ActionDimension);
+        LogMessages.MetaLearnerInitialized(_logger, config.StateDimension, config.ActionDimension);
     }
 
     /// <summary>
@@ -77,8 +76,7 @@ public class MetaLearner
         
         try
         {
-            _logger.LogDebug("[META] Adapting to task: {TaskId} with {SupportSize} examples", 
-                taskId, supportSet.Count);
+            LogMessages.TaskAdaptationStarted(_logger, taskId, supportSet.Count);
 
             // Clone meta-policy as starting point
             var adaptedPolicy = _metaPolicy.Clone();
@@ -129,7 +127,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
-            throw new OutOfMemoryException($"[META] Failed to adapt to task {taskId} due to memory constraints", ex);
+            throw; // Rethrow memory issues
         }
     }
 
@@ -214,7 +212,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during meta-training");
-            throw new OutOfMemoryException("[META] Failed to perform meta-training due to memory constraints", ex);
+            throw; // Rethrow memory issues
         }
     }
 

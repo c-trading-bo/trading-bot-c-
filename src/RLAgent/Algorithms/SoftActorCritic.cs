@@ -76,8 +76,7 @@ public class SoftActorCritic
         _targetCritic1.CopyWeightsFrom(_critic1);
         _targetCritic2.CopyWeightsFrom(_critic2);
         
-        _logger.LogInformation("[SAC] Initialized with state_dim={StateDim}, action_dim={ActionDim}, hidden_dim={HiddenDim}", 
-            stateDim, actionDim, hiddenDim);
+        LogMessages.SACInitialized(_logger, stateDim, actionDim, hiddenDim);
     }
 
     /// <summary>

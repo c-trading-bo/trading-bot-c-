@@ -64,8 +64,7 @@ public class CVaRPPO : IDisposable
         // Initialize neural networks
         InitializeNetworks();
         
-        _logger.LogInformation("[CVAR_PPO] Initialized with {StateSize} state size, {ActionSize} action size, CVaR alpha: {Alpha}", 
-            _config.StateSize, _config.ActionSize, _config.CVaRAlpha);
+        LogMessages.CVaRPPOInitialized(_logger, _config.StateSize, _config.ActionSize, _config.CVaRAlpha);
     }
 
     /// <summary>

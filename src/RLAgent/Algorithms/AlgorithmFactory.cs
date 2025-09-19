@@ -59,8 +59,7 @@ public static class AlgorithmFactory
         
         var sac = new SoftActorCritic(sacLogger, sacConfig);
         
-        logger.LogInformation("[ALGORITHM_FACTORY] Created SAC algorithm with config: {Config}", 
-            System.Text.Json.JsonSerializer.Serialize(sacConfig));
+        LogMessages.SacAlgorithmCreated(logger, System.Text.Json.JsonSerializer.Serialize(sacConfig));
         
         return new SacAlgorithmWrapper(sac);
     }
@@ -89,8 +88,7 @@ public static class AlgorithmFactory
         
         var metaLearner = new MetaLearner(metaLogger, metaConfig);
         
-        logger.LogInformation("[ALGORITHM_FACTORY] Created Meta-Learning algorithm with config: {Config}", 
-            System.Text.Json.JsonSerializer.Serialize(metaConfig));
+        LogMessages.MetaLearningAlgorithmCreated(logger, System.Text.Json.JsonSerializer.Serialize(metaConfig));
         
         return new MetaLearningAlgorithmWrapper(metaLearner);
     }
@@ -119,8 +117,7 @@ public static class AlgorithmFactory
         
         var cvarPpo = new CVaRPPO(cvarLogger, ppoConfig);
         
-        logger.LogInformation("[ALGORITHM_FACTORY] Created CVaR-PPO algorithm with config: {Config}", 
-            System.Text.Json.JsonSerializer.Serialize(ppoConfig));
+        LogMessages.CVaRPPOAlgorithmCreated(logger, System.Text.Json.JsonSerializer.Serialize(ppoConfig));
         
         return new CVaRppoAlgorithmWrapper(cvarPpo);
     }
