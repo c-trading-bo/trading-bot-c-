@@ -40,6 +40,7 @@ public class CVaRPPO : IDisposable
     private const int DefaultHistorySize = 20;
     private const double NetworkUpdateLearningRate = 0.001;
     private const double TensorDimensionFactor = 2;
+    private const double NetworkInitializationScale = 0.1;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
     // Cached JSON serializer options
@@ -423,7 +424,7 @@ public class CVaRPPO : IDisposable
             CurrentModelVersion = _currentModelVersion,
             RecentRewards = _rewardHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
             RecentLosses = _lossHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
-            RecentCVaRLosses = _cvarHistory.GetAll().TakeLast(20).ToArray()
+            RecentCVaRLosses = _cvarHistory.GetAll().TakeLast(DefaultHistorySize).ToArray()
         };
     }
 
@@ -969,7 +970,7 @@ public class ValueNetwork : IDisposable
             var bytes = new byte[8];
             rng.GetBytes(bytes);
             var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-            _weights2[i] = (randomValue * TensorDimensionFactor - 1) * 0.1;
+            _weights2[i] = (randomValue * TensorDimensionFactor - 1) * NetworkInitializationScale;
         }
     }
 

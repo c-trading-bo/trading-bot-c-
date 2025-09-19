@@ -31,6 +31,9 @@ public class OnnxEnsembleWrapper : IDisposable
     private readonly Task _batchProcessingTask;
     private readonly AnomalyDetector _anomalyDetector;
     private bool _disposed;
+    
+    // Constants
+    private const int BytesToMegabytes = 1024 * 1024;
 
     public OnnxEnsembleWrapper(
         ILogger<OnnxEnsembleWrapper> logger,
@@ -178,7 +181,7 @@ public class OnnxEnsembleWrapper : IDisposable
             LoadedModels = loadedModels.Count,
             TotalInferences = loadedModels.Sum(m => m.InferenceCount),
             AverageLatencyMs = CalculateAverageLatency(),
-            MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024),
+            MemoryUsageMB = GC.GetTotalMemory(false) / BytesToMegabytes,
             QueueSize = _inferenceQueue.Reader.CanCount ? _inferenceQueue.Reader.Count : -1,
             IsHealthy = loadedModels.Any() && !_disposed
         };

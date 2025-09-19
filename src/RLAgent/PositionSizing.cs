@@ -364,7 +364,7 @@ public class PositionSizing
         reasons.Add($"SAC: {sacFraction:F3}");
         reasons.Add($"Regime clip: {regimeClip:F3}");
         
-        if (Math.Abs(blendedFraction - cappedFraction) > 1e-10)
+        if (Math.Abs(blendedFraction - cappedFraction) > FloatingPointTolerance)
             reasons.Add("Caps applied");
             
         if (finalContracts == 0)
@@ -572,8 +572,16 @@ public class SacState : IDisposable
     
     public double ProposeFraction(double[] marketFeatures, RegimeType regime)
     {
+        ArgumentNullException.ThrowIfNull(marketFeatures);
+        
         // Simplified SAC implementation - in practice would use trained neural network
         var baseProposal = _baseProposals.GetValueOrDefault(regime, SAC_DEFAULT_FALLBACK);
+        
+        // Ensure we have enough features
+        if (marketFeatures.Length < 2)
+        {
+            return baseProposal; // Return base proposal if insufficient features
+        }
         
         // Adjust based on confidence and expected return
         var confidence = marketFeatures[0];
