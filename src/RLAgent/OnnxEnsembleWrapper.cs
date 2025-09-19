@@ -494,7 +494,7 @@ public class OnnxEnsembleWrapper : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[RL-ENSEMBLE] Failed to enable GPU acceleration, falling back to CPU");
+                LogMessages.GpuAccelerationFailed(_logger, ex);
             }
         }
 
@@ -521,8 +521,8 @@ public class OnnxEnsembleWrapper : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL-ENSEMBLE] Model validation failed: {ModelName}", modelSession.Name);
-            throw;
+            LogMessages.ModelValidationFailed(_logger, modelSession.Name, ex);
+            throw new InvalidOperationException($"Model validation failed for {modelSession.Name}", ex);
         }
     }
 
@@ -585,9 +585,17 @@ public class OnnxEnsembleWrapper : IDisposable
             {
                 _batchProcessingTask.Wait(TimeSpan.FromSeconds(5));
             }
-            catch (Exception ex)
+            catch (AggregateException ex)
             {
-                _logger.LogWarning(ex, "[RL-ENSEMBLE] Timeout waiting for batch processing task to complete");
+                LogMessages.BatchProcessingTimeout(_logger, ex);
+            }
+            catch (TaskCanceledException ex)
+            {
+                LogMessages.BatchProcessingTimeout(_logger, ex);
+            }
+            catch (OperationCanceledException ex)
+            {
+                LogMessages.BatchProcessingTimeout(_logger, ex);
             }
 
             foreach (var modelSession in _modelSessions.Values)

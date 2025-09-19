@@ -315,9 +315,17 @@ public class ModelHotReloadManager : IDisposable
                 return element.GetInt32();
             }
         }
-        catch
+        catch (JsonException)
         {
-            // Ignore errors, just return 0
+            // Ignore JSON parsing errors, just return 0
+        }
+        catch (InvalidOperationException)
+        {
+            // Ignore operation errors, just return 0  
+        }
+        catch (ArgumentException)
+        {
+            // Ignore argument errors, just return 0
         }
         
         return 0;

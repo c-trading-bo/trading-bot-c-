@@ -222,6 +222,7 @@ public class MetaLearner
     public void StoreTaskExperience(string taskId, double[] state, double[] action, double reward, double[] nextState, bool done)
     {
         ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
         ArgumentNullException.ThrowIfNull(nextState);
         
         var experience = new TaskExperience
