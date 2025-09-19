@@ -196,6 +196,8 @@ public class CVaRPPO : IDisposable
     /// </summary>
     public Task<ActionResult> GetActionAsync(double[] state, bool deterministic = false, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        
         try
         {
             if (state.Length != _config.StateSize)
@@ -272,6 +274,8 @@ public class CVaRPPO : IDisposable
     /// </summary>
     public void AddExperience(Experience experience)
     {
+        ArgumentNullException.ThrowIfNull(experience);
+        
         _experienceBuffer.Enqueue(experience);
         
         // Limit buffer size
@@ -339,10 +343,20 @@ public class CVaRPPO : IDisposable
             
             return modelPath;
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error saving model");
-            throw;
+            _logger.LogError(ex, "[CVAR_PPO] Access denied when saving model");
+            throw new InvalidOperationException("Failed to save model due to access restrictions", ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Directory not found when saving model");
+            throw new InvalidOperationException("Failed to save model due to missing directory", ex);
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] IO error when saving model");
+            throw new InvalidOperationException("Failed to save model due to IO error", ex);
         }
     }
 
@@ -395,9 +409,19 @@ public class CVaRPPO : IDisposable
             LogMessages.CVaRPPOModelLoaded(_logger, modelPath);
             return true;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error loading model from: {ModelPath}", modelPath);
+            _logger.LogError(ex, "[CVAR_PPO] Model file not found: {ModelPath}", modelPath);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Access denied loading model: {ModelPath}", modelPath);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Invalid model file: {ModelPath}", modelPath);
             return false;
         }
     }

@@ -34,7 +34,7 @@ public static class AlgorithmFactory
     /// <summary>
     /// Create Soft Actor-Critic algorithm
     /// </summary>
-    private static IRLAlgorithm CreateSACAlgorithm(ILogger logger, AlgorithmConfig config)
+    private static SacAlgorithmWrapper CreateSACAlgorithm(ILogger logger, AlgorithmConfig config)
     {
         var sacConfig = new Models.SacConfig
         {
@@ -67,7 +67,7 @@ public static class AlgorithmFactory
     /// <summary>
     /// Create Meta-Learning algorithm
     /// </summary>
-    private static IRLAlgorithm CreateMetaLearningAlgorithm(ILogger logger, AlgorithmConfig config)
+    private static MetaLearningAlgorithmWrapper CreateMetaLearningAlgorithm(ILogger logger, AlgorithmConfig config)
     {
         var metaConfig = new MetaLearningConfig
         {
@@ -96,7 +96,7 @@ public static class AlgorithmFactory
     /// <summary>
     /// Create CVaR-PPO algorithm (existing implementation)
     /// </summary>
-    private static IRLAlgorithm CreateCVaRPPOAlgorithm(ILogger logger, AlgorithmConfig config)
+    private static CVaRppoAlgorithmWrapper CreateCVaRPPOAlgorithm(ILogger logger, AlgorithmConfig config)
     {
         // Use existing CVaRPPO implementation
         var ppoConfig = new CVaRPPOConfig
@@ -249,7 +249,7 @@ public class SacAlgorithmWrapper : IRLAlgorithm
 
     public string GetAlgorithmType() => "SAC";
 
-    public object GetStatistics() => _sac.GetStatistics();
+    public object GetStatistics() => _sac.Statistics;
 }
 
 /// <summary>
@@ -267,7 +267,7 @@ public class MetaLearningAlgorithmWrapper : IRLAlgorithm
 
     public Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
     {
-        var policy = _metaLearner.GetTaskPolicy(_currentTaskId) ?? _metaLearner.GetMetaPolicy();
+        var policy = _metaLearner.GetTaskPolicy(_currentTaskId) ?? _metaLearner.MetaPolicy;
         return Task.FromResult(policy.Predict(state));
     }
 

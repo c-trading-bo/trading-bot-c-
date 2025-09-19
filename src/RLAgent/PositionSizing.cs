@@ -110,7 +110,7 @@ public class PositionSizing
                     Timestamp = DateTime.UtcNow
                 };
 
-                LogMessages.PositionSizingCalculated(_logger, request.Symbol, request.Strategy, request.Regime, kellyFraction, sacFraction, regimeClip, finalContracts);
+                LogMessages.PositionSizingCalculated(_logger, request.Symbol, request.Strategy, request.Regime.ToString(), kellyFraction, sacFraction, regimeClip, finalContracts);
 
                 return result;
             }

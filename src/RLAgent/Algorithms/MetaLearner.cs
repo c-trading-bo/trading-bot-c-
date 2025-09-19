@@ -69,7 +69,7 @@ public class MetaLearner
     /// </summary>
     public Task<PolicyNetwork> AdaptToTaskAsync(
         string taskId, 
-        List<TaskExperience> supportSet, 
+        IReadOnlyList<TaskExperience> supportSet, 
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(supportSet);
@@ -127,7 +127,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
-            throw; // Rethrow memory issues
+            throw new InvalidOperationException($"Meta-learning task adaptation failed due to memory exhaustion for task: {taskId}", ex);
         }
     }
 
@@ -212,7 +212,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during meta-training");
-            throw; // Rethrow memory issues
+            throw new InvalidOperationException("Meta-learning training failed due to memory exhaustion during batch processing", ex);
         }
     }
 
@@ -250,10 +250,7 @@ public class MetaLearner
     /// <summary>
     /// Get meta-policy for general use
     /// </summary>
-    public PolicyNetwork GetMetaPolicy()
-    {
-        return _metaPolicy;
-    }
+    public PolicyNetwork MetaPolicy => _metaPolicy;
 
     /// <summary>
     /// Fast adaptation without storing the adapted policy
@@ -451,7 +448,7 @@ public class MetaLearner
             TaskCount = _metaBuffer.TaskCount,
             TotalExperiences = _metaBuffer.TotalExperiences,
             AdaptedTasks = _taskPolicies.Count,
-            AverageAdaptationPerformance = _adaptationHistory.Values.Any() ? 
+            AverageAdaptationPerformance = _adaptationHistory.Values.Count > 0 ? 
                 _adaptationHistory.Values.Average(h => h.LastPerformance) : 0.0
         };
     }
@@ -585,12 +582,12 @@ public class MetaExperienceBuffer
         }
     }
 
-    public List<TaskData> SampleMetaBatch(int batchSize)
+    public IReadOnlyList<TaskData> SampleMetaBatch(int batchSize)
     {
         var availableTasks = _tasks.Values.Where(t => t.Experiences.Count > 0).ToList();
         
         if (availableTasks.Count == 0)
-            return new List<TaskData>();
+            return Array.Empty<TaskData>();
         
         var taskIndices = new HashSet<int>();
         
@@ -599,7 +596,7 @@ public class MetaExperienceBuffer
             taskIndices.Add(GenerateSecureRandomInt(availableTasks.Count));
         }
         
-        return taskIndices.Select(index => availableTasks[index]).ToList();
+        return taskIndices.Select(index => availableTasks[index]).ToArray();
     }
     
     private static int GenerateSecureRandomInt(int maxValue)
@@ -664,6 +661,8 @@ public class PolicyNetwork
 
     public double[] Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+        
         // Forward pass through network
         var hidden = new double[_hiddenDim];
         var inputWeights = _parameters["input_weights"];
@@ -700,6 +699,9 @@ public class PolicyNetwork
 
     public void UpdateParameter(string paramName, double[] gradient, double learningRate)
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+        ArgumentNullException.ThrowIfNull(gradient);
+        
         if (_parameters.TryGetValue(paramName, out var param))
         {
             for (int i = 0; i < Math.Min(param.Length, gradient.Length); i++)

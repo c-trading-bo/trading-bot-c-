@@ -83,7 +83,7 @@ public class OnnxEnsembleWrapper : IDisposable
             }
 
             // Configure session options for GPU and optimization
-            var sessionOptions = CreateSessionOptions();
+            using var sessionOptions = CreateSessionOptions();
             
             var session = new InferenceSession(modelPath, sessionOptions);
             var modelSession = new ModelSession
@@ -103,7 +103,22 @@ public class OnnxEnsembleWrapper : IDisposable
             LogMessages.ModelLoaded(_logger, modelName, confidence);
             return true;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (OutOfMemoryException ex)
         {
             LogMessages.ModelLoadFailed(_logger, modelName, ex);
             return false;
@@ -128,7 +143,12 @@ public class OnnxEnsembleWrapper : IDisposable
             }
             return false;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.ModelUnloadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.ModelUnloadFailed(_logger, modelName, ex);
             return false;
@@ -168,7 +188,7 @@ public class OnnxEnsembleWrapper : IDisposable
         };
 
         // Submit to queue
-        if (!await _inferenceWriter.WaitToWriteAsync(cancellationToken))
+        if (!await _inferenceWriter.WaitToWriteAsync(cancellationToken).ConfigureAwait(false))
         {
             throw new InvalidOperationException("Inference queue is closed");
         }
@@ -190,7 +210,7 @@ public class OnnxEnsembleWrapper : IDisposable
             AverageLatencyMs = CalculateAverageLatency(),
             MemoryUsageMB = GC.GetTotalMemory(false) / BytesToMegabytes,
             QueueSize = _inferenceQueue.Reader.CanCount ? _inferenceQueue.Reader.Count : -1,
-            IsHealthy = loadedModels.Any() && !_disposed
+            IsHealthy = loadedModels.Count > 0 && !_disposed
         };
     }
 
@@ -232,7 +252,11 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Expected when shutting down
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.BatchProcessingError(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.BatchProcessingError(_logger, ex);
         }
@@ -250,7 +274,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             try
             {
-                if (await _inferenceQueue.Reader.WaitToReadAsync(cts.Token))
+                if (await _inferenceQueue.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false))
                 {
                     while (_inferenceQueue.Reader.TryRead(out var request) && batch.Count < _options.MaxBatchSize)
                     {
@@ -299,7 +323,7 @@ public class OnnxEnsembleWrapper : IDisposable
             var totalLatency = (DateTime.UtcNow - startTime).TotalMilliseconds;
             LogMessages.BatchProcessed(_logger, batch.Count, totalLatency);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             LogMessages.InferenceBatchError(_logger, ex);
             
@@ -309,12 +333,30 @@ public class OnnxEnsembleWrapper : IDisposable
                 request.TaskCompletionSource.SetException(ex);
             }
         }
+        catch (OutOfMemoryException ex)
+        {
+            LogMessages.InferenceBatchError(_logger, ex);
+            
+            // Complete all requests with error
+            foreach (var request in batch)
+            {
+                request.TaskCompletionSource.SetException(ex);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Complete all requests with cancellation
+            foreach (var request in batch)
+            {
+                request.TaskCompletionSource.SetCanceled();
+            }
+        }
     }
 
     private async Task<EnsemblePrediction[]> RunEnsembleInferenceAsync(float[][] batchFeatures)
     {
         var modelSessions = _modelSessions.Values.ToList();
-        if (!modelSessions.Any())
+        if (modelSessions.Count == 0)
         {
             throw new InvalidOperationException("No models loaded");
         }
@@ -346,7 +388,15 @@ public class OnnxEnsembleWrapper : IDisposable
                 modelSession.InferenceCount += batchSize;
                 modelSession.LastUsed = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
+            }
+            catch (OutOfMemoryException ex)
+            {
+                LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
+            }
+            catch (ObjectDisposedException ex)
             {
                 LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
             }
@@ -385,7 +435,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
         // Run inference
         using var results = modelSession.Session.Run(inputs);
-        var outputTensor = results.First().AsTensor<float>();
+        var outputTensor = results[0].AsTensor<float>();
 
         // Extract predictions
         var predictions = new ModelPrediction[batchSize];
@@ -405,7 +455,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
     private static EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
     {
-        if (!prediction.Predictions.Any())
+        if (prediction.Predictions.Count == 0)
         {
             prediction.EnsembleResult = 0.0f;
             prediction.Confidence = 0.0;

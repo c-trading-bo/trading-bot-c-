@@ -69,6 +69,8 @@ public class SacState
     /// </summary>
     public double ProposeFraction(double[] marketFeatures, RegimeType regime)
     {
+        ArgumentNullException.ThrowIfNull(marketFeatures);
+        
         // Use technical indicators and market features to propose a position size fraction
         var rsi = TechnicalIndicators.GetValueOrDefault("RSI", 50.0);
         var volatility = TechnicalIndicators.GetValueOrDefault("Volatility", 0.1);

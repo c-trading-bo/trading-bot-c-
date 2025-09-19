@@ -25,7 +25,7 @@ internal static class NeuralNetworkConstants
 /// Soft Actor-Critic (SAC) algorithm implementation for continuous control
 /// Designed for position sizing and entry/exit timing in trading systems
 /// </summary>
-public class SoftActorCritic
+public class SoftActorCritic : IDisposable
 {
     private readonly ILogger<SoftActorCritic> _logger;
     private readonly Models.SacConfig _config;
@@ -118,7 +118,7 @@ public class SoftActorCritic
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[SAC] Out of memory during action selection");
-            throw; // Rethrow memory issues
+            throw; // Rethrow system exceptions as-is
         }
     }
 
@@ -127,6 +127,10 @@ public class SoftActorCritic
     /// </summary>
     public void StoreExperience(double[] state, double[] action, double reward, double[] nextState, bool done)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(nextState);
+        
         var experience = new Experience
         {
             State = (double[])state.Clone(),
@@ -203,13 +207,31 @@ public class SoftActorCritic
             
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SAC] Training failed");
+            _logger.LogError(ex, "[SAC] Training failed due to invalid operation");
             return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = ex.Message
+            };
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "[SAC] Training failed due to memory exhaustion");
+            return new Models.SacTrainingResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("[SAC] Training was cancelled");
+            return new Models.SacTrainingResult
+            {
+                Success = false,
+                Message = "Training cancelled"
             };
         }
     }
@@ -342,16 +364,34 @@ public class SoftActorCritic
     /// <summary>
     /// Get current training statistics
     /// </summary>
-    public Models.SacStatistics GetStatistics()
+    public Models.SacStatistics Statistics => new Models.SacStatistics
     {
-        return new Models.SacStatistics
+        TotalSteps = _totalSteps,
+        AverageReward = _averageReward,
+        Entropy = _entropy,
+        BufferSize = _replayBuffer.Count,
+        MaxBufferSize = _config.BufferSize
+    };
+
+    /// <summary>
+    /// Dispose pattern implementation
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Dispose pattern implementation
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            TotalSteps = _totalSteps,
-            AverageReward = _averageReward,
-            Entropy = _entropy,
-            BufferSize = _replayBuffer.Count,
-            MaxBufferSize = _config.BufferSize
-        };
+            _actor?.Dispose();
+            _replayBuffer?.Dispose();
+        }
     }
 }
 
@@ -452,7 +492,7 @@ public class ExperienceReplayBuffer : IDisposable
         }
     }
 
-    public List<Experience> SampleBatch(int batchSize)
+    public IReadOnlyList<Experience> SampleBatch(int batchSize)
     {
         if (batchSize > _buffer.Count)
             throw new ArgumentException($"Batch size {batchSize} is larger than buffer size {_buffer.Count}");

@@ -17,6 +17,8 @@ namespace TradingBot.RLAgent;
 /// </summary>
 public class ModelHotReloadManager : IDisposable
 {
+    private const double TestFeatureRangeMultiplier = 2.0;
+    
     private readonly ILogger<ModelHotReloadManager> _logger;
     private readonly OnnxEnsembleWrapper _onnxEnsemble;
     private readonly ModelHotReloadOptions _options;
@@ -71,9 +73,17 @@ public class ModelHotReloadManager : IDisposable
             LogMessages.ModelFileChangeDetected(_logger, e.FullPath);
             
             // Process hot-reload on background thread
-            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath), _cancellationTokenSource.Token).ConfigureAwait(false);
+            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath).ConfigureAwait(false), _cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+        }
+        catch (UnauthorizedAccessException ex)
         {
             _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
         }
@@ -84,7 +94,7 @@ public class ModelHotReloadManager : IDisposable
     /// </summary>
     private async Task ProcessHotReloadAsync(string modelPath)
     {
-        if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token))
+        if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token).ConfigureAwait(false))
         {
             _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
             return;
@@ -128,9 +138,21 @@ public class ModelHotReloadManager : IDisposable
             // Update model registry for tracking
             UpdateModelRegistry(fileName, candidateModelName);
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Error during hot-reload process: {ModelPath}", modelPath);
+            _logger.LogError(ex, "[HOT_RELOAD] Model file not found during hot-reload: {ModelPath}", modelPath);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Access denied during hot-reload: {ModelPath}", modelPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Invalid operation during hot-reload: {ModelPath}", modelPath);
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Out of memory during hot-reload: {ModelPath}", modelPath);
         }
         finally
         {
@@ -181,9 +203,19 @@ public class ModelHotReloadManager : IDisposable
             LogMessages.SmokeTestsPassed(_logger, modelName);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[HOT_RELOAD] Smoke test error for: {ModelName}", modelName);
+            _logger.LogError(ex, "[HOT_RELOAD] Smoke test failed due to invalid operation: {ModelName}", modelName);
+            return false;
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Smoke test failed due to memory exhaustion: {ModelName}", modelName);
+            return false;
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Smoke test timed out: {ModelName}", modelName);
             return false;
         }
     }
@@ -211,7 +243,7 @@ public class ModelHotReloadManager : IDisposable
                 var randomBytes = new byte[4];
                 rng.GetBytes(randomBytes);
                 var randomValue = (double)BitConverter.ToUInt32(randomBytes, 0) / uint.MaxValue;
-                features[j] = (float)(randomValue * 2.0 - 1.0); // [-1, 1] range
+                features[j] = (float)(randomValue * TestFeatureRangeMultiplier - 1.0); // [-1, 1] range
             }
             
             inputs.Add(features);
@@ -250,9 +282,17 @@ public class ModelHotReloadManager : IDisposable
             var json = System.Text.Json.JsonSerializer.Serialize(registry, JsonOptions);
             File.WriteAllText(registryPath, json);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "[HOT_RELOAD] Failed to update model registry");
+            _logger.LogWarning(ex, "[HOT_RELOAD] Access denied when updating model registry");
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "[HOT_RELOAD] Directory not found when updating model registry");
+        }
+        catch (IOException ex)
+        {
+            _logger.LogWarning(ex, "[HOT_RELOAD] IO error when updating model registry");
         }
     }
 

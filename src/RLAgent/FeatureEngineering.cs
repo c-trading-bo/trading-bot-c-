@@ -33,6 +33,24 @@ public class FeatureEngineering : IDisposable
     private const int DefaultLookbackPeriods = 10;
     private const int FeatureImportanceTopCount = 5;
     
+    // Default sentinel values for missing features
+    private const double DefaultVolatilitySentinel = 0.15;
+    private const double DefaultRsiSentinel = 0.5;
+    private const double DefaultBollingerSentinel = 0.5;
+    
+    // Boundary constants for feature validation
+    private const double MinValidRsiValue = 15.0;
+    private const double MaxValidRsiValue = 50.0;
+    private const double FeatureEpsilon = 1E-10;
+    private const double PercentageNormalizationFactor = 100.0;
+    private const double BollingerBandMidpoint = 0.5;
+    
+    // Static readonly arrays for performance
+    private static readonly double[] PriceSentinelValues = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+    private static readonly string[] PriceFeatureNames = { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" };
+    private static readonly double[] VolumeSentinelValues = { 0.0, 0.0, 0.0 };
+    private static readonly string[] VolumeFeatureNames = { "volume_ratio", "volume_trend", "volume_volatility" };
+    
     // LoggerMessage delegates for performance
     private static readonly Action<ILogger, Exception?> LogDailyReportError =
         LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(LogDailyReportError)), "[FEATURE_ENG] Error in daily feature report");
@@ -105,6 +123,8 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(currentData);
+        
         try
         {
             var featureKey = GetFeatureKey(symbol, strategy, regime);
@@ -157,13 +177,13 @@ public class FeatureEngineering : IDisposable
             state.LastUpdate = DateTime.UtcNow;
             state.FeatureCount = cleanedFeatures.Count;
             
-            LogMessages.FeaturesGenerated(_logger, cleanedFeatures.Count, symbol, strategy, regime);
+            LogMessages.FeaturesGenerated(_logger, cleanedFeatures.Count, symbol, strategy, regime.ToString());
 
             return featureVector;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime, ex);
+            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime.ToString(), ex);
             
             // Return empty feature vector as fallback
             return new FeatureVector
@@ -177,6 +197,28 @@ public class FeatureEngineering : IDisposable
                 FeatureCount = 0,
                 HasMissingValues = true
             };
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime.ToString(), ex);
+            
+            // Return empty feature vector as fallback
+            return new FeatureVector
+            {
+                Symbol = symbol,
+                Strategy = strategy,
+                Regime = regime,
+                Timestamp = currentData.Timestamp,
+                Features = Array.Empty<double>(),
+                FeatureNames = Array.Empty<string>(),
+                FeatureCount = 0,
+                HasMissingValues = true
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation requests
+            throw;
         }
     }
 
@@ -199,9 +241,13 @@ public class FeatureEngineering : IDisposable
             
             LogMessages.FeatureImportanceUpdated(_logger, featureNames.Length, featureKey);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime, ex);
+            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime.ToString(), ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime.ToString(), ex);
         }
     }
 
@@ -212,6 +258,8 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     public async Task<StreamingFeatures> ProcessStreamingTickAsync(MarketTick tick, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(tick);
+        
         try
         {
             var aggregator = _streamingAggregators.GetOrAdd(tick.Symbol, 
@@ -223,10 +271,20 @@ public class FeatureEngineering : IDisposable
             
             return features;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
             throw new InvalidOperationException($"Failed to process streaming tick for symbol {tick.Symbol}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation requests
+            throw;
         }
     }
 
@@ -263,13 +321,13 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Get symbols with stale streaming features
     /// </summary>
-    public List<string> GetStaleStreamingSymbols()
+    public IReadOnlyList<string> GetStaleStreamingSymbols()
     {
         var cutoffTime = DateTime.UtcNow - TimeSpan.FromSeconds(_config.StreamingStaleThresholdSeconds);
         return _streamingAggregators
             .Where(kvp => kvp.Value.LastUpdateTime < cutoffTime)
             .Select(kvp => kvp.Key)
-            .ToList();
+            .ToArray();
     }
 
     /// <summary>
@@ -294,12 +352,16 @@ public class FeatureEngineering : IDisposable
                 }
             }
 
-            if (staleSymbols.Any())
+            if (staleSymbols.Count > 0)
             {
                 LogMessages.StaleAggregatorsCleanup(_logger, staleSymbols.Count);
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.StreamingCleanupError(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
@@ -325,8 +387,8 @@ public class FeatureEngineering : IDisposable
         if (buffer.Count < 2)
         {
             // Not enough data, use sentinel values
-            features.AddRange(new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 });
-            featureNames.AddRange(new[] { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" });
+            features.AddRange(PriceSentinelValues);
+            featureNames.AddRange(PriceFeatureNames);
             return;
         }
 
@@ -345,7 +407,7 @@ public class FeatureEngineering : IDisposable
         var trend = CalculateTrend(buffer.GetLast(trendWindow).Select(d => d.Close).ToArray());
 
         features.AddRange(new[] { returns1, returns5, returns20, volatility, trend });
-        featureNames.AddRange(new[] { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" });
+        featureNames.AddRange(PriceFeatureNames);
     }
 
     /// <summary>
@@ -365,8 +427,8 @@ public class FeatureEngineering : IDisposable
         
         if (buffer.Count < 2)
         {
-            features.AddRange(new double[] { 0.0, 0.0, 0.0 });
-            featureNames.AddRange(new[] { "volume_ratio", "volume_trend", "volume_volatility" });
+            features.AddRange(VolumeSentinelValues);
+            featureNames.AddRange(VolumeFeatureNames);
             return;
         }
 
@@ -383,7 +445,7 @@ public class FeatureEngineering : IDisposable
         var volumeVolatility = CalculateVolatility(recentVolumes);
 
         features.AddRange(new[] { volumeRatio, volumeTrend, volumeVolatility });
-        featureNames.AddRange(new[] { "volume_ratio", "volume_trend", "volume_volatility" });
+        featureNames.AddRange(VolumeFeatureNames);
     }
 
     /// <summary>
@@ -577,9 +639,9 @@ public class FeatureEngineering : IDisposable
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
-            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => 0.15,
-            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => 0.5,
-            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => DefaultVolatilitySentinel,
+            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => DefaultRsiSentinel,
+            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => DefaultBollingerSentinel,
             var name when name.Contains("regime", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("spread", StringComparison.OrdinalIgnoreCase) => 1.0,
             _ => 0.0
@@ -646,7 +708,7 @@ public class FeatureEngineering : IDisposable
     private static double CalculateRSI(MarketData[] buffer, MarketData current)
     {
         var allData = buffer.Append(current).ToArray();
-        if (allData.Length < 15) return 50.0; // Default neutral RSI
+        if (allData.Length < MinValidRsiValue) return MaxValidRsiValue; // Default neutral RSI
         
         var gains = new List<double>();
         var losses = new List<double>();
@@ -669,10 +731,10 @@ public class FeatureEngineering : IDisposable
         var avgGain = gains.TakeLast(14).Average();
         var avgLoss = losses.TakeLast(14).Average();
         
-        if (Math.Abs(avgLoss) < 1e-10) return 100.0;
+        if (Math.Abs(avgLoss) < FeatureEpsilon) return PercentageNormalizationFactor;
         
         var rs = avgGain / avgLoss;
-        return 100.0 - (100.0 / (1.0 + rs));
+        return PercentageNormalizationFactor - (PercentageNormalizationFactor / (1.0 + rs));
     }
 
     private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
@@ -687,7 +749,7 @@ public class FeatureEngineering : IDisposable
         var upperBand = sma + (2.0 * stdDev);
         var lowerBand = sma - (2.0 * stdDev);
         
-        if (upperBand <= lowerBand) return 0.5;
+        if (upperBand <= lowerBand) return BollingerBandMidpoint;
         
         return (current.Close - lowerBand) / (upperBand - lowerBand);
     }
