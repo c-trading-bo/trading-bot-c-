@@ -252,7 +252,11 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Expected when shutting down
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.BatchProcessingError(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.BatchProcessingError(_logger, ex);
         }
@@ -384,7 +388,15 @@ public class OnnxEnsembleWrapper : IDisposable
                 modelSession.InferenceCount += batchSize;
                 modelSession.LastUsed = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
+            }
+            catch (OutOfMemoryException ex)
+            {
+                LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
+            }
+            catch (ObjectDisposedException ex)
             {
                 LogMessages.ModelInferenceError(_logger, modelSession.Name, ex);
             }

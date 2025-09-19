@@ -45,6 +45,12 @@ public class FeatureEngineering : IDisposable
     private const double PercentageNormalizationFactor = 100.0;
     private const double BollingerBandMidpoint = 0.5;
     
+    // Static readonly arrays for performance
+    private static readonly double[] PriceSentinelValues = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+    private static readonly string[] PriceFeatureNames = { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" };
+    private static readonly double[] VolumeSentinelValues = { 0.0, 0.0, 0.0 };
+    private static readonly string[] VolumeFeatureNames = { "volume_ratio", "volume_trend", "volume_volatility" };
+    
     // LoggerMessage delegates for performance
     private static readonly Action<ILogger, Exception?> LogDailyReportError =
         LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(LogDailyReportError)), "[FEATURE_ENG] Error in daily feature report");
@@ -175,7 +181,7 @@ public class FeatureEngineering : IDisposable
 
             return featureVector;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime.ToString(), ex);
             
@@ -191,6 +197,28 @@ public class FeatureEngineering : IDisposable
                 FeatureCount = 0,
                 HasMissingValues = true
             };
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.FeatureGenerationError(_logger, symbol, strategy, regime.ToString(), ex);
+            
+            // Return empty feature vector as fallback
+            return new FeatureVector
+            {
+                Symbol = symbol,
+                Strategy = strategy,
+                Regime = regime,
+                Timestamp = currentData.Timestamp,
+                Features = Array.Empty<double>(),
+                FeatureNames = Array.Empty<string>(),
+                FeatureCount = 0,
+                HasMissingValues = true
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation requests
+            throw;
         }
     }
 
@@ -213,7 +241,11 @@ public class FeatureEngineering : IDisposable
             
             LogMessages.FeatureImportanceUpdated(_logger, featureNames.Length, featureKey);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime.ToString(), ex);
+        }
+        catch (InvalidOperationException ex)
         {
             LogMessages.FeatureImportanceError(_logger, symbol, strategy, regime.ToString(), ex);
         }
@@ -239,10 +271,20 @@ public class FeatureEngineering : IDisposable
             
             return features;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
             throw new InvalidOperationException($"Failed to process streaming tick for symbol {tick.Symbol}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation requests
+            throw;
         }
     }
 
@@ -310,12 +352,16 @@ public class FeatureEngineering : IDisposable
                 }
             }
 
-            if (staleSymbols.Any())
+            if (staleSymbols.Count > 0)
             {
                 LogMessages.StaleAggregatorsCleanup(_logger, staleSymbols.Count);
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.StreamingCleanupError(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
@@ -341,8 +387,8 @@ public class FeatureEngineering : IDisposable
         if (buffer.Count < 2)
         {
             // Not enough data, use sentinel values
-            features.AddRange(new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 });
-            featureNames.AddRange(new[] { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" });
+            features.AddRange(PriceSentinelValues);
+            featureNames.AddRange(PriceFeatureNames);
             return;
         }
 
@@ -361,7 +407,7 @@ public class FeatureEngineering : IDisposable
         var trend = CalculateTrend(buffer.GetLast(trendWindow).Select(d => d.Close).ToArray());
 
         features.AddRange(new[] { returns1, returns5, returns20, volatility, trend });
-        featureNames.AddRange(new[] { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" });
+        featureNames.AddRange(PriceFeatureNames);
     }
 
     /// <summary>
@@ -381,8 +427,8 @@ public class FeatureEngineering : IDisposable
         
         if (buffer.Count < 2)
         {
-            features.AddRange(new double[] { 0.0, 0.0, 0.0 });
-            featureNames.AddRange(new[] { "volume_ratio", "volume_trend", "volume_volatility" });
+            features.AddRange(VolumeSentinelValues);
+            featureNames.AddRange(VolumeFeatureNames);
             return;
         }
 
@@ -399,7 +445,7 @@ public class FeatureEngineering : IDisposable
         var volumeVolatility = CalculateVolatility(recentVolumes);
 
         features.AddRange(new[] { volumeRatio, volumeTrend, volumeVolatility });
-        featureNames.AddRange(new[] { "volume_ratio", "volume_trend", "volume_volatility" });
+        featureNames.AddRange(VolumeFeatureNames);
     }
 
     /// <summary>

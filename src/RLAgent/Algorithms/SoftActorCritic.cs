@@ -207,13 +207,31 @@ public class SoftActorCritic : IDisposable
             
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SAC] Training failed");
+            _logger.LogError(ex, "[SAC] Training failed due to invalid operation");
             return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = ex.Message
+            };
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "[SAC] Training failed due to memory exhaustion");
+            return new Models.SacTrainingResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("[SAC] Training was cancelled");
+            return new Models.SacTrainingResult
+            {
+                Success = false,
+                Message = "Training cancelled"
             };
         }
     }
