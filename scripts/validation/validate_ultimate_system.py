@@ -7,7 +7,7 @@ Validates that all components are properly wired and working
 import os
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 def validate_directory_structure():
@@ -87,9 +87,9 @@ def create_sample_data():
     
     # Sample market data
     market_sample = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "ES=F": {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "category": "futures",
             "price": 4500.25,
             "volume": 150000,
@@ -109,7 +109,7 @@ def create_sample_data():
     
     # Sample news data
     news_sample = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "article_count": 10,
         "avg_sentiment": 0.15,
         "news_intensity": 0.7,
@@ -131,7 +131,7 @@ def create_sample_data():
     
     # Sample zone data
     zones_sample = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "symbol": "ES=F",
         "current_price": 4500.25,
         "supply_zones": [
@@ -171,7 +171,7 @@ def generate_system_report():
         script_count += len([f for f in files if f.endswith('.py')])
     
     report = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "system_status": "READY",
         "components": {
             "workflows": {

@@ -1,0 +1,32 @@
+{
+  "CloudTrainer": {
+    "Enabled": true,
+    "PollIntervalMinutes": 15,
+    "InstallDir": "models/cloud",
+    "TempDir": "models/.staging",
+    "RegistryFile": "config/model-registry.json",
+    "Github": {
+      "Owner": "your-org",
+      "Repo": "ml-models",
+      "Token": "",
+      "TagPattern": "v*"
+    },
+    "Releases": {
+      "BaseUrl": "https://api.your-cloud-provider.com/models",
+      "ApiKey": "",
+      "VerifySignatures": true
+    },
+    "Http": {
+      "TimeoutSeconds": 300,
+      "MaxRetries": 3,
+      "RateLimitPerMinute": 60,
+      "UseETag": true
+    },
+    "Performance": {
+      "MaxConcurrentDownloads": 3,
+      "MaxFileSizeBytes": 1073741824,
+      "EnableCompression": true,
+      "PerformanceStore": "config/performance-store.json"
+    }
+  }
+}

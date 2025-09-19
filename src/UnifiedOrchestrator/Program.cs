@@ -779,7 +779,6 @@ Stack Trace:
                 services.TryAddSingleton<BotCore.Services.TradingProgressMonitor>();
                 services.TryAddSingleton<BotCore.Services.TimeOptimizedStrategyManager>();
                 // NOTE: TopstepXService disabled to avoid SignalR connection conflicts
-                services.TryAddSingleton<TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
                 
                 // Try to register more complex services (these might fail due to missing dependencies)
@@ -977,17 +976,7 @@ Stack Trace:
         
         // ================================================================================
         
-        // Register BotCore LocalBotMechanicIntegration service if available  
-        try
-        {
-            // Note: LocalBotMechanicIntegration exists in Intelligence folder, not BotCore.Services
-            // Will integrate this separately when Intelligence folder is properly referenced
-        }
-        catch (Exception ex)
-        {
-            // LocalBotMechanicIntegration registration failures are non-critical
-            Console.WriteLine($"Warning: LocalBotMechanicIntegration registration failed: {ex.Message}");
-        }
+
         
         // Register core agents and clients that exist in BotCore
         // NOTE: Hub-creating services disabled - functionality provided by TopstepX adapter

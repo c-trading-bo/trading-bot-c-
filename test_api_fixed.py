@@ -6,7 +6,7 @@ Addresses validation errors by providing required fields
 import requests
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 def test_topstepx_apis_fixed():
@@ -66,8 +66,8 @@ def test_topstepx_apis_fixed():
             "payload": {
                 "request": {
                     "accountId": account_id,
-                    "startTimestamp": (datetime.utcnow() - timedelta(days=7)).isoformat() + "Z",
-                    "endTimestamp": datetime.utcnow().isoformat() + "Z"
+                    "startTimestamp": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat() + "Z",
+                    "endTimestamp": datetime.now(timezone.utc).isoformat() + "Z"
                 }
             }
         },
@@ -78,8 +78,8 @@ def test_topstepx_apis_fixed():
             "payload": {
                 "request": {
                     "accountId": account_id,
-                    "startTimestamp": (datetime.utcnow() - timedelta(days=7)).isoformat() + "Z",
-                    "endTimestamp": datetime.utcnow().isoformat() + "Z"
+                    "startTimestamp": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat() + "Z",
+                    "endTimestamp": datetime.now(timezone.utc).isoformat() + "Z"
                 }
             }
         },
@@ -200,8 +200,8 @@ if test_endpoint('POST', '/api/Position/search', {
     successful_tests += 1
 
 # 4. Trade search with proper timestamp
-start_time = datetime.utcnow() - timedelta(days=7)  # Last 7 days
-end_time = datetime.utcnow()
+start_time = datetime.now(timezone.utc) - timedelta(days=7)  # Last 7 days
+end_time = datetime.now(timezone.utc)
 
 total_tests += 1
 if test_endpoint('POST', '/api/Trade/search', {

@@ -8,7 +8,7 @@ Integrates with C# trading bot to capture features at trade time.
 import json
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import logging
 
@@ -33,7 +33,7 @@ class LiveTradeCollector:
         
         # Ensure required fields exist
         sample = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'trade_id': trade_data.get('trade_id', f'trade_{self.trade_counter}'),
             'symbol': trade_data.get('symbol', 'ES'),
             'action': trade_data.get('action', 'HOLD'),
@@ -64,7 +64,7 @@ class LiveTradeCollector:
     def save_sample(self, sample):
         """Save sample to JSONL file"""
         
-        date_str = datetime.utcnow().strftime('%Y%m%d')
+        date_str = datetime.now(timezone.utc).strftime('%Y%m%d')
         filename = self.output_dir / f"live_trades_{date_str}.jsonl"
         
         with open(filename, 'a') as f:
@@ -79,7 +79,7 @@ class LiveTradeCollector:
                 sample['result'] = result_data.get('result', 'unknown')  # 'win' or 'loss'
                 sample['pnl'] = float(result_data.get('pnl', 0))
                 sample['exit_price'] = float(result_data.get('exit_price', 0))
-                sample['exit_time'] = result_data.get('exit_time', datetime.utcnow().isoformat())
+                sample['exit_time'] = result_data.get('exit_time', datetime.now(timezone.utc).isoformat())
                 sample['holding_time_minutes'] = float(result_data.get('holding_time_minutes', 0))
                 sample['R_multiple'] = float(result_data.get('R_multiple', 0))
                 sample['max_drawdown'] = float(result_data.get('max_drawdown', 0))
@@ -160,7 +160,7 @@ class LiveTradeCollector:
         
         if csv_data:
             df = pd.DataFrame(csv_data)
-            export_file = self.output_dir / f"training_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+            export_file = self.output_dir / f"training_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
             df.to_csv(export_file, index=False)
             
             logger.info(f"[EXPORT] Exported {len(csv_data)} training samples to {export_file}")
@@ -207,7 +207,7 @@ def create_result_data_from_csharp(outcome_data):
         'result': 'win' if outcome_data.get('IsWin', False) else 'loss',
         'pnl': outcome_data.get('ActualPnl', 0),
         'exit_price': outcome_data.get('ExitPrice', 0),
-        'exit_time': outcome_data.get('ExitTime', datetime.utcnow().isoformat()),
+        'exit_time': outcome_data.get('ExitTime', datetime.now(timezone.utc).isoformat()),
         'holding_time_minutes': outcome_data.get('HoldingTimeMinutes', 0),
         'R_multiple': outcome_data.get('ActualRMultiple', 0),
         'max_drawdown': outcome_data.get('MaxDrawdown', 0)
