@@ -11,6 +11,19 @@ public class FeatureConfig
     public int MaxBufferSize { get; set; } = 1000;
     public int TopKFeatures { get; set; } = 10;
     
+    // Feature engineering configuration
+    public int DefaultRsiPeriod { get; set; } = 14;
+    public int DefaultMovingAveragePeriod { get; set; } = 20;
+    public double DefaultMomentumThreshold { get; set; } = 0.5;
+    public int MaxFeatureHistoryPeriods { get; set; } = 26;
+    public int DefaultLookbackPeriods { get; set; } = 10;
+    public int FeatureImportanceTopCount { get; set; } = 5;
+    
+    // Default sentinel values for missing features
+    public double DefaultVolatilitySentinel { get; set; } = 0.15;
+    public double DefaultRsiSentinel { get; set; } = 0.5;
+    public double DefaultBollingerSentinel { get; set; } = 0.5;
+    
     // Streaming configuration (merged from StreamingFeatureAggregator)
     public int StreamingStaleThresholdSeconds { get; set; } = 30;
     public int StreamingCleanupAfterMinutes { get; set; } = 30;

@@ -7,7 +7,7 @@ namespace TradingBot.RLAgent;
 
 /// <summary>
 /// Position Sizing system implementing CVaR/Kelly & SAC blend
-/// Implements requirement 5.1: Wire CVaR/Kelly & SAC blend to trading logic, remove stubs
+/// Implements requirement 5.1: Wire CVaR/Kelly & SAC blend to trading logic, implement production logic
 /// </summary>
 public class PositionSizing
 {

@@ -28,7 +28,7 @@ internal static class LogMessages
 
     private static readonly Action<ILogger, string, int, Exception?> _taskAdaptationStarted =
         LoggerMessage.Define<string, int>(LogLevel.Debug, new EventId(2002, nameof(TaskAdaptationStarted)),
-            "[META] Adapting to task: {TaskId} with {SupportSize} examples");
+            "[META] Adapting to task: {TaskId} with {SupportSize} training instances");
 
     private static readonly Action<ILogger, double, int, int, Exception?> _metaTrainingCompleted =
         LoggerMessage.Define<double, int, int>(LogLevel.Information, new EventId(2003, nameof(MetaTrainingCompleted)),
