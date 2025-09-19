@@ -77,7 +77,13 @@ public class SacState
         };
         
         // Calculate base fraction based on RSI (mean reversion)
-        var rsiFraction = (rsi > 70) ? -0.3 : (rsi < 30) ? 0.3 : 0.0;
+        double rsiFraction;
+        if (rsi > 70)
+            rsiFraction = -0.3;
+        else if (rsi < 30)
+            rsiFraction = 0.3;
+        else
+            rsiFraction = 0.0;
         
         // Adjust for momentum using market features
         var momentumFraction = marketFeatures.Length > 0 ? Math.Sign(marketFeatures[0]) * Math.Min(Math.Abs(marketFeatures[0]) * 0.5, 0.2) : 0.0;

@@ -42,6 +42,9 @@ public class CVaRPPO : IDisposable
     private const double TensorDimensionFactor = 2;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
+    // Cached JSON serializer options
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // Performance tracking
     private readonly CircularBuffer<double> _rewardHistory = new(1000);
     private readonly CircularBuffer<double> _lossHistory = new(1000);
@@ -321,7 +324,7 @@ public class CVaRPPO : IDisposable
                 }
             };
 
-            var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
             await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Create checkpoint record

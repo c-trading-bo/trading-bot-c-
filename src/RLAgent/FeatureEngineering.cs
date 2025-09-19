@@ -18,6 +18,9 @@ public class FeatureEngineering : IDisposable
     private readonly ConcurrentDictionary<string, CircularBuffer<MarketData>> _marketDataBuffers = new();
     private readonly ConcurrentDictionary<string, FeatureImportanceTracker> _importanceTrackers = new();
     
+    // Cached JSON serializer options
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // Streaming aggregation components (merged from StreamingFeatureAggregator)
     private readonly ConcurrentDictionary<string, StreamingSymbolAggregator> _streamingAggregators = new();
     private readonly Timer _cleanupTimer;
@@ -702,7 +705,12 @@ public class FeatureEngineering : IDisposable
         var last = buffer.GetFromEnd(0);
         if (last == null) return 0;
         
-        return current.Close > last.Close ? 1 : (current.Close < last.Close ? -1 : 0);
+        if (current.Close > last.Close) 
+            return 1;
+        else if (current.Close < last.Close) 
+            return -1;
+        else 
+            return 0;
     }
 
     private static double CalculateOrderFlowImbalance(MarketData[] buffer, int currentTickDirection)
@@ -829,16 +837,28 @@ public class FeatureEngineering : IDisposable
             }
             
             // Save report to file
-            var reportJson = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            var reportJson = JsonSerializer.Serialize(report, JsonOptions);
             var reportPath = Path.Combine("reports", $"feature_importance_{DateTime.UtcNow:yyyyMMdd}.json");
             Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
             await File.WriteAllTextAsync(reportPath, reportJson).ConfigureAwait(false);
             
             _logger.LogInformation("[FEATURE_ENG] Daily feature importance report saved: {ReportPath}", reportPath);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Error generating daily feature importance report");
+            _logger.LogError(ex, "[FEATURE_ENG] Access denied while generating daily feature importance report");
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Directory not found while generating daily feature importance report");
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] IO error while generating daily feature importance report");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Invalid operation while generating daily feature importance report");
         }
     }
 
@@ -1095,13 +1115,9 @@ public class StreamingSymbolAggregator : IDisposable
         }
 
         // Add time window features using configured windows
-        foreach (var kvp in _windowAggregators)
+        foreach (var kvp in _windowAggregators.Where(w => _config.StreamingTimeWindows.Contains(w.Key)))
         {
-            // Validate against config to ensure we're using configured windows
-            if (_config.StreamingTimeWindows.Contains(kvp.Key))
-            {
-                features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
-            }
+            features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
         }
 
         return features;
@@ -1322,7 +1338,12 @@ public class MicrostructureCalculator : IDisposable
         var last = _ticks[_ticks.Count - 1];
         var previous = _ticks[_ticks.Count - 2];
         
-        return last.Price > previous.Price ? 1 : (last.Price < previous.Price ? -1 : 0);
+        if (last.Price > previous.Price) 
+            return 1;
+        else if (last.Price < previous.Price) 
+            return -1;
+        else 
+            return 0;
     }
 
     private double CalculateVolumeImbalance()
