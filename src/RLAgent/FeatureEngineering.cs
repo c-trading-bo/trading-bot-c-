@@ -294,7 +294,7 @@ public class FeatureEngineering : IDisposable
     public StreamingFeatures? GetCachedStreamingFeatures(string symbol)
     {
         return _streamingAggregators.TryGetValue(symbol, out var aggregator) 
-            ? aggregator.GetCurrentFeatures() 
+            ? aggregator.CurrentFeatures 
             : null;
     }
 
@@ -305,7 +305,7 @@ public class FeatureEngineering : IDisposable
     {
         return _streamingAggregators.ToDictionary(
             kvp => kvp.Key, 
-            kvp => kvp.Value.GetCurrentFeatures()
+            kvp => kvp.Value.CurrentFeatures
         );
     }
 
@@ -357,11 +357,11 @@ public class FeatureEngineering : IDisposable
                 LogMessages.StaleAggregatorsCleanup(_logger, staleSymbols.Count);
             }
         }
-        catch (InvalidOperationException ex)
+        catch (ObjectDisposedException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
-        catch (ObjectDisposedException ex)
+        catch (InvalidOperationException ex)
         {
             LogMessages.StreamingCleanupError(_logger, ex);
         }
