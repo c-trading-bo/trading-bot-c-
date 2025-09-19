@@ -53,6 +53,8 @@ public class SacState
     
     public SacState(double[] features) : this()
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         Features = (double[])features.Clone();
     }
     

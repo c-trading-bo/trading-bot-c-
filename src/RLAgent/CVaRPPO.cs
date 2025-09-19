@@ -457,7 +457,7 @@ public class CVaRPPO : IDisposable
         var cvarTargets = new double[experiences.Count];
         
         // Calculate values for GAE (Generalized Advantage Estimation)
-        var values = experiences.Select(e => _valueNetwork.Forward(e.State)[0]).ToArray();
+        var values = experiences.Select(e => _valueNetwork.Forward(e.State.ToArray())[0]).ToArray();
         
         // GAE calculation
         var gaeAdvantage = 0.0;
@@ -529,7 +529,7 @@ public class CVaRPPO : IDisposable
             var cvarTarget = cvarTargets[i];
             
             // Policy loss (PPO clipped objective)
-            var newPolicyOutput = _policyNetwork.Forward(experience.State);
+            var newPolicyOutput = _policyNetwork.Forward(experience.State.ToArray());
             var newActionProbs = SoftmaxActivation(newPolicyOutput);
             var newLogProb = Math.Log(Math.Max(newActionProbs[experience.Action], 1e-8));
             
@@ -545,12 +545,12 @@ public class CVaRPPO : IDisposable
             policyLoss -= _config.EntropyCoeff * entropyBonus;
             
             // Value loss
-            var newValueEstimate = _valueNetwork.Forward(experience.State)[0];
+            var newValueEstimate = _valueNetwork.Forward(experience.State.ToArray())[0];
             var valueDelta = experience.Return - newValueEstimate;
             valueLoss += valueDelta * valueDelta;
             
             // CVaR loss
-            var newCVaREstimate = _cvarNetwork.Forward(experience.State)[0];
+            var newCVaREstimate = _cvarNetwork.Forward(experience.State.ToArray())[0];
             var cvarDelta = cvarTarget - newCVaREstimate;
             cvarLoss += cvarDelta * cvarDelta;
         }
@@ -668,10 +668,10 @@ public class CVaRPPOConfig
 /// </summary>
 public class Experience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
     public int Action { get; set; }
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
     public double LogProbability { get; set; }
     public double ValueEstimate { get; set; }
@@ -689,7 +689,7 @@ public class ActionResult
     public double LogProbability { get; set; }
     public double ValueEstimate { get; set; }
     public double CVaREstimate { get; set; }
-    public double[] ActionProbabilities { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> ActionProbabilities { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
 }
 

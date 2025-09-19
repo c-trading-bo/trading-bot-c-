@@ -34,11 +34,17 @@ public class OnnxEnsembleWrapper : IDisposable
     
     // Constants
     private const int BytesToMegabytes = 1024 * 1024;
+    private const double DefaultEnsembleConfidence = 0.5;
+    private const double ConfidenceScalingFactor = 0.1;
+    private const double BaseConfidenceOffset = 0.5;
+    private const double DefaultLatencyMs = 50.0;
 
     public OnnxEnsembleWrapper(
         ILogger<OnnxEnsembleWrapper> logger,
         IOptions<OnnxEnsembleOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        
         _logger = logger;
         _options = options.Value;
 
@@ -135,6 +141,8 @@ public class OnnxEnsembleWrapper : IDisposable
     /// </summary>
     public async Task<EnsemblePrediction> PredictAsync(float[] features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         // Input anomaly detection
         var isAnomaly = _anomalyDetector.IsAnomaly(features);
         if (isAnomaly && _options.BlockAnomalousInputs)
@@ -417,7 +425,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Fallback to simple average
             prediction.EnsembleResult = (float)prediction.Predictions.Values.Average(p => p.Value);
-            prediction.Confidence = 0.5;
+            prediction.Confidence = DefaultEnsembleConfidence;
         }
 
         return prediction;
@@ -500,13 +508,13 @@ public class OnnxEnsembleWrapper : IDisposable
     {
         // Simple confidence calculation - could be enhanced based on model type
         var value = Math.Abs(outputTensor[batchIndex, 0]);
-        return Math.Min(1.0, value * 0.1 + 0.5); // Basic mapping
+        return Math.Min(1.0, value * ConfidenceScalingFactor + BaseConfidenceOffset); // Basic mapping
     }
 
     private static double CalculateAverageLatency()
     {
         // Track actual inference latencies from performance metrics
-        return 50.0; // Conservative estimate for production SLA
+        return DefaultLatencyMs; // Conservative estimate for production SLA
     }
 
     #endregion
@@ -650,6 +658,8 @@ public class AnomalyDetector
 
     public bool IsAnomaly(float[] features)
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         bool isAnomaly = false;
 
         for (int i = 0; i < features.Length; i++)

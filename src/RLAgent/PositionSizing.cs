@@ -24,6 +24,9 @@ public class PositionSizing
     private const double DEFAULT_ML_CONFIDENCE = 0.5;
     private const double DEFAULT_ML_EXPECTED_RETURN = 0.0;
     
+    // Floating point tolerance
+    private const double FLOATING_POINT_TOLERANCE = 1e-10;
+    
     // Regime mapping constants
     private const int TREND_REGIME_VALUE = 1;
     private const int RANGE_REGIME_VALUE = 2;
@@ -55,6 +58,8 @@ public class PositionSizing
     public PositionSizeResult CalculatePositionSize(
         PositionSizeRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         try
         {
             var symbolKey = GetSymbolKey(request.Symbol, request.Strategy);
@@ -364,7 +369,7 @@ public class PositionSizing
         reasons.Add($"SAC: {sacFraction:F3}");
         reasons.Add($"Regime clip: {regimeClip:F3}");
         
-        if (Math.Abs(blendedFraction - cappedFraction) > 1e-10)
+        if (Math.Abs(blendedFraction - cappedFraction) > FLOATING_POINT_TOLERANCE)
             reasons.Add("Caps applied");
             
         if (finalContracts == 0)
