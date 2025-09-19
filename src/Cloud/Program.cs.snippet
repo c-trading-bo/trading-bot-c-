@@ -1,0 +1,36 @@
+// CloudRlTrainerV2 DI Registration Snippet for Program.cs
+// Add this to your ConfigureServices method:
+
+// CloudRlTrainerV2 Configuration
+services.Configure<CloudRlTrainerOptions>(configuration.GetSection("CloudTrainer"));
+
+// Register HTTP client with timeout and retry configuration
+services.AddHttpClient<IModelDownloader, DefaultModelDownloader>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(300);
+    client.DefaultRequestHeaders.Add("User-Agent", "CloudRlTrainerV2/2.0");
+});
+
+// Register rate limiter as singleton
+services.AddSingleton<IRateLimiter>(provider =>
+{
+    var options = provider.GetRequiredService<IOptions<CloudRlTrainerOptions>>().Value;
+    return new TokenBucketRateLimiter(
+        options.Http.RateLimitPerMinute, 
+        TimeSpan.FromMinutes(1));
+});
+
+// Register core interfaces with default implementations
+services.AddSingleton<IModelDownloader, DefaultModelDownloader>();
+services.AddSingleton<IModelHotSwapper, DefaultModelHotSwapper>();
+services.AddSingleton<IPerformanceStore>(provider =>
+{
+    var options = provider.GetRequiredService<IOptions<CloudRlTrainerOptions>>().Value;
+    var logger = provider.GetRequiredService<ILogger<FileBasedPerformanceStore>>();
+    return new FileBasedPerformanceStore(options.Performance.PerformanceStore, logger);
+});
+
+// Register the main CloudRlTrainerV2 service as a hosted service
+services.AddHostedService<CloudRlTrainerV2>();
+
+Console.WriteLine("🚀 [CLOUD-TRAINER] Production CloudRlTrainerV2 services registered successfully!");
