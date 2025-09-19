@@ -77,6 +77,9 @@ public class FeatureImportanceTracker
 
     public void UpdateImportance(string[] featureNames, double[] importanceScores)
     {
+        ArgumentNullException.ThrowIfNull(featureNames);
+        ArgumentNullException.ThrowIfNull(importanceScores);
+        
         lock (_lock)
         {
             for (int i = 0; i < Math.Min(featureNames.Length, importanceScores.Length); i++)
@@ -84,12 +87,13 @@ public class FeatureImportanceTracker
                 var featureName = featureNames[i];
                 var importance = importanceScores[i];
 
-                if (!_importanceHistory.ContainsKey(featureName))
+                if (!_importanceHistory.TryGetValue(featureName, out var history))
                 {
-                    _importanceHistory[featureName] = new List<double>();
+                    history = new List<double>();
+                    _importanceHistory[featureName] = history;
                 }
 
-                _importanceHistory[featureName].Add(importance);
+                history.Add(importance);
 
                 // Keep only recent history
                 if (_importanceHistory[featureName].Count > MaxImportanceHistorySize)
@@ -168,6 +172,8 @@ public class StreamingSymbolAggregator : IDisposable
 
     public StreamingSymbolAggregator(string symbol, FeatureConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _symbol = symbol;
         _config = config;
         _microstructureCalc = new MicrostructureCalculator(config.MicrostructureWindow);
@@ -272,6 +278,7 @@ public class TimeWindowAggregator : IDisposable
 
     public void AddTick(MarketTick tick)
     {
+        ArgumentNullException.ThrowIfNull(tick);
         lock (_lock)
         {
             _ticks.Add(tick);
@@ -375,6 +382,7 @@ public class MicrostructureCalculator : IDisposable
     public void AddTick(MarketTick tick)
     {
         lock (_lock)
+        ArgumentNullException.ThrowIfNull(tick);
         {
             _ticks.Add(tick);
             CleanOldTicks(tick.Timestamp);

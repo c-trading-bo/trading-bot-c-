@@ -73,6 +73,8 @@ public class MetaLearner
         List<TaskExperience> supportSet, 
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(supportSet);
+        
         try
         {
             _logger.LogDebug("[META] Adapting to task: {TaskId} with {SupportSize} examples", 
@@ -127,7 +129,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
-            throw; // Rethrow memory issues
+            throw new OutOfMemoryException($"[META] Failed to adapt to task {taskId} due to memory constraints", ex);
         }
     }
 
@@ -212,7 +214,7 @@ public class MetaLearner
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[META] Out of memory during meta-training");
-            throw; // Rethrow memory issues
+            throw new OutOfMemoryException("[META] Failed to perform meta-training due to memory constraints", ex);
         }
     }
 
@@ -221,6 +223,9 @@ public class MetaLearner
     /// </summary>
     public void StoreTaskExperience(string taskId, double[] state, double[] action, double reward, double[] nextState, bool done)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(nextState);
+        
         var experience = new TaskExperience
         {
             State = (double[])state.Clone(),
@@ -589,7 +594,6 @@ public class MetaExperienceBuffer
         if (availableTasks.Count == 0)
             return new List<TaskData>();
         
-        var sampledTasks = new List<TaskData>();
         var taskIndices = new HashSet<int>();
         
         while (taskIndices.Count < Math.Min(batchSize, availableTasks.Count))
@@ -597,12 +601,7 @@ public class MetaExperienceBuffer
             taskIndices.Add(GenerateSecureRandomInt(availableTasks.Count));
         }
         
-        foreach (var index in taskIndices)
-        {
-            sampledTasks.Add(availableTasks[index]);
-        }
-        
-        return sampledTasks;
+        return taskIndices.Select(index => availableTasks[index]).ToList();
     }
     
     private static int GenerateSecureRandomInt(int maxValue)

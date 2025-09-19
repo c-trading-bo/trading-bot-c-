@@ -33,6 +33,8 @@ public class ModelHotReloadManager : IDisposable
         OnnxEnsembleWrapper onnxEnsemble,
         IOptions<ModelHotReloadOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        
         _logger = logger;
         _onnxEnsemble = onnxEnsemble;
         _options = options.Value;
