@@ -225,9 +225,9 @@ public class SoftActorCritic : IDisposable
                 Message = ex.Message
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogInformation("[SAC] Training was cancelled");
+            _logger.LogInformation(ex, "[SAC] Training was cancelled");
             return new Models.SacTrainingResult
             {
                 Success = false,

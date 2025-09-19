@@ -48,6 +48,9 @@ public class FeatureEngineering : IDisposable
     // Static readonly arrays for performance
     private static readonly double[] PriceSentinelValues = { 0.0, 0.0, 0.0, 0.0, 0.0 };
     private static readonly string[] PriceFeatureNames = { "price_return_1", "price_return_5", "price_return_20", "price_volatility", "price_trend" };
+    private static readonly string[] TechnicalFeatureNames = { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" };
+    private static readonly string[] MicrostructureFeatureNames = { "spread_bps", "spread_zscore", "order_flow_imbalance", "tick_run", "trade_direction_ema" };
+    private static readonly string[] TimeFeatureNames = { "time_of_day", "is_monday", "is_friday", "is_market_hours", "is_opening_hour", "is_closing_hour" };
     private static readonly double[] VolumeSentinelValues = { 0.0, 0.0, 0.0 };
     private static readonly string[] VolumeFeatureNames = { "volume_ratio", "volume_trend", "volume_volatility" };
     
@@ -479,7 +482,7 @@ public class FeatureEngineering : IDisposable
         var (macd, signal) = buffer.Count >= MacdPeriod ? CalculateMACD(buffer.GetLast(MacdPeriod), currentData) : (0.0, 0.0);
 
         features.AddRange(new[] { rsi / RsiNormalizationFactor, bollingerPosition, atr, macd, signal });
-        featureNames.AddRange(new[] { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" });
+        featureNames.AddRange(TechnicalFeatureNames);
     }
 
     /// <summary>
@@ -529,7 +532,7 @@ public class FeatureEngineering : IDisposable
         var tradeDirectionEma = CalculateTradeDirectionEMA(buffer, currentData, profile.TradeDirectionDecay);
 
         features.AddRange(new[] { spreadBps, spreadZScore, orderFlowImbalance, tickRun, tradeDirectionEma });
-        featureNames.AddRange(new[] { "spread_bps", "spread_zscore", "order_flow_imbalance", "tick_run", "trade_direction_ema" });
+        featureNames.AddRange(MicrostructureFeatureNames);
     }
 
     /// <summary>
@@ -584,7 +587,7 @@ public class FeatureEngineering : IDisposable
         var isClosingHour = (hour == 15) ? 1.0 : 0.0;
 
         features.AddRange(new[] { timeOfDay, isMonday, isFriday, isMarketHours, isOpeningHour, isClosingHour });
-        featureNames.AddRange(new[] { "time_of_day", "is_monday", "is_friday", "is_market_hours", "is_opening_hour", "is_closing_hour" });
+        featureNames.AddRange(TimeFeatureNames);
     }
 
     /// <summary>
@@ -635,7 +638,7 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double GetDefaultSentinelValue(string featureName)
     {
-        return featureName.ToLowerInvariant() switch
+        return featureName.ToUpperInvariant() switch
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
@@ -653,7 +656,7 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double BoundFeatureValue(double value, string featureName)
     {
-        var bounds = featureName.ToLowerInvariant() switch
+        var bounds = featureName.ToUpperInvariant() switch
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => (-0.1, 0.1),    // ±10% max return
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => (0.01, 100.0),   // Volume ratio bounds
