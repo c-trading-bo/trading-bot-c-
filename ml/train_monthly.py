@@ -10,7 +10,7 @@ import sys
 import json
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 import pandas as pd
@@ -59,7 +59,7 @@ class RetrainingTask:
     
     def __post_init__(self):
         if self.created_at is None:
-            self.created_at = datetime.utcnow()
+            self.created_at = datetime.now(timezone.utc)
 
 class WalkForwardBacktester:
     """
@@ -516,7 +516,7 @@ def save_model_metadata(model_path: str, family: str, symbol: str, strategy: str
             "Sha": checksum,
             "Version": version,
             "Checksum": checksum,
-            "CreatedAt": datetime.utcnow().isoformat(),
+            "CreatedAt": datetime.now(timezone.utc).isoformat(),
             "TrainingMetrics": {
                 "DatasetSize": 0,  # To be filled by training process
                 "ValidationScore": 0.0,  # To be filled by training process
@@ -580,7 +580,7 @@ async def generate_validation_summary(results: List[BacktestResult], config: dic
         
         # Create validation summary
         summary = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "validation_mode": True,
             "purge_days": config.get("purge_days", 1),
             "embargo_days": config.get("embargo_days", 1),

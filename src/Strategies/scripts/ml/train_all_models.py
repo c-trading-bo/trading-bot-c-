@@ -8,7 +8,7 @@ import os
 import sys
 import json
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -232,7 +232,7 @@ class MLTrainingPipeline:
         total = len(self.validation_results)
         
         report = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'training_samples': len(self.training_data),
             'models_trained': total,
             'models_passed': passed,
