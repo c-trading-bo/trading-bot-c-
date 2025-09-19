@@ -76,8 +76,7 @@ public class SoftActorCritic
         _targetCritic1.CopyWeightsFrom(_critic1);
         _targetCritic2.CopyWeightsFrom(_critic2);
         
-        _logger.LogInformation("[SAC] Initialized with state_dim={StateDim}, action_dim={ActionDim}, hidden_dim={HiddenDim}", 
-            stateDim, actionDim, hiddenDim);
+        LogMessages.SACInitialized(_logger, stateDim, actionDim, hiddenDim);
     }
 
     /// <summary>
@@ -116,9 +115,9 @@ public class SoftActorCritic
             // Return safe default action (no position change)
             return new double[_config.ActionDimension];
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[SAC] Out of memory during action selection");
+            _logger.LogError(ex, "[SAC] Out of memory during action selection");
             throw; // Rethrow memory issues
         }
     }
@@ -566,6 +565,7 @@ public class ActorNetwork : IDisposable
 
     public double[] SampleAction(double[] state, bool isTraining)
     {
+        ArgumentNullException.ThrowIfNull(state);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
@@ -606,6 +606,8 @@ public class ActorNetwork : IDisposable
 
     public double GetLogProbability(double[] state, double[] action)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
         // Simplified log probability calculation
         // In a full implementation, this would use proper probability distributions
         var predictedAction = SampleAction(state, isTraining: false);
@@ -714,6 +716,7 @@ public class CriticNetwork
 
     public double Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
@@ -749,6 +752,7 @@ public class CriticNetwork
 
     public void CopyWeightsFrom(CriticNetwork source)
     {
+        ArgumentNullException.ThrowIfNull(source);
         // Copy weights from source network
         Array.Copy(source._weightsInput, _weightsInput, source._weightsInput.Length);
         Array.Copy(source._biasHidden, _biasHidden, source._biasHidden.Length);
@@ -758,6 +762,7 @@ public class CriticNetwork
 
     public void SoftUpdate(CriticNetwork source, double tau)
     {
+        ArgumentNullException.ThrowIfNull(source);
         // Soft update: target = tau * source + (1 - tau) * target
         for (int i = 0; i < _weightsInput.GetLength(0); i++)
         {
@@ -860,6 +865,7 @@ public class ValueNetwork
 
     public double Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)

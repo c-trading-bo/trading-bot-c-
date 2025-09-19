@@ -61,8 +61,7 @@ public class MetaLearner
         _metaBuffer = new MetaExperienceBuffer(config.MetaBufferSize);
         _adaptationHistory = new Dictionary<string, AdaptationHistory>();
         
-        _logger.LogInformation("[META] Initialized meta-learner with state_dim={StateDim}, action_dim={ActionDim}", 
-            config.StateDimension, config.ActionDimension);
+        LogMessages.MetaLearnerInitialized(_logger, config.StateDimension, config.ActionDimension);
     }
 
     /// <summary>
@@ -73,10 +72,11 @@ public class MetaLearner
         List<TaskExperience> supportSet, 
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(supportSet);
+        
         try
         {
-            _logger.LogDebug("[META] Adapting to task: {TaskId} with {SupportSize} examples", 
-                taskId, supportSet.Count);
+            LogMessages.TaskAdaptationStarted(_logger, taskId, supportSet.Count);
 
             // Clone meta-policy as starting point
             var adaptedPolicy = _metaPolicy.Clone();
@@ -124,9 +124,9 @@ public class MetaLearner
             _logger.LogError(ex, "[META] Invalid operation during task adaptation: {TaskId}", taskId);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[META] Out of memory during task adaptation: {TaskId}", taskId);
+            _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
             throw; // Rethrow memory issues
         }
     }
@@ -209,9 +209,9 @@ public class MetaLearner
                 Message = ex.Message
             };
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[META] Out of memory during meta-training");
+            _logger.LogError(ex, "[META] Out of memory during meta-training");
             throw; // Rethrow memory issues
         }
     }
@@ -221,6 +221,9 @@ public class MetaLearner
     /// </summary>
     public void StoreTaskExperience(string taskId, double[] state, double[] action, double reward, double[] nextState, bool done)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(nextState);
+        
         var experience = new TaskExperience
         {
             State = (double[])state.Clone(),
@@ -589,7 +592,6 @@ public class MetaExperienceBuffer
         if (availableTasks.Count == 0)
             return new List<TaskData>();
         
-        var sampledTasks = new List<TaskData>();
         var taskIndices = new HashSet<int>();
         
         while (taskIndices.Count < Math.Min(batchSize, availableTasks.Count))
@@ -597,12 +599,7 @@ public class MetaExperienceBuffer
             taskIndices.Add(GenerateSecureRandomInt(availableTasks.Count));
         }
         
-        foreach (var index in taskIndices)
-        {
-            sampledTasks.Add(availableTasks[index]);
-        }
-        
-        return sampledTasks;
+        return taskIndices.Select(index => availableTasks[index]).ToList();
     }
     
     private static int GenerateSecureRandomInt(int maxValue)
