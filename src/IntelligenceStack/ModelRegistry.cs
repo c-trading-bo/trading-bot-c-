@@ -351,7 +351,6 @@ public class ModelRegistry : IModelRegistry
     private string CalculateRuntimeSignature(byte[] modelData)
     {
         using var sha = SHA256.Create();
-using System.Globalization;
         var hash = sha.ComputeHash(modelData);
         return Convert.ToBase64String(hash)[..16];
     }

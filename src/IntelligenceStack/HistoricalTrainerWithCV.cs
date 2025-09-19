@@ -33,11 +33,11 @@ public class HistoricalTrainerWithCV
         PromotionCriteria promotionCriteria,
         string dataPath = "data/historical_training")
     {
-        _logger = logger;
-        _modelRegistry = modelRegistry;
-        _featureStore = featureStore;
-        _promotionCriteria = promotionCriteria;
-        _dataPath = dataPath;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _modelRegistry = modelRegistry ?? throw new ArgumentNullException(nameof(modelRegistry));
+        _featureStore = featureStore ?? throw new ArgumentNullException(nameof(featureStore));
+        _promotionCriteria = promotionCriteria ?? throw new ArgumentNullException(nameof(promotionCriteria));
+        _dataPath = dataPath ?? throw new ArgumentNullException(nameof(dataPath));
         
         Directory.CreateDirectory(_dataPath);
     }
@@ -53,6 +53,18 @@ public class HistoricalTrainerWithCV
         TimeSpan testWindow,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(modelFamily))
+            throw new ArgumentException("Model family cannot be null or empty", nameof(modelFamily));
+        
+        if (startDate >= endDate)
+            throw new ArgumentException("Start date must be before end date", nameof(startDate));
+        
+        if (trainingWindow <= TimeSpan.Zero)
+            throw new ArgumentException("Training window must be positive", nameof(trainingWindow));
+        
+        if (testWindow <= TimeSpan.Zero)
+            throw new ArgumentException("Test window must be positive", nameof(testWindow));
+        
         try
         {
             _logger.LogInformation("[HISTORICAL_CV] Starting walk-forward CV for {ModelFamily}: {Start} to {End}", 
@@ -149,9 +161,21 @@ public class HistoricalTrainerWithCV
             
             // Get raw market data
             var marketData = await GetMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
+            if (marketData == null)
+            {
+                _logger.LogWarning("[LEAK_SAFE_LABELING] No market data available for {Symbol} from {Start} to {End}",
+                    symbol, startTime, endTime);
+                return examples;
+            }
             
             // Get features with proper time alignment
             var features = await _featureStore.GetFeaturesAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
+            if (features == null)
+            {
+                _logger.LogWarning("[LEAK_SAFE_LABELING] No features available for {Symbol} from {Start} to {End}",
+                    symbol, startTime, endTime);
+                return examples;
+            }
 
             // Generate labels with embargo to prevent lookahead bias
             foreach (var dataPoint in marketData)

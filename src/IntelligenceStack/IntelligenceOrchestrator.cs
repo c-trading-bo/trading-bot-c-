@@ -283,15 +283,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             var result = action switch
             {
-                "runMLModels" => await RunMLModelsWrapperAsync(context, cancellationToken),
-                "updateRL" => await UpdateRLTrainingWrapperAsync(context, cancellationToken),
-                "generatePredictions" => await GeneratePredictionsWrapperAsync(context, cancellationToken),
-                "correlateAssets" => await AnalyzeCorrelationsWrapperAsync(context, cancellationToken),
-                "makeDecision" => await MakeDecisionWorkflowAsync(context, cancellationToken),
-                "processMarketData" => await ProcessMarketDataWorkflowAsync(context, cancellationToken),
-                "performMaintenance" => await PerformMaintenanceWorkflowAsync(context, cancellationToken),
+                "runMLModels" => await RunMLModelsWrapperAsync(context, cancellationToken).ConfigureAwait(false),
+                "updateRL" => await UpdateRLTrainingWrapperAsync(context, cancellationToken).ConfigureAwait(false),
+                "generatePredictions" => await GeneratePredictionsWrapperAsync(context, cancellationToken).ConfigureAwait(false),
+                "correlateAssets" => await AnalyzeCorrelationsWrapperAsync(context, cancellationToken).ConfigureAwait(false),
+                "makeDecision" => await MakeDecisionWorkflowAsync(context, cancellationToken).ConfigureAwait(false),
+                "processMarketData" => await ProcessMarketDataWorkflowAsync(context, cancellationToken).ConfigureAwait(false),
+                "performMaintenance" => await PerformMaintenanceWorkflowAsync(context, cancellationToken).ConfigureAwait(false),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unknown action: {action}" }
-            }.ConfigureAwait(false);
+            };
 
             return result;
         }
