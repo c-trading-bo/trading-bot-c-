@@ -21,6 +21,11 @@ public class FeatureEngineering : IDisposable
     // Cached JSON serializer options
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     
+    // Technical analysis constants
+    private const int MacdPeriod = 26;
+    private const double RsiNormalizationFactor = 100.0;
+    private const int ImportanceHistoryMaxSize = 100;
+    
     // Streaming aggregation components (merged from StreamingFeatureAggregator)
     private readonly ConcurrentDictionary<string, StreamingSymbolAggregator> _streamingAggregators = new();
     private readonly Timer _cleanupTimer;
@@ -370,9 +375,9 @@ public class FeatureEngineering : IDisposable
         var atr = buffer.Count >= atrWindow ? CalculateATR(buffer.GetLast(atrWindow), currentData) : 0.0;
 
         // MACD
-        var (macd, signal) = buffer.Count >= 26 ? CalculateMACD(buffer.GetLast(26), currentData) : (0.0, 0.0);
+        var (macd, signal) = buffer.Count >= MacdPeriod ? CalculateMACD(buffer.GetLast(MacdPeriod), currentData) : (0.0, 0.0);
 
-        features.AddRange(new[] { rsi / 100.0, bollingerPosition, atr, macd, signal });
+        features.AddRange(new[] { rsi / RsiNormalizationFactor, bollingerPosition, atr, macd, signal });
         featureNames.AddRange(new[] { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" });
     }
 
@@ -722,7 +727,13 @@ public class FeatureEngineering : IDisposable
         
         for (int i = 1; i < buffer.Length; i++)
         {
-            var direction = buffer[i].Close > buffer[i - 1].Close ? 1 : (buffer[i].Close < buffer[i - 1].Close ? -1 : 0);
+            int direction;
+            if (buffer[i].Close > buffer[i - 1].Close)
+                direction = 1;
+            else if (buffer[i].Close < buffer[i - 1].Close)
+                direction = -1;
+            else
+                direction = 0;
             if (direction > 0) upTicks++;
             else if (direction < 0) downTicks++;
         }
@@ -750,7 +761,13 @@ public class FeatureEngineering : IDisposable
             
             if (prevData == null || prevPrevData == null) break;
             
-            var prevDirection = prevData.Close > prevPrevData.Close ? 1 : (prevData.Close < prevPrevData.Close ? -1 : 0);
+            int prevDirection;
+            if (prevData.Close > prevPrevData.Close)
+                prevDirection = 1;
+            else if (prevData.Close < prevPrevData.Close)
+                prevDirection = -1;
+            else
+                prevDirection = 0;
             
             if (prevDirection == currentDirection)
                 run++;

@@ -364,7 +364,7 @@ public class PositionSizing
         reasons.Add($"SAC: {sacFraction:F3}");
         reasons.Add($"Regime clip: {regimeClip:F3}");
         
-        if (Math.Abs(blendedFraction - cappedFraction) > FloatingPointTolerance)
+        if (Math.Abs(blendedFraction - cappedFraction) > 1e-10)
             reasons.Add("Caps applied");
             
         if (finalContracts == 0)

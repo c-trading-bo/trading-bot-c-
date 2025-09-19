@@ -52,6 +52,8 @@ public class SoftActorCritic
     
     public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _config = config;
         
