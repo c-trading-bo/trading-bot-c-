@@ -124,9 +124,9 @@ public class MetaLearner
             _logger.LogError(ex, "[META] Invalid operation during task adaptation: {TaskId}", taskId);
             return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[META] Out of memory during task adaptation: {TaskId}", taskId);
+            _logger.LogError(ex, "[META] Out of memory during task adaptation: {TaskId}", taskId);
             throw; // Rethrow memory issues
         }
     }
@@ -209,9 +209,9 @@ public class MetaLearner
                 Message = ex.Message
             };
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[META] Out of memory during meta-training");
+            _logger.LogError(ex, "[META] Out of memory during meta-training");
             throw; // Rethrow memory issues
         }
     }

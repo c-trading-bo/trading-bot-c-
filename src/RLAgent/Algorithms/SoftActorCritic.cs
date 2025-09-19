@@ -116,9 +116,9 @@ public class SoftActorCritic
             // Return safe default action (no position change)
             return new double[_config.ActionDimension];
         }
-        catch (OutOfMemoryException)
+        catch (OutOfMemoryException ex)
         {
-            _logger.LogError("[SAC] Out of memory during action selection");
+            _logger.LogError(ex, "[SAC] Out of memory during action selection");
             throw; // Rethrow memory issues
         }
     }
@@ -566,6 +566,7 @@ public class ActorNetwork : IDisposable
 
     public double[] SampleAction(double[] state, bool isTraining)
     {
+        ArgumentNullException.ThrowIfNull(state);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
@@ -606,6 +607,8 @@ public class ActorNetwork : IDisposable
 
     public double GetLogProbability(double[] state, double[] action)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
         // Simplified log probability calculation
         // In a full implementation, this would use proper probability distributions
         var predictedAction = SampleAction(state, isTraining: false);
@@ -760,6 +763,7 @@ public class CriticNetwork
 
     public void SoftUpdate(CriticNetwork source, double tau)
     {
+        ArgumentNullException.ThrowIfNull(source);
         // Soft update: target = tau * source + (1 - tau) * target
         for (int i = 0; i < _weightsInput.GetLength(0); i++)
         {
