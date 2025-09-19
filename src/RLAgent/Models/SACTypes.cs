@@ -44,7 +44,7 @@ public class SacState
     public double Volume { get; set; }
     public Dictionary<string, double> TechnicalIndicators { get; } = new();
     
-    public int Dimension => Features.Length;
+    public int Dimension => Features.Count;
     
     public SacState()
     {

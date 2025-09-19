@@ -287,4 +287,19 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             }
         }
     }
+
+    public double GetLatestRegimeScore()
+    {
+        lock (_lock)
+        {
+            // Return the confidence score of the current regime state
+            // If no regime has been detected yet, return a neutral score
+            if (_currentState == null)
+            {
+                return 0.5; // Neutral score when no regime detected
+            }
+            
+            return _currentState.Confidence;
+        }
+    }
 }

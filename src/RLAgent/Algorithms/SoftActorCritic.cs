@@ -46,6 +46,10 @@ public class SoftActorCritic
     private double _averageReward;
     private double _entropy;
     
+    // Constants for moving average
+    private const double RewardMovingAverageDecay = 0.99;
+    private const double RewardMovingAverageWeight = 0.01;
+    
     public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
         _logger = logger;
@@ -123,7 +127,7 @@ public class SoftActorCritic
         _replayBuffer.Add(experience);
         
         // Update moving average reward
-        _averageReward = 0.99 * _averageReward + 0.01 * reward;
+        _averageReward = RewardMovingAverageDecay * _averageReward + RewardMovingAverageWeight * reward;
     }
 
     /// <summary>

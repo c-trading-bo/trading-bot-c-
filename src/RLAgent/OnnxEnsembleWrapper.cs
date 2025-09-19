@@ -590,7 +590,7 @@ public class ModelSession
 /// </summary>
 public class InferenceRequest
 {
-    public float[] Features { get; set; } = Array.Empty<float>();
+    public IReadOnlyList<float> Features { get; set; } = Array.Empty<float>();
     public TaskCompletionSource<EnsemblePrediction> TaskCompletionSource { get; set; } = null!;
     public DateTime RequestTime { get; set; }
     public bool IsAnomaly { get; set; }
