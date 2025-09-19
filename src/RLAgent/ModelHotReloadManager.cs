@@ -49,8 +49,7 @@ public class ModelHotReloadManager : IDisposable
         _fileWatcher.Created += OnModelFileChanged;
         _fileWatcher.Changed += OnModelFileChanged;
 
-        _logger.LogInformation("[HOT_RELOAD] Model hot-reload manager initialized, watching: {WatchDirectory}", 
-            _options.WatchDirectory);
+        LogMessages.ModelHotReloadInitialized(_logger, _options.WatchDirectory);
     }
 
     /// <summary>
@@ -69,7 +68,7 @@ public class ModelHotReloadManager : IDisposable
             if (!File.Exists(e.FullPath))
                 return;
 
-            _logger.LogInformation("[HOT_RELOAD] Model file change detected: {ModelPath}", e.FullPath);
+            LogMessages.ModelFileChangeDetected(_logger, e.FullPath);
             
             // Process hot-reload on background thread
             _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath), _cancellationTokenSource.Token).ConfigureAwait(false);
@@ -96,8 +95,7 @@ public class ModelHotReloadManager : IDisposable
             var fileName = Path.GetFileName(modelPath);
             var candidateModelName = $"candidate-{DateTime.UtcNow:yyyyMMddHHmmss}-{Path.GetFileNameWithoutExtension(fileName)}";
             
-            _logger.LogInformation("[HOT_RELOAD] Starting hot-reload for: {ModelPath} as {CandidateName}", 
-                modelPath, candidateModelName);
+            LogMessages.HotReloadStarted(_logger, modelPath, candidateModelName);
 
             // Step 1: Load candidate model
             var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token).ConfigureAwait(false);
@@ -121,7 +119,7 @@ public class ModelHotReloadManager : IDisposable
             if (!string.IsNullOrEmpty(oldModelName))
             {
                 await _onnxEnsemble.UnloadModelAsync(oldModelName).ConfigureAwait(false);
-                _logger.LogInformation("[HOT_RELOAD] Unloaded old model: {OldModelName}", oldModelName);
+                LogMessages.OldModelUnloaded(_logger, oldModelName);
             }
 
             // Step 4: Rename candidate to live model name (optional - can keep candidate name)
@@ -180,7 +178,7 @@ public class ModelHotReloadManager : IDisposable
                 }
             }
 
-            _logger.LogInformation("[HOT_RELOAD] Smoke tests passed for: {ModelName}", modelName);
+            LogMessages.SmokeTestsPassed(_logger, modelName);
             return true;
         }
         catch (Exception ex)

@@ -74,8 +74,7 @@ public class CVaRPPO : IDisposable
     {
         try
         {
-            _logger.LogInformation("[CVAR_PPO] Starting training episode {Episode} with {ExperienceCount} experiences", 
-                _currentEpisode, _experienceBuffer.Count);
+            LogMessages.CVaRPPOTrainingStarted(_logger, _currentEpisode, _experienceBuffer.Count);
 
             var startTime = DateTime.UtcNow;
             var result = new TrainingResult
