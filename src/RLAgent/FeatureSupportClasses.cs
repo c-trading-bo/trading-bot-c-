@@ -381,8 +381,9 @@ public class MicrostructureCalculator : IDisposable
 
     public void AddTick(MarketTick tick)
     {
-        lock (_lock)
         ArgumentNullException.ThrowIfNull(tick);
+        
+        lock (_lock)
         {
             _ticks.Add(tick);
             CleanOldTicks(tick.Timestamp);

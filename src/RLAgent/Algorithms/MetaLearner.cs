@@ -664,6 +664,8 @@ public class PolicyNetwork
 
     public double[] Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+        
         // Forward pass through network
         var hidden = new double[_hiddenDim];
         var inputWeights = _parameters["input_weights"];
@@ -700,6 +702,9 @@ public class PolicyNetwork
 
     public void UpdateParameter(string paramName, double[] gradient, double learningRate)
     {
+        ArgumentNullException.ThrowIfNull(paramName);
+        ArgumentNullException.ThrowIfNull(gradient);
+        
         if (_parameters.TryGetValue(paramName, out var param))
         {
             for (int i = 0; i < Math.Min(param.Length, gradient.Length); i++)

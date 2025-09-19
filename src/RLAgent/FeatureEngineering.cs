@@ -212,6 +212,8 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     public async Task<StreamingFeatures> ProcessStreamingTickAsync(MarketTick tick, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(tick);
+        
         try
         {
             var aggregator = _streamingAggregators.GetOrAdd(tick.Symbol, 

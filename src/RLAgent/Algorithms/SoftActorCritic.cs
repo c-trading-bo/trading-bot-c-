@@ -127,6 +127,10 @@ public class SoftActorCritic
     /// </summary>
     public void StoreExperience(double[] state, double[] action, double reward, double[] nextState, bool done)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(nextState);
+        
         var experience = new Experience
         {
             State = (double[])state.Clone(),
