@@ -24,7 +24,51 @@ public class FeatureEngineering : IDisposable
     // Technical analysis constants
     private const int MacdPeriod = 26;
     private const double RsiNormalizationFactor = 100.0;
-    private const int ImportanceHistoryMaxSize = 100;
+    
+    // Feature engineering constants
+    private const int DefaultRsiPeriod = 14;
+    private const int DefaultMovingAveragePeriod = 20;
+    private const double DefaultMomentumThreshold = 0.5;
+    private const int MaxFeatureHistoryPeriods = 26;
+    private const int DefaultLookbackPeriods = 10;
+    private const int FeatureImportanceTopCount = 5;
+    
+    // LoggerMessage delegates for performance
+    private static readonly Action<ILogger, Exception?> LogDailyReportError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(LogDailyReportError)), "[FEATURE_ENG] Error in daily feature report");
+    
+    private static readonly Action<ILogger, string, string, Exception?> LogTopFeatures =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(2, nameof(LogTopFeatures)), "[FEATURE_ENG] Top features for {FeatureKey}: {TopFeatures}");
+    
+    private static readonly Action<ILogger, int, Exception?> LogFeatureReport =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(3, nameof(LogFeatureReport)), "[FEATURE_ENG] Generated daily feature report with {SymbolCount} symbols");
+    
+    private static readonly Action<ILogger, Exception?> LogFeatureReportGeneration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4, nameof(LogFeatureReportGeneration)), "[FEATURE_ENG] Generating daily feature importance report...");
+    
+    private static readonly Action<ILogger, Exception?> LogCleanupError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5, nameof(LogCleanupError)), "[FEATURE_ENG] Error during cleanup timer");
+    
+    private static readonly Action<ILogger, Exception?> LogStreamingAggregatorError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6, nameof(LogStreamingAggregatorError)), "[FEATURE_ENG] Error in streaming aggregator");
+    
+    private static readonly Action<ILogger, Exception?> LogTimerDisposeError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(7, nameof(LogTimerDisposeError)), "[FEATURE_ENG] Error disposing timer");
+    
+    private static readonly Action<ILogger, string, Exception?> LogReportSaved =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(8, nameof(LogReportSaved)), "[FEATURE_ENG] Daily feature importance report saved: {ReportPath}");
+    
+    private static readonly Action<ILogger, Exception?> LogAccessDeniedError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(9, nameof(LogAccessDeniedError)), "[FEATURE_ENG] Access denied while generating daily feature importance report");
+    
+    private static readonly Action<ILogger, Exception?> LogDirectoryNotFoundError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(10, nameof(LogDirectoryNotFoundError)), "[FEATURE_ENG] Directory not found while generating daily feature importance report");
+    
+    private static readonly Action<ILogger, Exception?> LogIOError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(11, nameof(LogIOError)), "[FEATURE_ENG] IO error while generating daily feature importance report");
+    
+    private static readonly Action<ILogger, Exception?> LogInvalidOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(12, nameof(LogInvalidOperationError)), "[FEATURE_ENG] Invalid operation while generating daily feature importance report");
     
     // Streaming aggregation components (merged from StreamingFeatureAggregator)
     private readonly ConcurrentDictionary<string, StreamingSymbolAggregator> _streamingAggregators = new();
@@ -294,7 +338,7 @@ public class FeatureEngineering : IDisposable
         // Price returns with configurable lookbacks
         var returns1 = CalculateReturn(currentData.Close, buffer.GetFromEnd(1)?.Close ?? currentData.Close);
         var returns5 = buffer.Count >= 5 ? CalculateReturn(currentData.Close, buffer.GetFromEnd(5)?.Close ?? currentData.Close) : 0.0;
-        var returns20 = buffer.Count >= 20 ? CalculateReturn(currentData.Close, buffer.GetFromEnd(20)?.Close ?? currentData.Close) : 0.0;
+        var returns20 = buffer.Count >= DefaultMovingAveragePeriod ? CalculateReturn(currentData.Close, buffer.GetFromEnd(DefaultMovingAveragePeriod)?.Close ?? currentData.Close) : 0.0;
 
         // Price volatility (configurable window)
         var volatilityWindow = Math.Min(profile.VolatilityLookback, buffer.Count);
@@ -639,10 +683,10 @@ public class FeatureEngineering : IDisposable
     private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
-        if (prices.Length < 20) return 0.5; // Default middle position
+        if (prices.Length < DefaultMovingAveragePeriod) return DefaultMomentumThreshold; // Default middle position
         
-        var sma = prices.TakeLast(20).Average();
-        var variance = prices.TakeLast(20).Select(p => Math.Pow(p - sma, 2)).Average();
+        var sma = prices.TakeLast(DefaultMovingAveragePeriod).Average();
+        var variance = prices.TakeLast(DefaultMovingAveragePeriod).Select(p => Math.Pow(p - sma, 2)).Average();
         var stdDev = Math.Sqrt(variance);
         
         var upperBand = sma + (2.0 * stdDev);
@@ -669,13 +713,13 @@ public class FeatureEngineering : IDisposable
             trueRanges.Add(tr);
         }
         
-        return trueRanges.TakeLast(14).Average();
+        return trueRanges.TakeLast(DefaultRsiPeriod).Average();
     }
 
     private static (double macd, double signal) CalculateMACD(MarketData[] buffer, MarketData current)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
-        if (prices.Length < 26) return (0.0, 0.0);
+        if (prices.Length < MaxFeatureHistoryPeriods) return (0.0, 0.0);
         
         // Simplified MACD calculation
         var ema12 = CalculateEMA(prices, 12);
@@ -754,7 +798,7 @@ public class FeatureEngineering : IDisposable
         if (currentDirection == 0) return 0.0;
         
         var run = 1;
-        for (int i = 1; i < Math.Min(buffer.Count, 10); i++) // Check last 10 ticks
+        for (int i = 1; i < Math.Min(buffer.Count, DefaultLookbackPeriods); i++) // Check last lookback periods
         {
             var prevData = buffer.GetFromEnd(i);
             var prevPrevData = buffer.GetFromEnd(i + 1);
@@ -775,7 +819,7 @@ public class FeatureEngineering : IDisposable
                 break;
         }
         
-        return Math.Min(run, 10) / 10.0; // Normalize to 0-1
+        return Math.Min(run, DefaultLookbackPeriods) / (double)DefaultLookbackPeriods; // Normalize to 0-1
     }
 
     private double CalculateTradeDirectionEMA(CircularBuffer<MarketData> buffer, MarketData current, double decay)
@@ -823,9 +867,21 @@ public class FeatureEngineering : IDisposable
             {
                 await GenerateDailyFeatureReportAsync().ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "[FEATURE_ENG] Error in daily feature report");
+                LogAccessDeniedError(_logger, ex);
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                LogDirectoryNotFoundError(_logger, ex);
+            }
+            catch (IOException ex)
+            {
+                LogIOError(_logger, ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogInvalidOperationError(_logger, ex);
             }
         });
     }
@@ -837,7 +893,7 @@ public class FeatureEngineering : IDisposable
     {
         try
         {
-            _logger.LogInformation("[FEATURE_ENG] Generating daily feature importance report...");
+            LogFeatureReportGeneration(_logger, null);
             
             var report = new FeatureImportanceReport
             {
@@ -849,8 +905,7 @@ public class FeatureEngineering : IDisposable
                 var topFeatures = tracker.GetTopKFeatures(_config.TopKFeatures);
                 report.SymbolReports[featureKey] = topFeatures;
                 
-                _logger.LogInformation("[FEATURE_ENG] Top features for {FeatureKey}: {TopFeatures}", 
-                    featureKey, string.Join(", ", topFeatures.Take(5).Select(kv => $"{kv.Key}: {kv.Value:F3}")));
+                LogTopFeatures(_logger, featureKey, string.Join(", ", topFeatures.Take(FeatureImportanceTopCount).Select(kv => $"{kv.Key}: {kv.Value:F3}")), null);
             }
             
             // Save report to file
@@ -859,23 +914,23 @@ public class FeatureEngineering : IDisposable
             Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
             await File.WriteAllTextAsync(reportPath, reportJson).ConfigureAwait(false);
             
-            _logger.LogInformation("[FEATURE_ENG] Daily feature importance report saved: {ReportPath}", reportPath);
+            LogReportSaved(_logger, reportPath, null);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Access denied while generating daily feature importance report");
+            LogAccessDeniedError(_logger, ex);
         }
         catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Directory not found while generating daily feature importance report");
+            LogDirectoryNotFoundError(_logger, ex);
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] IO error while generating daily feature importance report");
+            LogIOError(_logger, ex);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Invalid operation while generating daily feature importance report");
+            LogInvalidOperationError(_logger, ex);
         }
     }
 
@@ -978,6 +1033,8 @@ public class FeatureState
 /// </summary>
 public class FeatureImportanceTracker
 {
+    private const int MaxImportanceHistorySize = 100;
+    
     private readonly Dictionary<string, List<double>> _importanceHistory = new();
     private readonly object _lock = new();
 
@@ -998,7 +1055,7 @@ public class FeatureImportanceTracker
                 _importanceHistory[featureName].Add(importance);
 
                 // Keep only recent history
-                if (_importanceHistory[featureName].Count > 100)
+                if (_importanceHistory[featureName].Count > MaxImportanceHistorySize)
                 {
                     _importanceHistory[featureName].RemoveAt(0);
                 }

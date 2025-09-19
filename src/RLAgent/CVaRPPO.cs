@@ -38,9 +38,6 @@ public class CVaRPPO : IDisposable
     private const double LossMovingAverageWeight = 0.9;
     private const double NewLossWeight = 0.1;
     private const int DefaultHistorySize = 20;
-    private const double NetworkUpdateLearningRate = 0.001;
-    private const double TensorDimensionFactor = 2;
-    private const double NetworkInitializationScale = 0.1;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
     // Cached JSON serializer options
@@ -845,6 +842,11 @@ public class PolicyNetwork : IDisposable
 
     public double[] Forward(double[] state)
     {
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        
         // Hidden layer
         var hidden = new double[_hiddenSize];
         for (int i = 0; i < _hiddenSize; i++)
@@ -923,6 +925,10 @@ public class PolicyNetwork : IDisposable
 /// </summary>
 public class ValueNetwork : IDisposable
 {
+    private const double WeightInitializationRange = 2.0;
+    private const double OutputWeightInitializationScale = 0.1;
+    private const double LearningRateDefault = 0.001;
+    
     private readonly int _stateSize;
     private readonly int _hiddenSize;
     private double[][] _weights1 = null!;
@@ -961,7 +967,7 @@ public class ValueNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * 2 - 1) * limit;
+                _weights1[i][j] = (randomValue * WeightInitializationRange - 1) * limit;
             }
         }
         
@@ -970,12 +976,17 @@ public class ValueNetwork : IDisposable
             var bytes = new byte[8];
             rng.GetBytes(bytes);
             var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-            _weights2[i] = (randomValue * 2 - 1) * 0.1;
+            _weights2[i] = (randomValue * WeightInitializationRange - 1) * OutputWeightInitializationScale;
         }
     }
 
     public double[] Forward(double[] state)
     {
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        
         // Hidden layer
         var hidden = new double[_hiddenSize];
         for (int i = 0; i < _hiddenSize; i++)
@@ -1004,7 +1015,7 @@ public class ValueNetwork : IDisposable
         
         for (int i = 0; i < _hiddenSize; i++)
         {
-            _weights2[i] -= gradient * 0.001;
+            _weights2[i] -= gradient * LearningRateDefault;
         }
     }
 

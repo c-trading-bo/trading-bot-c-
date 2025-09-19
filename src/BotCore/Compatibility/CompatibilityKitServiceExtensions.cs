@@ -112,6 +112,7 @@ namespace BotCore.Compatibility
         /// Validates configuration files are present and valid
         /// </summary>
         public static void ValidateCompatibilityKitConfiguration(this IServiceProvider serviceProvider, ILogger logger)
+        {
             logger.LogInformation("🔍 Validating Compatibility Kit configuration...");
             
             var configManager = serviceProvider.GetRequiredService<StructuredConfigurationManager>();
@@ -120,6 +121,18 @@ namespace BotCore.Compatibility
             if (!File.Exists("config/compatibility-kit.json"))
             {
                 throw new FileNotFoundException("Compatibility Kit main configuration file not found: config/compatibility-kit.json");
+            }
+            
+            // Validate parameter bundle configuration
+            if (!File.Exists("config/bundles.stage.json"))
+            {
+                throw new FileNotFoundException("Parameter bundles configuration file not found: config/bundles.stage.json");
+            }
+            
+            // Validate parameter bounds configuration
+            if (!File.Exists("config/bounds.json"))
+            {
+                throw new FileNotFoundException("Parameter bounds configuration file not found: config/bounds.json");
             }
             
             // Validate strategy configurations
@@ -137,6 +150,20 @@ namespace BotCore.Compatibility
             if (mainConfig == null)
             {
                 throw new InvalidOperationException("Failed to load main compatibility kit configuration");
+            }
+            
+            // Load and validate parameter bundles
+            var bundlesConfig = configManager.LoadParameterBundles();
+            if (bundlesConfig == null || bundlesConfig.Bundles.Count == 0)
+            {
+                throw new InvalidOperationException("Failed to load parameter bundles configuration or no bundles defined");
+            }
+            
+            // Load and validate parameter bounds
+            var boundsConfig = configManager.LoadParameterBounds();
+            if (boundsConfig == null || boundsConfig.ParameterBounds.Count == 0)
+            {
+                throw new InvalidOperationException("Failed to load parameter bounds configuration or no bounds defined");
             }
             
             logger.LogInformation("✅ Compatibility Kit configuration validation completed successfully");

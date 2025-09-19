@@ -28,6 +28,8 @@ public class StructuredConfigurationManager
         _configPaths = new List<string>
         {
             "config/compatibility-kit.json",
+            "config/bundles.stage.json",
+            "config/bounds.json",
             "config/strategies/S2.json",
             "config/strategies/S3.json",
             "config/strategies/S6.json",
@@ -114,6 +116,68 @@ public class StructuredConfigurationManager
         {
             _logger.LogError(ex, "Error getting parameters for strategy {Strategy}", strategy);
             return CreateDefaultConfigurationSource(strategy);
+        }
+    }
+    
+    /// <summary>
+    /// Load parameter bundles configuration for stage-based learning
+    /// </summary>
+    public ParameterBundlesConfiguration LoadParameterBundles()
+    {
+        try
+        {
+            var configPath = "config/bundles.stage.json";
+            if (!File.Exists(configPath))
+            {
+                throw new FileNotFoundException($"Parameter bundles configuration file not found: {configPath}");
+            }
+            
+            var jsonContent = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<ParameterBundlesConfiguration>(jsonContent);
+            
+            if (config == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize parameter bundles configuration");
+            }
+            
+            _logger.LogInformation("✅ Parameter bundles loaded from {ConfigPath}", configPath);
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to load parameter bundles configuration");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Load parameter bounds configuration for validation
+    /// </summary>
+    public ParameterBoundsConfiguration LoadParameterBounds()
+    {
+        try
+        {
+            var configPath = "config/bounds.json";
+            if (!File.Exists(configPath))
+            {
+                throw new FileNotFoundException($"Parameter bounds configuration file not found: {configPath}");
+            }
+            
+            var jsonContent = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<ParameterBoundsConfiguration>(jsonContent);
+            
+            if (config == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize parameter bounds configuration");
+            }
+            
+            _logger.LogInformation("✅ Parameter bounds loaded from {ConfigPath}", configPath);
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to load parameter bounds configuration");
+            throw;
         }
     }
     
@@ -382,4 +446,87 @@ public class ConfigurationSource
     {
         return MarketConditionOverrides.GetValueOrDefault(marketCondition, new Dictionary<string, object>());
     }
+}
+
+/// <summary>
+/// Parameter bundles configuration for stage-based learning
+/// </summary>
+public class ParameterBundlesConfiguration
+{
+    public string Version { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public DateTime LastUpdated { get; set; }
+    public Dictionary<string, ParameterBundle> Bundles { get; set; } = new();
+    public GlobalBundleSettings GlobalSettings { get; set; } = new();
+}
+
+public class ParameterBundle
+{
+    public string Stage { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
+    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, Dictionary<string, object>> MarketConditions { get; set; } = new();
+}
+
+public class GlobalBundleSettings
+{
+    public int MaxBundlesPerStrategy { get; set; } = 3;
+    public double LearningRate { get; set; } = 0.1;
+    public double ExplorationWeight { get; set; } = 0.15;
+    public int MinSamplesForUpdate { get; set; } = 20;
+}
+
+/// <summary>
+/// Parameter bounds configuration for validation
+/// </summary>
+public class ParameterBoundsConfiguration
+{
+    public string Version { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public DateTime LastUpdated { get; set; }
+    public Dictionary<string, ParameterBound> ParameterBounds { get; set; } = new();
+    public ValidationRules ValidationRules { get; set; } = new();
+    public Dictionary<string, MarketConditionBounds> MarketConditionBounds { get; set; } = new();
+}
+
+public class ParameterBound
+{
+    public double Min { get; set; }
+    public double Max { get; set; }
+    public double Default { get; set; }
+    public double Step { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class ValidationRules
+{
+    public GlobalConstraints GlobalConstraints { get; set; } = new();
+    public Dictionary<string, StrategyConstraints> StrategyConstraints { get; set; } = new();
+}
+
+public class GlobalConstraints
+{
+    public int MaxConcurrentPositions { get; set; } = 5;
+    public double MaxDailyLoss { get; set; } = 1000;
+    public double MinConfidenceForLive { get; set; } = 0.6;
+    public bool RequireStopLoss { get; set; } = true;
+}
+
+public class StrategyConstraints
+{
+    public int MaxPositionSize { get; set; }
+    public double MinConfidence { get; set; }
+    public double MaxRiskPerTrade { get; set; }
+}
+
+public class MarketConditionBounds
+{
+    public double Threshold { get; set; }
+    public Dictionary<string, ParameterBoundAdjustment> Adjustments { get; set; } = new();
+}
+
+public class ParameterBoundAdjustment
+{
+    public double Min { get; set; }
+    public double Max { get; set; }
 }

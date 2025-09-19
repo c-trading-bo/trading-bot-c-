@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "description": "Parameter bundles for stage-based learning system",
+  "lastUpdated": "2024-12-19T00:00:00Z",
+  "bundles": {
+    "S2": {
+      "stage": "production",
+      "enabled": true,
+      "parameters": {
+        "confidence_threshold": 0.65,
+        "position_multiplier": 1.2,
+        "risk_adjustment": 0.85,
+        "max_position_size": 5,
+        "stop_loss_multiplier": 0.98
+      },
+      "marketConditions": {
+        "high_volatility": {
+          "confidence_threshold": 0.75,
+          "position_multiplier": 0.8,
+          "risk_adjustment": 0.7
+        },
+        "low_volatility": {
+          "confidence_threshold": 0.6,
+          "position_multiplier": 1.4,
+          "risk_adjustment": 0.9
+        }
+      }
+    },
+    "S3": {
+      "stage": "production",
+      "enabled": true,
+      "parameters": {
+        "confidence_threshold": 0.7,
+        "position_multiplier": 1.0,
+        "risk_adjustment": 0.9,
+        "max_position_size": 3,
+        "stop_loss_multiplier": 0.95
+      },
+      "marketConditions": {
+        "trending": {
+          "confidence_threshold": 0.65,
+          "position_multiplier": 1.2,
+          "risk_adjustment": 0.85
+        },
+        "ranging": {
+          "confidence_threshold": 0.75,
+          "position_multiplier": 0.8,
+          "risk_adjustment": 0.95
+        }
+      }
+    },
+    "S6": {
+      "stage": "testing",
+      "enabled": false,
+      "parameters": {
+        "confidence_threshold": 0.8,
+        "position_multiplier": 0.5,
+        "risk_adjustment": 0.95,
+        "max_position_size": 1,
+        "stop_loss_multiplier": 0.99
+      }
+    },
+    "S11": {
+      "stage": "development",
+      "enabled": false,
+      "parameters": {
+        "confidence_threshold": 0.75,
+        "position_multiplier": 0.7,
+        "risk_adjustment": 0.8,
+        "max_position_size": 2,
+        "stop_loss_multiplier": 0.97
+      }
+    }
+  },
+  "globalSettings": {
+    "maxBundlesPerStrategy": 3,
+    "learningRate": 0.1,
+    "explorationWeight": 0.15,
+    "minSamplesForUpdate": 20
+  }
+}

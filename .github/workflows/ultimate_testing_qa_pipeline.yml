@@ -104,6 +104,16 @@ jobs:
       - name: "⚡ Cache Testing Dependencies"
         if: steps.session_check.outputs.skip_execution != 'true'
         uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            /usr/lib/libta_lib*
+            /usr/include/ta-lib/
+            ~/.cache/pytest
+          key: ${{ runner.os }}-ultimate-test-${{ hashFiles('**/requirements*.txt', '**/test_*.py') }}
+          restore-keys: |
+            ${{ runner.os }}-ultimate-test-
+            ${{ runner.os }}-talib-test-
 
       - name: "🚫 Duplicate Testing Session Prevention Notice"
         if: steps.session_check.outputs.skip_execution == 'true'
@@ -120,16 +130,6 @@ jobs:
           echo "💰 COST SAVINGS: Duplicate testing execution prevented"
           echo "✅ This prevents redundant QA runs!"
           echo "=============================================="
-        with:
-          path: |
-            ~/.cache/pip
-            /usr/lib/libta_lib*
-            /usr/include/ta-lib/
-            ~/.cache/pytest
-          key: ${{ runner.os }}-ultimate-test-${{ hashFiles('**/requirements*.txt', '**/test_*.py') }}
-          restore-keys: |
-            ${{ runner.os }}-ultimate-test-
-            ${{ runner.os }}-talib-test-
 
       - name: "🔧 Install System Dependencies"
         run: |
