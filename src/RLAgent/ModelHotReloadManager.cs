@@ -17,6 +17,8 @@ namespace TradingBot.RLAgent;
 /// </summary>
 public class ModelHotReloadManager : IDisposable
 {
+    private const double TestFeatureRangeMultiplier = 2.0;
+    
     private readonly ILogger<ModelHotReloadManager> _logger;
     private readonly OnnxEnsembleWrapper _onnxEnsemble;
     private readonly ModelHotReloadOptions _options;
@@ -219,7 +221,7 @@ public class ModelHotReloadManager : IDisposable
                 var randomBytes = new byte[4];
                 rng.GetBytes(randomBytes);
                 var randomValue = (double)BitConverter.ToUInt32(randomBytes, 0) / uint.MaxValue;
-                features[j] = (float)(randomValue * 2.0 - 1.0); // [-1, 1] range
+                features[j] = (float)(randomValue * TestFeatureRangeMultiplier - 1.0); // [-1, 1] range
             }
             
             inputs.Add(features);

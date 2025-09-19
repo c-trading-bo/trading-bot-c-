@@ -33,6 +33,17 @@ public class FeatureEngineering : IDisposable
     private const int DefaultLookbackPeriods = 10;
     private const int FeatureImportanceTopCount = 5;
     
+    // Default sentinel values for missing features
+    private const double DefaultVolatilitySentinel = 0.15;
+    private const double DefaultRsiSentinel = 0.5;
+    private const double DefaultBollingerSentinel = 0.5;
+    
+    // Boundary constants for feature validation
+    private const double MinValidRsiValue = 15.0;
+    private const double MaxValidRsiValue = 50.0;
+    private const double FeatureEpsilon = 1E-10;
+    private const double PercentageNormalizationFactor = 100.0;
+    
     // LoggerMessage delegates for performance
     private static readonly Action<ILogger, Exception?> LogDailyReportError =
         LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(LogDailyReportError)), "[FEATURE_ENG] Error in daily feature report");
@@ -581,9 +592,9 @@ public class FeatureEngineering : IDisposable
         {
             var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
-            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => 0.15,
-            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => 0.5,
-            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => DefaultVolatilitySentinel,
+            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => DefaultRsiSentinel,
+            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => DefaultBollingerSentinel,
             var name when name.Contains("regime", StringComparison.OrdinalIgnoreCase) => 0.0,
             var name when name.Contains("spread", StringComparison.OrdinalIgnoreCase) => 1.0,
             _ => 0.0
@@ -650,7 +661,7 @@ public class FeatureEngineering : IDisposable
     private static double CalculateRSI(MarketData[] buffer, MarketData current)
     {
         var allData = buffer.Append(current).ToArray();
-        if (allData.Length < 15) return 50.0; // Default neutral RSI
+        if (allData.Length < MinValidRsiValue) return MaxValidRsiValue; // Default neutral RSI
         
         var gains = new List<double>();
         var losses = new List<double>();
@@ -673,10 +684,10 @@ public class FeatureEngineering : IDisposable
         var avgGain = gains.TakeLast(14).Average();
         var avgLoss = losses.TakeLast(14).Average();
         
-        if (Math.Abs(avgLoss) < 1e-10) return 100.0;
+        if (Math.Abs(avgLoss) < FeatureEpsilon) return PercentageNormalizationFactor;
         
         var rs = avgGain / avgLoss;
-        return 100.0 - (100.0 / (1.0 + rs));
+        return PercentageNormalizationFactor - (PercentageNormalizationFactor / (1.0 + rs));
     }
 
     private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
