@@ -14,6 +14,7 @@ using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using BotCore.Services;
 using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
+using BotCore.Compatibility;  // Add this for CompatibilityKitServiceExtensions
 using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
 using TopstepX.Bot.Authentication;
 using DotNetEnv;
@@ -85,6 +86,9 @@ public class Program
         {
             // Build the unified host with all services
             var host = CreateHostBuilder(args).Build();
+            
+            // Validate service registration and configuration on startup
+            await ValidateStartupServicesAsync(host.Services);
             
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
@@ -601,6 +605,15 @@ Stack Trace:
         services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
         
         // ================================================================================
+        // COMPATIBILITY KIT SERVICES - PARAMETER LEARNING & CONFIGURATION
+        // ================================================================================
+        
+        // Register all Compatibility Kit services with proper DI lifetimes
+        services.AddCompatibilityKit(configuration);
+        
+        Console.WriteLine("✅ [COMPATIBILITY-KIT] Compatibility Kit services registered - parameter learning and configuration system ready");
+        
+        // ================================================================================
         // PRODUCTION READINESS SERVICES - Phase 4: Bar System Integration Fix
         // ================================================================================
         
@@ -1074,6 +1087,45 @@ Stack Trace:
     {
         // Register the real intelligence stack services - NO SHORTCUTS
         services.AddIntelligenceStack(configuration);
+    }
+
+    /// <summary>
+    /// Validates service registration and configuration files on startup
+    /// Implements comprehensive dependency injection validation and configuration file verification
+    /// </summary>
+    private static async Task ValidateStartupServicesAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        logger.LogInformation("🔍 Starting comprehensive startup validation...");
+        
+        try
+        {
+            // 1. Verify CompatibilityKit service registration
+            logger.LogInformation("📋 Validating CompatibilityKit service registration...");
+            serviceProvider.VerifyCompatibilityKitRegistration(logger);
+            
+            // 2. Validate configuration files
+            logger.LogInformation("📂 Validating CompatibilityKit configuration files...");
+            serviceProvider.ValidateCompatibilityKitConfiguration(logger);
+            
+            // 3. Run hardening validation
+            logger.LogInformation("🛡️ Running hardening validation...");
+            var hardeningReport = await serviceProvider.RunHardeningValidationAsync(logger);
+            
+            if (!hardeningReport.OverallValidationSuccess)
+            {
+                throw new InvalidOperationException("Hardening validation failed - system not ready for production");
+            }
+            
+            logger.LogInformation("✅ All startup validations completed successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "🚨 STARTUP VALIDATION FAILED - System cannot start");
+            throw;
+        }
     }
 
 }
