@@ -170,8 +170,7 @@ public class CVaRPPO : IDisposable
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
 
-            _logger.LogInformation("[CVAR_PPO] Training completed - Episode: {Episode}, Total Loss: {Loss:F4}, Policy Loss: {PolicyLoss:F4}, Value Loss: {ValueLoss:F4}, CVaR Loss: {CVaRLoss:F4}, Avg Reward: {Reward:F4}", 
-                _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
+            LogMessages.CVaRPPOTrainingCompleted(_logger, _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
 
             // Save checkpoint if performance improved
             await SaveCheckpointIfImproved(result, cancellationToken).ConfigureAwait(false);
@@ -336,7 +335,7 @@ public class CVaRPPO : IDisposable
             _modelCheckpoints[version] = checkpoint;
             _currentModelVersion = version;
 
-            _logger.LogInformation("[CVAR_PPO] Model saved: {ModelPath} (version: {Version})", modelPath, version);
+            LogMessages.CVaRPPOModelSaved(_logger, modelPath, version);
             
             return modelPath;
         }
@@ -389,12 +388,11 @@ public class CVaRPPO : IDisposable
                     _averageReward = metadata.AverageReward;
                     _averageLoss = metadata.AverageLoss;
                     
-                    _logger.LogInformation("[CVAR_PPO] Loaded model metadata - Version: {Version}, Episode: {Episode}, Avg Reward: {Reward:F3}", 
-                        metadata.Version, metadata.Episode, metadata.AverageReward);
+                    LogMessages.CVaRPPOModelMetadataLoaded(_logger, metadata.Version, metadata.Episode, metadata.AverageReward);
                 }
             }
 
-            _logger.LogInformation("[CVAR_PPO] Model loaded successfully: {ModelPath}", modelPath);
+            LogMessages.CVaRPPOModelLoaded(_logger, modelPath);
             return true;
         }
         catch (Exception ex)
@@ -431,7 +429,7 @@ public class CVaRPPO : IDisposable
         _valueNetwork = new ValueNetwork(_config.StateSize, _config.HiddenSize);
         _cvarNetwork = new CVaRNetwork(_config.StateSize, _config.HiddenSize);
         
-        _logger.LogInformation("[CVAR_PPO] Neural networks initialized");
+        LogMessages.CVaRPPONetworksInitialized(_logger);
     }
 
     private List<Experience> CollectExperiences()
@@ -607,7 +605,7 @@ public class CVaRPPO : IDisposable
         if (shouldSave)
         {
             await SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("[CVAR_PPO] Checkpoint saved due to performance improvement");
+            LogMessages.CVaRPPOCheckpointSaved(_logger);
         }
     }
 
@@ -627,7 +625,7 @@ public class CVaRPPO : IDisposable
                 _valueNetwork?.Dispose();
                 _cvarNetwork?.Dispose();
                 
-                _logger.LogInformation("[CVAR_PPO] Disposed successfully");
+                LogMessages.CVaRPPODisposed(_logger);
             }
             
             _disposed = true;

@@ -91,10 +91,66 @@ internal static class LogMessages
         LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(3004, nameof(CVaRPPOModelSaved)),
             "[CVAR_PPO] Model saved: {ModelPath} (version: {Version})");
 
-    // Position Sizing Messages
-    private static readonly Action<ILogger, string, double, Exception?> _positionSizeCalculated =
-        LoggerMessage.Define<string, double>(LogLevel.Information, new EventId(7001, nameof(PositionSizeCalculated)),
-            "[POSITION_SIZING] Calculated position size for {Symbol}: {Size}");
+    private static readonly Action<ILogger, string, int, double, Exception?> _cvarPpoModelMetadataLoaded =
+        LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(3005, nameof(CVaRPPOModelMetadataLoaded)),
+            "[CVAR_PPO] Loaded model metadata - Version: {Version}, Episode: {Episode}, Avg Reward: {Reward:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> _cvarPpoModelLoaded =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3006, nameof(CVaRPPOModelLoaded)),
+            "[CVAR_PPO] Model loaded successfully: {ModelPath}");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoNetworksInitialized =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3007, nameof(CVaRPPONetworksInitialized)),
+            "[CVAR_PPO] Neural networks initialized");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoCheckpointSaved =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3008, nameof(CVaRPPOCheckpointSaved)),
+            "[CVAR_PPO] Checkpoint saved due to performance improvement");
+
+    private static readonly Action<ILogger, Exception?> _cvarPpoDisposed =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3009, nameof(CVaRPPODisposed)),
+            "[CVAR_PPO] Disposed successfully");
+
+    // ONNX Ensemble Messages
+    private static readonly Action<ILogger, int, int, Exception?> _onnxEnsembleInitialized =
+        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(8001, nameof(OnnxEnsembleInitialized)),
+            "[RL-ENSEMBLE] ONNX Ensemble Wrapper initialized with {MaxBatchSize} batch size, {MaxConcurrentBatches} concurrent batches");
+
+    private static readonly Action<ILogger, string, Exception?> _modelFileNotFound =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8002, nameof(ModelFileNotFound)),
+            "[RL-ENSEMBLE] Model file not found: {ModelPath}");
+
+    private static readonly Action<ILogger, string, double, Exception?> _modelLoaded =
+        LoggerMessage.Define<string, double>(LogLevel.Information, new EventId(8003, nameof(ModelLoaded)),
+            "[RL-ENSEMBLE] Model loaded: {ModelName} with confidence {Confidence:F2}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelLoadFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8004, nameof(ModelLoadFailed)),
+            "[RL-ENSEMBLE] Failed to load model: {ModelName}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelUnloaded =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(8005, nameof(ModelUnloaded)),
+            "[RL-ENSEMBLE] Model unloaded: {ModelName}");
+
+    private static readonly Action<ILogger, string, Exception?> _modelUnloadFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8006, nameof(ModelUnloadFailed)),
+            "[RL-ENSEMBLE] Failed to unload model: {ModelName}");
+
+    private static readonly Action<ILogger, Exception?> _anomalousInputBlocked =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(8007, nameof(AnomalousInputBlocked)),
+            "[RL-ENSEMBLE] Anomalous input detected and blocked");
+
+    private static readonly Action<ILogger, Exception?> _batchProcessingError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(8008, nameof(BatchProcessingError)),
+            "[RL-ENSEMBLE] Error in batch processing task");
+
+    private static readonly Action<ILogger, int, double, Exception?> _batchProcessed =
+        LoggerMessage.Define<int, double>(LogLevel.Debug, new EventId(8009, nameof(BatchProcessed)),
+            "[RL-ENSEMBLE] Processed batch of {BatchSize} in {LatencyMs:F2}ms");
+
+    private static readonly Action<ILogger, Exception?> _inferenceBatchError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(8010, nameof(InferenceBatchError)),
+            "[RL-ENSEMBLE] Error processing inference batch");
 
     // Public methods for high-performance logging
     public static void SacAlgorithmCreated(ILogger logger, string config) => _sacAlgorithmCreated(logger, config, null);
@@ -116,5 +172,25 @@ internal static class LogMessages
     public static void CVaRPPOTrainingStarted(ILogger logger, int episode, int experienceCount) => _cvarPpoTrainingStarted(logger, episode, experienceCount, null);
     public static void CVaRPPOTrainingCompleted(ILogger logger, int episode, double loss, double policyLoss, double valueLoss, double cvarLoss, double reward) => _cvarPpoTrainingCompleted(logger, episode, loss, policyLoss, valueLoss, cvarLoss, reward, null);
     public static void CVaRPPOModelSaved(ILogger logger, string modelPath, string version) => _cvarPpoModelSaved(logger, modelPath, version, null);
+    public static void CVaRPPOModelMetadataLoaded(ILogger logger, string version, int episode, double reward) => _cvarPpoModelMetadataLoaded(logger, version, episode, reward, null);
+    public static void CVaRPPOModelLoaded(ILogger logger, string modelPath) => _cvarPpoModelLoaded(logger, modelPath, null);
+    public static void CVaRPPONetworksInitialized(ILogger logger) => _cvarPpoNetworksInitialized(logger, null);
+    public static void CVaRPPOCheckpointSaved(ILogger logger) => _cvarPpoCheckpointSaved(logger, null);
+    public static void CVaRPPODisposed(ILogger logger) => _cvarPpoDisposed(logger, null);
+    // Position Sizing Messages
+    private static readonly Action<ILogger, string, double, Exception?> _positionSizeCalculated =
+        LoggerMessage.Define<string, double>(LogLevel.Information, new EventId(7001, nameof(PositionSizeCalculated)),
+            "[POSITION_SIZING] Calculated position size for {Symbol}: {Size}");
+
     public static void PositionSizeCalculated(ILogger logger, string symbol, double size) => _positionSizeCalculated(logger, symbol, size, null);
+    public static void OnnxEnsembleInitialized(ILogger logger, int maxBatchSize, int maxConcurrentBatches) => _onnxEnsembleInitialized(logger, maxBatchSize, maxConcurrentBatches, null);
+    public static void ModelFileNotFound(ILogger logger, string modelPath) => _modelFileNotFound(logger, modelPath, null);
+    public static void ModelLoaded(ILogger logger, string modelName, double confidence) => _modelLoaded(logger, modelName, confidence, null);
+    public static void ModelLoadFailed(ILogger logger, string modelName, Exception ex) => _modelLoadFailed(logger, modelName, ex);
+    public static void ModelUnloaded(ILogger logger, string modelName) => _modelUnloaded(logger, modelName, null);
+    public static void ModelUnloadFailed(ILogger logger, string modelName, Exception ex) => _modelUnloadFailed(logger, modelName, ex);
+    public static void AnomalousInputBlocked(ILogger logger) => _anomalousInputBlocked(logger, null);
+    public static void BatchProcessingError(ILogger logger, Exception ex) => _batchProcessingError(logger, ex);
+    public static void BatchProcessed(ILogger logger, int batchSize, double latencyMs) => _batchProcessed(logger, batchSize, latencyMs, null);
+    public static void InferenceBatchError(ILogger logger, Exception ex) => _inferenceBatchError(logger, ex);
 }
