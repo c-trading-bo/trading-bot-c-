@@ -727,7 +727,7 @@ public class FeatureEngineering : IDisposable
         return totalTicks > 0 ? (upTicks - downTicks) / (double)totalTicks : 0.0;
     }
 
-    private double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current)
+    private static double CalculateTickRun(CircularBuffer<MarketData> buffer, MarketData current)
     {
         if (buffer.Count < 2) return 0.0;
         

@@ -27,12 +27,17 @@ public class CVaRPPO : IDisposable
     
     // Training state
     private int _currentEpisode;
-    private double _averageReward = 0.0;
-    private double _averageLoss = 0.0;
+    private double _averageReward;
+    private double _averageLoss;
     private DateTime _lastTrainingTime = DateTime.MinValue;
     
     // Model versioning
     private string _currentModelVersion = "1.0.0";
+    
+    // Training constants
+    private const double LossMovingAverageWeight = 0.9;
+    private const double NewLossWeight = 0.1;
+    private const int DefaultHistorySize = 20;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
     // Performance tracking
@@ -147,7 +152,7 @@ public class CVaRPPO : IDisposable
             // Update averages and state (with lock)
             lock (_trainingLock)
             {
-                _averageLoss = _averageLoss * 0.9 + result.TotalLoss * 0.1;
+                _averageLoss = _averageLoss * LossMovingAverageWeight + result.TotalLoss * NewLossWeight;
                 _averageReward = experiences.Count > 0 ? experiences.Average(e => e.Reward) : 0.0;
 
                 // Track performance
@@ -411,8 +416,8 @@ public class CVaRPPO : IDisposable
             ExperienceBufferSize = _experienceBuffer.Count,
             LastTrainingTime = _lastTrainingTime,
             CurrentModelVersion = _currentModelVersion,
-            RecentRewards = _rewardHistory.GetAll().TakeLast(20).ToArray(),
-            RecentLosses = _lossHistory.GetAll().TakeLast(20).ToArray(),
+            RecentRewards = _rewardHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
+            RecentLosses = _lossHistory.GetAll().TakeLast(DefaultHistorySize).ToArray(),
             RecentCVaRLosses = _cvarHistory.GetAll().TakeLast(20).ToArray()
         };
     }

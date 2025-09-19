@@ -353,7 +353,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return results;
     }
 
-    private async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
+    private static async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
     {
         // Brief yield for async context in CPU-intensive operation
         await Task.Yield();
@@ -636,6 +636,7 @@ public class EnsembleStatus
 /// </summary>
 public class AnomalyDetector
 {
+    private const int MinimumSampleCount = 10;
     private readonly double _threshold;
     private readonly Dictionary<int, (double sum, double sumSquared, int count)> _featureStats = new();
 
@@ -654,7 +655,7 @@ public class AnomalyDetector
             
             if (_featureStats.TryGetValue(i, out var stats))
             {
-                if (stats.count > 10) // Need some data for meaningful statistics
+                if (stats.count > MinimumSampleCount) // Need some data for meaningful statistics
                 {
                     var mean = stats.sum / stats.count;
                     var variance = (stats.sumSquared / stats.count) - (mean * mean);
