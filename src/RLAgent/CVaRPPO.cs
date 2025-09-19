@@ -38,6 +38,8 @@ public class CVaRPPO : IDisposable
     private const double LossMovingAverageWeight = 0.9;
     private const double NewLossWeight = 0.1;
     private const int DefaultHistorySize = 20;
+    private const double NetworkUpdateLearningRate = 0.001;
+    private const double TensorDimensionFactor = 2;
     private readonly Dictionary<string, ModelCheckpoint> _modelCheckpoints = new();
     
     // Performance tracking
@@ -821,7 +823,7 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * 2 - 1) * limit1;
+                _weights1[i][j] = (randomValue * TensorDimensionFactor - 1) * limit1;
             }
         }
         
@@ -832,7 +834,7 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights2[i][j] = (randomValue * 2 - 1) * limit2;
+                _weights2[i][j] = (randomValue * TensorDimensionFactor - 1) * limit2;
             }
         }
     }
@@ -874,7 +876,7 @@ public class PolicyNetwork : IDisposable
         {
             for (int j = 0; j < _actionSize; j++)
             {
-                _weights2[i][j] -= gradient * 0.001; // Simplified gradient
+                _weights2[i][j] -= gradient * NetworkUpdateLearningRate; // Simplified gradient
             }
         }
     }
@@ -955,7 +957,7 @@ public class ValueNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * 2 - 1) * limit;
+                _weights1[i][j] = (randomValue * TensorDimensionFactor - 1) * limit;
             }
         }
         
@@ -964,7 +966,7 @@ public class ValueNetwork : IDisposable
             var bytes = new byte[8];
             rng.GetBytes(bytes);
             var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-            _weights2[i] = (randomValue * 2 - 1) * 0.1;
+            _weights2[i] = (randomValue * TensorDimensionFactor - 1) * 0.1;
         }
     }
 

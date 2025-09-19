@@ -267,7 +267,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             foreach (var group in featureGroups)
             {
-                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false);
+                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features.ToArray()).ToArray()).ConfigureAwait(false);
                 
                 for (int i = 0; i < group.Count; i++)
                 {

@@ -622,7 +622,7 @@ public class FeatureEngineering : IDisposable
         var avgGain = gains.TakeLast(14).Average();
         var avgLoss = losses.TakeLast(14).Average();
         
-        if (avgLoss == 0) return 100.0;
+        if (Math.Abs(avgLoss) < 1e-10) return 100.0;
         
         var rs = avgGain / avgLoss;
         return 100.0 - (100.0 / (1.0 + rs));
