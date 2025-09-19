@@ -105,6 +105,8 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(currentData);
+        
         try
         {
             var featureKey = GetFeatureKey(symbol, strategy, regime);

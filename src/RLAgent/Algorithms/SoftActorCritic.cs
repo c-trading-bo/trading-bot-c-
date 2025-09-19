@@ -363,9 +363,20 @@ public class SoftActorCritic : IDisposable
     /// </summary>
     public void Dispose()
     {
-        _actor?.Dispose();
-        _replayBuffer?.Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Dispose pattern implementation
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _actor?.Dispose();
+            _replayBuffer?.Dispose();
+        }
     }
 }
 

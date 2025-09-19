@@ -71,9 +71,17 @@ public class ModelHotReloadManager : IDisposable
             LogMessages.ModelFileChangeDetected(_logger, e.FullPath);
             
             // Process hot-reload on background thread
-            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath), _cancellationTokenSource.Token).ConfigureAwait(false);
+            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath).ConfigureAwait(false), _cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
+        }
+        catch (UnauthorizedAccessException ex)
         {
             _logger.LogError(ex, "[HOT_RELOAD] Error handling model file change event");
         }
