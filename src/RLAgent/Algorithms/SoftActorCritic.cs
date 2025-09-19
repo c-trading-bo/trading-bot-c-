@@ -714,6 +714,7 @@ public class CriticNetwork
 
     public double Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
@@ -749,6 +750,7 @@ public class CriticNetwork
 
     public void CopyWeightsFrom(CriticNetwork source)
     {
+        ArgumentNullException.ThrowIfNull(source);
         // Copy weights from source network
         Array.Copy(source._weightsInput, _weightsInput, source._weightsInput.Length);
         Array.Copy(source._biasHidden, _biasHidden, source._biasHidden.Length);
@@ -860,6 +862,7 @@ public class ValueNetwork
 
     public double Predict(double[] input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         // Forward pass
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)

@@ -777,6 +777,9 @@ public class PerformanceMetrics
 /// </summary>
 public class PolicyNetwork : IDisposable
 {
+    private const double WEIGHT_RANGE_MULTIPLIER = 2.0;
+    private const double LEARNING_RATE = 0.001;
+    
     private readonly int _stateSize;
     private readonly int _actionSize;
     private readonly int _hiddenSize;
@@ -824,7 +827,7 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * 2 - 1) * limit1;
+                _weights1[i][j] = (randomValue * WEIGHT_RANGE_MULTIPLIER - 1) * limit1;
             }
         }
         
@@ -835,17 +838,14 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights2[i][j] = (randomValue * 2 - 1) * limit2;
+                _weights2[i][j] = (randomValue * WEIGHT_RANGE_MULTIPLIER - 1) * limit2;
             }
         }
     }
 
     public double[] Forward(double[] state)
     {
-        if (state is null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
         
         // Hidden layer
         var hidden = new double[_hiddenSize];
@@ -882,7 +882,7 @@ public class PolicyNetwork : IDisposable
         {
             for (int j = 0; j < _actionSize; j++)
             {
-                _weights2[i][j] -= gradient * 0.001; // Simplified gradient
+                _weights2[i][j] -= gradient * LEARNING_RATE; // Simplified gradient
             }
         }
     }
@@ -982,10 +982,7 @@ public class ValueNetwork : IDisposable
 
     public double[] Forward(double[] state)
     {
-        if (state is null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
         
         // Hidden layer
         var hidden = new double[_hiddenSize];

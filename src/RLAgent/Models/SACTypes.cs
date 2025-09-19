@@ -37,6 +37,10 @@ public class SacConfig
 /// </summary>
 public class SacState
 {
+    private const double RSI_OVERBOUGHT_THRESHOLD = 70;
+    private const double RSI_OVERSOLD_THRESHOLD = 30;
+    private const double RSI_ADJUSTMENT_FRACTION = 0.3;
+    
     public IReadOnlyList<double> Features { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
     public string Symbol { get; set; } = string.Empty;
@@ -80,10 +84,10 @@ public class SacState
         
         // Calculate base fraction based on RSI (mean reversion)
         double rsiFraction;
-        if (rsi > 70)
-            rsiFraction = -0.3;
-        else if (rsi < 30)
-            rsiFraction = 0.3;
+        if (rsi > RSI_OVERBOUGHT_THRESHOLD)
+            rsiFraction = -RSI_ADJUSTMENT_FRACTION;
+        else if (rsi < RSI_OVERSOLD_THRESHOLD)
+            rsiFraction = RSI_ADJUSTMENT_FRACTION;
         else
             rsiFraction = 0.0;
         
