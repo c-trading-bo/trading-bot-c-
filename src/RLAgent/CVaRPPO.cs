@@ -196,6 +196,8 @@ public class CVaRPPO : IDisposable
     /// </summary>
     public Task<ActionResult> GetActionAsync(double[] state, bool deterministic = false, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        
         try
         {
             if (state.Length != _config.StateSize)
@@ -272,6 +274,8 @@ public class CVaRPPO : IDisposable
     /// </summary>
     public void AddExperience(Experience experience)
     {
+        ArgumentNullException.ThrowIfNull(experience);
+        
         _experienceBuffer.Enqueue(experience);
         
         // Limit buffer size

@@ -226,9 +226,9 @@ internal static class LogMessages
         LoggerMessage.Define<double>(LogLevel.Information, new EventId(10001, nameof(PositionSizingInitialized)),
             "[POSITION_SIZING] Initialized with max allocation: {MaxAllocation}, regime-based clipping enabled");
 
-    private static readonly Action<ILogger, string, string, string, double, double, double, int, Exception?> _positionSizingCalculated =
-        LoggerMessage.Define<string, string, string, double, double, double, int>(LogLevel.Debug, new EventId(10002, nameof(PositionSizingCalculated)),
-            "[POSITION_SIZING] {Symbol} {Strategy} {Regime}: Kelly={Kelly:F3}, SAC={SAC:F3}, Clip={Clip:F3}, Final={Final} contracts");
+    private static readonly Action<ILogger, string, string, string, string, Exception?> _positionSizingCalculated =
+        LoggerMessage.Define<string, string, string, string>(LogLevel.Debug, new EventId(10002, nameof(PositionSizingCalculated)),
+            "[POSITION_SIZING] {Symbol} {Strategy} {Regime}: {Values}");
 
     private static readonly Action<ILogger, string, string, Exception?> _positionSizingArgumentError =
         LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(10003, nameof(PositionSizingArgumentError)),
@@ -322,7 +322,8 @@ internal static class LogMessages
     public static void StreamingCleanupError(ILogger logger, Exception ex) => _streamingCleanupError(logger, ex);
     public static void FeatureForwardFilled(ILogger logger, string featureName) => _featureForwardFilled(logger, featureName, null);
     public static void PositionSizingInitialized(ILogger logger, double maxAllocation) => _positionSizingInitialized(logger, maxAllocation, null);
-    public static void PositionSizingCalculated(ILogger logger, string symbol, string strategy, string regime, double kelly, double sac, double clip, int final) => _positionSizingCalculated(logger, symbol, strategy, regime, kelly, sac, clip, final, null);
+    public static void PositionSizingCalculated(ILogger logger, string symbol, string strategy, string regime, double kelly, double sac, double clip, int final) => 
+        _positionSizingCalculated(logger, symbol, strategy, regime, $"Kelly={kelly:F3}, SAC={sac:F3}, Clip={clip:F3}, Final={final} contracts", null);
     public static void PositionSizingArgumentError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingArgumentError(logger, symbol, strategy, ex);
     public static void PositionSizingOperationError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingOperationError(logger, symbol, strategy, ex);
     public static void PositionSizingDivisionError(ILogger logger, string symbol, string strategy, Exception ex) => _positionSizingDivisionError(logger, symbol, strategy, ex);
