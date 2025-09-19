@@ -25,7 +25,7 @@ internal static class NeuralNetworkConstants
 /// Soft Actor-Critic (SAC) algorithm implementation for continuous control
 /// Designed for position sizing and entry/exit timing in trading systems
 /// </summary>
-public class SoftActorCritic
+public class SoftActorCritic : IDisposable
 {
     private readonly ILogger<SoftActorCritic> _logger;
     private readonly Models.SacConfig _config;
@@ -357,6 +357,16 @@ public class SoftActorCritic
             MaxBufferSize = _config.BufferSize
         };
     }
+
+    /// <summary>
+    /// Dispose pattern implementation
+    /// </summary>
+    public void Dispose()
+    {
+        _actor?.Dispose();
+        _replayBuffer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }
 
 #region Supporting Classes
@@ -456,7 +466,7 @@ public class ExperienceReplayBuffer : IDisposable
         }
     }
 
-    public List<Experience> SampleBatch(int batchSize)
+    public IReadOnlyList<Experience> SampleBatch(int batchSize)
     {
         if (batchSize > _buffer.Count)
             throw new ArgumentException($"Batch size {batchSize} is larger than buffer size {_buffer.Count}");

@@ -265,13 +265,13 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Get symbols with stale streaming features
     /// </summary>
-    public List<string> GetStaleStreamingSymbols()
+    public IReadOnlyList<string> GetStaleStreamingSymbols()
     {
         var cutoffTime = DateTime.UtcNow - TimeSpan.FromSeconds(_config.StreamingStaleThresholdSeconds);
         return _streamingAggregators
             .Where(kvp => kvp.Value.LastUpdateTime < cutoffTime)
             .Select(kvp => kvp.Key)
-            .ToList();
+            .ToArray();
     }
 
     /// <summary>

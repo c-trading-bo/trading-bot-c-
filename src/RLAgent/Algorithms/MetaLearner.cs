@@ -69,7 +69,7 @@ public class MetaLearner
     /// </summary>
     public Task<PolicyNetwork> AdaptToTaskAsync(
         string taskId, 
-        List<TaskExperience> supportSet, 
+        IReadOnlyList<TaskExperience> supportSet, 
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(supportSet);
@@ -585,12 +585,12 @@ public class MetaExperienceBuffer
         }
     }
 
-    public List<TaskData> SampleMetaBatch(int batchSize)
+    public IReadOnlyList<TaskData> SampleMetaBatch(int batchSize)
     {
         var availableTasks = _tasks.Values.Where(t => t.Experiences.Count > 0).ToList();
         
         if (availableTasks.Count == 0)
-            return new List<TaskData>();
+            return Array.Empty<TaskData>();
         
         var taskIndices = new HashSet<int>();
         
@@ -599,7 +599,7 @@ public class MetaExperienceBuffer
             taskIndices.Add(GenerateSecureRandomInt(availableTasks.Count));
         }
         
-        return taskIndices.Select(index => availableTasks[index]).ToList();
+        return taskIndices.Select(index => availableTasks[index]).ToArray();
     }
     
     private static int GenerateSecureRandomInt(int maxValue)
