@@ -43,6 +43,7 @@ public class FeatureEngineering : IDisposable
     private const double MaxValidRsiValue = 50.0;
     private const double FeatureEpsilon = 1E-10;
     private const double PercentageNormalizationFactor = 100.0;
+    private const double BollingerBandMidpoint = 0.5;
     
     // LoggerMessage delegates for performance
     private static readonly Action<ILogger, Exception?> LogDailyReportError =
@@ -702,7 +703,7 @@ public class FeatureEngineering : IDisposable
         var upperBand = sma + (2.0 * stdDev);
         var lowerBand = sma - (2.0 * stdDev);
         
-        if (upperBand <= lowerBand) return 0.5;
+        if (upperBand <= lowerBand) return BollingerBandMidpoint;
         
         return (current.Close - lowerBand) / (upperBand - lowerBand);
     }

@@ -399,9 +399,19 @@ public class CVaRPPO : IDisposable
             LogMessages.CVaRPPOModelLoaded(_logger, modelPath);
             return true;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[CVAR_PPO] Error loading model from: {ModelPath}", modelPath);
+            _logger.LogError(ex, "[CVAR_PPO] Model file not found: {ModelPath}", modelPath);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Access denied loading model: {ModelPath}", modelPath);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Invalid model file: {ModelPath}", modelPath);
             return false;
         }
     }

@@ -83,7 +83,7 @@ public class OnnxEnsembleWrapper : IDisposable
             }
 
             // Configure session options for GPU and optimization
-            var sessionOptions = CreateSessionOptions();
+            using var sessionOptions = CreateSessionOptions();
             
             var session = new InferenceSession(modelPath, sessionOptions);
             var modelSession = new ModelSession
@@ -103,7 +103,22 @@ public class OnnxEnsembleWrapper : IDisposable
             LogMessages.ModelLoaded(_logger, modelName, confidence);
             return true;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.ModelLoadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (OutOfMemoryException ex)
         {
             LogMessages.ModelLoadFailed(_logger, modelName, ex);
             return false;
@@ -128,7 +143,12 @@ public class OnnxEnsembleWrapper : IDisposable
             }
             return false;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.ModelUnloadFailed(_logger, modelName, ex);
+            return false;
+        }
+        catch (ObjectDisposedException ex)
         {
             LogMessages.ModelUnloadFailed(_logger, modelName, ex);
             return false;
@@ -299,7 +319,7 @@ public class OnnxEnsembleWrapper : IDisposable
             var totalLatency = (DateTime.UtcNow - startTime).TotalMilliseconds;
             LogMessages.BatchProcessed(_logger, batch.Count, totalLatency);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             LogMessages.InferenceBatchError(_logger, ex);
             
@@ -307,6 +327,24 @@ public class OnnxEnsembleWrapper : IDisposable
             foreach (var request in batch)
             {
                 request.TaskCompletionSource.SetException(ex);
+            }
+        }
+        catch (OutOfMemoryException ex)
+        {
+            LogMessages.InferenceBatchError(_logger, ex);
+            
+            // Complete all requests with error
+            foreach (var request in batch)
+            {
+                request.TaskCompletionSource.SetException(ex);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Complete all requests with cancellation
+            foreach (var request in batch)
+            {
+                request.TaskCompletionSource.SetCanceled();
             }
         }
     }

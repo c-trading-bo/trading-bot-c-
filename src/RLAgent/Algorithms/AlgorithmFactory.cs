@@ -249,7 +249,7 @@ public class SacAlgorithmWrapper : IRLAlgorithm
 
     public string GetAlgorithmType() => "SAC";
 
-    public object GetStatistics() => _sac.GetStatistics();
+    public object GetStatistics() => _sac.Statistics;
 }
 
 /// <summary>
@@ -267,7 +267,7 @@ public class MetaLearningAlgorithmWrapper : IRLAlgorithm
 
     public Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
     {
-        var policy = _metaLearner.GetTaskPolicy(_currentTaskId) ?? _metaLearner.GetMetaPolicy();
+        var policy = _metaLearner.GetTaskPolicy(_currentTaskId) ?? _metaLearner.MetaPolicy;
         return Task.FromResult(policy.Predict(state));
     }
 

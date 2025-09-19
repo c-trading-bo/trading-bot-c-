@@ -118,7 +118,7 @@ public class SoftActorCritic : IDisposable
         catch (OutOfMemoryException ex)
         {
             _logger.LogError(ex, "[SAC] Out of memory during action selection");
-            throw new OutOfMemoryException("Memory exhausted during SAC action selection with neural network inference", ex);
+            throw; // Rethrow system exceptions as-is
         }
     }
 
