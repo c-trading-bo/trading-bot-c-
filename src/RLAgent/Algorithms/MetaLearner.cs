@@ -147,30 +147,7 @@ public class MetaLearner
         try
         {
             var metaBatch = _metaBuffer.SampleMetaBatch(_config.MetaBatchSize);
-            var totalMetaLoss = 0.0;
-            var metaGradients = new Dictionary<string, double[]>();
-            
-            foreach (var task in metaBatch)
-            {
-                // Split task experiences into support and query sets
-                var splitIndex = task.Experiences.Count / 2;
-                var supportSet = task.Experiences.Take(splitIndex).ToList();
-                var querySet = task.Experiences.Skip(splitIndex).ToList();
-                
-                if (supportSet.Count == 0 || querySet.Count == 0)
-                    continue;
-                
-                // Fast adaptation on support set
-                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false);
-                
-                // Evaluate on query set
-                var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);
-                totalMetaLoss += queryLoss;
-                
-                // Compute meta-gradients
-                var taskMetaGradients = ComputeMetaGradients(adaptedPolicy, querySet);
-                AccumulateGradients(metaGradients, taskMetaGradients);
-            }
+            var (totalMetaLoss, metaGradients) = await ProcessMetaBatchTasksAsync(metaBatch).ConfigureAwait(false);
             
             // Apply meta-gradients to meta-policy
             ApplyGradients(_metaPolicy, metaGradients, _config.MetaLearningRate);
@@ -212,6 +189,42 @@ public class MetaLearner
             LogMessages.MetaTrainingMemoryError(_logger, "Meta-training failed due to memory exhaustion", ex);
             throw new InvalidOperationException("Meta-learning training failed due to memory exhaustion during batch processing", ex);
         }
+    }
+
+    /// <summary>
+    /// Process meta-batch tasks for training
+    /// </summary>
+    private async Task<(double totalLoss, Dictionary<string, double[]> gradients)> ProcessMetaBatchTasksAsync(
+        IReadOnlyList<TaskData> metaBatch)
+    {
+        var totalMetaLoss = 0.0;
+        var metaGradients = new Dictionary<string, double[]>();
+        
+        // Process tasks with valid experience splits
+        var validTasks = metaBatch.Where(t => t.Experiences.Count >= 2).ToList();
+        
+        for (int i = 0; i < validTasks.Count; i++)
+        {
+            var task = validTasks[i];
+            
+            // Split task experiences into support and query sets
+            var splitIndex = task.Experiences.Count / 2;
+            var supportSet = task.Experiences.Take(splitIndex).ToList();
+            var querySet = task.Experiences.Skip(splitIndex).ToList();
+            
+            // Fast adaptation on support set
+            var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false);
+            
+            // Evaluate on query set
+            var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);
+            totalMetaLoss += queryLoss;
+            
+            // Compute meta-gradients
+            var taskMetaGradients = ComputeMetaGradients(adaptedPolicy, querySet);
+            AccumulateGradients(metaGradients, taskMetaGradients);
+        }
+        
+        return (totalMetaLoss, metaGradients);
     }
 
     /// <summary>

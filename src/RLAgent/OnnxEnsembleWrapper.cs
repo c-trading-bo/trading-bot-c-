@@ -34,9 +34,6 @@ public class OnnxEnsembleWrapper : IDisposable
     
     // Constants
     private const int BytesToMegabytes = 1024 * 1024;
-    private const double DefaultEnsembleConfidence = 0.5;
-    private const double ConfidenceScalingFactor = 0.1;
-    private const double BaseConfidenceOffset = 0.5;
     private const double DefaultLatencyMs = 50.0;
 
     public OnnxEnsembleWrapper(
@@ -72,7 +69,7 @@ public class OnnxEnsembleWrapper : IDisposable
     /// <summary>
     /// Load model into ensemble
     /// </summary>
-    public async Task<bool> LoadModelAsync(string modelName, string modelPath, double confidence = 1.0, CancellationToken cancellationToken = default)
+    public async Task<bool> LoadModelAsync(string modelName, string modelPath, double? confidence = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -86,11 +83,12 @@ public class OnnxEnsembleWrapper : IDisposable
             using var sessionOptions = CreateSessionOptions();
             
             var session = new InferenceSession(modelPath, sessionOptions);
+            var finalConfidence = confidence ?? _options.DefaultModelConfidence;
             var modelSession = new ModelSession
             {
                 Name = modelName,
                 Session = session,
-                Confidence = confidence,
+                Confidence = finalConfidence,
                 LoadTime = DateTime.UtcNow,
                 InferenceCount = 0,
                 LastUsed = DateTime.UtcNow
@@ -100,7 +98,7 @@ public class OnnxEnsembleWrapper : IDisposable
             await ValidateModelAsync(modelSession).ConfigureAwait(false);
 
             _modelSessions.TryAdd(modelName, modelSession);
-            LogMessages.ModelLoaded(_logger, modelName, confidence);
+            LogMessages.ModelLoaded(_logger, modelName, finalConfidence);
             return true;
         }
         catch (FileNotFoundException ex)
@@ -170,7 +168,7 @@ public class OnnxEnsembleWrapper : IDisposable
             return new EnsemblePrediction
             {
                 IsAnomaly = true,
-                Confidence = 0.0,
+                Confidence = _options.AnomalyConfidence,
                 EnsembleResult = 0.0f
             };
         }
@@ -413,7 +411,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return results;
     }
 
-    private static async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
+    private async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
     {
         // Brief yield for async context in CPU-intensive operation
         await Task.Yield();
@@ -441,7 +439,7 @@ public class OnnxEnsembleWrapper : IDisposable
         var predictions = new ModelPrediction[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            var confidence = CalculateConfidence(outputTensor, i);
+            var confidence = CalculateConfidence(outputTensor, i, _options);
             predictions[i] = new ModelPrediction
             {
                 Value = outputTensor[i, 0],
@@ -453,12 +451,12 @@ public class OnnxEnsembleWrapper : IDisposable
         return predictions;
     }
 
-    private static EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
+    private EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
     {
         if (prediction.Predictions.Count == 0)
         {
             prediction.EnsembleResult = 0.0f;
-            prediction.Confidence = 0.0;
+            prediction.Confidence = _options.AnomalyConfidence;
             return prediction;
         }
 
@@ -474,7 +472,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Fallback to simple average
             prediction.EnsembleResult = (float)prediction.Predictions.Values.Average(p => p.Value);
-            prediction.Confidence = DefaultEnsembleConfidence;
+            prediction.Confidence = _options.DefaultEnsembleConfidence;
         }
 
         return prediction;
@@ -492,15 +490,15 @@ public class OnnxEnsembleWrapper : IDisposable
                 sessionOptions.AppendExecutionProvider_CUDA();
                 LogMessages.OnnxGpuAccelerationEnabled(_logger);
             }
+            catch (PlatformNotSupportedException ex)
+            {
+                LogMessages.GpuAccelerationFailed(_logger, ex);
+            }
             catch (NotSupportedException ex)
             {
                 LogMessages.GpuAccelerationFailed(_logger, ex);
             }
             catch (InvalidOperationException ex)
-            {
-                LogMessages.GpuAccelerationFailed(_logger, ex);
-            }
-            catch (PlatformNotSupportedException ex)
             {
                 LogMessages.GpuAccelerationFailed(_logger, ex);
             }
@@ -562,11 +560,11 @@ public class OnnxEnsembleWrapper : IDisposable
         return new List<List<InferenceRequest>> { batch };
     }
 
-    private static double CalculateConfidence(Tensor<float> outputTensor, int batchIndex)
+    private static double CalculateConfidence(Tensor<float> outputTensor, int batchIndex, OnnxEnsembleOptions options)
     {
         // Simple confidence calculation - could be enhanced based on model type
         var value = Math.Abs(outputTensor[batchIndex, 0]);
-        return Math.Min(1.0, value * ConfidenceScalingFactor + BaseConfidenceOffset); // Basic mapping
+        return Math.Min(1.0, value * options.ConfidenceScalingFactor + options.BaseConfidenceOffset); // Basic mapping
     }
 
     private static double CalculateAverageLatency()
@@ -637,6 +635,11 @@ public class OnnxEnsembleOptions
     public bool ClampInputs { get; set; } = true;
     public bool BlockAnomalousInputs { get; set; } = true;
     public double AnomalyThreshold { get; set; } = 3.0;
+    public double DefaultEnsembleConfidence { get; set; } = 0.5;
+    public double ConfidenceScalingFactor { get; set; } = 0.1;
+    public double BaseConfidenceOffset { get; set; } = 0.5;
+    public double DefaultModelConfidence { get; set; } = 1.0;
+    public double AnomalyConfidence { get; set; }
     public Collection<InputBounds>? InputBounds { get; }
 }
 
