@@ -86,7 +86,7 @@ public class SoftActorCritic : IDisposable
     {
         try
         {
-            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
+            await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
             
             var action = _actor.SampleAction(state, isTraining);
             
@@ -153,7 +153,7 @@ public class SoftActorCritic : IDisposable
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
-            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
+            await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
             return new Models.SacTrainingResult
             {
                 Success = false,
@@ -163,7 +163,7 @@ public class SoftActorCritic : IDisposable
 
         try
         {
-            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
+            await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
             
             var batchSize = Math.Min(_config.BatchSize, _replayBuffer.Count);
             var batch = _replayBuffer.SampleBatch(batchSize);

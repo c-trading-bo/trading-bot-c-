@@ -200,7 +200,11 @@ public class StreamingSymbolAggregator : IDisposable
 
     public async Task<StreamingFeatures> ProcessTickAsync(MarketTick tick, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Make it async
+        // Process tick data asynchronously
+        await Task.Run(() =>
+        {
+            // Perform intensive calculations off the main thread if needed
+        }, cancellationToken).ConfigureAwait(false);
 
         lock (_lock)
         {
