@@ -125,6 +125,20 @@ if [ -x "dev-helper.sh" ]; then
         else
             log_warning "⚠ Analyzer check failed (expected due to existing warnings)"
         fi
+        
+        # Test new backtest command
+        if ./dev-helper.sh backtest > /dev/null 2>&1; then
+            log_success "✓ Backtest command works (local data only)"
+        else
+            log_warning "⚠ Backtest command had issues"
+        fi
+        
+        # Test new riskcheck command
+        if ./dev-helper.sh riskcheck > /dev/null 2>&1; then
+            log_success "✓ Risk check command works (snapshot validation)"
+        else
+            log_warning "⚠ Risk check command had issues"
+        fi
     else
         log_warning "⚠ Development helper script has issues"
     fi

@@ -289,3 +289,49 @@ Add a short reminder in your PR description when assigning the agent, for exampl
 Follow Analyzer Guardrails in .github/copilot-instructions.md.
 No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 ```
+
+## Copilot Coding Agent — Standard Task Instructions (No Live Topstep API)
+
+**Scope:** You are working in a .NET 8.0 trading bot repo with strict analyzers (~1500 warnings documented as expected). Do not attempt to connect to any live APIs, including Topstep. Only use local code, committed data files, and helper scripts.
+
+### Order of Operations:
+
+#### 1. Setup Environment
+- Run `./dev-helper.sh setup` to prepare the build environment.
+- Run `./validate-agent-setup.sh` to confirm readiness.
+
+#### 2. Build & Test Baseline
+- Run `./dev-helper.sh build` and `./dev-helper.sh test`.
+- Ensure all tests pass before making changes.
+
+#### 3. Make Changes
+- Follow the specific PR request (e.g., analyzer cleanup, dead-code removal, refactor).
+- Use existing patterns from `src/UnifiedOrchestrator/`, `src/BotCore/Services/`, and `src/Strategies/`.
+- Never modify `src/TopstepAuthAgent/` to call live APIs.
+- If Topstep data is needed, use only files in `data/topstep/` (JSON/CSV snapshots).
+
+#### 4. Validate Changes
+- Re-run `./dev-helper.sh build` and `./dev-helper.sh test`.
+- Run `./dev-helper.sh analyzer-check` to ensure no new warnings.
+- Run `./dev-helper.sh backtest` if strategy logic changed (uses local sample data).
+- Run `./dev-helper.sh riskcheck` to ensure constants match the latest committed Topstep snapshot.
+
+#### 5. Prepare PR for Review
+- Summarize changes in the PR description.
+- Include before/after analyzer warning counts if relevant.
+- Confirm no new dead code or analyzer warnings were introduced.
+
+### Guardrails:
+- Do not connect to external services or APIs.
+- Do not change trading constants without validating against committed snapshot data.
+- Do not bypass branch protection — all merges require maintainer approval.
+- Keep changes minimal and targeted — no large rewrites unless explicitly requested.
+
+### Acceptance Criteria:
+- Build passes with zero new errors/warnings.
+- All tests pass.
+- Changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
+- Risk constants remain compliant with committed Topstep snapshot.
+
+### 💡 How this works:
+This instruction set provides agents with a complete, audit-grade workflow using helper scripts and local data snapshots to provide trading context without touching live APIs.

@@ -55,8 +55,10 @@ Welcome, coding agent! This repository is set up for optimal agent development e
 ./dev-helper.sh setup    # Setup environment
 ./dev-helper.sh build    # Build solution
 
-# Analyzer validation (before committing)
+# Validation workflow (complete agent workflow)
 ./dev-helper.sh analyzer-check  # Ensure no new warnings
+./dev-helper.sh backtest        # Validate with local sample data
+./dev-helper.sh riskcheck       # Check risk constants
 
 # Testing
 ./dev-helper.sh test     # Run tests
