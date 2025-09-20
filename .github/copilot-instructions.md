@@ -1,5 +1,7 @@
 ## Agent Rules & Eval Defaults
 
+> **🤖 For Coding Agents**: This repository is optimized for agent development. See `README_AGENTS.md` and `CODING_AGENT_GUIDE.md` for quick start guides.
+
 ### Eval Defaults
 
 - Prefer MES/MNQ on SIM.
@@ -195,6 +197,33 @@ Do/Don’t quick list
 ❌ Don’t send orders from VPN/VPS/remote environments.
 
 Keep this file concise and link deeper docs. Copilot reads this on every chat. Add any new rules/API specifics here as you refine the bot.
+
+## 🤖 Coding Agent Quick References
+
+### Agent Development Setup
+```bash
+# Quick start for new agents
+./dev-helper.sh setup && ./dev-helper.sh build
+
+# Main entry point
+dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
+
+# See also: README_AGENTS.md, CODING_AGENT_GUIDE.md
+```
+
+### Key Agent Guidelines
+- **Analyzer warnings expected** - Don't fix unless specifically asked (~1500+ warnings normal)
+- **Minimal changes only** - Surgical fixes, no rewrites
+- **Use existing patterns** - Follow what's already there
+- **Test frequently** - `./dev-helper.sh test` after changes
+- **Focus on functionality** - Not code quality unless requested
+
+### Agent Entry Points
+- `src/UnifiedOrchestrator/` - Main application
+- `src/BotCore/Services/` - Core services and DI
+- `src/TopstepAuthAgent/` - API integration
+- `.env` - Configuration (copy from `.env.example`)
+- `./dev-helper.sh` - Development commands
 
 Quickfix — Dashboard/HTTP not loading
 

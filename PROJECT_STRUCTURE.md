@@ -2,15 +2,30 @@
 
 This document describes the clean, organized structure of the trading bot project after comprehensive cleanup.
 
+> **🤖 For Coding Agents**: See also `CODING_AGENT_GUIDE.md` for development workflows and `/.github/copilot-instructions.md` for detailed instructions.
+
 ## Core Application (`/src`)
+
+> **🤖 Agent Entry Points**: Start with `UnifiedOrchestrator/` for main flow, `BotCore/Services/` for DI setup, and `TopstepAuthAgent/` for API integration.
 
 ### Main Components
 - **`BotCore/`** - Core trading logic, strategies (S1-S14), market data, API clients
+- **`UnifiedOrchestrator/`** - **Primary entry point** - Main application orchestrator 
 - **`OrchestratorAgent/`** - Main orchestration service, execution logic, health monitoring
 - **`StrategyAgent/`** - Strategy execution agent
 - **`UpdaterAgent/`** - Automated deployment and update management
-- **`TopstepAuthAgent/`** - Authentication service for TopstepX API
-- **`StandaloneDashboard/`** - Web dashboard for monitoring (if present)
+- **`TopstepAuthAgent/`** - **Key for agents** - Authentication service for TopstepX API
+- **`Abstractions/`** - Shared interfaces and contracts
+- **`Infrastructure/`** - Infrastructure services (alerts, monitoring)
+  - **`Alerts/`** - Email/Slack alert system
+- **`ML/`** - Machine learning components
+  - **`HistoricalTrainer/`** - Historical data training
+- **`RLAgent/`** - Reinforcement learning agent
+- **`Strategies/`** - Trading strategy implementations
+- **`IntelligenceAgent/`** - AI/ML intelligence processing
+- **`IntelligenceStack/`** - Intelligence processing stack
+- **`Monitoring/`** - System monitoring and observability
+- **`Safety/`** - **Critical** - Safety and risk management controls
 
 ## Intelligence System (`/Intelligence`)
 
@@ -36,19 +51,30 @@ Complete AI/ML pipeline running separately from main trading bot:
 
 ## Testing (`/tests`)
 
+> **🤖 Agent Testing**: Use `dotnet test tests/Unit/MLRLAuditTests.csproj` for focused testing. Build warnings are expected.
+
 Organized test files moved from root:
+- **`Unit/`** - Unit tests including `MLRLAuditTests/`
+- **`Integration/`** - Integration tests
+- **`SimpleBot.Tests/`** - Simple bot component tests
+- **`mocks/`** - Test mocks and fixtures
 - **Integration tests** - `test_*_integration.*`
 - **Component tests** - `test_*_demo.*`, `test_*_components.*`
 - **System demos** - `demo_24_7_system.cs`
 
 ## Configuration & Documentation
 
+> **🤖 Agent Config**: Main config in `src/BotCore/Services/ProductionConfigurationService.cs`, environment in `.env`, build rules in `Directory.Build.props`.
+
 ### Configuration
 - **`appsettings.json`** - Main application configuration
-- **`.env.sample.local`** - Environment variables template
+- **`.env`** - **Key for agents** - Environment variables (copy from `.env.example`)
+- **`Directory.Build.props`** - **Important** - Global build configuration and analyzer rules
 - **`TopstepX.Bot.sln`** - Visual Studio solution file
 
 ### Documentation
+- **`.github/copilot-instructions.md`** - **Essential for agents** - Comprehensive Copilot instructions
+- **`CODING_AGENT_GUIDE.md`** - **Essential for agents** - Quick start guide for coding agents
 - **`ENHANCED_DATA_COLLECTION_ARCHITECTURE.md`** - Data collection system
 - **`PRODUCTION_DEPLOYMENT_GUIDE.md`** - Deployment instructions
 - **`GITHUB_SECRETS_SETUP.md`** - GitHub Actions setup
@@ -85,23 +111,35 @@ Automated CI/CD, data collection, and ML training workflows.
 
 ## Build & Run
 
+> **🤖 Agent Commands**: Always start with `dotnet restore`, expect build warnings, use `UnifiedOrchestrator` as main entry point.
+
 ```bash
-# Restore dependencies
+# Restore dependencies (always do this first)
 dotnet restore
 
-# Build solution (or specific project)
-dotnet build
+# Build solution (expect analyzer warnings - don't fix unless asked)
+dotnet build --no-restore
 
 # Run main trading bot application
-dotnet run --project SimpleBot/SimpleBot.csproj
+dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 
-# Run tests (when test projects are added to solution)
-dotnet test  # (when test projects are added to solution)
+# Run tests (build warnings expected)
+dotnet test --no-build --verbosity normal
+
+# Run specific test project
+dotnet test tests/Unit/MLRLAuditTests.csproj
 ```
 
 ## Single Entry Point
 
-✅ **Primary Entry Point**: `SimpleBot/SimpleBot.csproj`
+> **🤖 Agent Note**: The main entry point is now `UnifiedOrchestrator`. Build warnings from analyzers are expected and should not be fixed unless specifically requested.
+
+✅ **Primary Entry Point**: `src/UnifiedOrchestrator/UnifiedOrchestrator.csproj`
+- Command: `dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj`
+- Status: ✅ Core functionality intact (analyzer warnings expected)
+- Features: Unified orchestration, trading logic, ML/RL integration
+
+📝 **Alternative Entry Point**: `SimpleBot/SimpleBot.csproj` (legacy)
 - Command: `dotnet run --project SimpleBot/SimpleBot.csproj`
 - Status: ✅ Builds and runs with 0 errors and 0 warnings
 - Features: Core strategy system validation and health checks
@@ -128,7 +166,22 @@ dotnet test  # (when test projects are added to solution)
 
 The project is now clean, organized, and ready for production deployment!
 
-**🎯 VERIFIED WORKING**: The trading bot successfully launches with 0 errors and 0 warnings using:
+> **🤖 For Coding Agents**: Build warnings from static analyzers are expected. Focus on functional changes, not code quality fixes unless specifically requested.
+
+**🎯 VERIFIED WORKING**: The trading bot successfully launches with core functionality intact:
 ```bash
+# Main application (analyzer warnings expected)
+dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
+
+# Legacy entry point (0 errors, 0 warnings)
 dotnet run --project SimpleBot/SimpleBot.csproj
 ```
+
+### 🤖 Coding Agent Quick Reference
+- **Start here**: `CODING_AGENT_GUIDE.md` and `.github/copilot-instructions.md`
+- **Main entry**: `src/UnifiedOrchestrator/`
+- **Core services**: `src/BotCore/Services/`
+- **API integration**: `src/TopstepAuthAgent/`
+- **Configuration**: `.env` (copy from `.env.example`)
+- **Build command**: `dotnet restore && dotnet build --no-restore`
+- **Test command**: `dotnet test --no-build --verbosity normal`
