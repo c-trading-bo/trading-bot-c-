@@ -290,9 +290,9 @@ Follow Analyzer Guardrails in .github/copilot-instructions.md.
 No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 ```
 
-## Copilot Coding Agent — Standard Task Instructions (No Live Topstep API)
+## Copilot Coding Agent — Standard Task Instructions (Policy-Safe, No Live Topstep API)
 
-**Scope:** You are working in a .NET 8.0 trading bot repo with strict analyzers (~1500 warnings documented as expected). Do not attempt to connect to any live APIs, including Topstep. Only use local code, committed data files, and helper scripts.
+**Scope:** You are working in a .NET 8.0 trading bot repo with strict analyzers (~1500 warnings documented as expected). Do not connect to any live APIs, including TopstepX. Only use local code, committed data files, and helper scripts. If Topstep data is needed, use only committed JSON/CSV snapshots in `data/topstep/`.
 
 ### Order of Operations:
 
@@ -308,7 +308,6 @@ No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 - Follow the specific PR request (e.g., analyzer cleanup, dead-code removal, refactor).
 - Use existing patterns from `src/UnifiedOrchestrator/`, `src/BotCore/Services/`, and `src/Strategies/`.
 - Never modify `src/TopstepAuthAgent/` to call live APIs.
-- If Topstep data is needed, use only files in `data/topstep/` (JSON/CSV snapshots).
 
 #### 4. Validate Changes
 - Re-run `./dev-helper.sh build` and `./dev-helper.sh test`.
@@ -321,8 +320,13 @@ No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 - Include before/after analyzer warning counts if relevant.
 - Confirm no new dead code or analyzer warnings were introduced.
 
-### Guardrails:
-- Do not connect to external services or APIs.
+### Analyzer Guardrails:
+- **No new warnings** — treat all analyzer warnings as errors (`-warnaserror`).
+- **No silent suppressions** — do not add `#pragma warning disable` or `[SuppressMessage]` without a linked issue and justification in code comments.
+- **Respect the baseline** — do not attempt to "fix" the existing ~1500 warnings unless explicitly requested.
+
+### Risk & Policy Guardrails:
+- Do not connect to external services or APIs from CI/cloud.
 - Do not change trading constants without validating against committed snapshot data.
 - Do not bypass branch protection — all merges require maintainer approval.
 - Keep changes minimal and targeted — no large rewrites unless explicitly requested.
@@ -333,5 +337,12 @@ No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 - Changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
 - Risk constants remain compliant with committed Topstep snapshot.
 
-### 💡 How this works:
-This instruction set provides agents with a complete, audit-grade workflow using helper scripts and local data snapshots to provide trading context without touching live APIs.
+### 💡 How to use this:
+Keep this block in `.github/copilot-instructions.md` so the agent reads it automatically every PR.
+
+In each PR description, add:
+```
+@copilot
+Follow the Standard Task Instructions in .github/copilot-instructions.md.
+No live API calls. No new analyzer warnings. Use helper scripts for all steps.
+```
