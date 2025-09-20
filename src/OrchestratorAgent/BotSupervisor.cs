@@ -18,6 +18,7 @@ using BotCore.Risk;
 using BotCore.Infra;
 using BotCore.Strategy;
 using OrchestratorAgent.Infra;
+using OrchestratorAgent.Configuration;
 using TradingBot.RLAgent;
 using TradingBot.IntelligenceStack;
 using System.Globalization;
@@ -174,7 +175,7 @@ namespace OrchestratorAgent
                                         ["custom_tag"] = customTag,
                                         ["fill_timestamp"] = DateTime.UtcNow,
                                         ["regime_type"] = "trend", // Default regime, could be detected dynamically
-                                        ["prediction_confidence"] = 0.7, // Default confidence, could be from ML model
+                                        ["prediction_confidence"] = MLParameterProvider.GetAIConfidenceThreshold(), // Configuration-driven confidence
                                         ["market_movement_bps"] = 0.0, // Would be calculated from market data
                                         ["order_latency_ms"] = age.TotalMilliseconds
                                     }
@@ -649,13 +650,13 @@ namespace OrchestratorAgent
                                     {
                                         // Try to get online prediction from intelligence orchestrator
                                         var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId).ConfigureAwait(false);
-                                        P_online = onlinePrediction?.Confidence ?? 0.7;
+                                        P_online = onlinePrediction?.Confidence ?? MLParameterProvider.GetAIConfidenceThreshold();
                                         _log.LogDebug("[ML_GATE] Online prediction for {Symbol} {Strategy}: confidence={Confidence}", s.Symbol, s.StrategyId, P_online);
                                     }
                                     catch (Exception ex)
                                     {
                                         _log.LogWarning(ex, "[ML_GATE] Failed to get online prediction for {Symbol} {Strategy}, using fallback", s.Symbol, s.StrategyId);
-                                        P_online = 0.65; // Conservative fallback when online prediction fails
+                                        P_online = MLParameterProvider.GetFallbackConfidence(); // Configuration-driven fallback when online prediction fails
                                     }
                                 }
                                 else

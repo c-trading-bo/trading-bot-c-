@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BotCore.Config;
 using Microsoft.Extensions.Logging;
+using OrchestratorAgent.Configuration;
 
 namespace OrchestratorAgent.Infra;
 
@@ -283,7 +284,7 @@ public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> ge
         if (arm.Contains(Trend, StringComparison.OrdinalIgnoreCase))
         {
             s6[MinAtr] = JsonSerializer.SerializeToElement(0.8m);
-            s6[StopMult] = JsonSerializer.SerializeToElement(2.5m);
+            s6[StopMult] = JsonSerializer.SerializeToElement((decimal)MLParameterProvider.GetPositionSizeMultiplier());
             s6[TargetMult] = JsonSerializer.SerializeToElement(arm.Contains("aggr", StringComparison.OrdinalIgnoreCase) ? 5.0m : 4.0m);
         }
         else

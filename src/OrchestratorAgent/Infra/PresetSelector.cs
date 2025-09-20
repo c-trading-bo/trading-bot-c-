@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BotCore.Config;
 using BotCore.Models;
 using Microsoft.Extensions.Logging;
+using OrchestratorAgent.Configuration;
 
 namespace OrchestratorAgent.Infra;
 
@@ -98,7 +99,7 @@ public sealed class PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>>
         if (tags.Contains("trend"))
         {
             extra["min_atr"] = JsonSerializer.SerializeToElement(0.8m);
-            extra["stop_mult"] = JsonSerializer.SerializeToElement(2.5m);
+            extra["stop_mult"] = JsonSerializer.SerializeToElement((decimal)MLParameterProvider.GetPositionSizeMultiplier());
             extra["target_mult"] = JsonSerializer.SerializeToElement(4.5m);
         }
         else
