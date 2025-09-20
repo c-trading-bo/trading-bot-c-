@@ -1,5 +1,7 @@
 ## Agent Rules & Eval Defaults
 
+> **🤖 For Coding Agents**: This repository is optimized for agent development. See `README_AGENTS.md` and `CODING_AGENT_GUIDE.md` for quick start guides.
+
 ### Eval Defaults
 
 - Prefer MES/MNQ on SIM.
@@ -196,6 +198,33 @@ Do/Don’t quick list
 
 Keep this file concise and link deeper docs. Copilot reads this on every chat. Add any new rules/API specifics here as you refine the bot.
 
+## 🤖 Coding Agent Quick References
+
+### Agent Development Setup
+```bash
+# Quick start for new agents
+./dev-helper.sh setup && ./dev-helper.sh build
+
+# Main entry point
+dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
+
+# See also: README_AGENTS.md, CODING_AGENT_GUIDE.md
+```
+
+### Key Agent Guidelines
+- **Analyzer warnings expected** - Don't fix unless specifically asked (~1500+ warnings normal)
+- **Minimal changes only** - Surgical fixes, no rewrites
+- **Use existing patterns** - Follow what's already there
+- **Test frequently** - `./dev-helper.sh test` after changes
+- **Focus on functionality** - Not code quality unless requested
+
+### Agent Entry Points
+- `src/UnifiedOrchestrator/` - Main application
+- `src/BotCore/Services/` - Core services and DI
+- `src/TopstepAuthAgent/` - API integration
+- `.env` - Configuration (copy from `.env.example`)
+- `./dev-helper.sh` - Development commands
+
 Quickfix — Dashboard/HTTP not loading
 
 - Ensure ASPNETCORE_URLS is a single port (prefer http://localhost:5050) and that no other process is listening.
@@ -216,3 +245,104 @@ Developer guardrails (process & Git)
 - Pre-commit gate: use .pre-commit-config.yaml to run dotnet format/build/test and block protected files.
 - Approvals: require confirmation for file writes and terminal commands when using local agents; propose a plan before executing.
 - Review hunks: stage with git add -p and verify with git diff --staged before committing.
+
+## Analyzer Guardrails — Permanent Agent Instructions
+
+**Purpose:** Maintain strict static analyzer compliance. This repo has ~1500 documented warnings that are expected. The goal is to prevent any new warnings and to remove existing ones only when explicitly requested.
+
+### Rules
+
+#### No New Warnings
+- Treat all analyzer warnings as errors (`-warnaserror`) during build validation.
+- If a change introduces new warnings, fix them before committing.
+
+#### No Silent Suppressions
+- Do not add `#pragma warning disable` or `[SuppressMessage]` without a linked issue and justification in a code comment.
+
+#### Respect the Baseline
+- Do not attempt to "fix" the existing ~1500 warnings unless the PR explicitly requests analyzer cleanup.
+- Never remove or alter documented baseline suppressions without approval.
+
+#### Follow Existing Patterns
+- Match the style, naming, and structure already in the repo.
+- Use the same null-checking, logging, and exception-handling patterns as in `src/BotCore/Services/` and `src/UnifiedOrchestrator/`.
+
+#### Validation Before Commit
+Run:
+```bash
+./dev-helper.sh analyzer-check
+```
+This runs `dotnet build -warnaserror` and fails on any new warnings. Only commit after this passes.
+
+### Acceptance Criteria
+- Build passes with zero new warnings.
+- No unauthorized suppressions.
+- All changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
+- If analyzer cleanup is requested, before/after warning counts are included in the PR description.
+
+### 💡 How to use this with the agent every PR
+Keep this section permanently in `.github/copilot-instructions.md` so the agent reads it automatically.
+
+Add a short reminder in your PR description when assigning the agent, for example:
+```
+@copilot
+Follow Analyzer Guardrails in .github/copilot-instructions.md.
+No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
+```
+
+## Copilot Coding Agent — Standard Task Instructions (Policy-Safe, No Live Topstep API)
+
+**Scope:** You are working in a .NET 8.0 trading bot repo with strict analyzers (~1500 warnings documented as expected). Do not connect to any live APIs, including TopstepX. Only use local code, committed data files, and helper scripts. If Topstep data is needed, use only committed JSON/CSV snapshots in `data/topstep/`.
+
+### Order of Operations:
+
+#### 1. Setup Environment
+- Run `./dev-helper.sh setup` to prepare the build environment.
+- Run `./validate-agent-setup.sh` to confirm readiness.
+
+#### 2. Build & Test Baseline
+- Run `./dev-helper.sh build` and `./dev-helper.sh test`.
+- Ensure all tests pass before making changes.
+
+#### 3. Make Changes
+- Follow the specific PR request (e.g., analyzer cleanup, dead-code removal, refactor).
+- Use existing patterns from `src/UnifiedOrchestrator/`, `src/BotCore/Services/`, and `src/Strategies/`.
+- Never modify `src/TopstepAuthAgent/` to call live APIs.
+
+#### 4. Validate Changes
+- Re-run `./dev-helper.sh build` and `./dev-helper.sh test`.
+- Run `./dev-helper.sh analyzer-check` to ensure no new warnings.
+- Run `./dev-helper.sh backtest` if strategy logic changed (uses local sample data).
+- Run `./dev-helper.sh riskcheck` to ensure constants match the latest committed Topstep snapshot.
+
+#### 5. Prepare PR for Review
+- Summarize changes in the PR description.
+- Include before/after analyzer warning counts if relevant.
+- Confirm no new dead code or analyzer warnings were introduced.
+
+### Analyzer Guardrails:
+- **No new warnings** — treat all analyzer warnings as errors (`-warnaserror`).
+- **No silent suppressions** — do not add `#pragma warning disable` or `[SuppressMessage]` without a linked issue and justification in code comments.
+- **Respect the baseline** — do not attempt to "fix" the existing ~1500 warnings unless explicitly requested.
+
+### Risk & Policy Guardrails:
+- Do not connect to external services or APIs from CI/cloud.
+- Do not change trading constants without validating against committed snapshot data.
+- Do not bypass branch protection — all merges require maintainer approval.
+- Keep changes minimal and targeted — no large rewrites unless explicitly requested.
+
+### Acceptance Criteria:
+- Build passes with zero new errors/warnings.
+- All tests pass.
+- Changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
+- Risk constants remain compliant with committed Topstep snapshot.
+
+### 💡 How to use this:
+Keep this block in `.github/copilot-instructions.md` so the agent reads it automatically every PR.
+
+In each PR description, add:
+```
+@copilot
+Follow the Standard Task Instructions in .github/copilot-instructions.md.
+No live API calls. No new analyzer warnings. Use helper scripts for all steps.
+```

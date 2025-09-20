@@ -49,3 +49,11 @@ test_rl_env.py
 .DS_Store
 Thumbs.db
 CRITICAL_ALERT_*.txt
+
+# Coding agent temporary files
+/tmp/
+*.tmp
+*.temp
+agent_*.log
+dev_notes.md
+scratch_*.txt
