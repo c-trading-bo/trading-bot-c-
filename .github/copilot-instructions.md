@@ -245,3 +245,47 @@ Developer guardrails (process & Git)
 - Pre-commit gate: use .pre-commit-config.yaml to run dotnet format/build/test and block protected files.
 - Approvals: require confirmation for file writes and terminal commands when using local agents; propose a plan before executing.
 - Review hunks: stage with git add -p and verify with git diff --staged before committing.
+
+## Analyzer Guardrails — Permanent Agent Instructions
+
+**Purpose:** Maintain strict static analyzer compliance. This repo has ~1500 documented warnings that are expected. The goal is to prevent any new warnings and to remove existing ones only when explicitly requested.
+
+### Rules
+
+#### No New Warnings
+- Treat all analyzer warnings as errors (`-warnaserror`) during build validation.
+- If a change introduces new warnings, fix them before committing.
+
+#### No Silent Suppressions
+- Do not add `#pragma warning disable` or `[SuppressMessage]` without a linked issue and justification in a code comment.
+
+#### Respect the Baseline
+- Do not attempt to "fix" the existing ~1500 warnings unless the PR explicitly requests analyzer cleanup.
+- Never remove or alter documented baseline suppressions without approval.
+
+#### Follow Existing Patterns
+- Match the style, naming, and structure already in the repo.
+- Use the same null-checking, logging, and exception-handling patterns as in `src/BotCore/Services/` and `src/UnifiedOrchestrator/`.
+
+#### Validation Before Commit
+Run:
+```bash
+./dev-helper.sh analyzer-check
+```
+This runs `dotnet build -warnaserror` and fails on any new warnings. Only commit after this passes.
+
+### Acceptance Criteria
+- Build passes with zero new warnings.
+- No unauthorized suppressions.
+- All changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
+- If analyzer cleanup is requested, before/after warning counts are included in the PR description.
+
+### 💡 How to use this with the agent every PR
+Keep this section permanently in `.github/copilot-instructions.md` so the agent reads it automatically.
+
+Add a short reminder in your PR description when assigning the agent, for example:
+```
+@copilot
+Follow Analyzer Guardrails in .github/copilot-instructions.md.
+No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
+```

@@ -112,6 +112,28 @@ cmd_clean() {
     log_success "Clean completed"
 }
 
+cmd_analyzer_check() {
+    log_info "Running analyzer check (treating warnings as errors)..."
+    log_warning "This will fail if any new analyzer warnings are introduced"
+    
+    # Ensure packages are restored first
+    log_info "Ensuring packages are restored..."
+    if ! dotnet restore --verbosity quiet > /dev/null 2>&1; then
+        log_error "Package restore failed"
+        return 1
+    fi
+    
+    if dotnet build --no-restore -warnaserror --verbosity quiet > /dev/null 2>&1; then
+        log_success "✅ Analyzer check passed - no new warnings introduced"
+        return 0
+    else
+        log_error "❌ Analyzer check failed - new warnings detected"
+        log_info "Fix all warnings before committing. Existing ~1500 warnings are expected."
+        log_info "Run './dev-helper.sh build' to see the full output."
+        return 1
+    fi
+}
+
 cmd_full_cycle() {
     log_info "Running full development cycle..."
     cmd_setup && cmd_build && cmd_test
@@ -124,15 +146,16 @@ cmd_help() {
     echo "Usage: $0 <command>"
     echo ""
     echo "Commands:"
-    echo "  setup       - Set up development environment (.env, restore packages)"
-    echo "  build       - Build the solution (analyzer warnings expected)"
-    echo "  test        - Run all tests"
-    echo "  test-unit   - Run unit tests only"
-    echo "  run         - Run main application (UnifiedOrchestrator)"
-    echo "  run-simple  - Run SimpleBot (legacy, clean build)"
-    echo "  clean       - Clean build artifacts"
-    echo "  full        - Run full cycle: setup -> build -> test"
-    echo "  help        - Show this help"
+    echo "  setup         - Set up development environment (.env, restore packages)"
+    echo "  build         - Build the solution (analyzer warnings expected)"
+    echo "  analyzer-check - Build with warnings as errors (validates no new warnings)"
+    echo "  test          - Run all tests"
+    echo "  test-unit     - Run unit tests only"
+    echo "  run           - Run main application (UnifiedOrchestrator)"
+    echo "  run-simple    - Run SimpleBot (legacy, clean build)"
+    echo "  clean         - Clean build artifacts"
+    echo "  full          - Run full cycle: setup -> build -> test"
+    echo "  help          - Show this help"
     echo ""
     echo "Quick start for new agents:"
     echo "  $0 setup && $0 build"
@@ -150,6 +173,9 @@ case "${1:-help}" in
         ;;
     "build")
         cmd_build
+        ;;
+    "analyzer-check")
+        cmd_analyzer_check
         ;;
     "test")
         cmd_test

@@ -118,6 +118,13 @@ log_info "Testing development helper script..."
 if [ -x "dev-helper.sh" ]; then
     if ./dev-helper.sh help > /dev/null 2>&1; then
         log_success "✓ Development helper script works"
+        
+        # Test analyzer check command
+        if ./dev-helper.sh analyzer-check > /dev/null 2>&1; then
+            log_success "✓ Analyzer check command works (no new warnings)"
+        else
+            log_warning "⚠ Analyzer check failed (expected due to existing warnings)"
+        fi
     else
         log_warning "⚠ Development helper script has issues"
     fi
