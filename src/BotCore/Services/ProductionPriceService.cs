@@ -148,7 +148,7 @@ public static class ProductionPriceService
         catch (Exception ex)
         {
             logger?.LogError(ex, "❌ [PRICE-SERVICE] Error validating trade setup for {Symbol}", symbol);
-            result.IsValid;
+            result.IsValid = false;
             result.ValidationError = ex.Message;
             return result;
         }

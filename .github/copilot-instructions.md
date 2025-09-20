@@ -290,59 +290,67 @@ Follow Analyzer Guardrails in .github/copilot-instructions.md.
 No new warnings allowed. Run ./dev-helper.sh analyzer-check before committing.
 ```
 
-## Copilot Coding Agent — Standard Task Instructions (Policy-Safe, No Live Topstep API)
+## Copilot Coding Agent — Production‑Safe Task Instructions
 
 **Scope:** You are working in a .NET 8.0 trading bot repo with strict analyzers (~1500 warnings documented as expected). Do not connect to any live APIs, including TopstepX. Only use local code, committed data files, and helper scripts. If Topstep data is needed, use only committed JSON/CSV snapshots in `data/topstep/`.
 
-### Order of Operations:
+### Order of Operations
 
 #### 1. Setup Environment
-- Run `./dev-helper.sh setup` to prepare the build environment.
-- Run `./validate-agent-setup.sh` to confirm readiness.
 
-#### 2. Build & Test Baseline
-- Run `./dev-helper.sh build` and `./dev-helper.sh test`.
-- Ensure all tests pass before making changes.
+- Run `./dev-helper.sh setup`
+- Run `./validate-agent-setup.sh`
+
+#### 2. Baseline Build & Test
+
+- Run `./dev-helper.sh build` and `./dev-helper.sh test`
+- Ensure all tests pass before making changes
 
 #### 3. Make Changes
-- Follow the specific PR request (e.g., analyzer cleanup, dead-code removal, refactor).
-- Use existing patterns from `src/UnifiedOrchestrator/`, `src/BotCore/Services/`, and `src/Strategies/`.
-- Never modify `src/TopstepAuthAgent/` to call live APIs.
+
+- Follow the PR request (e.g., analyzer cleanup, dead‑code removal, refactor)
+- Use patterns from `src/UnifiedOrchestrator/`, `src/BotCore/Services/`, `src/Strategies/`
+- Never modify `src/TopstepAuthAgent/` to call live APIs
 
 #### 4. Validate Changes
-- Re-run `./dev-helper.sh build` and `./dev-helper.sh test`.
-- Run `./dev-helper.sh analyzer-check` to ensure no new warnings.
-- Run `./dev-helper.sh backtest` if strategy logic changed (uses local sample data).
-- Run `./dev-helper.sh riskcheck` to ensure constants match the latest committed Topstep snapshot.
+
+- Re‑run `./dev-helper.sh build` and `./dev-helper.sh test`
+- Run `./dev-helper.sh analyzer-check` to ensure no new warnings
+- Run `./dev-helper.sh backtest` if strategy logic changed (uses local sample data)
+- Run `./dev-helper.sh riskcheck` to ensure constants match committed Topstep snapshot
 
 #### 5. Prepare PR for Review
-- Summarize changes in the PR description.
-- Include before/after analyzer warning counts if relevant.
-- Confirm no new dead code or analyzer warnings were introduced.
 
-### Analyzer Guardrails:
-- **No new warnings** — treat all analyzer warnings as errors (`-warnaserror`).
-- **No silent suppressions** — do not add `#pragma warning disable` or `[SuppressMessage]` without a linked issue and justification in code comments.
-- **Respect the baseline** — do not attempt to "fix" the existing ~1500 warnings unless explicitly requested.
+- Summarize changes in PR description
+- Include before/after analyzer warning counts if relevant
+- Confirm no new dead code or analyzer warnings
 
-### Risk & Policy Guardrails:
-- Do not connect to external services or APIs from CI/cloud.
-- Do not change trading constants without validating against committed snapshot data.
-- Do not bypass branch protection — all merges require maintainer approval.
-- Keep changes minimal and targeted — no large rewrites unless explicitly requested.
+### Analyzer Guardrails
 
-### Acceptance Criteria:
-- Build passes with zero new errors/warnings.
-- All tests pass.
-- Changes align with repo coding standards in `CODING_AGENT_GUIDE.md`.
-- Risk constants remain compliant with committed Topstep snapshot.
+- **No new warnings** — treat all analyzer warnings as errors (`-warnaserror`)
+- **No silent suppressions** — no `#pragma warning disable` or `[SuppressMessage]` without linked issue + justification
+- **Respect the baseline** — do not "fix" the existing ~1500 warnings unless explicitly requested
 
-### 💡 How to use this:
-Keep this block in `.github/copilot-instructions.md` so the agent reads it automatically every PR.
+### Risk & Policy Guardrails
 
-In each PR description, add:
+- No external API calls from CI/cloud
+- No trading constant changes without validating against committed snapshot data
+- No bypassing branch protection — all merges require maintainer approval
+- Keep changes minimal and targeted — no large rewrites unless explicitly requested
+
+### Acceptance Criteria
+
+- Build passes with zero new errors/warnings
+- All tests pass
+- Changes align with `CODING_AGENT_GUIDE.md`
+- Risk constants remain compliant with committed Topstep snapshot
+
+### 💡 PR Description Reminder
+
+When assigning the agent, add this line so it knows to follow the above every time:
+
 ```
-@copilot
-Follow the Standard Task Instructions in .github/copilot-instructions.md.
+@copilot  
+Follow the Production‑Safe Task Instructions in .github/copilot-instructions.md.  
 No live API calls. No new analyzer warnings. Use helper scripts for all steps.
 ```
