@@ -90,6 +90,9 @@ public class Program
             // Validate service registration and configuration on startup
             await ValidateStartupServicesAsync(host.Services);
             
+            // Initialize ML parameter provider for OrchestratorAgent classes
+            OrchestratorAgent.Configuration.MLParameterProvider.Initialize(host.Services);
+            
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
             
@@ -145,6 +148,9 @@ Artifacts will be saved to: artifacts/production-demo/
         {
             // Build host with all services
             var host = CreateHostBuilder(args).Build();
+            
+            // Initialize ML parameter provider for OrchestratorAgent classes
+            OrchestratorAgent.Configuration.MLParameterProvider.Initialize(host.Services);
             
             // Get the production demonstration runner
             var demoRunner = host.Services.GetRequiredService<ProductionDemonstrationRunner>();
@@ -922,6 +928,10 @@ Stack Trace:
         // Register Production Configuration Service - Environment-specific settings
         services.Configure<BotCore.Services.ProductionTradingConfig>(configuration.GetSection("TradingBot"));
         services.AddSingleton<BotCore.Services.ProductionConfigurationService>();
+        
+        // Register ML Configuration Service for hardcoded value replacement
+        services.AddProductionConfigurationValidation(configuration);
+        services.AddScoped<TradingBot.BotCore.Services.MLConfigurationService>();
         
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));

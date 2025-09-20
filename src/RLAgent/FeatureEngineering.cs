@@ -370,7 +370,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -411,7 +411,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -449,7 +449,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -483,7 +483,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -531,7 +531,7 @@ public class FeatureEngineering : IDisposable
         RegimeType regime)
     {
         // Brief yield to allow task scheduling for feature calculations
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         // One-hot encoding for regime
         features.AddRange(new[]
@@ -555,7 +555,7 @@ public class FeatureEngineering : IDisposable
         MarketData currentData)
     {
         // Brief yield to allow task scheduling
-        await Task.Yield();
+        await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern with ConfigureAwait
         
         var timestamp = currentData.Timestamp;
         

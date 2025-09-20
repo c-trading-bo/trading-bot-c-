@@ -967,7 +967,7 @@ public class PolicyNetwork : IDisposable
     {
         // Load weights (simplified - in practice would handle proper deserialization)
         InitializeWeights(); // Reset to defaults for now
-        return Task.CompletedTask;
+        return Task.FromResult(0); // Proper async completion without async keyword
     }
 
     public void Dispose()
@@ -1096,7 +1096,7 @@ public class ValueNetwork : IDisposable
     {
         // Load weights (simplified - in practice would handle proper deserialization)
         InitializeWeights(); // Reset to defaults for now
-        return Task.CompletedTask;
+        return Task.FromResult(0); // Proper async completion
     }
 
     public void Dispose()
