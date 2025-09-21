@@ -15,6 +15,47 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StreamingFeatureEngineering : IDisposable
 {
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> ServiceInitialized =
+        LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ServiceInitialized"),
+            "Streaming feature engineering service initialized");
+            
+    private static readonly Action<ILogger, string, int, Exception?> MarketDataProcessed =
+        LoggerMessage.Define<string, int>(LogLevel.Debug, new EventId(5002, "MarketDataProcessed"),
+            "Processed market data for {Symbol}: {FeatureCount} features calculated");
+            
+    private static readonly Action<ILogger, Exception?> MarketDataProcessingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5003, "MarketDataProcessingFailed"),
+            "Failed to process market data for feature engineering");
+            
+    private static readonly Action<ILogger, string, Exception?> BatchProcessingComplete =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "BatchProcessingComplete"),
+            "Batch processing complete for {Symbol}");
+            
+    private static readonly Action<ILogger, Exception?> BatchProcessingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5005, "BatchProcessingFailed"),
+            "Failed to process batch market data");
+            
+    private static readonly Action<ILogger, Exception?> CacheCleanupFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5006, "CacheCleanupFailed"),
+            "Failed during cache cleanup operation");
+            
+    private static readonly Action<ILogger, Exception?> FeatureCachingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5007, "FeatureCachingFailed"),
+            "Failed to cache features");
+            
+    private static readonly Action<ILogger, string, double, Exception?> FeaturesStale =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5008, "FeaturesStale"),
+            "Features for {Symbol} are stale ({Age:F1} minutes old), refreshing");
+            
+    private static readonly Action<ILogger, string, Exception?> CachedFeaturesFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5009, "CachedFeaturesFailed"),
+            "Failed to get cached features for {Symbol}");
+            
+    private static readonly Action<ILogger, string, Exception?> BackgroundRefreshFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5010, "BackgroundRefreshFailed"),
+            "Failed to refresh features for {Symbol} in background");
+    
     // Constants for magic number violations
     private const int DefaultBatchSize = 50;
     
@@ -46,7 +87,7 @@ public class StreamingFeatureEngineering : IDisposable
         // Start cleanup timer to prevent memory leaks
         _cleanupTimer = new Timer(CleanupExpiredCaches, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
         
-        _logger.LogInformation("Streaming feature engineering service initialized");
+        ServiceInitialized(_logger, null);
     }
 
     /// <summary>
@@ -71,14 +112,13 @@ public class StreamingFeatureEngineering : IDisposable
             // Cache features for future use
             await CacheFeaturesAsync(symbol, timestamp, features, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("Processed market data for {Symbol}: {FeatureCount} features calculated", 
-                symbol, features.Count);
+            MarketDataProcessed(_logger, symbol, features.Count, null);
 
             return features;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process market data for feature engineering");
+            MarketDataProcessingFailed(_logger, ex);
             throw new InvalidOperationException("Feature engineering processing failed for market data", ex);
         }
     }
