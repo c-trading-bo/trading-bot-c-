@@ -176,6 +176,8 @@ public static class DecisionLoggingExtensions
         string action,
         string? orderId = null)
     {
+        if (logger == null) return Task.CompletedTask;
+        
         var decision = UnifiedDecisionLogger.CreateDecisionRecord(
             symbol, strategy, "UNKNOWN", pCloud, pOnline, pFinal, finalSize, action,
             new Dictionary<string, object>
@@ -199,6 +201,8 @@ public static class DecisionLoggingExtensions
         double confidence,
         Dictionary<string, double> indicators)
     {
+        if (logger == null) return Task.CompletedTask;
+        
         var decision = UnifiedDecisionLogger.CreateDecisionRecord(
             symbol, "REGIME_DETECTION", newRegime, 0, 0, confidence, 0, 
             previousRegime != newRegime ? "REGIME_CHANGE" : "REGIME_STABLE",
@@ -224,6 +228,8 @@ public static class DecisionLoggingExtensions
         double fillPrice,
         string side)
     {
+        if (logger == null) return Task.CompletedTask;
+        
         var decision = UnifiedDecisionLogger.CreateDecisionRecord(
             symbol, strategy, "UNKNOWN", 0, 0, 0, quantity, "FILL",
             new Dictionary<string, object>

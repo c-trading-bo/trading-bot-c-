@@ -1,15 +1,15 @@
 {
-  "timestamp": "2025-09-21T05:02:53.208380",
+  "timestamp": "2025-09-21T05:21:16.811141",
   "summary": {
-    "total_workflows": 29,
-    "valid_workflows": 27,
-    "invalid_workflows": 2,
-    "success_rate": "93.1%",
-    "overall_health": "44.4%"
+    "total_workflows": 31,
+    "valid_workflows": 31,
+    "invalid_workflows": 0,
+    "success_rate": "100.0%",
+    "overall_health": "66.7%"
   },
   "critical_workflows": {
-    "train_github_only": false,
-    "cloud_ml_training": false,
+    "train_github_only": true,
+    "cloud_ml_training": true,
     "ultimate_system": true
   },
   "scripts": {
@@ -17,31 +17,28 @@
     "api_fallback": false
   },
   "features": {
-    "permissions_count": 27,
-    "checkout_v4_count": 29,
-    "persist_credentials_count": 4,
-    "timeout_count": 26,
-    "error_handling_count": 21
+    "permissions_count": 31,
+    "checkout_v4_count": 31,
+    "persist_credentials_count": 6,
+    "timeout_count": 29,
+    "error_handling_count": 22
   },
   "structure": {
     "present": [
       "ml/rl/train_cvar_ppo.py",
-      ".github/workflows/ultimate_ml_rl_intel_system.yml"
-    ],
-    "missing": [
       "Intelligence/scripts/utils/api_fallback.py",
       ".github/workflows/train-github-only.yml",
-      ".github/workflows/cloud-ml-training.yml"
-    ]
+      ".github/workflows/cloud-ml-training.yml",
+      ".github/workflows/ultimate_ml_rl_intel_system.yml"
+    ],
+    "missing": []
   },
   "action_plan": {
-    "overall_health": 44.36781609195402,
-    "yaml_health": 93.10344827586206,
-    "critical_workflows_operational": 1,
+    "overall_health": 66.66666666666667,
+    "yaml_health": 100.0,
+    "critical_workflows_operational": 3,
     "immediate_actions": [
-      "Fix 2 workflows with YAML syntax errors",
-      "Fix train_cvar_ppo.py script",
-      "Create missing required files"
+      "Fix train_cvar_ppo.py script"
     ],
     "next_steps": [
       "Add persist-credentials to workflows with git operations"
@@ -61,9 +58,11 @@
         "daily_report.yml",
         "market_data.yml",
         "ultimate_data_collection_pipeline.yml",
+        "train-github-only.yml",
         "portfolio_heat.yml",
         "ultimate_ml_rl_intel_system.yml",
         "ultimate_build_ci_pipeline.yml",
+        "train.yml",
         "zones_identifier.yml",
         "overnight.yml",
         "microstructure.yml",
@@ -75,25 +74,18 @@
         "intermarket.yml",
         "ultimate_ml_rl_training_pipeline.yml",
         "es_nq_correlation_matrix.yml",
+        "ml_trainer.yml",
         "volatility_surface.yml",
         "ultimate_regime_detection_pipeline.yml",
         "mm_positioning.yml",
         "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml",
         "ultimate_news_sentiment_pipeline.yml",
         "opex_calendar.yml",
         "daily_consolidated.yml"
       ],
-      "invalid": [
-        {
-          "file": "train.yml",
-          "error": "while scanning a simple key\n  in \"<unicode string>\", line 444, column 1:\n    import pandas as pd\n   ..."
-        },
-        {
-          "file": "ml_trainer.yml",
-          "error": "while parsing a block mapping\n  in \"<unicode string>\", line 110, column 7:\n        - name: \"\u00f0\u0178\"\u201e Wal..."
-        }
-      ],
-      "total": 29
+      "invalid": [],
+      "total": 31
     },
     "features": {
       "permissions": [
@@ -103,6 +95,7 @@
         "daily_report.yml",
         "market_data.yml",
         "ultimate_data_collection_pipeline.yml",
+        "train-github-only.yml",
         "portfolio_heat.yml",
         "ultimate_ml_rl_intel_system.yml",
         "ultimate_build_ci_pipeline.yml",
@@ -113,6 +106,8 @@
         "seasonality.yml",
         "options_flow.yml",
         "es_nq_critical_trading.yml",
+        "analyzer-config-protection.yml",
+        "monthly-train.yml",
         "intermarket.yml",
         "ultimate_ml_rl_training_pipeline.yml",
         "es_nq_correlation_matrix.yml",
@@ -121,6 +116,7 @@
         "ultimate_regime_detection_pipeline.yml",
         "mm_positioning.yml",
         "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml",
         "ultimate_news_sentiment_pipeline.yml",
         "opex_calendar.yml",
         "daily_consolidated.yml"
@@ -132,6 +128,7 @@
         "daily_report.yml",
         "market_data.yml",
         "ultimate_data_collection_pipeline.yml",
+        "train-github-only.yml",
         "portfolio_heat.yml",
         "ultimate_ml_rl_intel_system.yml",
         "ultimate_build_ci_pipeline.yml",
@@ -152,15 +149,18 @@
         "ultimate_regime_detection_pipeline.yml",
         "mm_positioning.yml",
         "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml",
         "ultimate_news_sentiment_pipeline.yml",
         "opex_calendar.yml",
         "daily_consolidated.yml"
       ],
       "persist_credentials": [
+        "train-github-only.yml",
         "ultimate_ml_rl_intel_system.yml",
         "es_nq_correlation_matrix.yml",
         "ultimate_regime_detection_pipeline.yml",
-        "ultimate_testing_qa_pipeline.yml"
+        "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml"
       ],
       "timeout_minutes": [
         "failed_patterns.yml",
@@ -169,9 +169,11 @@
         "daily_report.yml",
         "market_data.yml",
         "ultimate_data_collection_pipeline.yml",
+        "train-github-only.yml",
         "portfolio_heat.yml",
         "ultimate_ml_rl_intel_system.yml",
         "ultimate_build_ci_pipeline.yml",
+        "train.yml",
         "zones_identifier.yml",
         "overnight.yml",
         "microstructure.yml",
@@ -186,6 +188,7 @@
         "ultimate_regime_detection_pipeline.yml",
         "mm_positioning.yml",
         "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml",
         "ultimate_news_sentiment_pipeline.yml",
         "opex_calendar.yml",
         "daily_consolidated.yml"
@@ -196,9 +199,9 @@
         "fed_liquidity.yml",
         "daily_report.yml",
         "ultimate_data_collection_pipeline.yml",
+        "train-github-only.yml",
         "ultimate_ml_rl_intel_system.yml",
         "ultimate_build_ci_pipeline.yml",
-        "train.yml",
         "zones_identifier.yml",
         "overnight.yml",
         "microstructure.yml",
@@ -210,6 +213,7 @@
         "volatility_surface.yml",
         "ultimate_regime_detection_pipeline.yml",
         "ultimate_testing_qa_pipeline.yml",
+        "cloud-ml-training.yml",
         "ultimate_news_sentiment_pipeline.yml",
         "daily_consolidated.yml"
       ]

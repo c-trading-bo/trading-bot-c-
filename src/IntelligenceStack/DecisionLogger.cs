@@ -25,7 +25,7 @@ public class DecisionLogger : IDecisionLogger
         string basePath = "data/decisions")
     {
         _logger = logger;
-        _enabled = config.DecisionLine.Enabled;
+        _enabled = config?.DecisionLine.Enabled ?? false;
         _basePath = basePath;
         
         if (_enabled)
@@ -37,7 +37,7 @@ public class DecisionLogger : IDecisionLogger
 
     public async Task LogDecisionAsync(IntelligenceDecision decision, CancellationToken cancellationToken = default)
     {
-        if (!_enabled)
+        if (!_enabled || decision == null)
         {
             return;
         }
