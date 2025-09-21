@@ -592,7 +592,7 @@ public class LineageTrackingSystem
         }
     }
 
-    private async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
+    private static async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
         // Build processing chain asynchronously to avoid blocking lineage recording
         return await Task.Run(() =>
@@ -813,13 +813,13 @@ public class LineageTrackingSystem
         }, cancellationToken);
     }
 
-    private string ExtractFamilyFromId(string modelId)
+    private static string ExtractFamilyFromId(string modelId)
     {
         var lastUnderscore = modelId.LastIndexOf('_');
         return lastUnderscore > 0 ? modelId[..lastUnderscore] : modelId;
     }
 
-    private string ExtractVersionFromId(string modelId)
+    private static string ExtractVersionFromId(string modelId)
     {
         var parts = modelId.Split('_');
         return parts.Length > 1 ? parts[^1] : "v1";

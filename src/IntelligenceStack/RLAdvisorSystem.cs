@@ -20,11 +20,7 @@ namespace TradingBot.IntelligenceStack;
 public class RLAdvisorSystem
 {
     // Constants for magic number violations (S109)
-    private const double DefaultConfidence = 0.0;
     private const int UpliftCheckHours = 24;
-    private const double NormalizationFactor = 1.0;
-    private const double MinutesToHours = 60.0;
-    private const double DefaultRSI = 50.0;
     private const double PercentageNormalizer = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     private const double TrendingIndicator = 1.0;
@@ -1036,7 +1032,7 @@ public class PerformanceTracker
 
     private double CalculateSharpeRatio()
     {
-        if (_returns.Count < DefaultStepsCount) return DefaultConfidence;
+        if (_returns.Count < DefaultStepsCount) return 0.0;
         
         var mean = _returns.Average();
         var variance = _returns.Select(r => Math.Pow(r - mean, 2)).Average();

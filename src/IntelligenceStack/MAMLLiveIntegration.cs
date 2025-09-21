@@ -335,7 +335,7 @@ public class MamlLiveIntegration
         }, cancellationToken);
     }
 
-    private async Task<ValidationResult> ValidateAdaptationAsync(
+    private static async Task<ValidationResult> ValidateAdaptationAsync(
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
@@ -537,7 +537,7 @@ public class MamlLiveIntegration
         return examples.Count > 0 ? gradient / examples.Count : 0.0;
     }
 
-    private double GetStrategyPrediction(TrainingExample example, string strategyKey)
+    private static double GetStrategyPrediction(TrainingExample example, string strategyKey)
     {
         // Get deterministic prediction based on actual features without random noise
         var basePrediction = example.Features.Values.FirstOrDefault();
