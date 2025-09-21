@@ -25,6 +25,27 @@ public class FeatureStore : IFeatureStore
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
 
+    // LoggerMessage delegates for CA1848 compliance - FeatureStore  
+    private static readonly Action<ILogger, string, Exception?> NoFeatureDataFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3001, "NoFeatureDataFound"),
+            "[FEATURES] No feature data found for symbol: {Symbol}");
+            
+    private static readonly Action<ILogger, int, string, DateTime, DateTime, Exception?> FeaturesRetrieved =
+        LoggerMessage.Define<int, string, DateTime, DateTime>(LogLevel.Debug, new EventId(3002, "FeaturesRetrieved"),
+            "[FEATURES] Retrieved {Count} features for {Symbol} ({From} to {To})");
+            
+    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> FeatureRetrievalFailed =
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Error, new EventId(3003, "FeatureRetrievalFailed"),
+            "[FEATURES] Failed to get features for {Symbol} from {FromTime} to {ToTime}");
+            
+    private static readonly Action<ILogger, int, string, DateTime, Exception?> FeaturesSaved =
+        LoggerMessage.Define<int, string, DateTime>(LogLevel.Debug, new EventId(3004, "FeaturesSaved"),
+            "[FEATURES] Saved {Count} features for {Symbol} at {Timestamp}");
+            
+    private static readonly Action<ILogger, string, DateTime, Exception?> FeatureSavingFailed =
+        LoggerMessage.Define<string, DateTime>(LogLevel.Error, new EventId(3005, "FeatureSavingFailed"),
+            "[FEATURES] Failed to save features for {Symbol} at {Timestamp}");
+
     public FeatureStore(ILogger<FeatureStore> logger, string basePath = "data/features")
     {
         _logger = logger;
@@ -41,7 +62,7 @@ public class FeatureStore : IFeatureStore
             var featuresPath = Path.Combine(_basePath, "features", symbol);
             if (!Directory.Exists(featuresPath))
             {
-                _logger.LogWarning("[FEATURES] No feature data found for symbol: {Symbol}", symbol);
+                NoFeatureDataFound(_logger, symbol, null);
                 return new FeatureSet { Symbol = symbol };
             }
 
@@ -91,15 +112,13 @@ public class FeatureStore : IFeatureStore
                 result.Metadata[kvp.Key] = kvp.Value;
             }
 
-            _logger.LogDebug("[FEATURES] Retrieved {Count} features for {Symbol} ({From} to {To})", 
-                features.Count, symbol, fromTime, toTime);
+            FeaturesRetrieved(_logger, features.Count, symbol, fromTime, toTime, null);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to get features for {Symbol} from {FromTime} to {ToTime}", 
-                symbol, fromTime, toTime);
+            FeatureRetrievalFailed(_logger, symbol, fromTime, toTime, ex);
             throw new InvalidOperationException($"Feature retrieval failed for symbol {symbol}", ex);
         }
     }
@@ -131,13 +150,11 @@ public class FeatureStore : IFeatureStore
 
             await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[FEATURES] Saved {Count} features for {Symbol} at {Timestamp}", 
-                features.Features.Count, features.Symbol, features.Timestamp);
+            FeaturesSaved(_logger, features.Features.Count, features.Symbol, features.Timestamp, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to save features for {Symbol} at {Timestamp}", 
-                features.Symbol, features.Timestamp);
+            FeatureSavingFailed(_logger, features.Symbol, features.Timestamp, ex);
             throw new InvalidOperationException($"Feature saving failed for symbol {features.Symbol}", ex);
         }
     }

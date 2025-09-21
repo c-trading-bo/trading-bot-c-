@@ -26,19 +26,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double BaselineRewardFactor = 0.25;
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
-    private const int MonitoringPeriodDays = 7;
-    private const int MaxSampleHistoryCount = 1000;
-    private const int DefaultRetryCount = 10;
-    private const double DefaultRetryCount3 = 3.0;
     
     // LoggerMessage delegates for CA1848 compliance - OnlineLearningSystem
     private static readonly Action<ILogger, string, double, Exception?> WeightUpdateCompleted =
         LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(6001, "WeightUpdateCompleted"),
             "[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})");
-            
-    private static readonly Action<ILogger, string, Exception?> WeightUpdateFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6002, "WeightUpdateFailed"),
-            "[ONLINE] Failed to update weights for regime: {Regime}");
             
     private static readonly Action<ILogger, string, Exception?> AccessDeniedError =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6003, "AccessDeniedError"),
@@ -56,22 +48,6 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6006, "ArgumentError"),
             "[ONLINE] Invalid argument updating weights for regime: {Regime}");
             
-    private static readonly Action<ILogger, string, Exception?> PerformanceAdaptationFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6007, "PerformanceAdaptationFailed"),
-            "[ONLINE] Failed to adapt to performance for model: {ModelId}");
-            
-    private static readonly Action<ILogger, Exception?> StateLoadingStarted =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(6008, "StateLoadingStarted"),
-            "[ONLINE] Loading online learning state...");
-            
-    private static readonly Action<ILogger, Exception?> StateLoadingCompleted =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(6009, "StateLoadingCompleted"),
-            "[ONLINE] Online learning state loaded successfully");
-            
-    private static readonly Action<ILogger, Exception?> StateLoadingFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(6010, "StateLoadingFailed"),
-            "[ONLINE] Failed to load state, starting fresh");
-            
     private static readonly Action<ILogger, string, double, double, double, Exception?> HighVarianceDetected =
         LoggerMessage.Define<string, double, double, double>(LogLevel.Warning, new EventId(6011, "HighVarianceDetected"),
             "[ONLINE] High variance detected for {ModelId}: {Current:F4} > {Baseline:F4} * {Multiplier}");
@@ -79,36 +55,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private static readonly Action<ILogger, string, Exception?> ModelNotFoundAdapting =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "ModelNotFoundAdapting"),
             "[ONLINE] Model not found adapting to performance: {ModelId}");
-            
-    private static readonly Action<ILogger, string, double, Exception?> FeatureDriftDetected =
-        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6013, "FeatureDriftDetected"),
-            "[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}");
-            
-    private static readonly Action<ILogger, string, Exception?> DriftDetectionFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, "DriftDetectionFailed"),
-            "[ONLINE] Failed to detect drift for model: {ModelId}");
-            
-    private static readonly Action<ILogger, string, string, string, decimal, decimal, Exception?> ProcessingTradeRecord =
-        LoggerMessage.Define<string, string, string, decimal, decimal>(LogLevel.Debug, new EventId(6015, "ProcessingTradeRecord"),
-            "[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}");
-            
-    private static readonly Action<ILogger, string, string, string, double, Exception?> ModelUpdateCompleted =
-        LoggerMessage.Define<string, string, string, double>(LogLevel.Information, new EventId(6016, "ModelUpdateCompleted"),
-            "[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}");
-            
-    private static readonly Action<ILogger, string, Exception?> ModelUpdateFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6017, "ModelUpdateFailed"),
-            "[ONLINE] Failed to update model with trade record: {TradeId}");
-            
-    private static readonly Action<ILogger, string, Exception?> WeightsRolledBack =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(6018, "WeightsRolledBack"),
-            "[ONLINE] Rolled back weights for model: {ModelId}");
     
-            
-    private static readonly Action<ILogger, Exception?> StateSavingFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(6011, "StateSavingFailed"),
-            "[ONLINE] Failed to save state");
-            
     private static readonly Action<ILogger, string, Exception?> InvalidOperationRecordingError =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "InvalidOperationRecordingError"),
             "[SLO] Invalid operation recording error: {ErrorType}");

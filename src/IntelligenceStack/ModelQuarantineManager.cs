@@ -48,7 +48,7 @@ public class ModelQuarantineManager : IQuarantineManager
             {
                 // Simulate async health check with external model monitoring API
                 await Task.Delay(15, cancellationToken).ConfigureAwait(false);
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
             
             lock (_lock)
             {

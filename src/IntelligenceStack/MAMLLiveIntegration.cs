@@ -129,7 +129,7 @@ public class MamlLiveIntegration
             var boundedStep = ApplyBoundedUpdates(adaptationStep);
             
             // Check for instability and potential rollback
-            if (await ShouldRollbackAsync(modelState, boundedStep, cancellationToken))
+            if (await ShouldRollbackAsync(modelState, boundedStep, cancellationToken).ConfigureAwait(false))
             {
                 await PerformRollbackAsync(modelState, cancellationToken).ConfigureAwait(false);
                 result.RolledBack = true;
