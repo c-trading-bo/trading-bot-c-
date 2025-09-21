@@ -35,6 +35,8 @@ public class ConfidenceConfig
 {
     public bool Enabled { get; set; } = true;
     public double MinConfidence { get; set; } = 0.52;
+    public double NeutralConfidenceMin { get; set; } = 0.45;
+    public double NeutralConfidenceMax { get; set; } = 0.50;
     public double KellyClip { get; set; } = 0.35;
     
     // Configurable scoring functions to replace hardcoded formulas
