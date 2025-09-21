@@ -299,7 +299,7 @@ public class StreamingAggregator
         {
             _ema12 = price;
             _ema26 = price;
-            _macdSignal;
+            _macdSignal = 0.0;  // Initialize MACD signal
             _initialized = true;
         }
         else
@@ -342,7 +342,7 @@ public class StreamingAggregator
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
     {
         // Make this a proper async operation instead of Task.FromResult
-        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
+        await Task.Yield(); // Ensure async behavior
         
         lock (_lock)
         {
@@ -387,7 +387,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false);
+                var data = _dataWindow.TakeLast(period + 1).ToList();
                 if (data.Count < 2) return 0.0;
 
                 var trueRanges = new List<double>();
@@ -417,7 +417,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false);
+                var data = _dataWindow.TakeLast(period + 1).ToList();
                 if (data.Count < period + 1) return 50.0; // Neutral RSI
 
                 var gains = new List<double>();
@@ -447,7 +447,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period).ToList().ConfigureAwait(false);
+                var data = _dataWindow.TakeLast(period).ToList();
                 return data.Count > 0 ? data.Average(d => d.Volume) : 0.0;
             }
         }, cancellationToken);
@@ -459,7 +459,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false);
+                var data = _dataWindow.TakeLast(period + 1).ToList();
                 if (data.Count < period + 1) return 0.0;
 
                 var currentPrice = data.Last().Close;

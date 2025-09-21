@@ -170,9 +170,7 @@ public class EnsembleMetaLearner
                 CurrentRegime = _currentRegime,
                 PreviousRegime = _previousRegime,
                 InTransition = _inTransition,
-                TransitionStartTime = _lastTransitionTime,
-                ActiveModels = new Dictionary<string, double>(),
-                RegimeHeadStatus = new Dictionary<RegimeType, RegimeHeadStatus>()
+                TransitionStartTime = _lastTransitionTime
             };
 
             // Get current weights for active regime
@@ -182,7 +180,11 @@ public class EnsembleMetaLearner
             
             if (task.IsCompletedSuccessfully)
             {
-                status.ActiveModels = task.Result;
+                // Copy the weights to the ActiveModels dictionary
+                foreach (var kvp in task.Result)
+                {
+                    status.ActiveModels[kvp.Key] = kvp.Value;
+                }
             }
 
             // Get regime head status

@@ -137,7 +137,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             }
 
             var modelFiles = Directory.GetFiles(modelsDir, "*.json");
-            var updated;
+            var updated = false;
 
             foreach (var modelFile in modelFiles)
             {
@@ -188,15 +188,22 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         var brierScore = CalculateBrierScore(points, p => ApplyPlattCalibration(p.RawConfidence, slope, intercept));
         var logLoss = CalculateLogLoss(points, p => ApplyPlattCalibration(p.RawConfidence, slope, intercept));
 
-        return new CalibrationMap
+        var calibrationMap = new CalibrationMap
         {
             ModelId = modelId,
             Method = CalibrationMethod.Platt,
-            Parameters = parameters,
             BrierScore = brierScore,
             LogLoss = logLoss,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Add parameters to the dictionary
+        foreach (var kvp in parameters)
+        {
+            calibrationMap.Parameters[kvp.Key] = kvp.Value;
+        }
+
+        return calibrationMap;
     }
 
     private CalibrationMap FitIsotonicCalibration(string modelId, List<CalibrationPoint> points)
@@ -230,15 +237,22 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         var brierScore = CalculateBrierScore(points, p => ApplyIsotonicCalibration(p.RawConfidence, calibrationBins));
         var logLoss = CalculateLogLoss(points, p => ApplyIsotonicCalibration(p.RawConfidence, calibrationBins));
 
-        return new CalibrationMap
+        var calibrationMap = new CalibrationMap
         {
             ModelId = modelId,
             Method = CalibrationMethod.Isotonic,
-            Parameters = calibrationBins,
             BrierScore = brierScore,
             LogLoss = logLoss,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Add parameters to the dictionary
+        foreach (var kvp in calibrationBins)
+        {
+            calibrationMap.Parameters[kvp.Key] = kvp.Value;
+        }
+
+        return calibrationMap;
     }
 
     private static double ApplyCalibration(CalibrationMap map, double rawConfidence)

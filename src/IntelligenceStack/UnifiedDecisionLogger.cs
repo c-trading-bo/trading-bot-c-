@@ -81,7 +81,7 @@ public class UnifiedDecisionLogger
         string action,
         Dictionary<string, object>? additionalData = null)
     {
-        return new UnifiedDecisionRecord
+        var record = new UnifiedDecisionRecord
         {
             Symbol = symbol,
             Strategy = strategy,
@@ -91,9 +91,19 @@ public class UnifiedDecisionLogger
             PFinal = pFinal,
             FinalSize = finalSize,
             Action = action,
-            Timestamp = DateTime.UtcNow,
-            AdditionalData = additionalData ?? new Dictionary<string, object>()
+            Timestamp = DateTime.UtcNow
         };
+
+        // Add additional data if provided
+        if (additionalData != null)
+        {
+            foreach (var kvp in additionalData)
+            {
+                record.AdditionalData[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return record;
     }
 }
 
