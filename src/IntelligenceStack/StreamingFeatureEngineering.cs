@@ -408,7 +408,7 @@ public class StreamingAggregator
 
                 return trueRanges.Average();
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<double> GetRSIAsync(int period, CancellationToken cancellationToken)
