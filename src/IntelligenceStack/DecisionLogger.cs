@@ -139,7 +139,11 @@ public class DecisionLogger : IDecisionLogger
                                 }
                             }
                         }
-                        catch (Exception ex)
+                        catch (JsonException ex)
+                        {
+                            ParseLineFailure(_logger, line[..Math.Min(MaxLogLinePreviewLength, line.Length)], ex);
+                        }
+                        catch (ArgumentException ex)
                         {
                             ParseLineFailure(_logger, line[..Math.Min(MaxLogLinePreviewLength, line.Length)], ex);
                         }
@@ -151,7 +155,15 @@ public class DecisionLogger : IDecisionLogger
 
             HistoryRetrieved(_logger, decisions.Count, fromTime, toTime, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            HistoryLoadFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            HistoryLoadFailed(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             HistoryLoadFailed(_logger, ex);
         }

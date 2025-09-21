@@ -73,7 +73,15 @@ public class UnifiedDecisionLogger
             DecisionLogged(_logger, decision.Symbol, decision.Strategy, decision.Regime, decision.PFinal, decision.FinalSize, decision.Action, null);
                 
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            DecisionLogFailed(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            DecisionLogFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             DecisionLogFailed(_logger, ex);
         }

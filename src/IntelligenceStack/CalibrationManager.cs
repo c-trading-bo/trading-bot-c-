@@ -197,7 +197,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var map = await LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return ApplyCalibration(map, rawConfidence);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            ConfidenceCalibrationFailed(_logger, modelId, ex);
+            return rawConfidence; // Return uncalibrated value as fallback
+        }
+        catch (JsonException ex)
+        {
+            ConfidenceCalibrationFailed(_logger, modelId, ex);
+            return rawConfidence; // Return uncalibrated value as fallback
+        }
+        catch (ArgumentException ex)
         {
             ConfidenceCalibrationFailed(_logger, modelId, ex);
             return rawConfidence; // Return uncalibrated value as fallback
@@ -233,7 +243,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                         updated++;
                     }
                 }
-                catch (Exception ex)
+                catch (IOException ex)
+                {
+                    ModelCalibrationUpdateFailed(_logger, modelFile, ex);
+                }
+                catch (ArgumentException ex)
+                {
+                    ModelCalibrationUpdateFailed(_logger, modelFile, ex);
+                }
+                catch (InvalidOperationException ex)
                 {
                     ModelCalibrationUpdateFailed(_logger, modelFile, ex);
                 }
@@ -241,7 +259,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             NightlyCalibrationCompleted(_logger, updated, null);
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException ex)
+        {
+            NightlyCalibrationFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            NightlyCalibrationFailed(_logger, ex);
+        }
+        catch (IOException ex)
         {
             NightlyCalibrationFailed(_logger, ex);
         }

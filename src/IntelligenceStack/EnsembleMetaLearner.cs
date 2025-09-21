@@ -142,7 +142,17 @@ public class EnsembleMetaLearner
 
             return prediction;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            BlendedPredictionFailed(_logger, ex);
+            return CreateFallbackPrediction();
+        }
+        catch (ArgumentException ex)
+        {
+            BlendedPredictionFailed(_logger, ex);
+            return CreateFallbackPrediction();
+        }
+        catch (TaskCanceledException ex)
         {
             BlendedPredictionFailed(_logger, ex);
             return CreateFallbackPrediction();
