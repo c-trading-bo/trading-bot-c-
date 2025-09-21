@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
 using TradingBot.BotCore.Configuration;
-using TradingBot.UnifiedOrchestrator.Runtime;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -25,12 +24,6 @@ public interface ITopstepXAdapterService
     Task<HealthScoreResult> GetHealthScoreAsync(CancellationToken cancellationToken = default);
     Task<PortfolioStatusResult> GetPortfolioStatusAsync(CancellationToken cancellationToken = default);
     Task DisconnectAsync(CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Record a fill event for order evidence tracking
-    /// </summary>
-    bool RecordFillEvent(string gatewayOrderId, string fillId, decimal fillQuantity, decimal fillPrice, DateTime fillTime);
-    
     bool IsConnected { get; }
     double ConnectionHealth { get; }
 }
@@ -69,7 +62,6 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
 {
     private readonly ILogger<TopstepXAdapterService> _logger;
     private readonly TopstepXConfiguration _config;
-    private readonly OrderLedger _orderLedger;
     private readonly string[] _instruments;
     private Process? _pythonProcess;
     private bool _isInitialized;
@@ -79,14 +71,12 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
 
     public TopstepXAdapterService(
         ILogger<TopstepXAdapterService> logger,
-        IOptions<TopstepXConfiguration> config,
-        OrderLedger orderLedger)
+        IOptions<TopstepXConfiguration> config)
     {
         _logger = logger;
         _config = config.Value;
-        _orderLedger = orderLedger;
         _instruments = new[] { "MNQ", "ES" }; // Support MNQ and ES as specified
-        _isInitialized = false;
+        _isInitialized;
         _connectionHealth = 0.0;
     }
 
@@ -179,32 +169,13 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
             throw new InvalidOperationException("Adapter not initialized. Call InitializeAsync first.");
         }
 
-        // Generate unique client ID for order tracking
-        var clientId = _orderLedger.NewClientId(symbol, "TOPSTEP");
-        
-        // Check for duplicate orders
-        if (_orderLedger.IsDuplicate(clientId))
-        {
-            _logger.LogError("❌ [ORDER-LEDGER] Duplicate order attempt blocked: {ClientId}", clientId);
-            return new OrderExecutionResult(
-                false,
-                null,
-                "Duplicate order attempt blocked by OrderLedger",
-                symbol,
-                size,
-                0m,
-                stopLoss,
-                takeProfit,
-                DateTime.UtcNow);
-        }
-
         try
         {
             var currentPrice = await GetPriceAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation(
-                "[ORDER] Placing bracket order: {Symbol} size={Size} entry=${EntryPrice:F2} stop=${StopLoss:F2} target=${TakeProfit:F2} ClientId={ClientId}",
-                symbol, size, currentPrice, stopLoss, takeProfit, clientId);
+                "[ORDER] Placing bracket order: {Symbol} size={Size} entry=${EntryPrice:F2} stop=${StopLoss:F2} target=${TakeProfit:F2}",
+                symbol, size, currentPrice, stopLoss, takeProfit);
 
             var command = new
             {
@@ -213,8 +184,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
                 size,
                 stop_loss = stopLoss,
                 take_profit = takeProfit,
-                max_risk_percent = 0.01, // 1% risk as specified
-                client_id = clientId // Pass client ID to Python adapter
+                max_risk_percent = 0.01 // 1% risk as specified
             };
 
             var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
@@ -238,18 +208,9 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
                     takeProfit,
                     timestamp);
 
-                if (success && !string.IsNullOrEmpty(orderId))
+                if (success)
                 {
-                    // Record the order in the ledger for evidence tracking
-                    var recorded = _orderLedger.TryRecord(clientId, orderId, symbol, size, currentPrice, "BRACKET");
-                    if (recorded)
-                    {
-                        _logger.LogInformation("✅ Order placed and recorded: ClientId={ClientId} → GatewayId={OrderId}", clientId, orderId);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("⚠️ Order placed but failed to record in ledger: {OrderId}", orderId);
-                    }
+                    _logger.LogInformation("✅ Order placed successfully: {OrderId}", orderId);
                 }
                 else
                 {
@@ -531,32 +492,6 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         {
             _logger.LogError(ex, "Error executing Python command: {Command}", command);
             return (false, null, ex.Message);
-        }
-    }
-    
-    /// <summary>
-    /// Record a fill event for order evidence tracking
-    /// </summary>
-    public bool RecordFillEvent(string gatewayOrderId, string fillId, decimal fillQuantity, decimal fillPrice, DateTime fillTime)
-    {
-        try
-        {
-            var recorded = _orderLedger.RecordFill(gatewayOrderId, fillId, fillQuantity, fillPrice, fillTime);
-            if (recorded)
-            {
-                _logger.LogInformation("💰 [FILL-EVENT] Recorded fill: OrderId={OrderId} FillId={FillId} Qty={Quantity} Price={Price}",
-                    gatewayOrderId, fillId, fillQuantity, fillPrice);
-            }
-            else
-            {
-                _logger.LogWarning("⚠️ [FILL-EVENT] Failed to record fill for unknown order: {OrderId}", gatewayOrderId);
-            }
-            return recorded;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ [FILL-EVENT] Error recording fill event for order {OrderId}", gatewayOrderId);
-            return false;
         }
     }
 
