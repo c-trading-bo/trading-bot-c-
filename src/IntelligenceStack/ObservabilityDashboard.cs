@@ -204,7 +204,6 @@ public class ObservabilityDashboard : IDisposable
             ensembleWeights.CurrentRegimeWeights[kvp.Key] = kvp.Value;
         }
         
-        // Add weight changes to the read-only list
         var weightChanges = GetRecentMetrics("ensemble_weights")
             .TakeLast(100)
             .Select(m => new WeightChange
@@ -212,10 +211,16 @@ public class ObservabilityDashboard : IDisposable
                 Timestamp = m.Timestamp,
                 ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
                 Weight = m.Value,
-                    Regime = m.Tags.GetValueOrDefault("regime", "unknown")
-                })
-                .ToList()
-        };
+                Regime = m.Tags.GetValueOrDefault("regime", "unknown")
+            })
+            .ToList();
+            
+        foreach (var change in weightChanges)
+        {
+            ensembleWeights.WeightChangesOverTime.Add(change);
+        }
+        
+        return ensembleWeights;
     }
 
     /// <summary>
@@ -233,15 +238,22 @@ public class ObservabilityDashboard : IDisposable
 
         var histogram = CreateHistogram(recentConfidences, 10);
         
-        return new ConfidenceDistribution
+        var confidenceDistribution = new ConfidenceDistribution
         {
-            Histogram = histogram,
             Mean = recentConfidences.Count > 0 ? recentConfidences.Average() : 0.0,
             Median = CalculatePercentile(recentConfidences, 0.5),
             P90 = CalculatePercentile(recentConfidences, 0.9),
             P10 = CalculatePercentile(recentConfidences, 0.1),
             CalibrationScore = CalculateCalibrationScore(recentConfidences)
         };
+        
+        // Add histogram to the read-only dictionary
+        foreach (var kvp in histogram)
+        {
+            confidenceDistribution.Histogram[kvp.Key] = kvp.Value;
+        }
+        
+        return confidenceDistribution;
     }
 
     /// <summary>

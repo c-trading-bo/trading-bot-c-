@@ -599,7 +599,7 @@ public class LineageTrackingSystem
                     OutputHash = decision.DecisionId[^8..],
                     ProcessingTime = TimeSpan.FromMilliseconds(20)
                 }
-            }.ConfigureAwait(false);
+            };
         }, cancellationToken);
     }
 
@@ -664,7 +664,7 @@ public class LineageTrackingSystem
         // Retrieve lineage events in period asynchronously to avoid blocking analysis operations
         return await Task.Run(() =>
         {
-            var allEvents = new List<LineageEvent>().ConfigureAwait(false);
+            var allEvents = new List<LineageEvent>();
             
             lock (_lock)
             {
@@ -727,7 +727,7 @@ public class LineageTrackingSystem
         // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
         return await Task.Run(() =>
         {
-            var relatedEvents = new List<LineageEvent>().ConfigureAwait(false);
+            var relatedEvents = new List<LineageEvent>();
             
             lock (_lock)
             {
