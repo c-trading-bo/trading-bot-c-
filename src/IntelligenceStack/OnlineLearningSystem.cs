@@ -219,7 +219,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
 
             // Persist state asynchronously
-            _ = Task.Run(async () => await SaveStateAsync(cancellationToken)).ConfigureAwait(false);
+            _ = Task.Run(async () => await SaveStateAsync(cancellationToken).ConfigureAwait(false), cancellationToken);
 
             WeightUpdateCompleted(_logger, regimeType, CalculateLearningRate(regimeType), null);
         }
@@ -522,7 +522,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 // Simulate async logging to audit trail
                 await Task.Delay(5, cancellationToken).ConfigureAwait(false);
                 
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("[ONLINE] Rolled back weights for model: {ModelId}", modelId);
         }
@@ -953,7 +953,7 @@ public class SloMonitor
             {
                 _logger.LogError(ex, "[SLO] Division by zero checking error budget");
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private void HandleSLOBreach(string metricType, double actualValue, double threshold)

@@ -532,7 +532,7 @@ public class RLAdvisorSystem
             {
                 _logger.LogError(ex, "[RL_ADVISOR] Failed to check for proven uplift");
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private bool IsEligibleForLive(string agentKey, PerformanceTracker tracker)
@@ -568,7 +568,7 @@ public class RLAdvisorSystem
                 episodes.Count, symbol, startDate, endDate);
             
             return episodes;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private async Task<List<RLMarketDataPoint>> LoadHistoricalMarketDataViaSdkAsync(string symbol, DateTime startDate, DateTime endDate)
@@ -713,7 +713,7 @@ public class RLAdvisorSystem
             }
             
             return windows;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private async Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
@@ -746,7 +746,7 @@ public class RLAdvisorSystem
             }
             
             return episode;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private static double[] ExtractMarketFeatures(RLMarketDataPoint dataPoint)

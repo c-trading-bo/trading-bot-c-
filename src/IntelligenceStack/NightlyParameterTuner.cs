@@ -339,7 +339,7 @@ public class NightlyParameterTuner
             }
 
             return newSession;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         // Initialize session state asynchronously
         await Task.Run(async () =>
