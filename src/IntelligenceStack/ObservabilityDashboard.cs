@@ -153,21 +153,27 @@ public class ObservabilityDashboard : IDisposable
             })
             .ToList();
 
-        return new RegimeTimeline
+        var regimeTimeline = new RegimeTimeline
         {
             CurrentRegime = ensembleStatus.CurrentRegime.ToString(),
             PreviousRegime = ensembleStatus.PreviousRegime.ToString(),
             InTransition = ensembleStatus.InTransition,
-            TransitionStartTime = ensembleStatus.TransitionStartTime,
-            RecentChanges = recentRegimeChanges,
-            RegimeDistribution = new Dictionary<string, double>
-            {
-                ["Range"] = 0.35,
-                ["Trend"] = 0.40,
-                ["Volatility"] = 0.15,
-                ["LowVol"] = 0.10
-            }
+            TransitionStartTime = ensembleStatus.TransitionStartTime
         };
+        
+        // Add recent changes to the read-only collection
+        foreach (var change in recentRegimeChanges)
+        {
+            regimeTimeline.RecentChanges.Add(change);
+        }
+        
+        // Add regime distribution to the read-only dictionary
+        regimeTimeline.RegimeDistribution["Range"] = 0.35;
+        regimeTimeline.RegimeDistribution["Trend"] = 0.40;
+        regimeTimeline.RegimeDistribution["Volatility"] = 0.15;
+        regimeTimeline.RegimeDistribution["LowVol"] = 0.10;
+        
+        return regimeTimeline;
     }
 
     /// <summary>
@@ -180,9 +186,8 @@ public class ObservabilityDashboard : IDisposable
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
-        return new EnsembleWeightsDashboard
+        var ensembleWeights = new EnsembleWeightsDashboard
         {
-            CurrentRegimeWeights = ensembleStatus.ActiveModels,
             RegimeHeadWeights = ensembleStatus.RegimeHeadStatus.ToDictionary(
                 kvp => kvp.Key.ToString(),
                 kvp => new Dictionary<string, double>
@@ -190,14 +195,23 @@ public class ObservabilityDashboard : IDisposable
                     ["validation_score"] = kvp.Value.ValidationScore,
                     ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
                 }
-            ),
-            WeightChangesOverTime = GetRecentMetrics("ensemble_weights")
-                .TakeLast(100)
-                .Select(m => new WeightChange
-                {
-                    Timestamp = m.Timestamp,
-                    ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
-                    Weight = m.Value,
+            )
+        };
+        
+        // Add current regime weights to the read-only dictionary
+        foreach (var kvp in ensembleStatus.ActiveModels)
+        {
+            ensembleWeights.CurrentRegimeWeights[kvp.Key] = kvp.Value;
+        }
+        
+        // Add weight changes to the read-only list
+        var weightChanges = GetRecentMetrics("ensemble_weights")
+            .TakeLast(100)
+            .Select(m => new WeightChange
+            {
+                Timestamp = m.Timestamp,
+                ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
+                Weight = m.Value,
                     Regime = m.Tags.GetValueOrDefault("regime", "unknown")
                 })
                 .ToList()
