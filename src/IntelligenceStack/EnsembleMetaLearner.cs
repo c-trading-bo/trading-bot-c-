@@ -22,8 +22,6 @@ public class EnsembleMetaLearner
     private const double MinWeight = 0.1;
     private const double MaxWeight = 2.0;
     private const double BaselinePerformance = 0.5;
-    private const int DefaultValidationSamples = 10;
-    private const int MinimumValidationSamples = 5;
     
     private readonly ILogger<EnsembleMetaLearner> _logger;
     private readonly EnsembleConfig _config;
@@ -620,6 +618,8 @@ public class EnsembleMetaLearner
 /// </summary>
 public class RegimeBlendHead
 {
+    private const int MinimumValidationSamples = 5;
+    
     private readonly ILogger _logger;
     private readonly RegimeType _regime;
     
