@@ -279,7 +279,7 @@ public class HistoricalTrainerWithCV
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HISTORICAL_CV] Fold {Fold} failed", foldNumber);
-            foldResult.Success;
+            foldResult.Success = false;
             foldResult.ErrorMessage = ex.Message;
         }
         finally
@@ -401,14 +401,21 @@ public class HistoricalTrainerWithCV
         // Calculate future return with proper time delay
         var futureReturn = (futureData.Last().Close - dataPoint.Close) / dataPoint.Close;
         
-        return new TrainingExample
+        var example = new TrainingExample
         {
-            Features = features.Features,
             PredictedDirection = Math.Sign(futureReturn),
             ActualOutcome = futureReturn,
             Timestamp = dataPoint.Timestamp,
             Regime = RegimeType.Range // Would determine actual regime
         };
+        
+        // Populate the Features dictionary
+        foreach (var feature in features.Features)
+        {
+            example.Features[feature.Key] = feature.Value;
+        }
+        
+        return example;
         }, cancellationToken);
     }
 
@@ -619,14 +626,13 @@ public class HistoricalTrainerWithCV
                 TrainingWindow = cvResult.TrainingWindow,
                 FeaturesVersion = "v1.0",
                 Metrics = cvResult.AggregateMetrics,
-                ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count),
-                Metadata = new Dictionary<string, object>
-                {
-                    ["cv_folds"] = cvResult.FoldResults.Count,
-                    ["best_fold"] = bestFold.FoldNumber,
-                    ["cv_date"] = cvResult.StartedAt
-                }
+                ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count)
             };
+            
+            // Populate the read-only Metadata dictionary
+            registration.Metadata["cv_folds"] = cvResult.FoldResults.Count;
+            registration.Metadata["best_fold"] = bestFold.FoldNumber;
+            registration.Metadata["cv_date"] = cvResult.StartedAt;
 
             var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
             
@@ -666,8 +672,8 @@ public class HistoricalTrainerWithCV
         
         // Use HMAC-based deterministic random generation for reproducibility
         using var hmac = new HMACSHA256(seedData);
-        var counter;
-        for (int i; i < modelData.Length; i += 32)
+        var counter = 0;
+        for (int i = 0; i < modelData.Length; i += 32)
         {
             var counterBytes = BitConverter.GetBytes(counter++);
             var hash = hmac.ComputeHash(counterBytes);

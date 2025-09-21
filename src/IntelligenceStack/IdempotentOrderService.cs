@@ -254,7 +254,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             if (!Directory.Exists(_basePath)) return;
 
             var orderFiles = Directory.GetFiles(_basePath, "*.json");
-            var loadedCount;
+            var loadedCount = 0;
 
             foreach (var file in orderFiles)
             {
@@ -313,7 +313,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             if (Directory.Exists(_basePath))
             {
                 var orderFiles = Directory.GetFiles(_basePath, "*.json");
-                var deletedCount;
+                var deletedCount = 0;
 
                 foreach (var file in orderFiles)
                 {

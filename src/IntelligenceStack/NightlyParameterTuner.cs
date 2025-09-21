@@ -158,10 +158,10 @@ public class NightlyParameterTuner
         
         var bestParameters = new Dictionary<string, double>(baseline);
         var bestMetrics = result.BaselineMetrics;
-        var noImprovementCount;
+        var noImprovementCount = 0;
 
         // Bayesian optimization loop
-        for (int trial; trial < _config.Trials && noImprovementCount < _config.EarlyStopNoImprove; trial++)
+        for (int trial = 0; trial < _config.Trials && noImprovementCount < _config.EarlyStopNoImprove; trial++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -186,7 +186,7 @@ public class NightlyParameterTuner
             {
                 bestParameters = candidateParams;
                 bestMetrics = candidateMetrics;
-                noImprovementCount;
+                noImprovementCount = 0;
                 
                 _logger.LogInformation("[BAYESIAN_OPT] New best found at trial {Trial}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
                     trial + 1, candidateMetrics.AUC, candidateMetrics.EdgeBps);
@@ -237,7 +237,7 @@ public class NightlyParameterTuner
         var bestParameters = bestIndividual.Parameters;
 
         // Evolution loop
-        for (int generation; generation < generations; generation++)
+        for (int generation = 0; generation < generations; generation++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -291,7 +291,7 @@ public class NightlyParameterTuner
                 StartTime = DateTime.UtcNow,
                 ParameterSpace = GetParameterSpace(),
                 TrialHistory = new List<TrialResult>()
-            }.ConfigureAwait(false);
+            };
 
             lock (_lock)
             {
@@ -534,7 +534,7 @@ public class NightlyParameterTuner
         var population = new List<Individual>();
         var paramSpace = GetParameterSpace();
         
-        for (int i; i < populationSize; i++)
+        for (int i = 0; i < populationSize; i++)
         {
             var parameters = new Dictionary<string, double>();
             foreach (var (paramName, range) in paramSpace)
@@ -668,8 +668,8 @@ public class NightlyParameterTuner
     private bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
     {
         // Multi-objective comparison - candidate must be better in majority of metrics
-        var improvements;
-        var total;
+        var improvements = 0;
+        var total = 0;
         
         if (candidate.AUC > baseline.AUC) improvements++; total++;
         if (candidate.PrAt10 > baseline.PrAt10) improvements++; total++;

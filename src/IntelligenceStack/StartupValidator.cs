@@ -113,7 +113,10 @@ public class StartupValidator : IStartupValidator
         // Properly populate IsValid and ValidationErrors properties
         result.IsValid = result.AllTestsPassed;
         result.ValidationErrors.Clear();
-        result.ValidationErrors.AddRange(result.FailureReasons);
+        foreach (var reason in result.FailureReasons)
+        {
+            result.ValidationErrors.Add(reason);
+        }
 
         if (result.AllTestsPassed)
         {

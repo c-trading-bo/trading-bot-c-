@@ -171,7 +171,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             // Update the lock file with new timestamp
             if (await TryCreateLockFileAsync(lockData, cancellationToken))
             {
-                _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId).ConfigureAwait(false);
+                _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId);
                 return true;
             }
             else
@@ -399,7 +399,7 @@ public class QuarantineManager : IQuarantineManager
                         ModelId = modelId,
                         State = HealthState.Healthy,
                         BlendWeight = 1.0
-                    }.ConfigureAwait(false);
+                    };
                     _modelStatus[modelId] = status;
                 }
 
@@ -419,7 +419,7 @@ public class QuarantineManager : IQuarantineManager
                 {
                     if (!_modelStatus.TryGetValue(modelId, out var status))
                     {
-                        status = new QuarantineStatus { ModelId = modelId }.ConfigureAwait(false);
+                        status = new QuarantineStatus { ModelId = modelId };
                         _modelStatus[modelId] = status;
                     }
 
@@ -450,7 +450,7 @@ public class QuarantineManager : IQuarantineManager
                 {
                     if (!_modelStatus.TryGetValue(modelId, out var status))
                     {
-                        return false.ConfigureAwait(false);
+                        return false;
                     }
 
                     if (status.State != HealthState.Quarantine)
@@ -492,7 +492,7 @@ public class QuarantineManager : IQuarantineManager
                 return _modelStatus
                     .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                     .Select(kvp => kvp.Key)
-                    .ToList().ConfigureAwait(false);
+                    .ToList();
             }
         }, cancellationToken);
     }

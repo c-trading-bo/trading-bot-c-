@@ -174,8 +174,7 @@ public class RLAdvisorSystem
                 Enabled = _config.Enabled,
                 OrderInfluenceEnabled = _orderInfluenceEnabled,
                 MinShadowDecisions = _config.ShadowMinDecisions,
-                MinEdgeBps = _config.MinEdgeBps,
-                AgentStates = new Dictionary<string, RLAgentStatus>()
+                MinEdgeBps = _config.MinEdgeBps
             };
 
             foreach (var (agentKey, agent) in _agents)
@@ -487,10 +486,10 @@ public class RLAdvisorSystem
         {
             try
             {
-                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence").ConfigureAwait(false);
+                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence");
                 
                 var totalEdgeBps = 0.0;
-                var validAgents;
+                var validAgents = 0;
                 
                 foreach (var (agentKey, tracker) in _performanceTrackers)
                 {
@@ -515,7 +514,7 @@ public class RLAdvisorSystem
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
-                        _orderInfluenceEnabled;
+                        _orderInfluenceEnabled = false;
                         _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
                             averageEdgeBps);
                     }
@@ -738,7 +737,7 @@ public class RLAdvisorSystem
         {
             var windows = new List<EpisodeWindow>().ConfigureAwait(false);
             
-            for (int i; i < marketData.Count - 240; i += 120) // 2-hour overlap
+            for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
                 var startIndex = i;
                 var endIndex = Math.Min(i + 240, marketData.Count - 1); // 4 hours of 1-min data
@@ -769,7 +768,7 @@ public class RLAdvisorSystem
                 EndTime = window.EndTime,
                 InitialState = ExtractMarketFeatures(marketData[window.StartIndex]),
                 Actions = new List<(double[] state, RLActionResult action, double reward)>()
-            }.ConfigureAwait(false);
+            };
             
             // Generate state-action-reward sequences from market movements
             for (int i = window.StartIndex; i < window.EndIndex - 1; i++)
@@ -807,13 +806,13 @@ public class RLAdvisorSystem
     private RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
     {
         var priceChange = next.Price - current.Price;
-        int actionType;
+        int actionType = 0;
         if (priceChange > 0)
             actionType = 1; // Buy
         else if (priceChange < 0)
             actionType = 2; // Sell
         else
-            actionType; // Hold
+            actionType = 0; // Hold
             
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
@@ -848,7 +847,7 @@ public class RLAdvisorSystem
         };
         
         var totalReward = 0.0;
-        var processedEpisodes;
+        var processedEpisodes = 0;
         
         foreach (var episode in episodes)
         {
@@ -942,8 +941,8 @@ public class RLAgent
         // Simplified Q-learning action selection
         var stateKey = string.Join(",", state.Select(s => Math.Round(s, 2)));
         
-        int actionType;
-        double confidence;
+        int actionType = 0;
+        double confidence = 0;
         
         if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < ExplorationRate * 100)
         {
@@ -954,10 +953,10 @@ public class RLAgent
         else
         {
             // Exploitation - choose best action
-            var bestAction;
+            var bestAction = 0;
             var bestValue = double.MinValue;
             
-            for (int i; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 var actionKey = $"{stateKey}_{i}";
                 var value = _qTable.GetValueOrDefault(actionKey, 0.0);
@@ -1005,7 +1004,7 @@ public class RLAgent
         var nextStateKey = string.Join(",", nextState.Select(s => Math.Round(s, 2)));
         var maxNextQ = 0.0;
         
-        for (int i; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             var nextActionKey = $"{nextStateKey}_{i}";
             maxNextQ = Math.Max(maxNextQ, _qTable.GetValueOrDefault(nextActionKey, 0.0));
