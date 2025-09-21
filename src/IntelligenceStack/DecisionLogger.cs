@@ -221,10 +221,7 @@ public class DecisionLogger : IDecisionLogger
         var fileName = $"decisions_{date:yyyy-MM-dd}.jsonl";
         var filePath = Path.Combine(_basePath, "daily", fileName);
 
-        var json = JsonSerializer.Serialize(logEntry, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        var json = JsonSerializer.Serialize(logEntry, JsonOptions);
 
         // Append to daily file
         return File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);

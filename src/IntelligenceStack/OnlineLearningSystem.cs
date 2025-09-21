@@ -72,6 +72,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private readonly Dictionary<string, double> _baselineVariance = new();
     private readonly object _lock = new();
 
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public OnlineLearningSystem(
         ILogger<OnlineLearningSystem> logger,
         MetaLearningConfig config,
@@ -308,7 +310,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
 
             // Save updated drift state
-            var json = JsonSerializer.Serialize(driftState, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(driftState, JsonOptions);
             await File.WriteAllTextAsync(driftStatePath, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -518,7 +520,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
 
             var stateFile = Path.Combine(_statePath, "online_learning_state.json");
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(state, JsonOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)

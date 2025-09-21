@@ -97,6 +97,8 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         LoggerMessage.Define<string, string, string, double>(LogLevel.Debug, new EventId(1018, "OrderKeyGenerated"),
             "[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})");
 
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public IdempotentOrderService(
         ILogger<IdempotentOrderService> logger,
         IdempotentConfig config,
@@ -224,7 +226,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             // Save to persistent storage
             var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
-            var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(record, JsonOptions);
             await File.WriteAllTextAsync(orderPath, json, cancellationToken).ConfigureAwait(false);
 
             OrderRegistered(_logger, orderKey[..8], orderId, null);
@@ -302,7 +304,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 
                 // Update persistent storage
                 var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
-                var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(record, JsonOptions);
                 await File.WriteAllTextAsync(orderPath, json, cancellationToken).ConfigureAwait(false);
             }
 
