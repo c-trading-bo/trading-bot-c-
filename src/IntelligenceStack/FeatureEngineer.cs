@@ -328,12 +328,17 @@ public class FeatureEngineer : IDisposable
             {
                 StrategyId = strategyId,
                 Timestamp = timestamp,
-                Weights = new Dictionary<string, double>(weights),
                 TotalFeatures = weights.Count,
                 LowValueFeatures = weights.Count(kvp => kvp.Value < 0.5),
                 HighValueFeatures = weights.Count(kvp => kvp.Value > 1.5),
                 AverageWeight = weights.Values.Average()
             };
+
+            // Populate the read-only Weights dictionary
+            foreach (var kvp in weights)
+            {
+                logEntry.Weights[kvp.Key] = kvp.Value;
+            }
 
             var fileName = $"feature_weights_{strategyId}_{timestamp:yyyyMMdd_HHmmss}.json";
             var filePath = Path.Combine(_logsPath, fileName);

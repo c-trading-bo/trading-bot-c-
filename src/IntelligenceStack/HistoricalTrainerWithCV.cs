@@ -77,7 +77,6 @@ public class HistoricalTrainerWithCV
                 EndDate = endDate,
                 TrainingWindow = trainingWindow,
                 TestWindow = testWindow,
-                FoldResults = new List<CVFoldResult>(),
                 StartedAt = DateTime.UtcNow
             };
 
