@@ -332,7 +332,7 @@ public class NightlyParameterTuner
         await Task.Run(async () =>
         {
             // Prepare session workspace directory
-            var sessionDir = Path.Combine(_statePath, "sessions", session.SessionId).ConfigureAwait(false);
+            var sessionDir = Path.Combine(_statePath, "sessions", session.SessionId);
             Directory.CreateDirectory(sessionDir);
             
             // Save session metadata

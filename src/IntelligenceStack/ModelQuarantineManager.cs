@@ -296,8 +296,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 HealthyModels = _modelHealth.Count(kvp => kvp.Value.State == HealthState.Healthy),
                 WatchModels = _modelHealth.Count(kvp => kvp.Value.State == HealthState.Watch),
                 DegradeModels = _modelHealth.Count(kvp => kvp.Value.State == HealthState.Degrade),
-                QuarantinedModels = _modelHealth.Count(kvp => kvp.Value.State == HealthState.Quarantine),
-                ModelDetails = new Dictionary<string, ModelHealthDetail>()
+                QuarantinedModels = _modelHealth.Count(kvp => kvp.Value.State == HealthState.Quarantine)
             };
 
             foreach (var (modelId, healthState) in _modelHealth)
@@ -489,7 +488,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 if (_modelHealth.TryGetValue(modelId, out var healthState) && 
                     healthState.State == HealthState.Quarantine)
                 {
-                    _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1.ConfigureAwait(false);
+                    _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
                 }
             }
         }, cancellationToken);
@@ -501,10 +500,20 @@ public class ModelQuarantineManager : IQuarantineManager
         {
             var state = new QuarantineState
             {
-                ModelHealth = _modelHealth.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                ShadowDecisionCounts = new Dictionary<string, int>(_shadowDecisionCounts),
                 LastSaved = DateTime.UtcNow
             };
+            
+            // Populate the model health dictionary
+            foreach (var kvp in _modelHealth)
+            {
+                state.ModelHealth[kvp.Key] = kvp.Value;
+            }
+            
+            // Populate the shadow decision counts dictionary
+            foreach (var kvp in _shadowDecisionCounts)
+            {
+                state.ShadowDecisionCounts[kvp.Key] = kvp.Value;
+            }
 
             var stateFile = Path.Combine(_statePath, "quarantine_state.json");
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });

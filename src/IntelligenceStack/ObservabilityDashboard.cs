@@ -503,29 +503,45 @@ public class ObservabilityDashboard : IDisposable
         var regimeStatesTask = Task.Run(() => 
             mamlStatus.RegimeStates.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new MamlRegimeView
+                kvp => 
                 {
-                    LastAdaptation = kvp.Value.LastAdaptation,
-                    AdaptationCount = kvp.Value.AdaptationCount,
-                    RecentPerformanceGain = kvp.Value.RecentPerformanceGain,
-                    IsStable = kvp.Value.IsStable,
-                    CurrentWeights = kvp.Value.CurrentWeights
+                    var view = new MamlRegimeView
+                    {
+                        LastAdaptation = kvp.Value.LastAdaptation,
+                        AdaptationCount = kvp.Value.AdaptationCount,
+                        RecentPerformanceGain = kvp.Value.RecentPerformanceGain,
+                        IsStable = kvp.Value.IsStable
+                    };
+                    
+                    // Populate the current weights dictionary
+                    foreach (var weightKvp in kvp.Value.CurrentWeights)
+                    {
+                        view.CurrentWeights[weightKvp.Key] = weightKvp.Value;
+                    }
+                    
+                    return view;
                 }
             ), cancellationToken);
         
         var regimeAdaptations = await regimeStatesTask.ConfigureAwait(false);
         
-        return new MamlStatusDashboard
+        var dashboard = new MamlStatusDashboard
         {
             Enabled = mamlStatus.Enabled,
-            LastUpdate = mamlStatus.LastUpdate,
-            RegimeAdaptations = regimeAdaptations,
-            WeightBounds = new Dictionary<string, double>
-            {
-                ["max_change_pct"] = mamlStatus.MaxWeightChangePct,
-                ["rollback_multiplier"] = mamlStatus.RollbackMultiplier
-            }
+            LastUpdate = mamlStatus.LastUpdate
         };
+        
+        // Populate the regime adaptations dictionary
+        foreach (var kvp in regimeAdaptations)
+        {
+            dashboard.RegimeAdaptations[kvp.Key] = kvp.Value;
+        }
+        
+        // Populate the weight bounds dictionary
+        dashboard.WeightBounds["max_change_pct"] = mamlStatus.MaxWeightChangePct;
+        dashboard.WeightBounds["rollback_multiplier"] = mamlStatus.RollbackMultiplier;
+        
+        return dashboard;
     }
 
     private void StartDashboardUpdates()
