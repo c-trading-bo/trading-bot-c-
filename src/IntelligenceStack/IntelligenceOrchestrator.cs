@@ -31,6 +31,169 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BullishThreshold = 0.55;
     private const double BearishThreshold = 0.45;
     
+    // LoggerMessage delegates for CA1848 compliance - IntelligenceOrchestrator
+    private static readonly Action<ILogger, string, Exception?> OrchestratorInitialized =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "OrchestratorInitialized"),
+            "[INTELLIGENCE] Intelligence orchestrator initialized with cloud flow: {CloudEndpoint}");
+            
+    private static readonly Action<ILogger, Exception?> InitializingStack =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4002, "InitializingStack"),
+            "[INTELLIGENCE] Initializing intelligence stack...");
+            
+    private static readonly Action<ILogger, Exception?> StartupValidationFailed =
+        LoggerMessage.Define(LogLevel.Critical, new EventId(4003, "StartupValidationFailed"),
+            "[INTELLIGENCE] Startup validation failed - trading disabled!");
+            
+    private static readonly Action<ILogger, Exception?> StackInitialized =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4004, "StackInitialized"),
+            "[INTELLIGENCE] Intelligence stack initialization completed successfully");
+            
+    private static readonly Action<ILogger, Exception?> InitializationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4005, "InitializationFailed"),
+            "[INTELLIGENCE] Failed to initialize intelligence stack");
+            
+    private static readonly Action<ILogger, string, decimal, Exception?> MakingDecision =
+        LoggerMessage.Define<string, decimal>(LogLevel.Debug, new EventId(4006, "MakingDecision"),
+            "[INTELLIGENCE] Making decision for {Symbol} at {Price}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4007, "DecisionFailed"),
+            "[INTELLIGENCE] Failed to make decision for {Symbol}");
+            
+    private static readonly Action<ILogger, string, Exception?> MarketDataProcessingFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4008, "MarketDataProcessingFailed"),
+            "[INTELLIGENCE] Failed to process market data for {Symbol}");
+            
+    private static readonly Action<ILogger, DateTime, Exception?> NightlyMaintenanceStarted =
+        LoggerMessage.Define<DateTime>(LogLevel.Information, new EventId(4009, "NightlyMaintenanceStarted"),
+            "[INTELLIGENCE] Starting nightly maintenance at {Time}");
+            
+    private static readonly Action<ILogger, Exception?> NightlyMaintenanceCompleted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4010, "NightlyMaintenanceCompleted"),
+            "[INTELLIGENCE] Nightly maintenance completed");
+            
+    private static readonly Action<ILogger, Exception?> NightlyMaintenanceFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4011, "NightlyMaintenanceFailed"),
+            "[INTELLIGENCE] Nightly maintenance failed");
+            
+    private static readonly Action<ILogger, string, Exception?> WorkflowActionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4012, "WorkflowActionFailed"),
+            "[INTELLIGENCE] Workflow action failed: {Action}");
+            
+    private static readonly Action<ILogger, Exception?> RunningMLModels =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4013, "RunningMLModels"),
+            "[INTELLIGENCE] Running ML models...");
+            
+    private static readonly Action<ILogger, Exception?> UpdatingRLTraining =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4014, "UpdatingRLTraining"),
+            "[INTELLIGENCE] Updating RL training...");
+            
+    private static readonly Action<ILogger, Exception?> GeneratingPredictions =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4015, "GeneratingPredictions"),
+            "[INTELLIGENCE] Generating predictions...");
+            
+    private static readonly Action<ILogger, Exception?> AnalyzingCorrelations =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4016, "AnalyzingCorrelations"),
+            "[INTELLIGENCE] Analyzing correlations...");
+            
+    private static readonly Action<ILogger, string, string, Exception?> ModelLoaded =
+        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(4017, "ModelLoaded"),
+            "[INTELLIGENCE] Loaded model for {Regime}: {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> NoModelFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4018, "NoModelFound"),
+            "[INTELLIGENCE] No model found for regime: {Regime}");
+            
+    private static readonly Action<ILogger, int, Exception?> ActiveModelsLoaded =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4019, "ActiveModelsLoaded"),
+            "[INTELLIGENCE] Loaded {Count} active models");
+            
+    private static readonly Action<ILogger, Exception?> LoadActiveModelsFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4020, "LoadActiveModelsFailed"),
+            "[INTELLIGENCE] Failed to load active models");
+            
+    // Additional LoggerMessage delegates for remaining logger calls
+    private static readonly Action<ILogger, Exception?> FallbackModelNotAvailable =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4021, "FallbackModelNotAvailable"),
+            "[INTELLIGENCE] No fallback model available");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> PredictionGenerated =
+        LoggerMessage.Define<string, string, double>(LogLevel.Debug, new EventId(4022, "PredictionGenerated"),
+            "[INTELLIGENCE] Generated prediction for {Symbol}: {Direction} (confidence: {Confidence:F3})");
+            
+    private static readonly Action<ILogger, string, Exception?> PredictionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4023, "PredictionFailed"),
+            "[INTELLIGENCE] Failed to get latest prediction for {Symbol}");
+            
+    private static readonly Action<ILogger, Exception?> OnlinePredictionNotInitialized =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4024, "OnlinePredictionNotInitialized"),
+            "[ONLINE_PREDICTION] System not initialized or trading disabled");
+            
+    private static readonly Action<ILogger, string, string, double, double, Exception?> ONNXPredictionSuccess =
+        LoggerMessage.Define<string, string, double, double>(LogLevel.Debug, new EventId(4025, "ONNXPredictionSuccess"),
+            "[ONLINE_PREDICTION] ONNX prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}, result={Result:F3}");
+            
+    private static readonly Action<ILogger, int, string, string, Exception?> InvalidFeatureVectorShape =
+        LoggerMessage.Define<int, string, string>(LogLevel.Warning, new EventId(4026, "InvalidFeatureVectorShape"),
+            "[ONLINE_PREDICTION] Invalid feature vector shape: {FeatureCount} for {Symbol}/{Strategy}");
+            
+    private static readonly Action<ILogger, Exception?> OnnxEnsembleNotAvailable =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4027, "OnnxEnsembleNotAvailable"),
+            "[ONLINE_PREDICTION] OnnxEnsembleWrapper not available in DI container");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> FallbackPredictionUsed =
+        LoggerMessage.Define<string, string, double>(LogLevel.Debug, new EventId(4028, "FallbackPredictionUsed"),
+            "[ONLINE_PREDICTION] Using fallback prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> OnlinePredictionFailed =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(4029, "OnlinePredictionFailed"),
+            "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}");
+            
+    // Cloud flow LoggerMessage delegates
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabled =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4030, "CloudFlowDisabled"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushed =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4031, "TradeRecordPushed"),
+            "[INTELLIGENCE] Trade record pushed to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "TradeRecordPushFailed"),
+            "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabledMetrics =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4033, "CloudFlowDisabledMetrics"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
+            
+    private static readonly Action<ILogger, Exception?> ServiceMetricsPushed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4034, "ServiceMetricsPushed"),
+            "[INTELLIGENCE] Service metrics pushed to cloud");
+            
+    private static readonly Action<ILogger, Exception?> ServiceMetricsPushFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4035, "ServiceMetricsPushFailed"),
+            "[INTELLIGENCE] Failed to push service metrics to cloud");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushed =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "DecisionIntelligencePushed"),
+            "[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "DecisionIntelligencePushFailed"),
+            "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, int, string, Exception?> CloudPushFailedWithStatus =
+        LoggerMessage.Define<int, string>(LogLevel.Warning, new EventId(4038, "CloudPushFailedWithStatus"),
+            "[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}");
+            
+    private static readonly Action<ILogger, int, Exception?> CloudPushTimeout =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4039, "CloudPushTimeout"),
+            "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}");
+            
+    private static readonly Action<ILogger, int, Exception?> NetworkErrorOnCloudPush =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4040, "NetworkErrorOnCloudPush"),
+            "[INTELLIGENCE] Network error on cloud push attempt {Attempt}");
+    
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IntelligenceStackConfig _config;
@@ -108,8 +271,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             WriteIndented = false
         };
         
-        _logger.LogInformation("[INTELLIGENCE] Intelligence orchestrator initialized with cloud flow: {CloudEndpoint}", 
-            _cloudFlowOptions.CloudEndpoint);
+        OrchestratorInitialized(_logger, _cloudFlowOptions.CloudEndpoint, null);
     }
 
     #region IIntelligenceOrchestrator Implementation
@@ -118,13 +280,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            _logger.LogInformation("[INTELLIGENCE] Initializing intelligence stack...");
+            InitializingStack(_logger, null);
 
             // Run comprehensive startup validation
             var validationResult = await RunStartupValidationAsync(cancellationToken).ConfigureAwait(false);
             if (!validationResult.AllTestsPassed)
             {
-                _logger.LogCritical("[INTELLIGENCE] Startup validation failed - trading disabled!");
+                StartupValidationFailed(_logger, null);
                 _isTradingEnabled = false;
                 return false;
             }
@@ -139,12 +301,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             RaiseEvent("InitializationComplete", "Intelligence stack successfully initialized");
-            _logger.LogInformation("[INTELLIGENCE] Intelligence stack initialization completed successfully");
+            StackInitialized(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to initialize intelligence stack");
+            InitializationFailed(_logger, ex);
             _isTradingEnabled = false;
             return false;
         }
@@ -162,8 +324,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
         try
         {
-            _logger.LogDebug("[INTELLIGENCE] Making decision for {Symbol} at {Price}", 
-                context.Symbol, context.Price);
+            MakingDecision(_logger, context.Symbol, context.Price, null);
 
             // 1. Detect current market regime
             var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
@@ -207,7 +368,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to make decision for {Symbol}", context.Symbol);
+            DecisionFailed(_logger, context.Symbol, ex);
             return CreateSafeDecision($"Decision making failed: {ex.Message}");
         }
     }
@@ -243,7 +404,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to process market data for {Symbol}", data.Symbol);
+            MarketDataProcessingFailed(_logger, data.Symbol, ex);
         }
     }
 
@@ -251,7 +412,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            _logger.LogInformation("[INTELLIGENCE] Starting nightly maintenance at {Time}", DateTime.Now);
+            NightlyMaintenanceStarted(_logger, DateTime.Now, null);
 
             // Update calibration maps
             await _calibrationManager.PerformNightlyCalibrationAsync(cancellationToken).ConfigureAwait(false);
@@ -265,11 +426,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             _lastNightlyMaintenance = DateTime.UtcNow;
             RaiseEvent("NightlyMaintenanceComplete", "Nightly maintenance completed successfully");
             
-            _logger.LogInformation("[INTELLIGENCE] Nightly maintenance completed");
+            NightlyMaintenanceCompleted(_logger, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Nightly maintenance failed");
+            NightlyMaintenanceFailed(_logger, ex);
             RaiseEvent("NightlyMaintenanceFailed", $"Nightly maintenance failed: {ex.Message}");
         }
     }
@@ -308,35 +469,35 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Workflow action failed: {Action}", action);
+            WorkflowActionFailed(_logger, action, ex);
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
     }
 
     public async Task RunMLModelsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[INTELLIGENCE] Running ML models...");
+        RunningMLModels(_logger, null);
         // Implementation for ML model execution
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[INTELLIGENCE] Updating RL training...");
+        UpdatingRLTraining(_logger, null);
         // Implementation for RL training updates
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[INTELLIGENCE] Generating predictions...");
+        GeneratingPredictions(_logger, null);
         // Implementation for prediction generation
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[INTELLIGENCE] Analyzing correlations...");
+        AnalyzingCorrelations(_logger, null);
         // Implementation for correlation analysis
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -367,19 +528,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                         _activeModels[$"{regimeType}"] = model;
                     }
                     
-                    _logger.LogDebug("[INTELLIGENCE] Loaded model for {Regime}: {ModelId}", regimeType, model.Id);
+                    ModelLoaded(_logger, regimeType, model.Id, null);
                 }
                 catch (FileNotFoundException ex)
                 {
-                    _logger.LogWarning(ex, "[INTELLIGENCE] No model found for regime: {Regime}", regimeType);
+                    NoModelFound(_logger, regimeType, ex);
                 }
             }
 
-            _logger.LogInformation("[INTELLIGENCE] Loaded {Count} active models", _activeModels.Count);
+            ActiveModelsLoaded(_logger, _activeModels.Count, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to load active models");
+            LoadActiveModelsFailed(_logger, ex);
         }
     }
 

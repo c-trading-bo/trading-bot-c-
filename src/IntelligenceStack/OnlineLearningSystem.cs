@@ -16,6 +16,34 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class OnlineLearningSystem : IOnlineLearningSystem
 {
+    // Constants for magic number violations (S109)
+    private const int DelayMs = 1;
+    private const int MinUpdateIntervalMinutes = 5;
+    private const double DefaultWeight = 1.0;
+    private const double PercentageDivisor = 100.0;
+    private const double MinWeightLimit = 0.1;
+    private const double MaxWeightLimit = 2.0;
+    private const double BaselineRewardFactor = 0.25;
+    private const int MaxHistoryCount = 100;
+    private const int MinVarianceCalculationPeriod = 20;
+    private const double DefaultLearningRate = 0.1;
+    private const double MinLearningRate = 0.01;
+    private const double MaxLearningRate = 0.5;
+    private const double PerformanceThreshold = 0.02;
+    private const double DriftThreshold = 0.05;
+    private const int SaveIntervalMinutes = 10;
+    private const double DefaultVariance = 0.001;
+    private const int HistoryWindowSize = 50;
+    private const double ConfidenceInterval = 0.95;
+    private const double ZScore = 1.96; // 95% confidence interval
+    private const int MinSampleSize = 10;
+    private const double StabilityThreshold = 0.01;
+    private const double RollbackThreshold = 0.1;
+    private const int MonitoringPeriodDays = 7;
+    private const int MaxSampleHistoryCount = 1000;
+    private const int DefaultRetryCount = 10;
+    private const double DefaultRetryCount3 = 3.0;
+    
     private readonly ILogger<OnlineLearningSystem> _logger;
     private readonly MetaLearningConfig _config;
     private readonly string _statePath;
@@ -42,7 +70,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(DelayMs, cancellationToken).ConfigureAwait(false);
         
         if (!_config.Enabled)
         {
@@ -58,7 +86,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 var timeSinceLastUpdate = now - lastUpdate;
 
                 // Enforce minimum update interval (5 minutes)
-                if (timeSinceLastUpdate < TimeSpan.FromMinutes(5))
+                if (timeSinceLastUpdate < TimeSpan.FromMinutes(MinUpdateIntervalMinutes))
                 {
                     _logger.LogDebug("[ONLINE] Skipping weight update - too frequent: {Regime}", regimeType);
                     return;
@@ -76,8 +104,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 // Update weights with constraints
                 foreach (var (key, newWeight) in weights)
                 {
-                    var currentWeight = currentWeights.GetValueOrDefault(key, 1.0);
-                    var maxChange = _config.MaxWeightChangePctPer5Min / 100.0;
+                    var currentWeight = currentWeights.GetValueOrDefault(key, DefaultWeight);
+                    var maxChange = _config.MaxWeightChangePctPer5Min / PercentageDivisor;
                     
                     // Constrain weight change
                     var proposedChange = newWeight - currentWeight;
@@ -85,7 +113,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                     var updatedWeight = currentWeight + (constrainedChange * learningRate);
                     
                     // Ensure weights stay in reasonable bounds
-                    updatedWeight = Math.Max(0.1, Math.Min(2.0, updatedWeight));
+                    updatedWeight = Math.Max(MinWeightLimit, Math.Min(MaxWeightLimit, updatedWeight));
                     
                     currentWeights[key] = updatedWeight;
                 }
@@ -120,9 +148,9 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Return default weights
             return new Dictionary<string, double>
             {
-                ["strategy_1"] = 1.0,
-                ["strategy_2"] = 1.0,
-                ["strategy_3"] = 1.0
+                ["strategy_1"] = DefaultWeight,
+                ["strategy_2"] = DefaultWeight,
+                ["strategy_3"] = DefaultWeight
             };
         }
     }
@@ -147,19 +175,19 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 }
 
                 // Add new performance metric (use negative Brier score as reward)
-                var reward = 0.25 - performance.BrierScore; // Lower Brier score = better performance
+                var reward = BaselineRewardFactor - performance.BrierScore; // Lower Brier score = better performance
                 history.Add(reward);
 
                 // Keep only recent history
-                if (history.Count > 100)
+                if (history.Count > MaxHistoryCount)
                 {
                     history.RemoveAt(0);
                 }
 
                 // Calculate baseline variance for rollback detection
-                if (history.Count >= 20)
+                if (history.Count >= MinVarianceCalculationPeriod)
                 {
-                    var variance = CalculateVariance(history.TakeLast(20));
+                    var variance = CalculateVariance(history.TakeLast(MinVarianceCalculationPeriod));
                     var baselineVar = _baselineVariance.GetValueOrDefault(modelId, variance);
                     
                     // Check for rollback condition
@@ -728,13 +756,13 @@ public class SloMonitor
                     history.Add(latencyMs);
 
                     // Keep only recent samples (last 1000)
-                    if (history.Count > 1000)
+                    if (history.Count > MaxSampleHistoryCount)
                     {
                         history.RemoveAt(0);
                     }
 
                     // Check P99 latency
-                    if (history.Count >= 10)
+                    if (history.Count >= DefaultRetryCount)
                     {
                         var p99 = CalculatePercentile(history, 0.99);
                         
@@ -767,11 +795,11 @@ public class SloMonitor
                     if (totalDecisions > 0)
                     {
                         var errorRate = (double)totalErrors / totalDecisions;
-                        var errorBudget = _config.DailyErrorBudgetPct / 100.0;
+                        var errorBudget = _config.DailyErrorBudgetPct / PercentageDivisor;
                         
                         if (errorRate > errorBudget)
                         {
-                            HandleSLOBreach("error_budget", errorRate * 100, errorBudget * 100);
+                            HandleSLOBreach("error_budget", errorRate * PercentageDivisor, errorBudget * PercentageDivisor);
                         }
                     }
                 }
@@ -813,7 +841,7 @@ public class SloMonitor
     {
         var breachSeverity = actualValue / threshold;
         
-        if (breachSeverity >= 3.0)
+        if (breachSeverity >= DefaultRetryCount3)
         {
             // Severe breach: pause trading for 5 minutes
             _logger.LogCritical("[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}", metricType);
