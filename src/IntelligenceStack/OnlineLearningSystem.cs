@@ -44,6 +44,83 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const int DefaultRetryCount = 10;
     private const double DefaultRetryCount3 = 3.0;
     
+    // LoggerMessage delegates for CA1848 compliance - OnlineLearningSystem
+    private static readonly Action<ILogger, string, double, Exception?> WeightUpdateCompleted =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(6001, "WeightUpdateCompleted"),
+            "[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})");
+            
+    private static readonly Action<ILogger, string, Exception?> WeightUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6002, "WeightUpdateFailed"),
+            "[ONLINE] Failed to update weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> AccessDeniedError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6003, "AccessDeniedError"),
+            "[ONLINE] Access denied updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> IOError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6004, "IOError"),
+            "[ONLINE] IO error updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> InvalidOperationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6005, "InvalidOperationError"),
+            "[ONLINE] Invalid operation updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> ArgumentError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6006, "ArgumentError"),
+            "[ONLINE] Invalid argument updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> PerformanceAdaptationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6007, "PerformanceAdaptationFailed"),
+            "[ONLINE] Failed to adapt to performance for model: {ModelId}");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingStarted =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(6008, "StateLoadingStarted"),
+            "[ONLINE] Loading online learning state...");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingCompleted =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(6009, "StateLoadingCompleted"),
+            "[ONLINE] Online learning state loaded successfully");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6010, "StateLoadingFailed"),
+            "[ONLINE] Failed to load state, starting fresh");
+            
+    private static readonly Action<ILogger, Exception?> StateSavingFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6011, "StateSavingFailed"),
+            "[ONLINE] Failed to save state");
+            
+    private static readonly Action<ILogger, string, Exception?> InvalidOperationRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "InvalidOperationRecordingError"),
+            "[SLO] Invalid operation recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, Exception?> ArgumentRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6013, "ArgumentRecordingError"),
+            "[SLO] Invalid argument recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, Exception?> ObjectDisposedRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, "ObjectDisposedRecordingError"),
+            "[SLO] Object disposed while recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> LatencyRecordingFailed =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(6015, "LatencyRecordingFailed"),
+            "[SLO] Failed to record latency for {MetricType}: {Latency}ms");
+            
+    private static readonly Action<ILogger, Exception?> ErrorBudgetCheckFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6016, "ErrorBudgetCheckFailed"),
+            "[SLO] Failed to check error budget");
+            
+    private static readonly Action<ILogger, string, double, Exception?> SLOBreachHandled =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6017, "SLOBreachHandled"),
+            "[SLO] Handled SLO breach for {MetricType}: {ActualValue}");
+            
+    private static readonly Action<ILogger, string, Exception?> TripwireActivated =
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(6018, "TripwireActivated"),
+            "[TRIPWIRE] Activated for {MetricType} - emergency actions initiated");
+            
+    private static readonly Action<ILogger, string, Exception?> WeightUpdateSkipped =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6019, "WeightUpdateSkipped"),
+            "[ONLINE] Skipping weight update - too frequent: {Regime}");
+    
     private readonly ILogger<OnlineLearningSystem> _logger;
     private readonly MetaLearningConfig _config;
     private readonly string _statePath;
@@ -88,7 +165,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 // Enforce minimum update interval (5 minutes)
                 if (timeSinceLastUpdate < TimeSpan.FromMinutes(MinUpdateIntervalMinutes))
                 {
-                    _logger.LogDebug("[ONLINE] Skipping weight update - too frequent: {Regime}", regimeType);
+                    WeightUpdateSkipped(_logger, regimeType, null);
                     return;
                 }
 
@@ -124,24 +201,23 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Persist state asynchronously
             _ = Task.Run(async () => await SaveStateAsync(cancellationToken)).ConfigureAwait(false);
 
-            _logger.LogDebug("[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})", 
-                regimeType, CalculateLearningRate(regimeType));
+            WeightUpdateCompleted(_logger, regimeType, CalculateLearningRate(regimeType), null);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Access denied updating weights for regime: {Regime}", regimeType);
+            AccessDeniedError(_logger, regimeType, ex);
         }
         catch (IOException ex) 
         {
-            _logger.LogError(ex, "[ONLINE] IO error updating weights for regime: {Regime}", regimeType);
+            IOError(_logger, regimeType, ex);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Invalid operation updating weights for regime: {Regime}", regimeType);
+            InvalidOperationError(_logger, regimeType, ex);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Invalid argument updating weights for regime: {Regime}", regimeType);
+            ArgumentError(_logger, regimeType, ex);
         }
     }
 
