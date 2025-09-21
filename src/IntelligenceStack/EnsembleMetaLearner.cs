@@ -653,7 +653,7 @@ public class RegimeBlendHead
             // Simulate model parameter updates
             await Task.Delay(MinimumValidationSamples, cancellationToken).ConfigureAwait(false);
             
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
         
         _logger.LogDebug("[REGIME_HEAD] Trained {Regime} head with {Count} examples (validation: {Score:F3})", 
             _regime, TrainingExampleCount, LastValidationScore);

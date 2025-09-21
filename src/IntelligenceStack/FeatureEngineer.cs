@@ -18,9 +18,6 @@ namespace TradingBot.IntelligenceStack;
 public class FeatureEngineer : IDisposable
 {
     private const int MinDataCount = 10;
-    private const int MiddleIndexDivisor = 2;
-    private const double MedianDivisor = 2.0;
-    private const int MinimumDataRequirement = 20;
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;

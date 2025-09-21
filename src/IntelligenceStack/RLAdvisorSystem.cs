@@ -21,21 +21,6 @@ public class RLAdvisorSystem
 {
     // Constants for magic number violations (S109)
     private const int UpliftCheckHours = 24;
-    private const int StateVectorSize = 8;
-    private const int ActionSpaceSize = 3;
-    private const int ActionTypeCount = 4;
-    private const double LearningRate = 0.0003;
-    private const double DiscountFactor = 0.99;
-    private const double ClipEpsilon = 0.2;
-    private const int PPOEpochs = 10;
-    private const int BatchSize = 64;
-    private const double MinExplorationProb = 0.01;
-    private const double MaxExplorationProb = 0.9999;
-    private const double ValueLossCoeff = 0.5;
-    private const double EntropyCoeff = 0.01;
-    private const double CVaRAlpha = 0.05;
-    private const int PerformanceWindowSize = 1000;
-    private const double MinPerformanceForInfluence = 0.1;
     private const int MaxRandomSeed = 10000;
     private const int RandomSeedBase = 500;
     private const int DefaultStepsCount = 10;
