@@ -24,22 +24,6 @@ public class ObservabilityDashboard : IDisposable
     private const double TargetErrorRateThreshold = 0.005;
     private const int PercentageConversionFactor = 100;
     
-    // Dashboard display constants
-    private const double HistogramBinSize = 0.8;
-    private const double HistogramBinStep1 = 1.2;
-    private const double HistogramBinStep2 = 1.5;
-    private const double HistogramBinStep3 = 1.1;
-    private const double VolatilityProfileBase = 0.5;
-    private const int VolatilityTimeHours1 = 2;
-    private const int VolatilityTimeHours2 = 4;
-    
-    // Time and calculation constants
-    private const int PercentileRank = 99;
-    private const int MinutesToSeconds = 60;
-    private const int SecondsInMinute = 60;
-    private const int DefaultBinCount = 10;
-    private const int MaxModelCount = 100;
-    
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
     private readonly EnsembleMetaLearner _ensemble;
@@ -88,17 +72,17 @@ public class ObservabilityDashboard : IDisposable
             var dashboardData = new DashboardData
             {
                 Timestamp = DateTime.UtcNow,
-                GoldenSignals = await GetGoldenSignalsAsync(cancellationToken),
-                RegimeTimeline = await GetRegimeTimelineAsync(cancellationToken),
-                EnsembleWeights = await GetEnsembleWeightsAsync(cancellationToken),
-                ConfidenceDistribution = await GetConfidenceDistributionAsync(cancellationToken),
-                SlippageVsSpread = await GetSlippageVsSpreadAsync(cancellationToken),
-                DrawdownForecast = await GetDrawdownForecastAsync(cancellationToken),
-                SafetyEvents = await GetSafetyEventsAsync(cancellationToken),
-                ModelHealth = await GetModelHealthDashboardAsync(cancellationToken),
-                SLOBudget = await GetSLOBudgetAsync(cancellationToken),
-                RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken),
-                MamlStatus = await GetMamlStatusAsync(cancellationToken)
+                GoldenSignals = await GetGoldenSignalsAsync(cancellationToken).ConfigureAwait(false),
+                RegimeTimeline = await GetRegimeTimelineAsync(cancellationToken).ConfigureAwait(false),
+                EnsembleWeights = await GetEnsembleWeightsAsync(cancellationToken).ConfigureAwait(false),
+                ConfidenceDistribution = await GetConfidenceDistributionAsync(cancellationToken).ConfigureAwait(false),
+                SlippageVsSpread = await GetSlippageVsSpreadAsync(cancellationToken).ConfigureAwait(false),
+                DrawdownForecast = await GetDrawdownForecastAsync(cancellationToken).ConfigureAwait(false),
+                SafetyEvents = await GetSafetyEventsAsync(cancellationToken).ConfigureAwait(false),
+                ModelHealth = await GetModelHealthDashboardAsync(cancellationToken).ConfigureAwait(false),
+                SLOBudget = await GetSLOBudgetAsync(cancellationToken).ConfigureAwait(false),
+                RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken).ConfigureAwait(false),
+                MamlStatus = await GetMamlStatusAsync(cancellationToken).ConfigureAwait(false)
             };
 
             return dashboardData;
