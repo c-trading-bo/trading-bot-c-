@@ -3,6 +3,7 @@ using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -647,13 +648,13 @@ public class RLAdvisorSystem
                         {
                             Timestamp = timestamp,
                             Symbol = symbol,
-                            Open = Convert.ToDouble(bar["open"]),
-                            High = Convert.ToDouble(bar["high"]),
-                            Low = Convert.ToDouble(bar["low"]),
-                            Close = Convert.ToDouble(bar["close"]),
-                            Volume = (int)Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
+                            Open = Convert.ToDouble(bar["open"], CultureInfo.InvariantCulture),
+                            High = Convert.ToDouble(bar["high"], CultureInfo.InvariantCulture),
+                            Low = Convert.ToDouble(bar["low"], CultureInfo.InvariantCulture),
+                            Close = Convert.ToDouble(bar["close"], CultureInfo.InvariantCulture),
+                            Volume = (int)Convert.ToInt64(bar.GetValueOrDefault("volume", 0), CultureInfo.InvariantCulture),
                             // Calculate additional features
-                            ATR = Math.Max(Convert.ToDouble(bar["high"]) - Convert.ToDouble(bar["low"]), 0.25),
+                            ATR = Math.Max(Convert.ToDouble(bar["high"], CultureInfo.InvariantCulture) - Convert.ToDouble(bar["low"], CultureInfo.InvariantCulture), 0.25),
                             Volatility = 0.2, // Would be calculated from historical volatility
                             Regime = "Normal"
                         };

@@ -300,7 +300,7 @@ public class ObservabilityDashboard : IDisposable
     /// <summary>
     /// Get drawdown forecast
     /// </summary>
-    private async Task<DrawdownForecast> GetDrawdownForecastAsync(CancellationToken cancellationToken)
+    private static async Task<DrawdownForecast> GetDrawdownForecastAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
@@ -684,7 +684,7 @@ public class ObservabilityDashboard : IDisposable
         return recentDecisions.Count / 60.0;
     }
 
-    private Dictionary<string, int> CreateHistogram(List<double> values, int bins)
+    private static Dictionary<string, int> CreateHistogram(List<double> values, int bins)
     {
         if (values.Count == 0) return new Dictionary<string, int>();
         

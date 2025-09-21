@@ -262,7 +262,15 @@ public class StreamingFeatureEngineering : IDisposable
             var cache = _featureCaches.GetOrAdd(symbol, s => new FeatureCache(s, _maxCacheSize));
             await Task.Run(() => cache.AddFeatures(timestamp, features), cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            FeatureCacheFailed(_logger, symbol, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FeatureCacheFailed(_logger, symbol, ex);
+        }
+        catch (OutOfMemoryException ex)
         {
             FeatureCacheFailed(_logger, symbol, ex);
         }
@@ -300,7 +308,11 @@ public class StreamingFeatureEngineering : IDisposable
                 CacheCleanupComplete(_logger, keysToRemove.Count, null);
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            CacheCleanupError(_logger, ex);
+        }
+        catch (InvalidOperationException ex)
         {
             CacheCleanupError(_logger, ex);
         }
