@@ -235,6 +235,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     public async Task<TradingDecision> MakeDecisionAsync(MarketContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         if (!_isInitialized || !_isTradingEnabled)
         {
             return CreateSafeDecision("Trading disabled - system not initialized or enabled");
@@ -301,6 +303,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData data, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         try
         {
             // Update regime detector with new data

@@ -210,6 +210,8 @@ public class EnsembleMetaLearner
         ModelPerformance performance,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(performance);
+
         try
         {
             // Update online learning system
@@ -760,6 +762,8 @@ public class RegimeBlendHead
 
     public void LoadState(RegimeHeadState state)
     {
+        ArgumentNullException.ThrowIfNull(state);
+
         LastTrainingTime = state.LastTrainingTime;
         TrainingExampleCount = state.TrainingExampleCount;
         LastValidationScore = state.LastValidationScore;

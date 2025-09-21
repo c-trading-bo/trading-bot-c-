@@ -125,6 +125,8 @@ public class FeatureStore : IFeatureStore
 
     public async Task SaveFeaturesAsync(FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         try
         {
             // Validate before saving
@@ -161,6 +163,8 @@ public class FeatureStore : IFeatureStore
 
     public async Task<bool> ValidateSchemaAsync(FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         try
         {
             var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false);
