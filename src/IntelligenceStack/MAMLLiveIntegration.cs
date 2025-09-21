@@ -380,7 +380,7 @@ public class MamlLiveIntegration
         return await Task.Run(() =>
         {
             // Get recent adaptation history
-            var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>()).ConfigureAwait(false);
+            var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>());
             var recentHistory = history.TakeLast(10).ToList();
             
             if (recentHistory.Count < 5)

@@ -2,6 +2,13 @@
 
 Welcome, coding agent! This repository is set up for optimal agent development experience.
 
+## 🛡️ IMPORTANT: Follow Production Guardrails
+
+**Before making any changes, read `.github/copilot-instructions.md` for complete production guardrails.**
+
+❌ Never modify config files, add suppressions, or bypass safety mechanisms  
+✅ Always run `./dev-helper.sh analyzer-check` before committing  
+
 ## ⚡ 30-Second Setup
 
 ```bash
@@ -16,9 +23,9 @@ Welcome, coding agent! This repository is set up for optimal agent development e
 
 ## 📚 Essential Reading (in order)
 
-1. **This file** - Quick orientation
-2. **`CODING_AGENT_GUIDE.md`** - Comprehensive development guide
-3. **`.github/copilot-instructions.md`** - Detailed trading bot context
+1. **`.github/copilot-instructions.md`** - **MUST READ** - Production guardrails and safety requirements
+2. **This file** - Quick orientation
+3. **`CODING_AGENT_GUIDE.md`** - Comprehensive development guide
 4. **`PROJECT_STRUCTURE.md`** - Repository layout
 
 ## 🎯 Key Entry Points

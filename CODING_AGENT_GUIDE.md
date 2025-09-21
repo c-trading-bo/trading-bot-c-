@@ -2,6 +2,12 @@
 
 This guide helps coding agents get up and running quickly with the trading bot repository.
 
+## 🛡️ CRITICAL: Read Production Guardrails First
+
+**BEFORE starting any work, read `.github/copilot-instructions.md` for complete production guardrails.**
+
+The guardrails document contains critical "NEVER DO" and "ALWAYS DO" requirements that must be followed without exception.
+
 ## 🚀 Quick Start
 
 ### Build & Test
@@ -54,9 +60,9 @@ dotnet test tests/Unit/MLRLAuditTests.csproj
 - **No secrets in logs**: Never log tokens, passwords, or API keys
 
 ### Key Files to Understand
-- `.github/copilot-instructions.md` - Comprehensive instructions
+- **`.github/copilot-instructions.md`** - **MUST READ** - Complete production guardrails and safety requirements
 - `src/BotCore/Services/` - Core services and configurations
-- `Directory.Build.props` - Global build settings and analyzer rules
+- `Directory.Build.props` - **DO NOT MODIFY** - Global build settings and analyzer rules
 
 ### Common Tasks
 

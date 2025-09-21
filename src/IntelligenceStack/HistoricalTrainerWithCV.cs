@@ -77,7 +77,6 @@ public class HistoricalTrainerWithCV
                 EndDate = endDate,
                 TrainingWindow = trainingWindow,
                 TestWindow = testWindow,
-                FoldResults = new List<CVFoldResult>(),
                 StartedAt = DateTime.UtcNow
             };
 
@@ -422,7 +421,7 @@ public class HistoricalTrainerWithCV
         // Production-grade market data retrieval with async I/O operations
         return await Task.Run(async () =>
         {
-            var dataPoints = new List<MarketDataPoint>().ConfigureAwait(false);
+            var dataPoints = new List<MarketDataPoint>();
             
             // Step 1: Load historical data from multiple sources asynchronously
             var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
@@ -530,7 +529,7 @@ public class HistoricalTrainerWithCV
                 dp.High >= dp.Close &&
                 dp.Low <= dp.Open && 
                 dp.Low <= dp.Close &&
-                dp.Volume > 0).ToList().ConfigureAwait(false);
+                dp.Volume > 0).ToList();
             
             // Fill gaps if necessary
             if (validDataPoints.Count != dataPoints.Count)

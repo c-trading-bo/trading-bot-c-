@@ -170,9 +170,7 @@ public class EnsembleMetaLearner
                 CurrentRegime = _currentRegime,
                 PreviousRegime = _previousRegime,
                 InTransition = _inTransition,
-                TransitionStartTime = _lastTransitionTime,
-                ActiveModels = new Dictionary<string, double>(),
-                RegimeHeadStatus = new Dictionary<RegimeType, RegimeHeadStatus>()
+                TransitionStartTime = _lastTransitionTime
             };
 
             // Get current weights for active regime
@@ -182,7 +180,11 @@ public class EnsembleMetaLearner
             
             if (task.IsCompletedSuccessfully)
             {
-                status.ActiveModels = task.Result;
+                // Copy the weights to the ActiveModels dictionary
+                foreach (var kvp in task.Result)
+                {
+                    status.ActiveModels[kvp.Key] = kvp.Value;
+                }
             }
 
             // Get regime head status
@@ -219,7 +221,7 @@ public class EnsembleMetaLearner
             if (currentState.Type != _currentRegime)
             {
                 _logger.LogInformation("[ENSEMBLE] Regime transition detected: {From} -> {To}", 
-                    _currentRegime, currentState.Type).ConfigureAwait(false);
+                    _currentRegime, currentState.Type);
 
                 _previousRegime = _currentRegime;
                 _currentRegime = currentState.Type;
@@ -249,12 +251,12 @@ public class EnsembleMetaLearner
         {
             if (_inTransition)
             {
-                var transitionDuration = DateTime.UtcNow - _lastTransitionTime.ConfigureAwait(false);
+                var transitionDuration = DateTime.UtcNow - _lastTransitionTime;
                 var maxDuration = TimeSpan.FromSeconds(_config.MetaPerRegime.TransitionBlendSeconds);
                 
                 if (transitionDuration >= maxDuration)
                 {
-                    _inTransition;
+                    _inTransition = false;
                     _logger.LogDebug("[ENSEMBLE] Transition completed for regime: {Regime}", _currentRegime);
                 }
             }
@@ -312,16 +314,23 @@ public class EnsembleMetaLearner
 
         var prediction = await predictionTask.ConfigureAwait(false);
         
-        return new ModelPrediction
+        var modelPrediction = new ModelPrediction
         {
             ModelId = model.Id,
             ModelVersion = model.Version,
             Confidence = prediction.Confidence,
             Direction = prediction.Direction,
             Strength = Math.Abs(prediction.Direction) * prediction.Confidence,
-            Features = context.TechnicalIndicators,
             Timestamp = DateTime.UtcNow
         };
+
+        // Populate features dictionary
+        foreach (var kvp in context.TechnicalIndicators)
+        {
+            modelPrediction.Features[kvp.Key] = kvp.Value;
+        }
+
+        return modelPrediction;
     }
     
     private static async Task<Dictionary<string, double>> ProcessFeaturesAsync(
@@ -331,7 +340,7 @@ public class EnsembleMetaLearner
         return await Task.Run(() =>
         {
             // Feature engineering based on model requirements
-            var features = new Dictionary<string, double>(context.TechnicalIndicators).ConfigureAwait(false);
+            var features = new Dictionary<string, double>(context.TechnicalIndicators);
             
             // Add derived features
             features["price_momentum"] = context.Price / features.GetValueOrDefault("sma_20", context.Price) - 1.0;
@@ -349,7 +358,7 @@ public class EnsembleMetaLearner
         {
             // Production model inference logic would go here
             // For now, implement sophisticated heuristic based on features
-            var momentum = features.GetValueOrDefault("price_momentum", 0.0).ConfigureAwait(false);
+            var momentum = features.GetValueOrDefault("price_momentum", 0.0);
             var volatility = features.GetValueOrDefault("volatility_regime", 1.0);
             var rsi = features.GetValueOrDefault("rsi", 50.0);
             
@@ -368,7 +377,7 @@ public class EnsembleMetaLearner
         return await Task.Run(() =>
         {
             // Apply model-specific calibration
-            var (confidence, direction) = rawPrediction.ConfigureAwait(false);
+            var (confidence, direction) = rawPrediction;
             
             // Calibration based on historical performance
             var calibrationFactor = 0.85; // Based on model's historical accuracy
@@ -396,9 +405,9 @@ public class EnsembleMetaLearner
         }
 
         // Calculate weighted ensemble prediction
-        double totalWeight;
-        double weightedDirection;
-        double weightedConfidence;
+        double totalWeight = 0.0;
+        double weightedDirection = 0.0;
+        double weightedConfidence = 0.0;
         var blendedFeatures = new Dictionary<string, double>();
 
         foreach (var (modelId, prediction) in modelPredictions)
@@ -426,7 +435,7 @@ public class EnsembleMetaLearner
             }
         }
 
-        return new EnsemblePrediction
+        var ensemblePrediction = new EnsemblePrediction
         {
             Direction = weightedDirection,
             Confidence = weightedConfidence,
@@ -434,10 +443,21 @@ public class EnsembleMetaLearner
             CurrentRegime = currentRegime,
             InTransition = _inTransition,
             ModelCount = modelPredictions.Count,
-            BlendedFeatures = blendedFeatures,
-            Weights = weights,
             Timestamp = DateTime.UtcNow
         };
+
+        // Populate read-only dictionaries
+        foreach (var kvp in blendedFeatures)
+        {
+            ensemblePrediction.BlendedFeatures[kvp.Key] = kvp.Value;
+        }
+
+        foreach (var kvp in weights)
+        {
+            ensemblePrediction.Weights[kvp.Key] = kvp.Value;
+        }
+
+        return ensemblePrediction;
     }
 
     private double CalculateTransitionWeight(RegimeTransition transition)
@@ -514,8 +534,6 @@ public class EnsembleMetaLearner
             CurrentRegime = _currentRegime,
             InTransition = false,
             ModelCount = 0,
-            BlendedFeatures = new Dictionary<string, double>(),
-            Weights = new Dictionary<string, double>(),
             Timestamp = DateTime.UtcNow
         };
     }
@@ -529,12 +547,19 @@ public class EnsembleMetaLearner
                 CurrentRegime = _currentRegime,
                 PreviousRegime = _previousRegime,
                 LastTransitionTime = _lastTransitionTime,
-                InTransition = _inTransition,
-                RegimeHeadData = _regimeHeads.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.GetState()
-                )
+                InTransition = _inTransition
             };
+
+            // Populate read-only RegimeHeadData dictionary
+            var regimeHeadData = _regimeHeads.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.GetState()
+            );
+            
+            foreach (var kvp in regimeHeadData)
+            {
+                state.RegimeHeadData[kvp.Key] = kvp.Value;
+            }
 
             var stateFile = Path.Combine(_statePath, "ensemble_state.json");
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
@@ -651,7 +676,7 @@ public class RegimeBlendHead
     private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var exampleList = examples.ToList();
         if (exampleList.Count == 0) return 0.0;

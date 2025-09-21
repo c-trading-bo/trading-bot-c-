@@ -114,7 +114,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             if (!validationResult.AllTestsPassed)
             {
                 _logger.LogCritical("[INTELLIGENCE] Startup validation failed - trading disabled!");
-                _isTradingEnabled;
+                _isTradingEnabled = false;
                 return false;
             }
 
@@ -134,7 +134,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "[INTELLIGENCE] Failed to initialize intelligence stack");
-            _isTradingEnabled;
+            _isTradingEnabled = false;
             return false;
         }
     }

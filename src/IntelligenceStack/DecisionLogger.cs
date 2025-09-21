@@ -297,12 +297,19 @@ public class DriftMonitor
 
     private FeatureBaseline CreateBaseline(FeatureSet features)
     {
-        return new FeatureBaseline
+        var baseline = new FeatureBaseline
         {
             CreatedAt = DateTime.UtcNow,
-            FeatureDistribution = new Dictionary<string, double>(features.Features),
             SampleCount = 1
         };
+
+        // Add features to the dictionary
+        foreach (var kvp in features.Features)
+        {
+            baseline.FeatureDistribution[kvp.Key] = kvp.Value;
+        }
+
+        return baseline;
     }
 
     private static double CalculatePSI(Dictionary<string, double> baseline, Dictionary<string, double> current)

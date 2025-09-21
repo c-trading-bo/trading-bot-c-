@@ -137,7 +137,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             }
 
             var modelFiles = Directory.GetFiles(modelsDir, "*.json");
-            var updated;
+            var updated = 0;
 
             foreach (var modelFile in modelFiles)
             {
@@ -188,15 +188,22 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         var brierScore = CalculateBrierScore(points, p => ApplyPlattCalibration(p.RawConfidence, slope, intercept));
         var logLoss = CalculateLogLoss(points, p => ApplyPlattCalibration(p.RawConfidence, slope, intercept));
 
-        return new CalibrationMap
+        var calibrationMap = new CalibrationMap
         {
             ModelId = modelId,
             Method = CalibrationMethod.Platt,
-            Parameters = parameters,
             BrierScore = brierScore,
             LogLoss = logLoss,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Add parameters to the dictionary
+        foreach (var kvp in parameters)
+        {
+            calibrationMap.Parameters[kvp.Key] = kvp.Value;
+        }
+
+        return calibrationMap;
     }
 
     private CalibrationMap FitIsotonicCalibration(string modelId, List<CalibrationPoint> points)
@@ -211,7 +218,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         const int numBins = 10;
         var binSize = sortedPoints.Count / numBins;
         
-        for (int i; i < numBins; i++)
+        for (int i = 0; i < numBins; i++)
         {
             var binStart = i * binSize;
             var binEnd = Math.Min((i + 1) * binSize, sortedPoints.Count);
@@ -230,15 +237,22 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         var brierScore = CalculateBrierScore(points, p => ApplyIsotonicCalibration(p.RawConfidence, calibrationBins));
         var logLoss = CalculateLogLoss(points, p => ApplyIsotonicCalibration(p.RawConfidence, calibrationBins));
 
-        return new CalibrationMap
+        var calibrationMap = new CalibrationMap
         {
             ModelId = modelId,
             Method = CalibrationMethod.Isotonic,
-            Parameters = calibrationBins,
             BrierScore = brierScore,
             LogLoss = logLoss,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Add parameters to the dictionary
+        foreach (var kvp in calibrationBins)
+        {
+            calibrationMap.Parameters[kvp.Key] = kvp.Value;
+        }
+
+        return calibrationMap;
     }
 
     private static double ApplyCalibration(CalibrationMap map, double rawConfidence)
@@ -262,10 +276,10 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private static double ApplyIsotonicCalibration(double rawConfidence, Dictionary<string, double> parameters)
     {
         // Find appropriate bin
-        var bestBin;
+        var bestBin = 0;
         var minDiff = double.MaxValue;
         
-        for (int i; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             if (parameters.TryGetValue($"threshold_{i}", out var threshold))
             {
@@ -313,15 +327,20 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
     private CalibrationMap CreateDefaultCalibrationMap(string modelId)
     {
-        return new CalibrationMap
+        var calibrationMap = new CalibrationMap
         {
             ModelId = modelId,
             Method = CalibrationMethod.Platt,
-            Parameters = new Dictionary<string, double> { ["slope"] = 1.0, ["intercept"] = 0.0 },
             BrierScore = 0.25, // Worst case for binary classification
             LogLoss = Math.Log(2), // Worst case for binary classification
             CreatedAt = DateTime.UtcNow
         };
+
+        // Set default parameters
+        calibrationMap.Parameters["slope"] = 1.0;
+        calibrationMap.Parameters["intercept"] = 0.0;
+
+        return calibrationMap;
     }
 
     private async Task SaveCalibrationMapAsync(CalibrationMap map, CancellationToken cancellationToken)

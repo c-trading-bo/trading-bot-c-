@@ -1,5 +1,8 @@
 # Production Readiness Implementation Complete
 
+> **📋 For current production guardrails, see `.github/copilot-instructions.md`**  
+> This document shows implementation status only.
+
 ## 🛡️ Production Guardrails Implemented
 
 ### 1. Kill Switch Service (`ProductionKillSwitchService.cs`)
