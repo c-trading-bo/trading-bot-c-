@@ -310,10 +310,15 @@ public class NightlyParameterTuner
             {
                 ModelFamily = modelFamily,
                 SessionId = Guid.NewGuid().ToString(),
-                StartTime = DateTime.UtcNow,
-                ParameterSpace = GetParameterSpace(),
-                TrialHistory = new List<TrialResult>()
+                StartTime = DateTime.UtcNow
             };
+            
+            // Populate the parameter space
+            var parameterSpace = GetParameterSpace();
+            foreach (var kvp in parameterSpace)
+            {
+                newSession.ParameterSpace[kvp.Key] = kvp.Value;
+            }
 
             lock (_lock)
             {

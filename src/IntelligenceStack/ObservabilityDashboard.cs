@@ -362,36 +362,46 @@ public class ObservabilityDashboard : IDisposable
         
         var healthReport = _quarantine.GetHealthReport();
         
-        return new ModelHealthDashboard
+        var dashboard = new ModelHealthDashboard
         {
             TotalModels = healthReport.TotalModels,
             HealthyModels = healthReport.HealthyModels,
             WatchModels = healthReport.WatchModels,
             DegradeModels = healthReport.DegradeModels,
-            QuarantinedModels = healthReport.QuarantinedModels,
-            ModelDetails = healthReport.ModelDetails.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new ModelHealthView
-                {
-                    State = kvp.Value.State.ToString(),
-                    LastChecked = kvp.Value.LastChecked,
-                    AverageBrierScore = kvp.Value.AverageBrierScore,
-                    AverageHitRate = kvp.Value.AverageHitRate,
-                    BlendWeight = kvp.Value.BlendWeight,
-                    ShadowDecisions = kvp.Value.ShadowDecisions
-                }
-            ),
-            QuarantineTimeline = GetRecentMetrics("quarantine_events")
-                .TakeLast(20)
-                .Select(m => new QuarantineEvent
-                {
-                    Timestamp = m.Timestamp,
-                    ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
-                    Action = m.Tags.GetValueOrDefault("action", "unknown"),
-                    Reason = m.Tags.GetValueOrDefault("reason", "")
-                })
-                .ToList()
+            QuarantinedModels = healthReport.QuarantinedModels
         };
+        
+        // Populate the model details dictionary
+        foreach (var kvp in healthReport.ModelDetails)
+        {
+            dashboard.ModelDetails[kvp.Key] = new ModelHealthView
+            {
+                State = kvp.Value.State.ToString(),
+                LastChecked = kvp.Value.LastChecked,
+                AverageBrierScore = kvp.Value.AverageBrierScore,
+                AverageHitRate = kvp.Value.AverageHitRate,
+                BlendWeight = kvp.Value.BlendWeight,
+                ShadowDecisions = kvp.Value.ShadowDecisions
+            };
+        }
+        
+        // Populate the quarantine timeline
+        var quarantineEvents = GetRecentMetrics("quarantine_events")
+            .TakeLast(20)
+            .Select(m => new QuarantineEvent
+            {
+                Timestamp = m.Timestamp,
+                ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
+                Action = m.Tags.GetValueOrDefault("action", "unknown"),
+                Reason = m.Tags.GetValueOrDefault("reason", "")
+            });
+            
+        foreach (var evt in quarantineEvents)
+        {
+            dashboard.QuarantineTimeline.Add(evt);
+        }
+        
+        return dashboard;
     }
 
     /// <summary>
@@ -442,33 +452,43 @@ public class ObservabilityDashboard : IDisposable
         var recentMetricsTask = Task.Run(() => GetRecentMetrics("rl_decisions"), cancellationToken);
         var recentMetrics = await recentMetricsTask.ConfigureAwait(false);
         
-        return new RLAdvisorDashboard
+        var dashboard = new RLAdvisorDashboard
         {
             Enabled = rlStatus.Enabled,
-            OrderInfluenceEnabled = rlStatus.OrderInfluenceEnabled,
-            AgentPerformance = rlStatus.AgentStates.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new RLAgentPerformance
-                {
-                    ShadowDecisions = kvp.Value.ShadowDecisions,
-                    EdgeBps = kvp.Value.EdgeBps,
-                    SharpeRatio = kvp.Value.SharpeRatio,
-                    IsEligibleForLive = kvp.Value.IsEligibleForLive,
-                    ExplorationRate = kvp.Value.ExplorationRate
-                }
-            ),
-            RecentDecisions = recentMetrics
-                .TakeLast(50)
-                .Select(m => new RLDecisionView
-                {
-                    Timestamp = m.Timestamp,
-                    Symbol = m.Tags.GetValueOrDefault("symbol", "unknown"),
-                    Action = m.Tags.GetValueOrDefault("action", "unknown"),
-                    Confidence = m.Value,
-                    IsAdviseOnly = m.Tags.GetValueOrDefault("advise_only", "true") == "true"
-                })
-                .ToList()
+            OrderInfluenceEnabled = rlStatus.OrderInfluenceEnabled
         };
+        
+        // Populate the agent performance dictionary
+        foreach (var kvp in rlStatus.AgentStates)
+        {
+            dashboard.AgentPerformance[kvp.Key] = new RLAgentPerformance
+            {
+                ShadowDecisions = kvp.Value.ShadowDecisions,
+                EdgeBps = kvp.Value.EdgeBps,
+                SharpeRatio = kvp.Value.SharpeRatio,
+                IsEligibleForLive = kvp.Value.IsEligibleForLive,
+                ExplorationRate = kvp.Value.ExplorationRate
+            };
+        }
+        
+        // Populate the recent decisions list
+        var recentDecisions = recentMetrics
+            .TakeLast(50)
+            .Select(m => new RLDecisionView
+            {
+                Timestamp = m.Timestamp,
+                Symbol = m.Tags.GetValueOrDefault("symbol", "unknown"),
+                Action = m.Tags.GetValueOrDefault("action", "unknown"),
+                Confidence = m.Value,
+                IsAdviseOnly = m.Tags.GetValueOrDefault("advise_only", "true") == "true"
+            });
+            
+        foreach (var decision in recentDecisions)
+        {
+            dashboard.RecentDecisions.Add(decision);
+        }
+        
+        return dashboard;
     }
 
     /// <summary>

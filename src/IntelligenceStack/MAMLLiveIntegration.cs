@@ -264,19 +264,18 @@ public class MamlLiveIntegration
             {
                 state = new MamlModelState
                 {
-                    RegimeKey = regimeKey,
-                    CurrentWeights = new Dictionary<string, double>
-                    {
-                        ["strategy_1"] = 1.0,
-                        ["strategy_2"] = 1.0,
-                        ["strategy_3"] = 1.0
-                    },
-                    BaselineWeights = new Dictionary<string, double>
-                    {
-                        ["strategy_1"] = 1.0,
-                        ["strategy_2"] = 1.0,
-                        ["strategy_3"] = 1.0
-                    },
+                    RegimeKey = regimeKey
+                };
+                
+                // Populate the current weights
+                state.CurrentWeights["strategy_1"] = 1.0;
+                state.CurrentWeights["strategy_2"] = 1.0;
+                state.CurrentWeights["strategy_3"] = 1.0;
+                
+                // Populate the baseline weights
+                state.BaselineWeights["strategy_1"] = 1.0;
+                state.BaselineWeights["strategy_2"] = 1.0;
+                state.BaselineWeights["strategy_3"] = 1.0;,
                     LastAdaptation = DateTime.MinValue,
                     IsStable = true
                 };
@@ -307,9 +306,8 @@ public class MamlLiveIntegration
             var step = new AdaptationStep
             {
                 Timestamp = DateTime.UtcNow,
-                ExampleCount = examples.Count,
-                WeightChanges = new Dictionary<string, double>()
-        };
+                ExampleCount = examples.Count
+            };
 
         // Calculate performance on current weights
         var currentPerformance = CalculatePerformance(examples, modelState.CurrentWeights);
