@@ -324,7 +324,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
         try
         {
-            MakingDecision(_logger, context.Symbol, context.Price, null);
+            MakingDecision(_logger, context.Symbol, (decimal)context.Price, null);
 
             // 1. Detect current market regime
             var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
@@ -528,11 +528,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                         _activeModels[$"{regimeType}"] = model;
                     }
                     
-                    ModelLoaded(_logger, regimeType, model.Id, null);
+                    ModelLoaded(_logger, regimeType.ToString(), model.Id, null);
                 }
                 catch (FileNotFoundException ex)
                 {
-                    NoModelFound(_logger, regimeType, ex);
+                    NoModelFound(_logger, regimeType.ToString(), ex);
                 }
             }
 
