@@ -55,18 +55,6 @@ public class FeatureEngineer : IDisposable
     private static readonly Action<ILogger, Exception?> MarketDataProcessingFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(4009, "MarketDataProcessingFailed"),
             "[FEATURE_ENGINEER] Failed to process market data for feature adaptation");
-            
-    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLogged =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4010, "FeatureWeightsLogged"),
-            "[FEATURE_ENGINEER] Logged feature weights to: {FilePath}");
-            
-    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLoggingFailed =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4011, "FeatureWeightsLoggingFailed"),
-            "[FEATURE_ENGINEER] Failed to log feature weights for strategy: {Strategy}");
-            
-    private static readonly Action<ILogger, Exception?> ScheduledUpdateFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4012, "ScheduledUpdateFailed"),
-            "[FEATURE_ENGINEER] Error during scheduled feature weight update");
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;

@@ -21,7 +21,6 @@ public class StreamingFeatureEngineering : IDisposable
     // Technical analysis periods
     private const int ShortSMA = 5;
     private const int MediumSMA = 20;
-    private const int LongSMA = 50;
     private const int ShortEMA = 12;
     private const int LongEMA = 26;
     private const int ShortVolatility = 10;

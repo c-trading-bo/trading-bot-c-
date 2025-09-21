@@ -44,7 +44,6 @@ public class DecisionLogger : IDecisionLogger
     private readonly ILogger<DecisionLogger> _logger;
     private readonly string _basePath;
     private readonly bool _enabled;
-    private readonly DriftMonitoringConfig _config;
 
     public DecisionLogger(
         ILogger<DecisionLogger> logger,
@@ -55,7 +54,7 @@ public class DecisionLogger : IDecisionLogger
         _logger = logger;
         _enabled = config?.DecisionLine.Enabled ?? false;
         _basePath = basePath;
-        _config = driftConfig ?? new DriftMonitoringConfig();
+        // Note: driftConfig is not used in DecisionLogger, only in DriftMonitor
         
         if (_enabled)
         {
