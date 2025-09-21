@@ -356,7 +356,7 @@ public class HistoricalTrainerWithCV
         return model;
     }
 
-    private async Task<ModelMetrics> EvaluateModelAsync(
+    private static async Task<ModelMetrics> EvaluateModelAsync(
         ModelArtifact model,
         List<TrainingExample> testData,
         CancellationToken cancellationToken)
@@ -469,7 +469,7 @@ public class HistoricalTrainerWithCV
         }, cancellationToken);
     }
     
-    private async Task<List<MarketDataPoint>> LoadPrimaryMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private static async Task<List<MarketDataPoint>> LoadPrimaryMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         // Simulate loading from primary data source (e.g., database, data vendor API)
         await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate network I/O
@@ -550,7 +550,7 @@ public class HistoricalTrainerWithCV
         }, cancellationToken);
     }
 
-    private ModelMetrics CalculateAggregateMetrics(IEnumerable<CVFoldResult> foldResults)
+    private static ModelMetrics CalculateAggregateMetrics(IEnumerable<CVFoldResult> foldResults)
     {
         var successfulFolds = foldResults.Where(f => f.Success && f.TestMetrics != null).ToList();
         

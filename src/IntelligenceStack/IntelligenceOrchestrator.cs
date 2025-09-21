@@ -405,7 +405,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    private async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
+    private static async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
     {
         // Perform async feature extraction with external data enrichment
         await Task.Run(async () =>
@@ -433,7 +433,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return featureSet;
     }
 
-    private async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
+    private static async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
     {
         // Perform async prediction with model inference
         return await Task.Run(async () =>
@@ -690,7 +690,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return clippedKelly * confidenceMultiplier;
     }
 
-    private TradingDecision CreateTradingDecision(
+    private static TradingDecision CreateTradingDecision(
         string decisionId, MarketContext context, RegimeState regime, 
         ModelArtifact model, double confidence, double size, double latencyMs)
     {
@@ -762,7 +762,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return decision;
     }
 
-    private IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
+    private static IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
     {
         var intelligenceDecision = new IntelligenceDecision
         {
@@ -784,7 +784,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return intelligenceDecision;
     }
 
-    private string GenerateDecisionId()
+    private static string GenerateDecisionId()
     {
         return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999)}";
     }
@@ -799,7 +799,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                (lastMaintenance.Date < now.Date || lastMaintenance == DateTime.MinValue);
     }
 
-    private async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
+    private static async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
     {
         // Check for models that should be promoted
         // Implementation would check recent performance metrics
@@ -819,7 +819,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Apply feature weights to features, immediately using updated weights from FeatureEngineer
     /// </summary>
-    private FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
+    private static FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
     {
         var weightedFeatures = new FeatureSet
         {
