@@ -1,0 +1,10 @@
+{
+  "Symbol": "MNQ",
+  "MaxSpreadTicks": 5.0,
+  "MaxLatencyMs": 100,
+  "MinVolumeThreshold": 300,
+  "MaxOrderBookImbalance": 0.85,
+  "TickSize": 0.25,
+  "AssetClass": "MicroTechIndexFutures",
+  "LastUpdated": "2025-01-10T12:00:00Z"
+}

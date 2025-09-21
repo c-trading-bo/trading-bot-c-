@@ -1,0 +1,10 @@
+{
+  "Symbol": "ES",
+  "MaxSpreadTicks": 2.0,
+  "MaxLatencyMs": 50,
+  "MinVolumeThreshold": 2000,
+  "MaxOrderBookImbalance": 0.75,
+  "TickSize": 0.25,
+  "AssetClass": "IndexFutures",
+  "LastUpdated": "2025-01-10T12:00:00Z"
+}

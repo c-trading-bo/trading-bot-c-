@@ -1,0 +1,10 @@
+{
+  "Symbol": "MES",
+  "MaxSpreadTicks": 3.0,
+  "MaxLatencyMs": 75,
+  "MinVolumeThreshold": 500,
+  "MaxOrderBookImbalance": 0.80,
+  "TickSize": 0.25,
+  "AssetClass": "MicroIndexFutures",
+  "LastUpdated": "2025-01-10T12:00:00Z"
+}

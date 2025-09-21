@@ -943,14 +943,45 @@ Stack Trace:
             .AddCheck<BotCore.Services.ProductionMonitoringService>("ml-rl-system");
 
         // ================================================================================
-        // 🎯 NEVER-HOLD FIX - RUNTIME DECISION SERVICES
+        // 🎯 AUTONOMOUS TRADING SYSTEM - COMPLETE 15% FOR FULL AUTONOMY
         // ================================================================================
         
-        // Configure Decision Policy options
+        // Configure Enhanced Decision Policy options
+        services.Configure<TradingBot.UnifiedOrchestrator.Runtime.EnhancedDecisionPolicyOptions>(
+            configuration.GetSection("EnhancedDecisionPolicy"));
+        
+        // Register Enhanced Runtime Decision Services
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.EnhancedDecisionPolicy>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.SymbolAwareExecutionGuards>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.DeterministicOrderLedger>();
+        
+        // Register Regime-Strategy Mapping and Time-of-Day Performance Gates
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.RegimeStrategyMappingService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.TimeOfDayPerformanceGates>();
+        
+        // Register Enhanced Kill Switch and Hot-Swappable Models
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.EnhancedKillSwitchService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.HotSwappableModelService>();
+        
+        // Configure and register Microstructure Calibration Service
+        services.Configure<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationOptions>(
+            configuration.GetSection("MicrostructureCalibration"));
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
+        
+        // Register Enhanced services as hosted services for background operation
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Runtime.EnhancedKillSwitchService>();
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Runtime.HotSwappableModelService>();
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
+
+        // ================================================================================
+        // 🎯 NEVER-HOLD FIX - RUNTIME DECISION SERVICES (LEGACY SUPPORT)
+        // ================================================================================
+        
+        // Configure Decision Policy options (legacy support)
         services.Configure<TradingBot.UnifiedOrchestrator.Runtime.DecisionPolicyOptions>(
             configuration.GetSection("DecisionPolicy"));
         
-        // Register Runtime Decision Services
+        // Register Runtime Decision Services (legacy support)
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.DecisionPolicy>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.ExecutionGuards>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.OrderLedger>();
