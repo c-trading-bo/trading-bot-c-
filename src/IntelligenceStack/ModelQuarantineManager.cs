@@ -491,7 +491,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
                 }
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveStateAsync(CancellationToken cancellationToken = default)

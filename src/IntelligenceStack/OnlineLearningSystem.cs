@@ -835,7 +835,7 @@ public class SloMonitor
             {
                 _logger.LogError(ex, "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
