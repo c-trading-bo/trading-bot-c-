@@ -377,21 +377,18 @@ public class EnsembleMetaLearner
         return modelPrediction;
     }
     
-    private static async Task<Dictionary<string, double>> ProcessFeaturesAsync(
+    private static Task<Dictionary<string, double>> ProcessFeaturesAsync(
         MarketContext context, 
         CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
-        {
-            // Feature engineering based on model requirements
-            var features = new Dictionary<string, double>(context.TechnicalIndicators);
-            
-            // Add derived features
-            features["price_momentum"] = context.Price / features.GetValueOrDefault("sma_20", context.Price) - 1.0;
-            features["volatility_regime"] = features.GetValueOrDefault("atr", 1.0) / features.GetValueOrDefault("sma_atr", 1.0);
-            
-            return features;
-        }, cancellationToken).ConfigureAwait(false);
+        // Feature engineering based on model requirements
+        var features = new Dictionary<string, double>(context.TechnicalIndicators);
+        
+        // Add derived features
+        features["price_momentum"] = context.Price / features.GetValueOrDefault("sma_20", context.Price) - 1.0;
+        features["volatility_regime"] = features.GetValueOrDefault("atr", 1.0) / features.GetValueOrDefault("sma_atr", 1.0);
+        
+        return Task.FromResult(features);
     }
     
     private static async Task<(double Confidence, double Direction)> RunModelInferenceAsync(

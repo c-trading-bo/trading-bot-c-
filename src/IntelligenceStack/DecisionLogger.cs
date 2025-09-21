@@ -200,7 +200,7 @@ public class DecisionLogger : IDecisionLogger
         };
     }
 
-    private async Task WriteToFileAsync(DecisionLogEntry logEntry, CancellationToken cancellationToken)
+    private Task WriteToFileAsync(DecisionLogEntry logEntry, CancellationToken cancellationToken)
     {
         var date = logEntry.Timestamp.Date;
         var fileName = $"decisions_{date:yyyy-MM-dd}.jsonl";
@@ -212,7 +212,7 @@ public class DecisionLogger : IDecisionLogger
         });
 
         // Append to daily file
-        await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+        return File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
     }
 
     private static string GenerateDecisionId()
