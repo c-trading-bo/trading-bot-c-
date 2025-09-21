@@ -119,10 +119,10 @@ public class LineageTrackingSystem
             {
                 DecisionId = decisionId,
                 Timestamp = DateTime.UtcNow,
-                ModelRegistryVersion = await GetModelVersionForDecisionAsync(decision, cancellationToken),
-                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken),
-                CalibrationMapId = await GetCalibrationMapIdAsync(decision.ModelId, cancellationToken),
-                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken),
+                ModelRegistryVersion = await GetModelVersionForDecisionAsync(decision, cancellationToken).ConfigureAwait(false),
+                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken).ConfigureAwait(false),
+                CalibrationMapId = await GetCalibrationMapIdAsync(decision.ModelId, cancellationToken).ConfigureAwait(false),
+                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken).ConfigureAwait(false),
                 InputDataHash = CalculateInputDataHash(decision),
                 RegimeContext = new RegimeLineageInfo
                 {

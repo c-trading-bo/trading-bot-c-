@@ -243,7 +243,7 @@ public class EnsembleMetaLearner
             }
 
             return null;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         if (transitionAnalysis != null)
         {
@@ -265,7 +265,7 @@ public class EnsembleMetaLearner
                 }
             }
             return (RegimeTransition?)null;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         return transitionStatusCheck;
     }
