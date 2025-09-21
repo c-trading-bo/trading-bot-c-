@@ -451,7 +451,7 @@ public class StreamingAggregator
                 var rs = avgGain / avgLoss;
                 return PercentageMultiplier - (PercentageMultiplier / (1.0 + rs));
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<double> GetVolumeSMAAsync(int period, CancellationToken cancellationToken)
@@ -463,7 +463,7 @@ public class StreamingAggregator
                 var data = _dataWindow.TakeLast(period).ToList();
                 return data.Count > 0 ? data.Average(d => d.Volume) : 0.0;
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<double> GetReturnsAsync(int period, CancellationToken cancellationToken)
@@ -480,7 +480,7 @@ public class StreamingAggregator
 
                 return pastPrice > 0 ? (currentPrice - pastPrice) / pastPrice : 0.0;
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private double CalculateEMA(int period)

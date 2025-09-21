@@ -18,9 +18,6 @@ namespace TradingBot.IntelligenceStack;
 public class FeatureEngineer : IDisposable
 {
     private const int MinDataCount = 10;
-    private const int MiddleIndexDivisor = 2;
-    private const double MedianDivisor = 2.0;
-    private const int MinimumDataRequirement = 20;
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -400,7 +397,7 @@ public class FeatureEngineer : IDisposable
                 }
                 
                 return validPairs > 0 ? correlationSum / validPairs : 0.0;
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             // Step 2: Get feature history asynchronously
             var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken).ConfigureAwait(false);
@@ -579,6 +576,11 @@ public class FeatureEngineer : IDisposable
 /// </summary>
 public class FeatureImportanceTracker
 {
+    // Constants for magic number violations (S109)
+    private const int MiddleIndexDivisor = 2;
+    private const double MedianDivisor = 2.0;
+    private const int MinimumDataRequirement = 20;
+    
     private readonly int _maxWindowSize;
     private readonly Queue<FeatureSet> _featureHistory = new();
     private readonly Queue<double> _predictionHistory = new();
@@ -634,7 +636,7 @@ public class FeatureImportanceTracker
                     }
                 }
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public List<double> GetRecentPredictions()

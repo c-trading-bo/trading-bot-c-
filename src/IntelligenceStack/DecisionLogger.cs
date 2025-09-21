@@ -266,6 +266,23 @@ public class DecisionLogger : IDecisionLogger
 /// </summary>
 public class DriftMonitor
 {
+    // LoggerMessage delegates for CA1848 compliance - DriftMonitor
+    private static readonly Action<ILogger, string, double, double, double, Exception?> DriftDetected =
+        LoggerMessage.Define<string, double, double, double>(LogLevel.Warning, new EventId(2008, "DriftDetected"),
+            "[DRIFT] Feature drift detected for {ModelId}: PSI={PSI:F3} (warn>{Warn}, block>{Block})");
+            
+    private static readonly Action<ILogger, string, Exception?> DriftDetectionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2009, "DriftDetectionFailed"),
+            "[DRIFT] Failed to detect drift for {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> BaselineSaved =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2010, "BaselineSaved"),
+            "[DRIFT] Baseline saved for model {ModelId}");
+            
+    private static readonly Action<ILogger, string, double, bool, Exception?> DriftEventLogged =
+        LoggerMessage.Define<string, double, bool>(LogLevel.Information, new EventId(2011, "DriftEventLogged"),
+            "[DRIFT-EVENT] ModelId={ModelId}, PSI={PSI:F3}, Block={Block}");
+    
     private readonly ILogger<DriftMonitor> _logger;
     private readonly DriftMonitoringConfig _config;
     private readonly Dictionary<string, FeatureBaseline> _baselines = new();

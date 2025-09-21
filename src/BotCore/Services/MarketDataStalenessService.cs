@@ -246,7 +246,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
 
         // Check if all tracked symbols are now fresh
         var now = DateTime.UtcNow;
-        var hasStaleData;
+        var hasStaleData = false;
 
         foreach (var kvp in _lastTickTimes)
         {
@@ -271,7 +271,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
             if (!_isRoutingPaused)
                 return;
 
-            _isRoutingPaused;
+            _isRoutingPaused = false;
 
             var resumeData = new
             {
