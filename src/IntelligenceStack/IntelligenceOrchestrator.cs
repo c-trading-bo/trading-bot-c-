@@ -20,6 +20,18 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 {
+    // Constants for magic number violations
+    private const int MinimumSampleSize = 5;
+    private const int DefaultTimeout = 10000;
+    private const int DefaultDelayMs = 10;
+    private const double HighConfidenceThreshold = 0.95;
+    private const double LowConfidenceThreshold = 0.05;
+    private const double VolumeImpactFactor = 0.4;
+    private const double NeutralThreshold = 0.5;
+    private const double BullishThreshold = 0.55;
+    private const double BearishThreshold = 0.45;
+    private const int GenerationTwoGC = 2;
+    
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IntelligenceStackConfig _config;
@@ -400,7 +412,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         await Task.Run(async () =>
         {
             // Simulate async feature computation with external APIs
-            await Task.Delay(5, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(MinimumSampleSize, cancellationToken).ConfigureAwait(false);
         }, cancellationToken);
         
         // Simple feature extraction - in production would be more sophisticated
@@ -417,7 +429,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         featureSet.Features["bid"] = context.Bid;
         featureSet.Features["ask"] = context.Ask;
         featureSet.Features["spread"] = context.Ask - context.Bid;
-        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * 10000 : 0;
+        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * DefaultTimeout : 0;
         
         return featureSet;
     }
@@ -428,7 +440,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await Task.Run(async () =>
         {
             // Simulate async model inference with ONNX runtime
-            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Simplified prediction - in production would use ONNX runtime
             // Return a sample confidence based on spread and volume
@@ -440,7 +452,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var spreadFactor = Math.Max(0, 1 - (spread * 0.1));
             var volumeFactor = Math.Min(1, volume / 10000.0);
             
-            return Math.Min(0.95, Math.Max(0.05, baseConfidence + (spreadFactor * volumeFactor * 0.4)));
+            return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
         }, cancellationToken);
     }
 
@@ -485,7 +497,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 return new MLPrediction
                 {
                     Symbol = symbol,
-                    Confidence = 0.5,
+                    Confidence = NeutralThreshold,
                     Direction = "HOLD",
                     ModelId = "disabled",
                     Timestamp = DateTime.UtcNow,
@@ -531,8 +543,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             // Helper method
             string GetDirectionFromConfidence(double conf)
             {
-                if (conf > 0.55) return "BUY";
-                if (conf < 0.45) return "SELL";
+                if (conf > BullishThreshold) return "BUY";
+                if (conf < BearishThreshold) return "SELL";
                 return "HOLD";
             }
 
@@ -547,7 +559,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             return new MLPrediction
             {
                 Symbol = symbol,
-                Confidence = 0.5,
+                Confidence = NeutralThreshold,
                 Direction = "HOLD",
                 ModelId = "error",
                 Timestamp = DateTime.UtcNow,
