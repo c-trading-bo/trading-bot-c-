@@ -254,7 +254,7 @@ jobs:
           echo "🎯 Training CVaR-PPO RL Agent..."
           if [ -f "ml/rl/train_cvar_ppo.py" ]; then
             cd ml/rl
-            python train_cvar_ppo.py --cloud-mode --data-path ../../data/rl_training/ || echo "CVaR-PPO training attempted"
+            python train_cvar_ppo.py --data Intelligence/data/training/data.csv --data Intelligence/data/training/data.csv || echo "CVaR-PPO training attempted"
             cd ../..
           else
             echo "⚠️ CVaR-PPO script not found, creating placeholder..."

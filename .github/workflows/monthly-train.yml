@@ -17,6 +17,11 @@ on:
         default: '24'
         type: string
 
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
 jobs:
   monthly-training:
     runs-on: ubuntu-latest

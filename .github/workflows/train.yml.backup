@@ -1,0 +1,593 @@
+name: ML/RL Training Pipeline
+# Implements requirement 2.2: Training pipeline with weekly/monthly triggers, data collection, validation split
+
+on:
+  schedule:
+    # Weekly RL/SAC training (Sundays at 02:00 UTC)
+    - cron: '0 2 * * SUN'
+    # Monthly cloud model training (1st of month at 03:00 UTC)  
+    - cron: '0 3 1 * *'
+    # Nightly calibration (daily at 01:00 UTC)
+    - cron: '0 1 * * *'
+  
+  workflow_dispatch:
+    inputs:
+      training_type:
+        description: 'Type of training to run'
+        required: true
+        default: 'calibration'
+        type: choice
+        options:
+        - calibration
+        - rl_weekly
+        - cloud_monthly
+        - full_retrain
+      symbol:
+        description: 'Symbol to train (or "all" for all symbols)'
+        required: false
+        default: 'all'
+      force_promotion:
+        description: 'Force model promotion (skip thresholds)'
+        required: false
+        default: false
+        type: boolean
+
+# Explicit permissions to follow security best practices
+permissions:
+  contents: read  # Required for actions/checkout
+
+env:
+  DOTNET_VERSION: '8.0'
+  PYTHON_VERSION: '3.11'
+  
+jobs:
+  # Data collection step - gather training data from live bus
+  data-collection:
+    runs-on: ubuntu-latest
+    outputs:
+      data-available: ${{ steps.check-data.outputs.available }}
+      data-path: ${{ steps.collect-data.outputs.path }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas pyarrow azure-storage-blob
+        
+    - name: Configure Azure credentials
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+      run: echo "Azure storage configured"
+      
+    - name: Collect training data
+      id: collect-data
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        TRAINING_TYPE: ${{ github.event.inputs.training_type || 'scheduled' }}
+        TARGET_SYMBOL: ${{ github.event.inputs.symbol || 'all' }}
+      run: |
+        # Determine data collection window based on training type
+        case "$TRAINING_TYPE" in
+          "calibration")
+            LOOKBACK_DAYS=7
+            ;;
+          "rl_weekly") 
+            LOOKBACK_DAYS=30
+            ;;
+          "cloud_monthly"|"full_retrain")
+            LOOKBACK_DAYS=90
+            ;;
+          *)
+            LOOKBACK_DAYS=7
+            ;;
+        esac
+        
+        echo "Collecting $LOOKBACK_DAYS days of data for $TARGET_SYMBOL"
+        
+        # Build data collection tool
+        dotnet build src/DataCollection/DataCollection.csproj
+        
+        # Collect data from message bus topics and save to parquet
+        dotnet run --project src/DataCollection/DataCollection.csproj -- \
+          --lookback-days $LOOKBACK_DAYS \
+          --symbol "$TARGET_SYMBOL" \
+          --output-format parquet \
+          --topics "ml.prediction.v1,trade.closed.v1,decision.v1,market.data.v1" \
+          --output-path "/tmp/training_data"
+          
+        # Upload to object store
+        python scripts/upload_training_data.py \
+          --local-path "/tmp/training_data" \
+          --container "training-data" \
+          --blob-prefix "$(date +%Y-%m-%d)_${TRAINING_TYPE}"
+          
+        echo "path=/tmp/training_data" >> $GITHUB_OUTPUT
+        
+    - name: Check data availability
+      id: check-data
+      run: |
+        if [ -d "/tmp/training_data" ] && [ "$(ls -A /tmp/training_data)" ]; then
+          echo "available=true" >> $GITHUB_OUTPUT
+          echo "Training data collected successfully"
+          ls -la /tmp/training_data/
+        else
+          echo "available=false" >> $GITHUB_OUTPUT
+          echo "No training data available"
+        fi
+        
+    - name: Upload data artifacts
+      if: steps.check-data.outputs.available == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: training-data-${{ github.run_id }}
+        path: /tmp/training_data/
+        retention-days: 30
+
+  # RL training job (CVaR-PPO, SAC)
+  rl-training:
+    runs-on: ubuntu-latest
+    needs: data-collection
+    if: |
+      needs.data-collection.outputs.data-available == 'true' && 
+      (github.event.inputs.training_type == 'rl_weekly' || 
+       github.event.inputs.training_type == 'full_retrain' ||
+       github.event_name == 'schedule')
+    
+    strategy:
+      matrix:
+        symbol: [ES, NQ, MES, MNQ]
+        agent_type: [CVaR_PPO, SAC]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Download training data
+      uses: actions/download-artifact@v4
+      with:
+        name: training-data-${{ github.run_id }}
+        path: /tmp/training_data/
+        
+    - name: Build training tools
+      run: |
+        dotnet build src/RLAgent/RLAgent.csproj
+        dotnet build src/Training/Training.csproj
+        
+    - name: Run RL training
+      env:
+        SYMBOL: ${{ matrix.symbol }}
+        AGENT_TYPE: ${{ matrix.agent_type }}
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+      run: |
+        echo "Training $AGENT_TYPE agent for $SYMBOL"
+        
+        # Run training with walk-forward validation
+        dotnet run --project src/Training/Training.csproj -- \
+          --agent-type "$AGENT_TYPE" \
+          --symbol "$SYMBOL" \
+          --data-path "/tmp/training_data" \
+          --validation-type "walk-forward" \
+          --purge-days 30 \
+          --embargo-days 7 \
+          --output-path "/tmp/models/$SYMBOL/$AGENT_TYPE" \
+          --config-file "configs/rl_training.json"
+          
+    - name: Validate trained model
+      env:
+        SYMBOL: ${{ matrix.symbol }}
+        AGENT_TYPE: ${{ matrix.agent_type }}
+      run: |
+        # Run validation tests
+        dotnet run --project src/Validation/Validation.csproj -- \
+          --model-path "/tmp/models/$SYMBOL/$AGENT_TYPE" \
+          --validation-data "/tmp/training_data" \
+          --metrics "auc,pr@10,ece,edge_bps,latency" \
+          --output-report "/tmp/validation_$SYMBOL_$AGENT_TYPE.json"
+          
+    - name: Upload model artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: rl-model-${{ matrix.symbol }}-${{ matrix.agent_type }}-${{ github.run_id }}
+        path: /tmp/models/${{ matrix.symbol }}/${{ matrix.agent_type }}/
+        retention-days: 90
+        
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: validation-report-${{ matrix.symbol }}-${{ matrix.agent_type }}-${{ github.run_id }}
+        path: /tmp/validation_${{ matrix.symbol }}_${{ matrix.agent_type }}.json
+        retention-days: 30
+
+  # Cloud model training (monthly)
+  cloud-training:
+    runs-on: ubuntu-latest
+    needs: data-collection
+    if: |
+      needs.data-collection.outputs.data-available == 'true' && 
+      (github.event.inputs.training_type == 'cloud_monthly' || 
+       github.event.inputs.training_type == 'full_retrain' ||
+       (github.event_name == 'schedule' && github.event.schedule == '0 3 1 * *'))
+    
+    strategy:
+      matrix:
+        model_family: [ensemble, gradient_boosting, deep_learning]
+        symbol: [ES, NQ]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install ML dependencies
+      run: |
+        pip install -r requirements/ml_training.txt
+        # Install specific versions: scikit-learn, xgboost, tensorflow, onnx
+        
+    - name: Download training data
+      uses: actions/download-artifact@v4
+      with:
+        name: training-data-${{ github.run_id }}
+        path: /tmp/training_data/
+        
+    - name: Run cloud model training
+      env:
+        MODEL_FAMILY: ${{ matrix.model_family }}
+        SYMBOL: ${{ matrix.symbol }}
+        AZURE_ML_WORKSPACE: ${{ secrets.AZURE_ML_WORKSPACE }}
+      run: |
+        echo "Training $MODEL_FAMILY model for $SYMBOL"
+        
+        python scripts/train_cloud_model.py \
+          --model-family "$MODEL_FAMILY" \
+          --symbol "$SYMBOL" \
+          --data-path "/tmp/training_data" \
+          --validation-splits 5 \
+          --purge-window 60 \
+          --embargo-window 14 \
+          --output-dir "/tmp/cloud_models/$SYMBOL/$MODEL_FAMILY" \
+          --feature-config "configs/feature_engineering.json" \
+          --training-config "configs/cloud_training.json"
+          
+    - name: Convert to ONNX
+      env:
+        MODEL_FAMILY: ${{ matrix.model_family }}
+        SYMBOL: ${{ matrix.symbol }}
+      run: |
+        python scripts/convert_to_onnx.py \
+          --model-path "/tmp/cloud_models/$SYMBOL/$MODEL_FAMILY" \
+          --output-path "/tmp/onnx_models/$SYMBOL" \
+          --version-format "v{major}.{minor}.{patch}+{sha8}" \
+          --compress
+          
+    - name: Upload ONNX models
+      uses: actions/upload-artifact@v4
+      with:
+        name: onnx-model-${{ matrix.symbol }}-${{ matrix.model_family }}-${{ github.run_id }}
+        path: /tmp/onnx_models/${{ matrix.symbol }}/
+        retention-days: 180
+
+  # Model validation and promotion
+  model-promotion:
+    runs-on: ubuntu-latest
+    needs: [data-collection, rl-training, cloud-training]
+    if: always() && needs.data-collection.outputs.data-available == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: /tmp/artifacts/
+        
+    - name: Build promotion tools
+      run: |
+        dotnet build src/ModelPromotion/ModelPromotion.csproj
+        
+    - name: Run A/B comparison
+      env:
+        FORCE_PROMOTION: ${{ github.event.inputs.force_promotion || 'false' }}
+      run: |
+        echo "Running A/B comparison and promotion gates"
+        
+        # Compare new models against current production models
+        dotnet run --project src/ModelPromotion/ModelPromotion.csproj -- \
+          --candidate-models "/tmp/artifacts" \
+          --baseline-models "production/models" \
+          --validation-data "/tmp/training_data" \
+          --promotion-config "configs/promotion_thresholds.json" \
+          --output-report "/tmp/promotion_report.json" \
+          --force-promotion "$FORCE_PROMOTION"
+          
+    - name: Check promotion thresholds
+      id: check-promotion
+      run: |
+        # Check if any models meet promotion criteria
+        if python scripts/check_promotion_criteria.py --report "/tmp/promotion_report.json"; then
+          echo "models-promoted=true" >> $GITHUB_OUTPUT
+          echo "Models passed promotion thresholds"
+        else
+          echo "models-promoted=false" >> $GITHUB_OUTPUT
+          echo "No models met promotion criteria"
+        fi
+        
+    - name: Deploy promoted models
+      if: steps.check-promotion.outputs.models-promoted == 'true'
+      env:
+        MODEL_REGISTRY_URL: ${{ secrets.MODEL_REGISTRY_URL }}
+        REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+      run: |
+        echo "Deploying promoted models to registry"
+        
+        # Upload to model registry
+        python scripts/deploy_models.py \
+          --promotion-report "/tmp/promotion_report.json" \
+          --registry-url "$MODEL_REGISTRY_URL" \
+          --token "$REGISTRY_TOKEN" \
+          --deployment-stage "production"
+          
+        # Update model metadata
+        dotnet run --project src/ModelRegistry/ModelRegistry.csproj -- \
+          --action "update-production" \
+          --promotion-report "/tmp/promotion_report.json"
+          
+    - name: Create rollback plan
+      if: steps.check-promotion.outputs.models-promoted == 'true'
+      run: |
+        # Create rollback artifacts
+        python scripts/create_rollback_plan.py \
+          --current-models "production/models" \
+          --promoted-models "/tmp/promotion_report.json" \
+          --output-path "/tmp/rollback_plan.json"
+          
+    - name: Upload promotion report
+      uses: actions/upload-artifact@v4
+      with:
+        name: promotion-report-${{ github.run_id }}
+        path: /tmp/promotion_report.json
+        retention-days: 30
+        
+    - name: Upload rollback plan
+      if: steps.check-promotion.outputs.models-promoted == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: rollback-plan-${{ github.run_id }}
+        path: /tmp/rollback_plan.json
+        retention-days: 90
+
+  # Monthly walk-forward analysis using merged BacktestHarnessService functionality
+  walk-forward-analysis:
+    runs-on: ubuntu-latest
+    needs: [data-collection, model-promotion]
+    if: |
+      always() && 
+      (github.event.schedule == '0 3 1 * *' || 
+       (github.event_name == 'workflow_dispatch' && contains(fromJSON('["cloud_monthly", "full_retrain"]'), github.event.inputs.training_type)))
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ml/requirements.txt
+        pip install pandas numpy scikit-learn
+
+    - name: Download training data
+      uses: actions/download-artifact@v4
+      with:
+        name: training-data-${{ github.run_id }}
+        path: /tmp/training_data/
+
+    - name: Download model artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: /tmp/artifacts/
+
+    - name: Prepare models for analysis
+      run: |
+        echo "🔄 Preparing models for walk-forward analysis"
+        
+        # Create models directory
+        mkdir -p models
+        
+        # Copy ONNX models
+        find /tmp/artifacts -name "*.onnx" -exec cp {} models/ \;
+        
+        # List available models
+        echo "Available models:"
+        ls -la models/
+
+    - name: Prepare market data
+      run: |
+        echo "📊 Preparing market data for backtesting"
+        
+        # Create data directory
+        mkdir -p data
+        
+        # Convert training data to format expected by walk-forward analysis
+        python -c "
+import pandas as pd
+import json
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# Load training data
+training_dir = Path('/tmp/training_data')
+data_dir = Path('data')
+
+# Process available data files
+for data_file in training_dir.glob('*.json'):
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+        
+        # Convert to DataFrame format expected by backtester
+        if 'bars' in data:
+            df = pd.DataFrame(data['bars'])
+            if not df.empty:
+                # Save as parquet for efficient loading
+                output_file = data_dir / f'market_data_{data_file.stem}.parquet'
+                df.to_parquet(output_file)
+                print(f'Converted {data_file} -> {output_file}')
+    except Exception as e:
+        print(f'Error processing {data_file}: {e}')
+"
+
+    - name: Run walk-forward analysis
+      env:
+        MODELS_DIR: "models"
+        DATA_DIR: "data"
+        RESULTS_DIR: "results/backtests"
+        RETRAIN_DIR: "data/retrain_tasks"
+      run: |
+        echo "🚀 Running walk-forward analysis with backtest harness"
+        
+        # Create results directories
+        mkdir -p results/backtests data/retrain_tasks
+        
+        # Run the monthly training pipeline with walk-forward analysis
+        python ml/train_monthly.py
+        
+        echo "✅ Walk-forward analysis completed"
+
+    - name: Generate analysis report
+      run: |
+        echo "📋 Generating walk-forward analysis report"
+        
+        python -c "
+import json
+import os
+from pathlib import Path
+from datetime import datetime
+
+results_dir = Path('results/backtests')
+report = {
+    'analysis_type': 'walk_forward_monthly',
+    'completed_at': datetime.now().isoformat(),
+    'github_run_id': '${{ github.run_id }}',
+    'results_files': [],
+    'retrain_tasks': []
+}
+
+# Collect result files
+for result_file in results_dir.glob('*.json'):
+    if result_file.name.startswith('walk_forward_report'):
+        with open(result_file, 'r') as f:
+            report['final_report'] = json.load(f)
+    elif result_file.name.startswith('backtest_'):
+        report['results_files'].append(result_file.name)
+
+# Collect retrain tasks
+retrain_dir = Path('data/retrain_tasks')
+for task_file in retrain_dir.glob('retrain_*.json'):
+    report['retrain_tasks'].append(task_file.name)
+
+# Save consolidated report
+with open('walk_forward_analysis_summary.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+print('Analysis summary saved to walk_forward_analysis_summary.json')
+"
+
+    - name: Upload walk-forward results
+      uses: actions/upload-artifact@v4
+      with:
+        name: walk-forward-analysis-${{ github.run_id }}
+        path: results/backtests/
+        retention-days: 180
+
+    - name: Upload retraining tasks
+      uses: actions/upload-artifact@v4
+      with:
+        name: retrain-tasks-${{ github.run_id }}
+        path: data/retrain_tasks/
+        retention-days: 30
+
+    - name: Upload analysis summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: walk-forward-summary-${{ github.run_id }}
+        path: walk_forward_analysis_summary.json
+        retention-days: 60
+
+  # Notification and reporting
+  notify-results:
+    runs-on: ubuntu-latest
+    needs: [data-collection, rl-training, cloud-training, model-promotion, walk-forward-analysis]
+    if: always()
+    
+    steps:
+    - name: Generate training summary
+      run: |
+        echo "# ML/RL Training Pipeline Results" > /tmp/summary.md
+        echo "" >> /tmp/summary.md
+        echo "**Run ID:** ${{ github.run_id }}" >> /tmp/summary.md
+        echo "**Triggered by:** ${{ github.event_name }}" >> /tmp/summary.md
+        echo "**Training Type:** ${{ github.event.inputs.training_type || 'scheduled' }}" >> /tmp/summary.md
+        echo "**Timestamp:** $(date -u)" >> /tmp/summary.md
+        echo "" >> /tmp/summary.md
+        
+        # Add job statuses
+        echo "## Job Results" >> /tmp/summary.md
+        echo "- Data Collection: ${{ needs.data-collection.result }}" >> /tmp/summary.md
+        echo "- RL Training: ${{ needs.rl-training.result }}" >> /tmp/summary.md  
+        echo "- Cloud Training: ${{ needs.cloud-training.result }}" >> /tmp/summary.md
+        echo "- Model Promotion: ${{ needs.model-promotion.result }}" >> /tmp/summary.md
+        echo "- Walk Forward Analysis: ${{ needs.walk-forward-analysis.result }}" >> /tmp/summary.md
+        
+    - name: Post to Slack
+      if: always()
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        # Send notification to Slack channel
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"ML/RL Training Pipeline Completed\",
+            \"attachments\": [{
+              \"color\": \"${{ job.status == 'success' && 'good' || 'danger' }}\",
+              \"fields\": [
+                {\"title\": \"Run ID\", \"value\": \"${{ github.run_id }}\", \"short\": true},
+                {\"title\": \"Status\", \"value\": \"${{ job.status }}\", \"short\": true},
+                {\"title\": \"Data Collection\", \"value\": \"${{ needs.data-collection.result }}\", \"short\": true},
+                {\"title\": \"Model Promotion\", \"value\": \"${{ needs.model-promotion.result }}\", \"short\": true}
+              ]
+            }]
+          }" \
+          $SLACK_WEBHOOK || echo "Slack notification failed"
