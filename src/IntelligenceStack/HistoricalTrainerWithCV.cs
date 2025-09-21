@@ -500,7 +500,7 @@ public class HistoricalTrainerWithCV
         return dataPoints;
     }
     
-    private async Task<List<MarketDataPoint>> LoadBackupMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private static async Task<List<MarketDataPoint>> LoadBackupMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         // Simulate loading from backup data source
         await Task.Delay(200, cancellationToken).ConfigureAwait(false); // Simulate slower backup source

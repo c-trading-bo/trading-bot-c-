@@ -740,7 +740,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return decision;
     }
 
-    private TradingDecision CreateSafeDecision(string reason)
+    private static TradingDecision CreateSafeDecision(string reason)
     {
         var decision = new TradingDecision
         {
@@ -899,7 +899,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    private MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
+    private static MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
     {
         // Extract from workflow context - simplified
         return new MarketContext
@@ -913,7 +913,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         };
     }
 
-    private MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
+    private static MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
     {
         return new MarketData
         {

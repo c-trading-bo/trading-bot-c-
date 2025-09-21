@@ -349,14 +349,14 @@ public class ModelRegistry : IModelRegistry
         return Convert.ToHexString(hash)[..16];
     }
 
-    private string CalculateRuntimeSignature(byte[] modelData)
+    private static string CalculateRuntimeSignature(byte[] modelData)
     {
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(modelData);
         return Convert.ToBase64String(hash)[..16];
     }
 
-    private bool VerifyModelChecksum(ModelArtifact model)
+    private static bool VerifyModelChecksum(ModelArtifact model)
     {
         if (model.ModelData == null) return true;
         
