@@ -26,13 +26,6 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double BaselineRewardFactor = 0.25;
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
-    private const double DefaultLearningRate = 0.1;
-    private const double MinLearningRate = 0.01;
-    private const double MaxLearningRate = 0.5;
-    private const double PerformanceThreshold = 0.02;
-    private const double DriftThreshold = 0.05;
-    private const int SaveIntervalMinutes = 10;
-    private const double DefaultVariance = 0.001;
     private const int HistoryWindowSize = 50;
     private const double ConfidenceInterval = 0.95;
     private const double ZScore = 1.96; // 95% confidence interval

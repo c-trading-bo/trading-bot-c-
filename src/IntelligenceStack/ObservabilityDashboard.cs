@@ -17,6 +17,29 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ObservabilityDashboard : IDisposable
 {
+    // Target SLO constants for golden signals
+    private const int TargetDecisionLatencyP99Ms = 120;
+    private const int TargetDecisionsPerSecond = 10;
+    private const double TargetErrorRatePercent = 0.5;
+    private const double TargetErrorRateThreshold = 0.005;
+    private const int PercentageConversionFactor = 100;
+    
+    // Dashboard display constants
+    private const double HistogramBinSize = 0.8;
+    private const double HistogramBinStep1 = 1.2;
+    private const double HistogramBinStep2 = 1.5;
+    private const double HistogramBinStep3 = 1.1;
+    private const double VolatilityProfileBase = 0.5;
+    private const int VolatilityTimeHours1 = 2;
+    private const int VolatilityTimeHours2 = 4;
+    
+    // Time and calculation constants
+    private const int PercentileRank = 99;
+    private const int MinutesToSeconds = 60;
+    private const int SecondsInMinute = 60;
+    private const int DefaultBinCount = 10;
+    private const int MaxModelCount = 100;
+    
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
     private readonly EnsembleMetaLearner _ensemble;
@@ -104,20 +127,20 @@ public class ObservabilityDashboard : IDisposable
             {
                 DecisionLatencyP99Ms = sloStatus.DecisionLatencyP99Ms,
                 OrderLatencyP99Ms = sloStatus.OrderLatencyP99Ms,
-                Target = 120, // Target P99 decision latency
-                IsHealthy = sloStatus.DecisionLatencyP99Ms < 120
+                Target = TargetDecisionLatencyP99Ms, // Target P99 decision latency
+                IsHealthy = sloStatus.DecisionLatencyP99Ms < TargetDecisionLatencyP99Ms
             },
             Throughput = new ThroughputMetrics
             {
                 DecisionsPerSecond = CalculateDecisionsPerSecond(),
-                Target = 10, // Target decisions per second
+                Target = TargetDecisionsPerSecond, // Target decisions per second
                 IsHealthy = true // Simplified
             },
             ErrorRate = new ErrorMetrics
             {
-                ErrorRatePercent = sloStatus.ErrorRate * 100,
-                Target = 0.5, // Target error rate
-                IsHealthy = sloStatus.ErrorRate < 0.005
+                ErrorRatePercent = sloStatus.ErrorRate * PercentageConversionFactor,
+                Target = TargetErrorRatePercent, // Target error rate
+                IsHealthy = sloStatus.ErrorRate < TargetErrorRateThreshold
             },
             Saturation = new SaturationMetrics
             {

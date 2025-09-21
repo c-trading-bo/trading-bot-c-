@@ -34,21 +34,9 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(3003, "CalibrationLoadFailed"),
             "[CALIBRATION] Failed to load calibration map for {ModelId}");
             
-    private static readonly Action<ILogger, string, Exception?> InsufficientCalibrationPoints =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3004, "InsufficientCalibrationPoints"),
-            "[CALIBRATION] Insufficient points for model {ModelId}, using default calibration");
-            
-    private static readonly Action<ILogger, string, string, double, Exception?> CalibrationFitted =
-        LoggerMessage.Define<string, string, double>(LogLevel.Information, new EventId(3005, "CalibrationFitted"),
-            "[CALIBRATION] Fitted {Method} calibration for {ModelId} (score: {Score:F4})");
-            
     private static readonly Action<ILogger, string, Exception?> CalibrationFitFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(3006, "CalibrationFitFailed"),
             "[CALIBRATION] Failed to fit calibration for {ModelId}");
-            
-    private static readonly Action<ILogger, string, Exception?> CalibrationSaveFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3007, "CalibrationSaveFailed"),
-            "[CALIBRATION] Failed to save calibration map for {ModelId}");
             
     private static readonly Action<ILogger, string, int, Exception?> InsufficientDataForCalibration =
         LoggerMessage.Define<string, int>(LogLevel.Warning, new EventId(3008, "InsufficientDataForCalibration"),
