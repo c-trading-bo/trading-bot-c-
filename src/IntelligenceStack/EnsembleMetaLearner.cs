@@ -44,25 +44,7 @@ public class EnsembleMetaLearner
         LoggerMessage.Define<RegimeType>(LogLevel.Error, new EventId(5005, "TrainingFailed"),
             "[ENSEMBLE] Failed to train regime head: {Regime}");
             
-    private static readonly Action<ILogger, string, Exception?> ModelPerformanceDebug =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5006, "ModelPerformanceDebug"),
-            "[ENSEMBLE] Model performance update: {PerformanceInfo}");
-            
-    private static readonly Action<ILogger, Exception?> PerformanceUpdateFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5007, "PerformanceUpdateFailed"),
-            "[ENSEMBLE] Failed to update model performance");
-            
-    private static readonly Action<ILogger, RegimeType, string, Exception?> RegimeInformation =
-        LoggerMessage.Define<RegimeType, string>(LogLevel.Information, new EventId(5008, "RegimeInformation"),
-            "[ENSEMBLE] Regime: {Regime} - {Information}");
-            
-    private static readonly Action<ILogger, string, double, Exception?> ModelBlendDebug =
-        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5009, "ModelBlendDebug"),
-            "[ENSEMBLE] Model: {ModelId}, Weight: {Weight:F3}");
-            
-    private static readonly Action<ILogger, Exception?> BlendCalculationWarning =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(5010, "BlendCalculationWarning"),
-            "[ENSEMBLE] Blend calculation encountered issue");
+
             
     private static readonly Action<ILogger, string, RegimeType, Exception?> ModelFeedbackDebug =
         LoggerMessage.Define<string, RegimeType>(LogLevel.Debug, new EventId(5011, "ModelFeedbackDebug"),

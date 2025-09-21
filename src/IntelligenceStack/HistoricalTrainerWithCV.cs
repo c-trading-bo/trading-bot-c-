@@ -32,21 +32,7 @@ public class HistoricalTrainerWithCV
         LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2001, "WalkForwardCVStarted"),
             "[HISTORICAL_CV] Starting walk-forward CV for {ModelFamily}: {Start} to {End}");
             
-    private static readonly Action<ILogger, int, int, double, double, Exception?> FoldCompleted =
-        LoggerMessage.Define<int, int, double, double>(LogLevel.Information, new EventId(2002, "FoldCompleted"),
-            "[HISTORICAL_CV] Completed fold {Fold}/{Total} - AUC: {AUC:F3}, EdgeBps: {Edge:F1}");
-            
-    private static readonly Action<ILogger, int, double, double, bool, Exception?> WalkForwardCVCompleted =
-        LoggerMessage.Define<int, double, double, bool>(LogLevel.Information, new EventId(2003, "WalkForwardCVCompleted"),
-            "[HISTORICAL_CV] Completed walk-forward CV: {Folds} folds, Avg AUC: {AUC:F3}, Avg Edge: {Edge:F1}, Promotion: {Promotion}");
-            
-    private static readonly Action<ILogger, string, Exception?> WalkForwardCVFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2004, "WalkForwardCVFailed"),
-            "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}");
-            
-    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> LeakSafeLabelingStarted =
-        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2005, "LeakSafeLabelingStarted"),
-            "[LEAK_SAFE_LABELING] Generating labels for {Symbol}: {Start} to {End}");
+
 
     public HistoricalTrainerWithCV(
         ILogger<HistoricalTrainerWithCV> logger,

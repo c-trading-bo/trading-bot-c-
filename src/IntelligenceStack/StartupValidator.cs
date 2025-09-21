@@ -20,14 +20,7 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ValidationStarted"),
             "[STARTUP] Beginning comprehensive system validation...");
             
-    private static readonly Action<ILogger, double, Exception?> ValidationCompleted =
-        LoggerMessage.Define<double>(LogLevel.Information, new EventId(5002, "ValidationCompleted"),
-            "[STARTUP] System validation completed in {ElapsedMs:F2}ms");
-            
-    private static readonly Action<ILogger, Exception?> ValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5003, "ValidationFailed"),
-            "[STARTUP] System validation failed");
-            
+
     private static readonly Action<ILogger, string, Exception?> TestStarted =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "TestStarted"),
             "[STARTUP] Running test: {TestName}");
@@ -40,37 +33,7 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5006, "TestFailed"),
             "[STARTUP] ❌ {TestName} failed ({ElapsedMs:F2}ms)");
             
-    private static readonly Action<ILogger, int, int, Exception?> ValidationSummary =
-        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(5007, "ValidationSummary"),
-            "[STARTUP] Validation summary: {PassedCount}/{TotalCount} tests passed");
-            
-    private static readonly Action<ILogger, Exception?> FeatureStoreValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5008, "FeatureStoreValidation"),
-            "[STARTUP] Validating Feature Store...");
-            
-    private static readonly Action<ILogger, Exception?> ModelRegistryValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "ModelRegistryValidation"),
-            "[STARTUP] Validating Model Registry...");
-            
-    private static readonly Action<ILogger, Exception?> CalibrationValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5010, "CalibrationValidation"),
-            "[STARTUP] Validating Calibration Manager...");
-            
-    private static readonly Action<ILogger, Exception?> IdempotentOrderValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5011, "IdempotentOrderValidation"),
-            "[STARTUP] Validating Idempotent Order Service...");
-            
-    private static readonly Action<ILogger, Exception?> LeaderElectionValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5012, "LeaderElectionValidation"),
-            "[STARTUP] Validating Leader Election Service...");
-            
-    private static readonly Action<ILogger, Exception?> DependencyValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5013, "DependencyValidation"),
-            "[STARTUP] Validating Service Dependencies...");
-            
-    private static readonly Action<ILogger, Exception?> PerformanceValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5014, "PerformanceValidation"),
-            "[STARTUP] Validating System Performance...");
+
             
     private static readonly Action<ILogger, Exception?> ConfigurationValidation =
         LoggerMessage.Define(LogLevel.Debug, new EventId(5015, "ConfigurationValidation"),

@@ -168,41 +168,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         LoggerMessage.Define(LogLevel.Information, new EventId(7001, "VerificationStarted"),
             "🔍 [PRODUCTION-VERIFICATION] Starting comprehensive intelligence stack verification...");
             
-    private static readonly Action<ILogger, string, Exception?> VerificationError =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7002, "VerificationError"),
-            "❌ [PRODUCTION-VERIFICATION] {Error}");
-            
-    private static readonly Action<ILogger, string, string, string, Exception?> ServiceVerified =
-        LoggerMessage.Define<string, string, string>(LogLevel.Information, new EventId(7003, "ServiceVerified"),
-            "✅ [PRODUCTION-VERIFICATION] {ServiceName} -> {ImplementationType} from {AssemblyName} (PRODUCTION)");
-            
-    private static readonly Action<ILogger, string, Exception?> VerificationWarning =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(7004, "VerificationWarning"),
-            "⚠️ [PRODUCTION-VERIFICATION] {Warning}");
-            
-    private static readonly Action<ILogger, string, Exception?> VerificationException =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7005, "VerificationException"),
-            "❌ [PRODUCTION-VERIFICATION] {Error}");
-            
-    private static readonly Action<ILogger, Exception?> AllServicesVerified =
-        LoggerMessage.Define(LogLevel.Information, new EventId(7006, "AllServicesVerified"),
-            "✅ [PRODUCTION-VERIFICATION] All intelligence services are PRODUCTION-READY with ZERO mock implementations");
-            
-    private static readonly Action<ILogger, int, int, int, Exception?> VerificationSummary =
-        LoggerMessage.Define<int, int, int>(LogLevel.Information, new EventId(7007, "VerificationSummary"),
-            "🎯 [PRODUCTION-PROOF] System verified: {ServiceCount} production services, {ErrorCount} errors, {WarningCount} warnings");
-            
-    private static readonly Action<ILogger, Exception?> VerificationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(7008, "VerificationFailed"),
-            "❌ [PRODUCTION-VERIFICATION] FAILED - System contains mock implementations and is NOT production-ready");
-            
-    private static readonly Action<ILogger, string, Exception?> ErrorDetail =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7009, "ErrorDetail"),
-            "   - {Error}");
-            
-    private static readonly Action<ILogger, Exception?> ServiceRegistryHeader =
-        LoggerMessage.Define(LogLevel.Information, new EventId(7010, "ServiceRegistryHeader"),
-            "📋 [SERVICE-REGISTRY] Intelligence Stack Service Registrations - ALL PRODUCTION:");
+
     
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<IntelligenceStackVerificationService> _logger;

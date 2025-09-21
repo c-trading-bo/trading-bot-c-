@@ -56,33 +56,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "ModelNotFoundAdapting"),
             "[ONLINE] Model not found adapting to performance: {ModelId}");
     
-    private static readonly Action<ILogger, string, Exception?> InvalidOperationRecordingError =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "InvalidOperationRecordingError"),
-            "[SLO] Invalid operation recording error: {ErrorType}");
-            
-    private static readonly Action<ILogger, string, Exception?> ArgumentRecordingError =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6013, "ArgumentRecordingError"),
-            "[SLO] Invalid argument recording error: {ErrorType}");
-            
-    private static readonly Action<ILogger, string, Exception?> ObjectDisposedRecordingError =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, "ObjectDisposedRecordingError"),
-            "[SLO] Object disposed while recording error: {ErrorType}");
-            
-    private static readonly Action<ILogger, string, double, Exception?> LatencyRecordingFailed =
-        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(6015, "LatencyRecordingFailed"),
-            "[SLO] Failed to record latency for {MetricType}: {Latency}ms");
-            
-    private static readonly Action<ILogger, Exception?> ErrorBudgetCheckFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(6016, "ErrorBudgetCheckFailed"),
-            "[SLO] Failed to check error budget");
-            
-    private static readonly Action<ILogger, string, double, Exception?> SLOBreachHandled =
-        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6017, "SLOBreachHandled"),
-            "[SLO] Handled SLO breach for {MetricType}: {ActualValue}");
-            
-    private static readonly Action<ILogger, string, Exception?> TripwireActivated =
-        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(6018, "TripwireActivated"),
-            "[TRIPWIRE] Activated for {MetricType} - emergency actions initiated");
+
             
     private static readonly Action<ILogger, string, Exception?> WeightUpdateSkipped =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6019, "WeightUpdateSkipped"),
