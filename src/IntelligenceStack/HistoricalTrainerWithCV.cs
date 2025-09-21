@@ -321,7 +321,7 @@ public class HistoricalTrainerWithCV
         return testData;
     }
 
-    private async Task<ModelArtifact> TrainModelAsync(
+    private static async Task<ModelArtifact> TrainModelAsync(
         string modelFamily,
         List<TrainingExample> trainingData,
         CancellationToken cancellationToken)
