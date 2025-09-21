@@ -943,6 +943,19 @@ Stack Trace:
             .AddCheck<BotCore.Services.ProductionMonitoringService>("ml-rl-system");
 
         // ================================================================================
+        // 🎯 NEVER-HOLD FIX - RUNTIME DECISION SERVICES
+        // ================================================================================
+        
+        // Configure Decision Policy options
+        services.Configure<TradingBot.UnifiedOrchestrator.Runtime.DecisionPolicyOptions>(
+            configuration.GetSection("DecisionPolicy"));
+        
+        // Register Runtime Decision Services
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.DecisionPolicy>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.ExecutionGuards>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.OrderLedger>();
+
+        // ================================================================================
         // �🚀 ENHANCED ML/RL/CLOUD INTEGRATION SERVICES - PRODUCTION AUTOMATION 🚀
         // ================================================================================
         
