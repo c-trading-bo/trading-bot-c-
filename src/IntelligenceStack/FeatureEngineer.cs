@@ -414,7 +414,7 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Extract features from market data
     /// </summary>
-    private async Task<FeatureSet?> ExtractFeaturesFromMarketDataAsync(
+    private static async Task<FeatureSet?> ExtractFeaturesFromMarketDataAsync(
         TradingBot.Abstractions.MarketData marketData,
         CancellationToken cancellationToken)
     {

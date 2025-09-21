@@ -15,6 +15,11 @@ on:
       - 'Directory.Build.props'
       - 'GlobalSuppressions.cs'
 
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
 jobs:
   protect-analyzer-config:
     name: Protect Analyzer Configuration from Tampering

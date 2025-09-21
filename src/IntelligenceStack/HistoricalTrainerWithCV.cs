@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -320,7 +321,7 @@ public class HistoricalTrainerWithCV
         return testData;
     }
 
-    private async Task<ModelArtifact> TrainModelAsync(
+    private static async Task<ModelArtifact> TrainModelAsync(
         string modelFamily,
         List<TrainingExample> trainingData,
         CancellationToken cancellationToken)
@@ -549,7 +550,7 @@ public class HistoricalTrainerWithCV
         }, cancellationToken);
     }
 
-    private ModelMetrics CalculateAggregateMetrics(List<CVFoldResult> foldResults)
+    private ModelMetrics CalculateAggregateMetrics(IEnumerable<CVFoldResult> foldResults)
     {
         var successfulFolds = foldResults.Where(f => f.Success && f.TestMetrics != null).ToList();
         
@@ -707,7 +708,7 @@ public class WalkForwardCVResult
     public DateTime EndDate { get; set; }
     public TimeSpan TrainingWindow { get; set; }
     public TimeSpan TestWindow { get; set; }
-    public List<CVFoldResult> FoldResults { get; } = new();
+    public Collection<CVFoldResult> FoldResults { get; } = new();
     public ModelMetrics? AggregateMetrics { get; set; }
     public bool MeetsPromotionCriteria { get; set; }
     public DateTime StartedAt { get; set; }

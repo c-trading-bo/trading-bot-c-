@@ -6,6 +6,7 @@ using TradingBot.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,10 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public static class IntelligenceStackServiceExtensions
 {
+    private const int DefaultTuningTrials = 50;
+    private const int DefaultEarlyStopNoImprove = 10;
+    private const int DefaultTimeoutSeconds = 30;
+    
     /// <summary>
     /// Register the complete intelligence stack with dependency injection
     /// ALL SERVICES ARE PRODUCTION IMPLEMENTATIONS - ZERO SIMULATIONS
@@ -49,7 +54,7 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<RLConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().RL);
         services.AddSingleton<TuningConfig>(provider => 
-            new TuningConfig { Trials = 50, EarlyStopNoImprove = 10 }); // Default tuning config
+            new TuningConfig { Trials = DefaultTuningTrials, EarlyStopNoImprove = DefaultEarlyStopNoImprove }); // Default tuning config
         services.AddSingleton<IdempotentConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().Orders.Idempotent);
         services.AddSingleton<NetworkConfig>(provider => 
@@ -85,7 +90,7 @@ public static class IntelligenceStackServiceExtensions
             options.Enabled = false;
             options.CloudEndpoint = "";
             options.InstanceId = Environment.MachineName;
-            options.TimeoutSeconds = 30;
+            options.TimeoutSeconds = DefaultTimeoutSeconds;
         });
         
         // Register HttpClient for IntelligenceOrchestrator
@@ -326,8 +331,8 @@ public class ProductionVerificationResult
 {
     public bool IsProductionReady { get; set; } = true;
     public Dictionary<string, string> ProductionServices { get; } = new();
-    public List<string> Errors { get; } = new();
-    public List<string> Warnings { get; } = new();
+    public Collection<string> Errors { get; } = new();
+    public Collection<string> Warnings { get; } = new();
     public DateTime VerificationTime { get; set; } = DateTime.UtcNow;
     
     public string GetSummary()

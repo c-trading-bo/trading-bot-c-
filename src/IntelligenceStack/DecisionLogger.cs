@@ -15,6 +15,11 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class DecisionLogger : IDecisionLogger
 {
+    private const int MaxLogLinePreviewLength = 100;
+    private const int GenerationTwoGC = 2;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
+    
     private readonly ILogger<DecisionLogger> _logger;
     private readonly string _basePath;
     private readonly bool _enabled;
@@ -25,7 +30,7 @@ public class DecisionLogger : IDecisionLogger
         string basePath = "data/decisions")
     {
         _logger = logger;
-        _enabled = config.DecisionLine.Enabled;
+        _enabled = config?.DecisionLine.Enabled ?? false;
         _basePath = basePath;
         
         if (_enabled)
@@ -37,7 +42,7 @@ public class DecisionLogger : IDecisionLogger
 
     public async Task LogDecisionAsync(IntelligenceDecision decision, CancellationToken cancellationToken = default)
     {
-        if (!_enabled)
+        if (!_enabled || decision == null)
         {
             return;
         }
@@ -55,7 +60,7 @@ public class DecisionLogger : IDecisionLogger
 
             // Also log to structured logger for real-time monitoring
             _logger.LogInformation("[DECISION] {DecisionJson}", 
-                JsonSerializer.Serialize(logEntry, new JsonSerializerOptions { WriteIndented = false }));
+                JsonSerializer.Serialize(logEntry, JsonOptions));
         }
         catch (Exception ex)
         {
@@ -102,7 +107,7 @@ public class DecisionLogger : IDecisionLogger
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "[DECISION] Failed to parse decision log line: {Line}", line[..Math.Min(100, line.Length)]);
+                            _logger.LogWarning(ex, "[DECISION] Failed to parse decision log line: {Line}", line[..Math.Min(MaxLogLinePreviewLength, line.Length)]);
                         }
                     }
                 }
@@ -168,7 +173,7 @@ public class DecisionLogger : IDecisionLogger
             Performance = new PerformanceMetrics
             {
                 DecisionLatencyMs = decision.LatencyMs,
-                MemoryPressure = GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2)
+                MemoryPressure = GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(GenerationTwoGC)
             }
         };
     }

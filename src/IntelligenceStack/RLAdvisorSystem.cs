@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -141,7 +142,7 @@ public class RLAdvisorSystem
             var reward = CalculateReward(decision, outcome);
             
             // Update agent with experience
-            await agent.UpdateAsync(decision.StateVector, decision.RawAction, reward, outcome.NextState, cancellationToken).ConfigureAwait(false);
+            await agent.UpdateAsync(decision.StateVector.ToArray(), decision.RawAction, reward, outcome.NextState.ToArray(), cancellationToken).ConfigureAwait(false);
             
             // Update performance tracking
             await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken).ConfigureAwait(false);
@@ -264,11 +265,11 @@ public class RLAdvisorSystem
     private void InitializeAgents()
     {
         // Initialize agents for different contexts
-        var contexts = new[] { "ES_PPO", "ES_CVaR_PPO", "NQ_PPO", "NQ_CVaR_PPO" };
+        var contexts = new[] { "ES_PPO", "ES_CVarPPO", "NQ_PPO", "NQ_CVarPPO" };
         
         foreach (var context in contexts)
         {
-            var agentType = context.Contains("CVaR") ? RLAgentType.CVaR_PPO : RLAgentType.PPO;
+            var agentType = context.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
             _agents[context] = new RLAgent(_logger, agentType, context, _config);
         }
     }
@@ -279,7 +280,7 @@ public class RLAdvisorSystem
         {
             if (!_agents.TryGetValue(agentKey, out var agent))
             {
-                var agentType = agentKey.Contains("CVaR") ? RLAgentType.CVaR_PPO : RLAgentType.PPO;
+                var agentType = agentKey.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
                 agent = new RLAgent(_logger, agentType, agentKey, _config);
                 _agents[agentKey] = agent;
             }
@@ -290,7 +291,7 @@ public class RLAdvisorSystem
     private static string GetAgentKey(ExitDecisionContext context)
     {
         var symbol = context.Symbol;
-        var agentType = context.UsesCVaR ? "CVaR_PPO" : "PPO";
+        var agentType = context.UsesCVaR ? "CVarPPO" : "PPO";
         return $"{symbol}_{agentType}";
     }
 
@@ -684,49 +685,6 @@ public class RLAdvisorSystem
         return dataPoints;
     }
     
-    private List<TradeRecord> LoadHistoricalTradeData(string symbol, DateTime startDate, DateTime endDate)
-    {
-        // Load historical trade executions for the symbol from database/file storage
-        var trades = new List<TradeRecord>();
-        
-        try
-        {
-            // Production implementation would query actual trade database
-            // For now, create minimal structure based on actual parameters
-            var timePeriod = endDate - startDate;
-            var estimatedTrades = (int)(timePeriod.TotalDays * 2); // Approx 2 trades per day
-            
-            for (int i = 0; i < estimatedTrades; i++)
-            {
-                // Use cryptographically secure random for production trading system
-                using var rng = RandomNumberGenerator.Create();
-                var priceBytes = new byte[4];
-                var sideBytes = new byte[4];
-                rng.GetBytes(priceBytes);
-                rng.GetBytes(sideBytes);
-                
-                var priceRandom = (double)BitConverter.ToUInt32(priceBytes, 0) / uint.MaxValue;
-                var sideRandom = (double)BitConverter.ToUInt32(sideBytes, 0) / uint.MaxValue;
-                
-                trades.Add(new TradeRecord
-                {
-                    Symbol = symbol,
-                    FillTime = startDate.AddDays(i * 0.5),
-                    FillPrice = 4125.0 + (priceRandom * 50), // ES price range
-                    Quantity = 1,
-                    Side = sideRandom > 0.5 ? "BUY" : "SELL"
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to load historical trade data for {Symbol} from {StartDate} to {EndDate}", 
-                symbol, startDate, endDate);
-        }
-        
-        return trades;
-    }
-    
     private async Task<List<EpisodeWindow>> GenerateEpisodeWindowsAsync(List<RLMarketDataPoint> marketData, CancellationToken cancellationToken)
     {
         return await Task.Run(() =>
@@ -1089,7 +1047,7 @@ public class ExitOutcome
     public TimeSpan TimeToExit { get; set; }
     public double VolatilityDuringExit { get; set; }
     public double MaxDrawdownDuringExit { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
 }
 
 public class RLDecision
@@ -1150,8 +1108,8 @@ public class TrainingEpisode
 {
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
-    public double[] InitialState { get; set; } = Array.Empty<double>();
-    public List<(double[] state, RLActionResult action, double reward)> Actions { get; } = new();
+    public IReadOnlyList<double> InitialState { get; set; } = Array.Empty<double>();
+    public Collection<(double[] state, RLActionResult action, double reward)> Actions { get; } = new();
 }
 
 public class RLAdvisorState
@@ -1163,7 +1121,7 @@ public class RLAdvisorState
 public enum RLAgentType
 {
     PPO,
-    CVaR_PPO
+    CVarPPO
 }
 
 public enum ExitAction

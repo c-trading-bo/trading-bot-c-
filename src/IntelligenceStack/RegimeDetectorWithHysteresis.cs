@@ -203,7 +203,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         return (_config.VolLowIn, _config.VolHighIn, _config.TrendIn);
     }
 
-    private double CalculateConfidence(double value, double threshold, double maxValue)
+    private static double CalculateConfidence(double value, double threshold, double maxValue)
     {
         if (threshold >= maxValue) return 0.0;
         return Math.Min(1.0, Math.Max(0.0, (value - threshold) / (maxValue - threshold)));

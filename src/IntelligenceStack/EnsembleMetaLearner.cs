@@ -18,6 +18,12 @@ public class EnsembleMetaLearner
 {
     // Production configuration constants (eliminates hardcoded values)
     private const double MinimumConfidenceThreshold = 0.1;
+    private const double DefaultLearningRate = 0.1;
+    private const double MinWeight = 0.1;
+    private const double MaxWeight = 2.0;
+    private const double BaselinePerformance = 0.5;
+    private const int DefaultValidationSamples = 10;
+    private const int MinimumValidationSamples = 5;
     
     private readonly ILogger<EnsembleMetaLearner> _logger;
     private readonly EnsembleConfig _config;
@@ -143,8 +149,8 @@ public class EnsembleMetaLearner
             if (currentWeights.ContainsKey(modelId))
             {
                 var currentWeight = currentWeights[modelId];
-                var adjustment = (performanceScore - 0.5) * 0.1; // ±10% adjustment
-                currentWeights[modelId] = Math.Max(0.1, Math.Min(2.0, currentWeight + adjustment));
+                var adjustment = (performanceScore - BaselinePerformance) * DefaultLearningRate; // ±10% adjustment
+                currentWeights[modelId] = Math.Max(MinWeight, Math.Min(MaxWeight, currentWeight + adjustment));
             }
 
             await _onlineLearning.UpdateWeightsAsync(regimeTypeStr, currentWeights, cancellationToken).ConfigureAwait(false);
@@ -289,7 +295,7 @@ public class EnsembleMetaLearner
         return predictions;
     }
 
-    private async Task<ModelPrediction> GetModelPredictionAsync(
+    private static async Task<ModelPrediction> GetModelPredictionAsync(
         ModelArtifact model,
         MarketContext context,
         CancellationToken cancellationToken)
@@ -644,7 +650,7 @@ public class RegimeBlendHead
             LastValidationScore = await CalculateValidationScoreAsync(validationExamples, cancellationToken).ConfigureAwait(false);
             
             // Simulate model parameter updates
-            await Task.Delay(5, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(MinimumValidationSamples, cancellationToken).ConfigureAwait(false);
             
         }, cancellationToken);
         
