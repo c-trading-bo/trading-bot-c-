@@ -55,6 +55,18 @@ public class StreamingFeatureEngineering : IDisposable
     private static readonly Action<ILogger, string, Exception?> BackgroundRefreshFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(5010, "BackgroundRefreshFailed"),
             "Failed to refresh features for {Symbol} in background");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureCacheFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5011, "FeatureCacheFailed"),
+            "Failed to cache features for {Symbol}");
+            
+    private static readonly Action<ILogger, int, Exception?> CacheCleanupComplete =
+        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(5012, "CacheCleanupComplete"),
+            "Cleaned up {Count} expired feature caches");
+            
+    private static readonly Action<ILogger, Exception?> CacheCleanupError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5013, "CacheCleanupError"),
+            "Error during cache cleanup");
     
     // Constants for magic number violations
     private const int DefaultBatchSize = 50;
@@ -264,7 +276,7 @@ public class StreamingFeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to cache features for {Symbol}", symbol);
+            FeatureCacheFailed(_logger, symbol, ex);
         }
     }
 
@@ -297,12 +309,12 @@ public class StreamingFeatureEngineering : IDisposable
 
             if (keysToRemove.Count > 0)
             {
-                _logger.LogDebug("Cleaned up {Count} expired feature caches", keysToRemove.Count);
+                CacheCleanupComplete(_logger, keysToRemove.Count, null);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during cache cleanup");
+            CacheCleanupError(_logger, ex);
         }
     }
 
