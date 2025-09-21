@@ -18,6 +18,19 @@ public class StreamingFeatureEngineering : IDisposable
     // Constants for magic number violations
     private const int DefaultBatchSize = 50;
     
+    // Technical analysis periods
+    private const int ShortSMA = 5;
+    private const int MediumSMA = 20;
+    private const int LongSMA = 50;
+    private const int ShortEMA = 12;
+    private const int LongEMA = 26;
+    private const int ShortVolatility = 10;
+    private const int MediumVolatility = 20;
+    private const int ATRPeriod = 14;
+    private const int RSIPeriod = 14;
+    private const int ReturnsShort = 1;
+    private const int CacheExpiredMinutes = 10;
+    
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
     private readonly ConcurrentDictionary<string, StreamingAggregator> _aggregators = new();
@@ -122,7 +135,7 @@ public class StreamingFeatureEngineering : IDisposable
             if (_featureCaches.TryGetValue(symbol, out var cache))
             {
                 // Trigger feature recalculation
-                cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-10));
+                cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-CacheExpiredMinutes));
             }
         }
         catch (Exception ex)
@@ -146,16 +159,16 @@ public class StreamingFeatureEngineering : IDisposable
         features["volume"] = currentData.Volume;
 
         // Moving averages (streaming calculation)
-        features["sma_5"] = aggregator.GetSMA(5);
-        features["sma_20"] = aggregator.GetSMA(20);
+        features["sma_5"] = aggregator.GetSMA(ShortSMA);
+        features["sma_20"] = aggregator.GetSMA(MediumSMA);
         features["sma_50"] = aggregator.GetSMA(DefaultBatchSize);
-        features["ema_12"] = aggregator.GetEMA(12);
-        features["ema_26"] = aggregator.GetEMA(26);
+        features["ema_12"] = aggregator.GetEMA(ShortEMA);
+        features["ema_26"] = aggregator.GetEMA(LongEMA);
 
         // Volatility features
-        features["volatility_10"] = await aggregator.GetVolatilityAsync(10, cancellationToken).ConfigureAwait(false);
-        features["volatility_20"] = await aggregator.GetVolatilityAsync(20, cancellationToken).ConfigureAwait(false);
-        features["atr_14"] = await aggregator.GetATRAsync(14, cancellationToken).ConfigureAwait(false);
+        features["volatility_10"] = await aggregator.GetVolatilityAsync(ShortVolatility, cancellationToken).ConfigureAwait(false);
+        features["volatility_20"] = await aggregator.GetVolatilityAsync(MediumVolatility, cancellationToken).ConfigureAwait(false);
+        features["atr_14"] = await aggregator.GetATRAsync(ATRPeriod, cancellationToken).ConfigureAwait(false);
 
         // Price ratios and differences
         if (features["sma_20"] > 0)
@@ -168,21 +181,21 @@ public class StreamingFeatureEngineering : IDisposable
         }
 
         // Momentum features
-        features["rsi_14"] = await aggregator.GetRSIAsync(14, cancellationToken).ConfigureAwait(false);
+        features["rsi_14"] = await aggregator.GetRSIAsync(RSIPeriod, cancellationToken).ConfigureAwait(false);
         features["macd"] = features["ema_12"] - features["ema_26"];
         features["macd_signal"] = await aggregator.GetMACDSignalAsync(cancellationToken).ConfigureAwait(false);
 
         // Volume features
-        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(20, cancellationToken).ConfigureAwait(false);
+        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(MediumSMA, cancellationToken).ConfigureAwait(false);
         if (features["volume_sma_20"] > 0)
         {
             features["volume_ratio"] = features["volume"] / features["volume_sma_20"];
         }
 
         // Returns and changes
-        features["returns_1"] = await aggregator.GetReturnsAsync(1, cancellationToken).ConfigureAwait(false);
-        features["returns_5"] = await aggregator.GetReturnsAsync(5, cancellationToken).ConfigureAwait(false);
-        features["returns_20"] = await aggregator.GetReturnsAsync(20, cancellationToken).ConfigureAwait(false);
+        features["returns_1"] = await aggregator.GetReturnsAsync(ReturnsShort, cancellationToken).ConfigureAwait(false);
+        features["returns_5"] = await aggregator.GetReturnsAsync(ShortSMA, cancellationToken).ConfigureAwait(false);
+        features["returns_20"] = await aggregator.GetReturnsAsync(MediumSMA, cancellationToken).ConfigureAwait(false);
 
         return features;
     }
