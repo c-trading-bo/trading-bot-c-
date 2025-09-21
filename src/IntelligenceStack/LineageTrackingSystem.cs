@@ -59,13 +59,29 @@ public class LineageTrackingSystem
             {
                 SnapshotId = snapshotId,
                 Timestamp = DateTime.UtcNow,
-                ModelVersions = await GetCurrentModelVersionsAsync(cancellationToken),
                 FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken),
-                CalibrationMaps = await GetCurrentCalibrationMapsAsync(cancellationToken),
                 ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken),
-                SystemComponents = await GetSystemComponentVersionsAsync(cancellationToken),
                 EnvironmentInfo = GetEnvironmentInfo()
-            }.ConfigureAwait(false);
+            };
+
+            // Populate read-only dictionaries
+            var modelVersions = await GetCurrentModelVersionsAsync(cancellationToken);
+            foreach (var kvp in modelVersions)
+            {
+                snapshot.ModelVersions[kvp.Key] = kvp.Value;
+            }
+
+            var calibrationMaps = await GetCurrentCalibrationMapsAsync(cancellationToken);
+            foreach (var kvp in calibrationMaps)
+            {
+                snapshot.CalibrationMaps[kvp.Key] = kvp.Value;
+            }
+
+            var systemComponents = await GetSystemComponentVersionsAsync(cancellationToken);
+            foreach (var kvp in systemComponents)
+            {
+                snapshot.SystemComponents[kvp.Key] = kvp.Value;
+            }
 
             // Store snapshot
             lock (_lock)
@@ -114,28 +130,35 @@ public class LineageTrackingSystem
                     RegimeTransitionId = GetRegimeTransitionId(decision)
                 },
                 ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken),
-                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken),
-                ProcessingChain = await GetProcessingChainAsync(decision, cancellationToken)
-            }.ConfigureAwait(false);
+                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken)
+            };
+
+            // Populate read-only ProcessingChain
+            var processingChain = await GetProcessingChainAsync(decision, cancellationToken);
+            foreach (var step in processingChain)
+            {
+                stamp.ProcessingChain.Add(step);
+            }
 
             // Record lineage event
-            await RecordLineageEventAsync(new LineageEvent
+            var lineageEvent = new LineageEvent
             {
                 EventId = Guid.NewGuid().ToString(),
                 EventType = LineageEventType.DecisionStamped,
                 Timestamp = DateTime.UtcNow,
                 EntityId = decisionId,
-                EntityType = "decision",
-                Properties = new Dictionary<string, object>
-                {
-                    ["model_id"] = decision.ModelId,
-                    ["model_version"] = stamp.ModelRegistryVersion,
-                    ["feature_version"] = stamp.FeatureStoreVersion,
-                    ["calibration_map"] = stamp.CalibrationMapId,
-                    ["regime"] = decision.Regime.ToString(),
-                    ["symbol"] = decision.Symbol
-                }
-            }, cancellationToken).ConfigureAwait(false);
+                EntityType = "decision"
+            };
+            
+            // Populate read-only Properties dictionary
+            lineageEvent.Properties["model_id"] = decision.ModelId;
+            lineageEvent.Properties["model_version"] = stamp.ModelRegistryVersion;
+            lineageEvent.Properties["feature_version"] = stamp.FeatureStoreVersion;
+            lineageEvent.Properties["calibration_map"] = stamp.CalibrationMapId;
+            lineageEvent.Properties["regime"] = decision.Regime.ToString();
+            lineageEvent.Properties["symbol"] = decision.Symbol;
+            
+            await RecordLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
 
             // Store decision with lineage
             await SaveDecisionLineageAsync(decisionId, decision, stamp, cancellationToken).ConfigureAwait(false);

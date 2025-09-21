@@ -490,7 +490,7 @@ public class RLAdvisorSystem
                 _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence").ConfigureAwait(false);
                 
                 var totalEdgeBps = 0.0;
-                var validAgents;
+                var validAgents = 0;
                 
                 foreach (var (agentKey, tracker) in _performanceTrackers)
                 {
@@ -848,7 +848,7 @@ public class RLAdvisorSystem
         };
         
         var totalReward = 0.0;
-        var processedEpisodes;
+        var processedEpisodes = 0;
         
         foreach (var episode in episodes)
         {
@@ -954,10 +954,10 @@ public class RLAgent
         else
         {
             // Exploitation - choose best action
-            var bestAction;
+            var bestAction = 0;
             var bestValue = double.MinValue;
             
-            for (int i; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 var actionKey = $"{stateKey}_{i}";
                 var value = _qTable.GetValueOrDefault(actionKey, 0.0);

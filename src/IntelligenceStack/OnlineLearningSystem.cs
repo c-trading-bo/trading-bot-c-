@@ -324,7 +324,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         if (baseline.Count == 0) return 0.0;
         
         var score = 0.0;
-        var featureCount;
+        var featureCount = 0;
         
         foreach (var key in baseline.Keys)
         {

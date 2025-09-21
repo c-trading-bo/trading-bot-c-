@@ -479,7 +479,7 @@ public class MamlLiveIntegration
         if (examples.Count == 0) return 0.0;
         
         // Simplified performance calculation - in production would use actual model evaluation
-        var correctPredictions;
+        var correctPredictions = 0;
         
         foreach (var example in examples)
         {

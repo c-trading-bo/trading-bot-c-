@@ -158,10 +158,10 @@ public class NightlyParameterTuner
         
         var bestParameters = new Dictionary<string, double>(baseline);
         var bestMetrics = result.BaselineMetrics;
-        var noImprovementCount;
+        var noImprovementCount = 0;
 
         // Bayesian optimization loop
-        for (int trial; trial < _config.Trials && noImprovementCount < _config.EarlyStopNoImprove; trial++)
+        for (int trial = 0; trial < _config.Trials && noImprovementCount < _config.EarlyStopNoImprove; trial++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -668,8 +668,8 @@ public class NightlyParameterTuner
     private bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
     {
         // Multi-objective comparison - candidate must be better in majority of metrics
-        var improvements;
-        var total;
+        var improvements = 0;
+        var total = 0;
         
         if (candidate.AUC > baseline.AUC) improvements++; total++;
         if (candidate.PrAt10 > baseline.PrAt10) improvements++; total++;
