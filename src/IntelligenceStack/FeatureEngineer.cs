@@ -220,7 +220,7 @@ public class FeatureEngineer : IDisposable
             // Calculate adaptive weights based on importance scores
             foreach (var (featureName, importance) in importanceScores)
             {
-                double weight;
+                double weight = 0;
                 
                 if (importance < _importanceThreshold)
                 {

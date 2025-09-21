@@ -237,7 +237,7 @@ public class NightlyParameterTuner
         var bestParameters = bestIndividual.Parameters;
 
         // Evolution loop
-        for (int generation; generation < generations; generation++)
+        for (int generation = 0; generation < generations; generation++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -534,7 +534,7 @@ public class NightlyParameterTuner
         var population = new List<Individual>();
         var paramSpace = GetParameterSpace();
         
-        for (int i; i < populationSize; i++)
+        for (int i = 0; i < populationSize; i++)
         {
             var parameters = new Dictionary<string, double>();
             foreach (var (paramName, range) in paramSpace)

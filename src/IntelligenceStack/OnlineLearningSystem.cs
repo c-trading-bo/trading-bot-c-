@@ -136,7 +136,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
         try
         {
-            bool shouldRollback;
+            bool shouldRollback = false;
             string? modelToRollback = null;
             lock (_lock)
             {

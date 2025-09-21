@@ -738,7 +738,7 @@ public class RLAdvisorSystem
         {
             var windows = new List<EpisodeWindow>().ConfigureAwait(false);
             
-            for (int i; i < marketData.Count - 240; i += 120) // 2-hour overlap
+            for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
                 var startIndex = i;
                 var endIndex = Math.Min(i + 240, marketData.Count - 1); // 4 hours of 1-min data
@@ -807,7 +807,7 @@ public class RLAdvisorSystem
     private RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
     {
         var priceChange = next.Price - current.Price;
-        int actionType;
+        int actionType = 0;
         if (priceChange > 0)
             actionType = 1; // Buy
         else if (priceChange < 0)
@@ -942,8 +942,8 @@ public class RLAgent
         // Simplified Q-learning action selection
         var stateKey = string.Join(",", state.Select(s => Math.Round(s, 2)));
         
-        int actionType;
-        double confidence;
+        int actionType = 0;
+        double confidence = 0;
         
         if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < ExplorationRate * 100)
         {
@@ -1005,7 +1005,7 @@ public class RLAgent
         var nextStateKey = string.Join(",", nextState.Select(s => Math.Round(s, 2)));
         var maxNextQ = 0.0;
         
-        for (int i; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             var nextActionKey = $"{nextStateKey}_{i}";
             maxNextQ = Math.Max(maxNextQ, _qTable.GetValueOrDefault(nextActionKey, 0.0));

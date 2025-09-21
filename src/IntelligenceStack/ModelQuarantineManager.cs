@@ -246,7 +246,7 @@ public class ModelQuarantineManager : IQuarantineManager
     {
         try
         {
-            bool shouldQuarantine;
+            bool shouldQuarantine = false;
             lock (_lock)
             {
                 if (!_modelHealth.TryGetValue(modelId, out var healthState))

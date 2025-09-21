@@ -1054,7 +1054,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         const int maxRetries = 3;
         var baseDelay = TimeSpan.FromSeconds(1);
 
-        for (int attempt; attempt < maxRetries; attempt++)
+        for (int attempt = 0; attempt < maxRetries; attempt++)
         {
             try
             {
