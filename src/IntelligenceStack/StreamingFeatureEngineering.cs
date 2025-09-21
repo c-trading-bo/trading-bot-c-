@@ -131,7 +131,7 @@ public class StreamingFeatureEngineering : IDisposable
     /// <summary>
     /// Calculate streaming features from aggregated data
     /// </summary>
-    private async Task<Dictionary<string, double>> CalculateStreamingFeaturesAsync(
+    private static async Task<Dictionary<string, double>> CalculateStreamingFeaturesAsync(
         StreamingAggregator aggregator, 
         MarketData currentData, 
         CancellationToken cancellationToken)
@@ -408,7 +408,7 @@ public class StreamingAggregator
 
                 return trueRanges.Average();
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<double> GetRSIAsync(int period, CancellationToken cancellationToken)

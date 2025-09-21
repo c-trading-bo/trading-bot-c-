@@ -166,7 +166,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         }
     }
 
-    private CalibrationMap FitPlattCalibration(string modelId, List<CalibrationPoint> points)
+    private static CalibrationMap FitPlattCalibration(string modelId, List<CalibrationPoint> points)
     {
         // Simplified Platt calibration (sigmoid fitting)
         // In production, would use proper logistic regression
@@ -206,7 +206,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         return calibrationMap;
     }
 
-    private CalibrationMap FitIsotonicCalibration(string modelId, List<CalibrationPoint> points)
+    private static CalibrationMap FitIsotonicCalibration(string modelId, List<CalibrationPoint> points)
     {
         // Simplified isotonic regression
         // In production, would use proper isotonic regression algorithm
@@ -325,7 +325,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         return sum / points.Sum(p => p.Weight);
     }
 
-    private CalibrationMap CreateDefaultCalibrationMap(string modelId)
+    private static CalibrationMap CreateDefaultCalibrationMap(string modelId)
     {
         var calibrationMap = new CalibrationMap
         {

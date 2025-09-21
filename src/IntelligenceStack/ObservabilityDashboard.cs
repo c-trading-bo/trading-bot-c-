@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -186,17 +187,17 @@ public class ObservabilityDashboard : IDisposable
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
-        var ensembleWeights = new EnsembleWeightsDashboard
+        var ensembleWeights = new EnsembleWeightsDashboard();
+        
+        // Populate the regime head weights dictionary
+        foreach (var kvp in ensembleStatus.RegimeHeadStatus)
         {
-            RegimeHeadWeights = ensembleStatus.RegimeHeadStatus.ToDictionary(
-                kvp => kvp.Key.ToString(),
-                kvp => new Dictionary<string, double>
-                {
-                    ["validation_score"] = kvp.Value.ValidationScore,
-                    ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
-                }
-            )
-        };
+            ensembleWeights.RegimeHeadWeights[kvp.Key.ToString()] = new Dictionary<string, double>
+            {
+                ["validation_score"] = kvp.Value.ValidationScore,
+                ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
+            };
+        }
         
         // Add current regime weights to the read-only dictionary
         foreach (var kvp in ensembleStatus.ActiveModels)
@@ -362,36 +363,46 @@ public class ObservabilityDashboard : IDisposable
         
         var healthReport = _quarantine.GetHealthReport();
         
-        return new ModelHealthDashboard
+        var dashboard = new ModelHealthDashboard
         {
             TotalModels = healthReport.TotalModels,
             HealthyModels = healthReport.HealthyModels,
             WatchModels = healthReport.WatchModels,
             DegradeModels = healthReport.DegradeModels,
-            QuarantinedModels = healthReport.QuarantinedModels,
-            ModelDetails = healthReport.ModelDetails.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new ModelHealthView
-                {
-                    State = kvp.Value.State.ToString(),
-                    LastChecked = kvp.Value.LastChecked,
-                    AverageBrierScore = kvp.Value.AverageBrierScore,
-                    AverageHitRate = kvp.Value.AverageHitRate,
-                    BlendWeight = kvp.Value.BlendWeight,
-                    ShadowDecisions = kvp.Value.ShadowDecisions
-                }
-            ),
-            QuarantineTimeline = GetRecentMetrics("quarantine_events")
-                .TakeLast(20)
-                .Select(m => new QuarantineEvent
-                {
-                    Timestamp = m.Timestamp,
-                    ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
-                    Action = m.Tags.GetValueOrDefault("action", "unknown"),
-                    Reason = m.Tags.GetValueOrDefault("reason", "")
-                })
-                .ToList()
+            QuarantinedModels = healthReport.QuarantinedModels
         };
+        
+        // Populate the model details dictionary
+        foreach (var kvp in healthReport.ModelDetails)
+        {
+            dashboard.ModelDetails[kvp.Key] = new ModelHealthView
+            {
+                State = kvp.Value.State.ToString(),
+                LastChecked = kvp.Value.LastChecked,
+                AverageBrierScore = kvp.Value.AverageBrierScore,
+                AverageHitRate = kvp.Value.AverageHitRate,
+                BlendWeight = kvp.Value.BlendWeight,
+                ShadowDecisions = kvp.Value.ShadowDecisions
+            };
+        }
+        
+        // Populate the quarantine timeline
+        var quarantineEvents = GetRecentMetrics("quarantine_events")
+            .TakeLast(20)
+            .Select(m => new QuarantineEvent
+            {
+                Timestamp = m.Timestamp,
+                ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
+                Action = m.Tags.GetValueOrDefault("action", "unknown"),
+                Reason = m.Tags.GetValueOrDefault("reason", "")
+            });
+            
+        foreach (var evt in quarantineEvents)
+        {
+            dashboard.QuarantineTimeline.Add(evt);
+        }
+        
+        return dashboard;
     }
 
     /// <summary>
@@ -442,33 +453,43 @@ public class ObservabilityDashboard : IDisposable
         var recentMetricsTask = Task.Run(() => GetRecentMetrics("rl_decisions"), cancellationToken);
         var recentMetrics = await recentMetricsTask.ConfigureAwait(false);
         
-        return new RLAdvisorDashboard
+        var dashboard = new RLAdvisorDashboard
         {
             Enabled = rlStatus.Enabled,
-            OrderInfluenceEnabled = rlStatus.OrderInfluenceEnabled,
-            AgentPerformance = rlStatus.AgentStates.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new RLAgentPerformance
-                {
-                    ShadowDecisions = kvp.Value.ShadowDecisions,
-                    EdgeBps = kvp.Value.EdgeBps,
-                    SharpeRatio = kvp.Value.SharpeRatio,
-                    IsEligibleForLive = kvp.Value.IsEligibleForLive,
-                    ExplorationRate = kvp.Value.ExplorationRate
-                }
-            ),
-            RecentDecisions = recentMetrics
-                .TakeLast(50)
-                .Select(m => new RLDecisionView
-                {
-                    Timestamp = m.Timestamp,
-                    Symbol = m.Tags.GetValueOrDefault("symbol", "unknown"),
-                    Action = m.Tags.GetValueOrDefault("action", "unknown"),
-                    Confidence = m.Value,
-                    IsAdviseOnly = m.Tags.GetValueOrDefault("advise_only", "true") == "true"
-                })
-                .ToList()
+            OrderInfluenceEnabled = rlStatus.OrderInfluenceEnabled
         };
+        
+        // Populate the agent performance dictionary
+        foreach (var kvp in rlStatus.AgentStates)
+        {
+            dashboard.AgentPerformance[kvp.Key] = new RLAgentPerformance
+            {
+                ShadowDecisions = kvp.Value.ShadowDecisions,
+                EdgeBps = kvp.Value.EdgeBps,
+                SharpeRatio = kvp.Value.SharpeRatio,
+                IsEligibleForLive = kvp.Value.IsEligibleForLive,
+                ExplorationRate = kvp.Value.ExplorationRate
+            };
+        }
+        
+        // Populate the recent decisions list
+        var recentDecisions = recentMetrics
+            .TakeLast(50)
+            .Select(m => new RLDecisionView
+            {
+                Timestamp = m.Timestamp,
+                Symbol = m.Tags.GetValueOrDefault("symbol", "unknown"),
+                Action = m.Tags.GetValueOrDefault("action", "unknown"),
+                Confidence = m.Value,
+                IsAdviseOnly = m.Tags.GetValueOrDefault("advise_only", "true") == "true"
+            });
+            
+        foreach (var decision in recentDecisions)
+        {
+            dashboard.RecentDecisions.Add(decision);
+        }
+        
+        return dashboard;
     }
 
     /// <summary>
@@ -483,29 +504,45 @@ public class ObservabilityDashboard : IDisposable
         var regimeStatesTask = Task.Run(() => 
             mamlStatus.RegimeStates.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new MamlRegimeView
+                kvp => 
                 {
-                    LastAdaptation = kvp.Value.LastAdaptation,
-                    AdaptationCount = kvp.Value.AdaptationCount,
-                    RecentPerformanceGain = kvp.Value.RecentPerformanceGain,
-                    IsStable = kvp.Value.IsStable,
-                    CurrentWeights = kvp.Value.CurrentWeights
+                    var view = new MamlRegimeView
+                    {
+                        LastAdaptation = kvp.Value.LastAdaptation,
+                        AdaptationCount = kvp.Value.AdaptationCount,
+                        RecentPerformanceGain = kvp.Value.RecentPerformanceGain,
+                        IsStable = kvp.Value.IsStable
+                    };
+                    
+                    // Populate the current weights dictionary
+                    foreach (var weightKvp in kvp.Value.CurrentWeights)
+                    {
+                        view.CurrentWeights[weightKvp.Key] = weightKvp.Value;
+                    }
+                    
+                    return view;
                 }
             ), cancellationToken);
         
         var regimeAdaptations = await regimeStatesTask.ConfigureAwait(false);
         
-        return new MamlStatusDashboard
+        var dashboard = new MamlStatusDashboard
         {
             Enabled = mamlStatus.Enabled,
-            LastUpdate = mamlStatus.LastUpdate,
-            RegimeAdaptations = regimeAdaptations,
-            WeightBounds = new Dictionary<string, double>
-            {
-                ["max_change_pct"] = mamlStatus.MaxWeightChangePct,
-                ["rollback_multiplier"] = mamlStatus.RollbackMultiplier
-            }
+            LastUpdate = mamlStatus.LastUpdate
         };
+        
+        // Populate the regime adaptations dictionary
+        foreach (var kvp in regimeAdaptations)
+        {
+            dashboard.RegimeAdaptations[kvp.Key] = kvp.Value;
+        }
+        
+        // Populate the weight bounds dictionary
+        dashboard.WeightBounds["max_change_pct"] = mamlStatus.MaxWeightChangePct;
+        dashboard.WeightBounds["rollback_multiplier"] = mamlStatus.RollbackMultiplier;
+        
+        return dashboard;
     }
 
     private void StartDashboardUpdates()
@@ -595,12 +632,22 @@ public class ObservabilityDashboard : IDisposable
                 _metrics[name] = new MetricTimeSeries { Name = name };
             }
             
-            _metrics[name].Points.Add(new MetricPoint
+            var point = new MetricPoint
             {
                 Timestamp = timestamp,
-                Value = value,
-                Tags = tags ?? new Dictionary<string, string>()
-            });
+                Value = value
+            };
+            
+            // Populate tags if provided
+            if (tags != null)
+            {
+                foreach (var kvp in tags)
+                {
+                    point.Tags[kvp.Key] = kvp.Value;
+                }
+            }
+            
+            _metrics[name].Points.Add(point);
             
             // Keep only recent points
             if (_metrics[name].Points.Count > 10000)
@@ -765,7 +812,7 @@ public class RegimeTimeline
     public string PreviousRegime { get; set; } = string.Empty;
     public bool InTransition { get; set; }
     public DateTime TransitionStartTime { get; set; }
-    public List<RegimeChange> RecentChanges { get; } = new();
+    public Collection<RegimeChange> RecentChanges { get; } = new();
     public Dictionary<string, double> RegimeDistribution { get; } = new();
 }
 
@@ -781,8 +828,8 @@ public class RegimeChange
 public class EnsembleWeightsDashboard
 {
     public Dictionary<string, double> CurrentRegimeWeights { get; } = new();
-    public Dictionary<string, Dictionary<string, double>> RegimeHeadWeights { get; set; } = new();
-    public List<WeightChange> WeightChangesOverTime { get; } = new();
+    public Dictionary<string, Dictionary<string, double>> RegimeHeadWeights { get; } = new();
+    public Collection<WeightChange> WeightChangesOverTime { get; } = new();
 }
 
 public class WeightChange
@@ -818,14 +865,14 @@ public class DrawdownForecast
     public double CurrentDrawdownPct { get; set; }
     public double MaxDrawdownPct { get; set; }
     public double ForecastedMaxDrawdown { get; set; }
-    public double[] ConfidenceInterval95 { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> ConfidenceInterval95 { get; set; } = Array.Empty<double>();
     public TimeSpan RecoveryTimeEstimate { get; set; }
     public string RiskLevel { get; set; } = string.Empty;
 }
 
 public class SafetyEventsDashboard
 {
-    public List<SafetyEvent> RecentEvents { get; } = new();
+    public Collection<SafetyEvent> RecentEvents { get; } = new();
     public Dictionary<string, int> EventCounts { get; } = new();
     public int CriticalEvents { get; set; }
     public int WarningEvents { get; set; }
@@ -848,7 +895,7 @@ public class ModelHealthDashboard
     public int DegradeModels { get; set; }
     public int QuarantinedModels { get; set; }
     public Dictionary<string, ModelHealthView> ModelDetails { get; } = new();
-    public List<QuarantineEvent> QuarantineTimeline { get; } = new();
+    public Collection<QuarantineEvent> QuarantineTimeline { get; } = new();
 }
 
 public class ModelHealthView
@@ -889,7 +936,7 @@ public class RLAdvisorDashboard
     public bool Enabled { get; set; }
     public bool OrderInfluenceEnabled { get; set; }
     public Dictionary<string, RLAgentPerformance> AgentPerformance { get; } = new();
-    public List<RLDecisionView> RecentDecisions { get; } = new();
+    public Collection<RLDecisionView> RecentDecisions { get; } = new();
 }
 
 public class RLAgentPerformance
@@ -930,7 +977,7 @@ public class MamlRegimeView
 public class MetricTimeSeries
 {
     public string Name { get; set; } = string.Empty;
-    public List<MetricPoint> Points { get; } = new();
+    public Collection<MetricPoint> Points { get; } = new();
 }
 
 public class MetricPoint

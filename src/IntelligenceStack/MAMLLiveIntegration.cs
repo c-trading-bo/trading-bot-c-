@@ -264,22 +264,21 @@ public class MamlLiveIntegration
             {
                 state = new MamlModelState
                 {
-                    RegimeKey = regimeKey,
-                    CurrentWeights = new Dictionary<string, double>
-                    {
-                        ["strategy_1"] = 1.0,
-                        ["strategy_2"] = 1.0,
-                        ["strategy_3"] = 1.0
-                    },
-                    BaselineWeights = new Dictionary<string, double>
-                    {
-                        ["strategy_1"] = 1.0,
-                        ["strategy_2"] = 1.0,
-                        ["strategy_3"] = 1.0
-                    },
-                    LastAdaptation = DateTime.MinValue,
-                    IsStable = true
+                    RegimeKey = regimeKey
                 };
+                
+                // Populate the current weights
+                state.CurrentWeights["strategy_1"] = 1.0;
+                state.CurrentWeights["strategy_2"] = 1.0;
+                state.CurrentWeights["strategy_3"] = 1.0;
+                
+                // Populate the baseline weights
+                state.BaselineWeights["strategy_1"] = 1.0;
+                state.BaselineWeights["strategy_2"] = 1.0;
+                state.BaselineWeights["strategy_3"] = 1.0;
+                
+                state.LastAdaptation = DateTime.MinValue;
+                state.IsStable = true;
                 _modelStates[regimeKey] = state;
             }
             return state;
@@ -307,9 +306,8 @@ public class MamlLiveIntegration
             var step = new AdaptationStep
             {
                 Timestamp = DateTime.UtcNow,
-                ExampleCount = examples.Count,
-                WeightChanges = new Dictionary<string, double>()
-        };
+                ExampleCount = examples.Count
+            };
 
         // Calculate performance on current weights
         var currentPerformance = CalculatePerformance(examples, modelState.CurrentWeights);
@@ -369,7 +367,6 @@ public class MamlLiveIntegration
         {
             Timestamp = step.Timestamp,
             ExampleCount = step.ExampleCount,
-            WeightChanges = new Dictionary<string, double>(),
             PerformanceGain = step.PerformanceGain
         };
 
@@ -421,8 +418,12 @@ public class MamlLiveIntegration
             lock (_lock)
             {
                 // Reset to baseline weights
-                modelState.CurrentWeights = new Dictionary<string, double>(modelState.BaselineWeights).ConfigureAwait(false);
-                modelState.IsStable;
+                modelState.CurrentWeights.Clear();
+                foreach (var kvp in modelState.BaselineWeights)
+                {
+                    modelState.CurrentWeights[kvp.Key] = kvp.Value;
+                }
+                modelState.IsStable = true;
                 modelState.LastRollback = DateTime.UtcNow;
             }
 
@@ -445,7 +446,7 @@ public class MamlLiveIntegration
                 {
                     if (modelState.CurrentWeights.ContainsKey(key))
                     {
-                        modelState.CurrentWeights[key] += change.ConfigureAwait(false);
+                        modelState.CurrentWeights[key] += change;
                         
                         // Ensure weights stay in reasonable bounds
                         modelState.CurrentWeights[key] = Math.Max(0.1, Math.Min(2.0, modelState.CurrentWeights[key]));
@@ -628,7 +629,7 @@ public class MamlLiveIntegration
     {
         try
         {
-            await Task.Yield().ConfigureAwait(false); // Placeholder for async operation
+            await Task.Yield(); // Placeholder for async operation
             
             // In a full implementation, this would integrate with:
             // 1. TopstepX market data API for recent regime-specific market conditions

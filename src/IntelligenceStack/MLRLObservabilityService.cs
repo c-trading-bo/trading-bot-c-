@@ -183,14 +183,20 @@ public class MlrlObservabilityService : IDisposable
             }
             else
             {
-                _metricsStorage[metricName] = new MetricValue
+                var metricValue = new MetricValue
                 {
                     Name = metricName,
                     Value = value,
                     Type = type,
-                    LastUpdated = DateTime.UtcNow,
-                    Samples = type == MetricType.Histogram ? new List<double> { value } : new List<double>()
+                    LastUpdated = DateTime.UtcNow
                 };
+                
+                if (type == MetricType.Histogram)
+                {
+                    metricValue.Samples.Add(value);
+                }
+                
+                _metricsStorage[metricName] = metricValue;
             }
         }
     }

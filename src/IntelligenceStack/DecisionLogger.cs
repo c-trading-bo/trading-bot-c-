@@ -152,7 +152,7 @@ public class DecisionLogger : IDecisionLogger
         }
     }
 
-    private DecisionLogEntry CreateDecisionLogEntry(IntelligenceDecision decision)
+    private static DecisionLogEntry CreateDecisionLogEntry(IntelligenceDecision decision)
     {
         return new DecisionLogEntry
         {
@@ -295,7 +295,7 @@ public class DriftMonitor
         }
     }
 
-    private FeatureBaseline CreateBaseline(FeatureSet features)
+    private static FeatureBaseline CreateBaseline(FeatureSet features)
     {
         var baseline = new FeatureBaseline
         {

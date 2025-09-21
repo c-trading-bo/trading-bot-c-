@@ -357,7 +357,7 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Calculate marginal contribution of a feature for SHAP approximation
     /// </summary>
-    private async Task<double> CalculateMarginalContributionAsync(
+    private static async Task<double> CalculateMarginalContributionAsync(
         FeatureImportanceTracker tracker,
         string featureName,
         double featureValue,

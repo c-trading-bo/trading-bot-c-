@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -310,10 +311,15 @@ public class NightlyParameterTuner
             {
                 ModelFamily = modelFamily,
                 SessionId = Guid.NewGuid().ToString(),
-                StartTime = DateTime.UtcNow,
-                ParameterSpace = GetParameterSpace(),
-                TrialHistory = new List<TrialResult>()
+                StartTime = DateTime.UtcNow
             };
+            
+            // Populate the parameter space
+            var parameterSpace = GetParameterSpace();
+            foreach (var kvp in parameterSpace)
+            {
+                newSession.ParameterSpace[kvp.Key] = kvp.Value;
+            }
 
             lock (_lock)
             {
@@ -327,7 +333,7 @@ public class NightlyParameterTuner
         await Task.Run(async () =>
         {
             // Prepare session workspace directory
-            var sessionDir = Path.Combine(_statePath, "sessions", session.SessionId).ConfigureAwait(false);
+            var sessionDir = Path.Combine(_statePath, "sessions", session.SessionId);
             Directory.CreateDirectory(sessionDir);
             
             // Save session metadata
@@ -405,7 +411,7 @@ public class NightlyParameterTuner
                 var bestResult = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.BestMetrics?.AUC ?? 0)
-                    .FirstOrDefault().ConfigureAwait(false);
+                    .FirstOrDefault();
 
                 return bestResult?.BestParameters;
             }
@@ -420,7 +426,7 @@ public class NightlyParameterTuner
             try
             {
                 // Load from model registry
-                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json").ConfigureAwait(false);
+                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
                 if (File.Exists(configPath))
                 {
                     var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
@@ -455,7 +461,7 @@ public class NightlyParameterTuner
                 ["dropout_rate"] = 0.1,
                 ["l2_regularization"] = 1e-4,
                 ["ensemble_size"] = 5
-            }.ConfigureAwait(false);
+            };
 
             // Adjust defaults based on model family characteristics
             if (modelFamily.Contains("LSTM", StringComparison.OrdinalIgnoreCase))
@@ -566,12 +572,19 @@ public class NightlyParameterTuner
             
             var metrics = await EvaluateParametersAsync(modelFamily, parameters, cancellationToken).ConfigureAwait(false);
             
-            population.Add(new Individual
+            var individual = new Individual
             {
-                Parameters = parameters,
                 Metrics = metrics,
                 Fitness = CalculateFitness(metrics)
-            });
+            };
+            
+            // Populate parameters dictionary
+            foreach (var kvp in parameters)
+            {
+                individual.Parameters[kvp.Key] = kvp.Value;
+            }
+            
+            population.Add(individual);
         }
         
         return population;
@@ -621,7 +634,7 @@ public class NightlyParameterTuner
         {
             ParameterType.Uniform => range.Min + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (range.Max - range.Min),
             ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (Math.Log(range.Max) - Math.Log(range.Min))),
-            ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Length)],
+            ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Count)],
             _ => range.Min
         };
     }
@@ -641,7 +654,7 @@ public class NightlyParameterTuner
 
     private Individual Crossover(Individual parent1, Individual parent2)
     {
-        var offspring = new Individual { Parameters = new Dictionary<string, double>() };
+        var offspring = new Individual();
         
         foreach (var paramName in parent1.Parameters.Keys)
         {
@@ -661,10 +674,13 @@ public class NightlyParameterTuner
     private Individual Mutate(Individual individual)
     {
         var mutationRate = 0.1;
-        var mutated = new Individual 
-        { 
-            Parameters = new Dictionary<string, double>(individual.Parameters) 
-        };
+        var mutated = new Individual();
+        
+        // Copy parameters from the original individual
+        foreach (var kvp in individual.Parameters)
+        {
+            mutated.Parameters[kvp.Key] = kvp.Value;
+        }
         
         foreach (var paramName in mutated.Parameters.Keys.ToList())
         {
@@ -715,16 +731,15 @@ public class NightlyParameterTuner
             TrainingWindow = TimeSpan.FromDays(7),
             FeaturesVersion = "v1.0",
             Metrics = result.BestMetrics,
-            ModelData = new byte[1024], // Mock model data
-            Metadata = new Dictionary<string, object>
-            {
-                ["tuning_method"] = result.Method.ToString(),
-                ["trials_completed"] = result.TrialsCompleted,
-                ["baseline_auc"] = result.BaselineMetrics.AUC,
-                ["improved_auc"] = result.BestMetrics.AUC,
-                ["tuning_date"] = DateTime.UtcNow
-            }
+            ModelData = new byte[1024] // Mock model data
         };
+        
+        // Populate metadata dictionary
+        registration.Metadata["tuning_method"] = result.Method.ToString();
+        registration.Metadata["trials_completed"] = result.TrialsCompleted;
+        registration.Metadata["baseline_auc"] = result.BaselineMetrics.AUC;
+        registration.Metadata["improved_auc"] = result.BestMetrics.AUC;
+        registration.Metadata["tuning_date"] = DateTime.UtcNow;
 
         await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
     }
@@ -835,14 +850,13 @@ public class NightlyParameterTuner
                     var registration = new ModelRegistration
                     {
                         FamilyName = modelFamily,
-                        FeaturesVersion = "rollback",
-                        Metadata = new Dictionary<string, object>
-                        {
-                            ["parameters"] = parameters ?? new Dictionary<string, double>(),
-                            ["rollback_reason"] = "performance_degradation",
-                            ["rollback_timestamp"] = DateTime.UtcNow
-                        }
+                        FeaturesVersion = "rollback"
                     };
+                    
+                    // Populate metadata dictionary
+                    registration.Metadata["parameters"] = parameters ?? new Dictionary<string, double>();
+                    registration.Metadata["rollback_reason"] = "performance_degradation";
+                    registration.Metadata["rollback_timestamp"] = DateTime.UtcNow;
                     await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
                     
                     _logger.LogInformation("[NIGHTLY_TUNING] Restored stable parameters for {ModelFamily} from {BackupPath}", 
@@ -958,7 +972,7 @@ public class TuningSession
     public string ModelFamily { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public Dictionary<string, ParameterRange> ParameterSpace { get; } = new();
-    public List<TrialResult> TrialHistory { get; } = new();
+    public Collection<TrialResult> TrialHistory { get; } = new();
 }
 
 public class TrialResult
@@ -974,7 +988,7 @@ public class ParameterRange
     public double Min { get; set; }
     public double Max { get; set; }
     public ParameterType Type { get; set; }
-    public double[]? Categories { get; set; }
+    public IReadOnlyList<double>? Categories { get; set; }
 }
 
 public class Individual
@@ -994,7 +1008,7 @@ public class TuningResult
     public ModelMetrics? BestMetrics { get; set; }
     public int TrialsCompleted { get; set; }
     public bool RolledBack { get; set; }
-    public Dictionary<string, double>? BestParameters { get; set; }
+    public Dictionary<string, double>? BestParameters { get; }
 }
 
 public enum TuningMethod
