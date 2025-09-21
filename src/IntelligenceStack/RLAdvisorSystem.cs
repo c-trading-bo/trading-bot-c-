@@ -21,28 +21,16 @@ public class RLAdvisorSystem
 {
     // Constants for magic number violations (S109)
     private const int UpliftCheckHours = 24;
-    private const double PercentageNormalizer = 100.0;
-    private const double DefaultBollingerPosition = 0.5;
-    private const double TrendingIndicator = 1.0;
-    private const double NonTrendingIndicator = 0.0;
-    private const double HighConfidenceThreshold = 0.8;
-    private const double MediumConfidenceThreshold = 0.6;
-    private const double LowConfidenceThreshold = 0.4;
-    private const double MinimumUplift = 0.05;
-    private const double UpliftThreshold = 0.02;
-    private const int MinDecisionsForUplift = 100;
-    private const int HistoryWindowDays = 30;
-    private const double DefaultReward = 0.0;
-    private const double PenaltyMultiplier = -1.0;
-    private const double MaxReward = 1.0;
-    private const double MinReward = -1.0;
     private const int StateVectorSize = 8;
     private const int ActionSpaceSize = 3;
+    private const int ActionTypeCount = 4;
     private const double LearningRate = 0.0003;
     private const double DiscountFactor = 0.99;
     private const double ClipEpsilon = 0.2;
     private const int PPOEpochs = 10;
     private const int BatchSize = 64;
+    private const double MinExplorationProb = 0.01;
+    private const double MaxExplorationProb = 0.9999;
     private const double ValueLossCoeff = 0.5;
     private const double EntropyCoeff = 0.01;
     private const double CVaRAlpha = 0.05;
@@ -936,7 +924,7 @@ public class RLAgent
         if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, DefaultPercentage) < ExplorationRate * DefaultPercentage)
         {
             // Exploration
-            actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 4);
+            actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, ActionTypeCount);
             confidence = _config.ExplorationConfidence;
         }
         else
@@ -945,7 +933,7 @@ public class RLAgent
             var bestAction = 0;
             var bestValue = double.MinValue;
             
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < ActionTypeCount; i++)
             {
                 var actionKey = $"{stateKey}_{i}";
                 var value = _qTable.GetValueOrDefault(actionKey, 0.0);

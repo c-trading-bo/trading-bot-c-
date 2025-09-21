@@ -29,13 +29,6 @@ public class NightlyParameterTuner
     private const int MinEnsembleSize = 3;
     private const int MaxEnsembleSize = 10;
     
-    // Evolutionary algorithm constants
-    private const int DefaultPopulationSize = 20;
-    private const int DefaultGenerations = 10;
-    private const double DefaultMutationRate = 0.1;
-    private const double DefaultCrossoverRate = 0.8;
-    private const int TournamentSize = 3;
-    
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
     private readonly NetworkConfig _networkConfig;

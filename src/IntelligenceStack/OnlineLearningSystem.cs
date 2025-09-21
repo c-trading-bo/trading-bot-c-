@@ -748,7 +748,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculatePrecision(TradeRecord tradeRecord)
+    private static double CalculatePrecision(TradeRecord tradeRecord)
     {
         try
         {
@@ -763,7 +763,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateRecall(TradeRecord tradeRecord)
+    private static double CalculateRecall(TradeRecord tradeRecord)
     {
         try
         {

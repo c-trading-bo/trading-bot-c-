@@ -487,7 +487,7 @@ public class MamlLiveIntegration
         await _onlineLearning.UpdateWeightsAsync(regimeKey, modelState.CurrentWeights, cancellationToken).ConfigureAwait(false);
     }
 
-    private double CalculatePerformance(List<TrainingExample> examples, Dictionary<string, double> weights)
+    private static double CalculatePerformance(List<TrainingExample> examples, Dictionary<string, double> weights)
     {
         if (examples.Count == 0) return 0.0;
         
