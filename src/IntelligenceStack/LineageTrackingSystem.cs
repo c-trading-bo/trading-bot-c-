@@ -297,9 +297,15 @@ public class LineageTrackingSystem
                 LineageStamp = decisionLineage.LineageStamp,
                 ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken),
                 FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken),
-                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken),
-                RelatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken)
+                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken)
             };
+            
+            // Add related events to the read-only collection
+            var relatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken);
+            foreach (var evt in relatedEvents)
+            {
+                trace.RelatedEvents.Add(evt);
+            }
 
             return trace;
         }
@@ -329,16 +335,30 @@ public class LineageTrackingSystem
             ModelPromotions = events.Count(e => e.EventType == LineageEventType.ModelPromoted),
             FeatureStoreUpdates = events.Count(e => e.EventType == LineageEventType.FeatureStoreUpdated),
             CalibrationUpdates = events.Count(e => e.EventType == LineageEventType.CalibrationUpdated),
-            UniqueModels = events.Where(e => e.EntityType == "model").Select(e => e.EntityId).Distinct().Count(),
-            ModelVersionDistribution = events
-                .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString() ?? "unknown")
-                .ToDictionary(g => g.Key, g => g.Count()),
-            FeatureVersionDistribution = events
-                .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString() ?? "unknown")
-                .ToDictionary(g => g.Key, g => g.Count())
+            UniqueModels = events.Where(e => e.EntityType == "model").Select(e => e.EntityId).Distinct().Count()
         };
+        
+        // Add model version distribution to read-only dictionary
+        var modelVersionDistribution = events
+            .Where(e => e.EventType == LineageEventType.DecisionStamped)
+            .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString() ?? "unknown")
+            .ToDictionary(g => g.Key, g => g.Count());
+            
+        foreach (var kvp in modelVersionDistribution)
+        {
+            summary.ModelVersionDistribution[kvp.Key] = kvp.Value;
+        }
+        
+        // Add feature version distribution to read-only dictionary
+        var featureVersionDistribution = events
+            .Where(e => e.EventType == LineageEventType.DecisionStamped)
+            .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString() ?? "unknown")
+            .ToDictionary(g => g.Key, g => g.Count());
+            
+        foreach (var kvp in featureVersionDistribution)
+        {
+            summary.FeatureVersionDistribution[kvp.Key] = kvp.Value;
+        }
 
         return summary;
     }
