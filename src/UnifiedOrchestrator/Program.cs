@@ -461,7 +461,7 @@ Stack Trace:
         
         // Register TopstepX Python SDK adapter service for production trading FIRST (dependency for TradingOrchestratorService)
         services.Configure<TopstepXConfiguration>(configuration.GetSection("TopstepX"));
-        services.AddSingleton<ITopstepXAdapterService, TopstepXAdapterService>();
+        // ITopstepXAdapterService already registered above
         
         // Register REAL sophisticated orchestrators (NO DUPLICATES)
         services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
@@ -540,7 +540,6 @@ Stack Trace:
         
         // Register Production Readiness Validation Service for complete runtime proof
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IProductionReadinessValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
         
         // Register Production Demonstration Runner for PR review artifacts
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionDemonstrationRunner>();
@@ -608,7 +607,7 @@ Stack Trace:
         });
         
         // Register PositionTrackingSystem (379 lines) from Safety project
-        services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+        services.TryAddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
         
         // ================================================================================
         // COMPATIBILITY KIT SERVICES - PARAMETER LEARNING & CONFIGURATION
@@ -798,7 +797,7 @@ Stack Trace:
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
                     services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
                     // OrderFillConfirmationSystem already registered above with proper factory
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+                    // PositionTrackingSystem already registered above
                     services.TryAddSingleton<BotCore.Services.NewsIntelligenceEngine>();
                     services.TryAddSingleton<BotCore.Services.ZoneService>();
                     services.TryAddSingleton<BotCore.EnhancedTrainingDataService>();
@@ -831,8 +830,7 @@ Stack Trace:
         // Register the complete intelligence stack with all new features
         RegisterIntelligenceStackServices(services, configuration);
 
-        // Register the core unified trading brain
-        services.AddSingleton<BotCore.Brain.UnifiedTradingBrain>();
+        // Core unified trading brain already registered above
         
         // ================================================================================
         // ADVANCED ML/AI SERVICES REGISTRATION - ALL MACHINE LEARNING SYSTEMS  
@@ -840,8 +838,8 @@ Stack Trace:
         
         // Register advanced ML/AI system components using extension methods
         // Note: IMLMemoryManager already registered earlier in the service registration
-        services.AddSingleton<BotCore.Market.RedundantDataFeedManager>();
-        services.AddSingleton<BotCore.Market.IEconomicEventManager, BotCore.Market.EconomicEventManager>();
+        // RedundantDataFeedManager already registered above
+        // IEconomicEventManager already registered above
         
         // ================================================================================
         // PRODUCTION CVaR-PPO INTEGRATION - REAL RL POSITION SIZING
@@ -1006,8 +1004,8 @@ Stack Trace:
         services.AddSingleton<IntelligenceOrchestratorService>();
         services.AddSingleton<DataOrchestratorService>();
         services.AddSingleton<WorkflowSchedulerService>();
-        services.AddSingleton<WorkflowOrchestrationManager>();
-        services.AddSingleton<AdvancedSystemIntegrationService>();
+        // WorkflowOrchestrationManager already registered above
+        // AdvancedSystemIntegrationService already registered above
 
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
@@ -1042,8 +1040,8 @@ Stack Trace:
         }
         
         // Register distributed orchestrator components for sophisticated system
-        services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
-        services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
+        // IIntelligenceOrchestrator already registered above
+        // IDataOrchestrator already registered above
         services.AddSingleton<TradingBot.Abstractions.IWorkflowScheduler, WorkflowSchedulerService>();
         
         // Register Cloud Data Integration - Links 27 GitHub workflows to trading decisions

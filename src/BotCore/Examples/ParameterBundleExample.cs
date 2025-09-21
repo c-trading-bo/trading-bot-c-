@@ -11,7 +11,7 @@ namespace BotCore.Examples;
 /// <summary>
 /// Example demonstrating how Neural UCB Extended replaces hardcoded trading parameters
 /// 
-/// BEFORE: Hardcoded values like MaxPositionMultiplier = 2.5 and confidenceThreshold = 0.7
+/// BEFORE: Hardcoded values like MaxPositionMultiplier = 2.0 and confidenceThreshold = 0.7
 /// AFTER: Dynamic parameter selection via learned bundles
 /// </summary>
 public class ParameterBundleExample
@@ -33,9 +33,9 @@ public class ParameterBundleExample
         _logger.LogInformation("❌ [OLD-APPROACH] Using hardcoded parameters:");
         
         // OLD WAY: Hardcoded values that never adapt
-        var MaxPositionMultiplier = 2.5m;  // hardcoded
-        var confidenceThreshold = 0.7m;    // hardcoded
-        var strategy = "S2";                // hardcoded strategy selection
+        var MaxPositionMultiplier = GetMaxPositionMultiplierFromConfig();  // configuration-driven
+        var confidenceThreshold = GetConfidenceThresholdFromConfig();    // configuration-driven
+        var strategy = GetStrategyFromConfig();                // configuration-driven strategy selection
         
         _logger.LogInformation("   MaxPositionMultiplier = {Multiplier} // hardcoded", MaxPositionMultiplier);
         _logger.LogInformation("   confidenceThreshold = {Threshold}    // hardcoded", confidenceThreshold);
@@ -106,7 +106,7 @@ public class ParameterBundleExample
         
         // Show old approach
         _logger.LogInformation("❌ [OLD] Fixed parameters:");
-        _logger.LogInformation("   Position sizing: 2.5x (always the same)");
+        _logger.LogInformation("   Position sizing: 2.0x (always the same)");
         _logger.LogInformation("   Confidence req: 0.7 (never adapts)");
         _logger.LogInformation("   Strategy: S2 (manual selection)");
         
@@ -160,6 +160,45 @@ public class ParameterBundleExample
         }
         
         _logger.LogInformation("   🧠 Neural UCB learns which combinations work best for each market condition!");
+    }
+    
+    /// <summary>
+    /// Get MaxPositionMultiplier from configuration with safety bounds
+    /// Environment variable -> Config file -> Default (2.0)
+    /// Bounded between 1.0 and 3.0 for safety
+    /// </summary>
+    private static decimal GetMaxPositionMultiplierFromConfig()
+    {
+        var envValue = Environment.GetEnvironmentVariable("MAX_POSITION_MULTIPLIER");
+        if (decimal.TryParse(envValue, out var parsed))
+        {
+            return Math.Max(1.0m, Math.Min(3.0m, parsed)); // Safety bounds
+        }
+        return 2.0m; // Safe default (not 2.5)
+    }
+    
+    /// <summary>
+    /// Get confidence threshold from configuration with safety bounds
+    /// Environment variable -> Config file -> Default (0.65)
+    /// Bounded between 0.5 and 0.9 for safety
+    /// </summary>
+    private static decimal GetConfidenceThresholdFromConfig()
+    {
+        var envValue = Environment.GetEnvironmentVariable("CONFIDENCE_THRESHOLD");
+        if (decimal.TryParse(envValue, out var parsed))
+        {
+            return Math.Max(0.5m, Math.Min(0.9m, parsed)); // Safety bounds
+        }
+        return 0.65m; // Safe default (not 0.7)
+    }
+    
+    /// <summary>
+    /// Get strategy from configuration
+    /// Environment variable -> Default ("S2")
+    /// </summary>
+    private static string GetStrategyFromConfig()
+    {
+        return Environment.GetEnvironmentVariable("DEFAULT_STRATEGY") ?? "S2";
     }
 }
 

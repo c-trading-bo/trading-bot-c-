@@ -15,7 +15,7 @@ namespace BotCore.Bandits;
 /// strategy-parameter combinations (S2-1.3x-0.65, S3-1.0x-0.70, etc.)
 /// 
 /// This enables learning optimal parameters for each strategy rather than
-/// using hardcoded values like MaxPositionMultiplier = 2.5 and confidenceThreshold = 0.7
+/// using hardcoded values like MaxPositionMultiplier = 2.0 and confidenceThreshold = 0.7
 /// </summary>
 public class NeuralUcbExtended : IDisposable
 {
