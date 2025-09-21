@@ -61,25 +61,25 @@ public class LineageTrackingSystem
             {
                 SnapshotId = snapshotId,
                 Timestamp = DateTime.UtcNow,
-                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken),
-                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken),
+                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken).ConfigureAwait(false),
+                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken).ConfigureAwait(false),
                 EnvironmentInfo = GetEnvironmentInfo()
             };
 
             // Populate read-only dictionaries
-            var modelVersions = await GetCurrentModelVersionsAsync(cancellationToken);
+            var modelVersions = await GetCurrentModelVersionsAsync(cancellationToken).ConfigureAwait(false);
             foreach (var kvp in modelVersions)
             {
                 snapshot.ModelVersions[kvp.Key] = kvp.Value;
             }
 
-            var calibrationMaps = await GetCurrentCalibrationMapsAsync(cancellationToken);
+            var calibrationMaps = await GetCurrentCalibrationMapsAsync(cancellationToken).ConfigureAwait(false);
             foreach (var kvp in calibrationMaps)
             {
                 snapshot.CalibrationMaps[kvp.Key] = kvp.Value;
             }
 
-            var systemComponents = await GetSystemComponentVersionsAsync(cancellationToken);
+            var systemComponents = await GetSystemComponentVersionsAsync(cancellationToken).ConfigureAwait(false);
             foreach (var kvp in systemComponents)
             {
                 snapshot.SystemComponents[kvp.Key] = kvp.Value;
@@ -136,7 +136,7 @@ public class LineageTrackingSystem
             };
 
             // Populate read-only ProcessingChain
-            var processingChain = await GetProcessingChainAsync(decision, cancellationToken);
+            var processingChain = await GetProcessingChainAsync(decision, cancellationToken).ConfigureAwait(false);
             foreach (var step in processingChain)
             {
                 stamp.ProcessingChain.Add(step);
@@ -302,7 +302,7 @@ public class LineageTrackingSystem
             };
             
             // Add related events to the read-only collection
-            var relatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken);
+            var relatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken).ConfigureAwait(false);
             foreach (var evt in relatedEvents)
             {
                 trace.RelatedEvents.Add(evt);

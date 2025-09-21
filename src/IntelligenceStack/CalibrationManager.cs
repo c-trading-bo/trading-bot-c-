@@ -21,6 +21,8 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private const int DefaultThresholdCount = 10;
     private const int ExponentValue = 2;
     
+    // LoggerMessage delegates for CA1848 compliance
+    
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
     private readonly Dictionary<string, CalibrationMap> _calibrationCache = new();

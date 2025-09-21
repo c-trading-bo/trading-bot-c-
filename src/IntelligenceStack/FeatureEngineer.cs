@@ -73,6 +73,11 @@ public class FeatureEngineer : IDisposable
         IEnumerable<double> recentOutcomes,
         CancellationToken cancellationToken = default)
     {
+        // Parameter validation for CA1062 compliance
+        ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(recentPredictions);
+        ArgumentNullException.ThrowIfNull(recentOutcomes);
+        
         try
         {
             var shapValues = new Dictionary<string, double>();
@@ -139,6 +144,10 @@ public class FeatureEngineer : IDisposable
         Func<FeatureSet, Task<double>> predictionFunction,
         CancellationToken cancellationToken = default)
     {
+        // Parameter validation for CA1062 compliance
+        ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(predictionFunction);
+        
         try
         {
             var importanceScores = new Dictionary<string, double>();

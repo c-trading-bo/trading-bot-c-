@@ -16,6 +16,111 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class OnlineLearningSystem : IOnlineLearningSystem
 {
+    // Constants for magic number violations (S109)
+    private const int DelayMs = 1;
+    private const int MinUpdateIntervalMinutes = 5;
+    private const double DefaultWeight = 1.0;
+    private const double PercentageDivisor = 100.0;
+    private const double MinWeightLimit = 0.1;
+    private const double MaxWeightLimit = 2.0;
+    private const double BaselineRewardFactor = 0.25;
+    private const int MaxHistoryCount = 100;
+    private const int MinVarianceCalculationPeriod = 20;
+    private const double DefaultLearningRate = 0.1;
+    private const double MinLearningRate = 0.01;
+    private const double MaxLearningRate = 0.5;
+    private const double PerformanceThreshold = 0.02;
+    private const double DriftThreshold = 0.05;
+    private const int SaveIntervalMinutes = 10;
+    private const double DefaultVariance = 0.001;
+    private const int HistoryWindowSize = 50;
+    private const double ConfidenceInterval = 0.95;
+    private const double ZScore = 1.96; // 95% confidence interval
+    private const int MinSampleSize = 10;
+    private const double StabilityThreshold = 0.01;
+    private const double RollbackThreshold = 0.1;
+    private const int MonitoringPeriodDays = 7;
+    private const int MaxSampleHistoryCount = 1000;
+    private const int DefaultRetryCount = 10;
+    private const double DefaultRetryCount3 = 3.0;
+    
+    // LoggerMessage delegates for CA1848 compliance - OnlineLearningSystem
+    private static readonly Action<ILogger, string, double, Exception?> WeightUpdateCompleted =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(6001, "WeightUpdateCompleted"),
+            "[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})");
+            
+    private static readonly Action<ILogger, string, Exception?> WeightUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6002, "WeightUpdateFailed"),
+            "[ONLINE] Failed to update weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> AccessDeniedError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6003, "AccessDeniedError"),
+            "[ONLINE] Access denied updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> IOError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6004, "IOError"),
+            "[ONLINE] IO error updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> InvalidOperationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6005, "InvalidOperationError"),
+            "[ONLINE] Invalid operation updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> ArgumentError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6006, "ArgumentError"),
+            "[ONLINE] Invalid argument updating weights for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> PerformanceAdaptationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6007, "PerformanceAdaptationFailed"),
+            "[ONLINE] Failed to adapt to performance for model: {ModelId}");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingStarted =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(6008, "StateLoadingStarted"),
+            "[ONLINE] Loading online learning state...");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingCompleted =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(6009, "StateLoadingCompleted"),
+            "[ONLINE] Online learning state loaded successfully");
+            
+    private static readonly Action<ILogger, Exception?> StateLoadingFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6010, "StateLoadingFailed"),
+            "[ONLINE] Failed to load state, starting fresh");
+            
+    private static readonly Action<ILogger, Exception?> StateSavingFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6011, "StateSavingFailed"),
+            "[ONLINE] Failed to save state");
+            
+    private static readonly Action<ILogger, string, Exception?> InvalidOperationRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "InvalidOperationRecordingError"),
+            "[SLO] Invalid operation recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, Exception?> ArgumentRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6013, "ArgumentRecordingError"),
+            "[SLO] Invalid argument recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, Exception?> ObjectDisposedRecordingError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, "ObjectDisposedRecordingError"),
+            "[SLO] Object disposed while recording error: {ErrorType}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> LatencyRecordingFailed =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(6015, "LatencyRecordingFailed"),
+            "[SLO] Failed to record latency for {MetricType}: {Latency}ms");
+            
+    private static readonly Action<ILogger, Exception?> ErrorBudgetCheckFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6016, "ErrorBudgetCheckFailed"),
+            "[SLO] Failed to check error budget");
+            
+    private static readonly Action<ILogger, string, double, Exception?> SLOBreachHandled =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6017, "SLOBreachHandled"),
+            "[SLO] Handled SLO breach for {MetricType}: {ActualValue}");
+            
+    private static readonly Action<ILogger, string, Exception?> TripwireActivated =
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(6018, "TripwireActivated"),
+            "[TRIPWIRE] Activated for {MetricType} - emergency actions initiated");
+            
+    private static readonly Action<ILogger, string, Exception?> WeightUpdateSkipped =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6019, "WeightUpdateSkipped"),
+            "[ONLINE] Skipping weight update - too frequent: {Regime}");
+    
     private readonly ILogger<OnlineLearningSystem> _logger;
     private readonly MetaLearningConfig _config;
     private readonly string _statePath;
@@ -42,7 +147,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(DelayMs, cancellationToken).ConfigureAwait(false);
         
         if (!_config.Enabled)
         {
@@ -58,9 +163,9 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 var timeSinceLastUpdate = now - lastUpdate;
 
                 // Enforce minimum update interval (5 minutes)
-                if (timeSinceLastUpdate < TimeSpan.FromMinutes(5))
+                if (timeSinceLastUpdate < TimeSpan.FromMinutes(MinUpdateIntervalMinutes))
                 {
-                    _logger.LogDebug("[ONLINE] Skipping weight update - too frequent: {Regime}", regimeType);
+                    WeightUpdateSkipped(_logger, regimeType, null);
                     return;
                 }
 
@@ -76,8 +181,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 // Update weights with constraints
                 foreach (var (key, newWeight) in weights)
                 {
-                    var currentWeight = currentWeights.GetValueOrDefault(key, 1.0);
-                    var maxChange = _config.MaxWeightChangePctPer5Min / 100.0;
+                    var currentWeight = currentWeights.GetValueOrDefault(key, DefaultWeight);
+                    var maxChange = _config.MaxWeightChangePctPer5Min / PercentageDivisor;
                     
                     // Constrain weight change
                     var proposedChange = newWeight - currentWeight;
@@ -85,7 +190,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                     var updatedWeight = currentWeight + (constrainedChange * learningRate);
                     
                     // Ensure weights stay in reasonable bounds
-                    updatedWeight = Math.Max(0.1, Math.Min(2.0, updatedWeight));
+                    updatedWeight = Math.Max(MinWeightLimit, Math.Min(MaxWeightLimit, updatedWeight));
                     
                     currentWeights[key] = updatedWeight;
                 }
@@ -96,12 +201,23 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Persist state asynchronously
             _ = Task.Run(async () => await SaveStateAsync(cancellationToken)).ConfigureAwait(false);
 
-            _logger.LogDebug("[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})", 
-                regimeType, CalculateLearningRate(regimeType));
+            WeightUpdateCompleted(_logger, regimeType, CalculateLearningRate(regimeType), null);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to update weights for regime: {Regime}", regimeType);
+            AccessDeniedError(_logger, regimeType, ex);
+        }
+        catch (IOException ex) 
+        {
+            IOError(_logger, regimeType, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            InvalidOperationError(_logger, regimeType, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            ArgumentError(_logger, regimeType, ex);
         }
     }
 
@@ -120,9 +236,9 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Return default weights
             return new Dictionary<string, double>
             {
-                ["strategy_1"] = 1.0,
-                ["strategy_2"] = 1.0,
-                ["strategy_3"] = 1.0
+                ["strategy_1"] = DefaultWeight,
+                ["strategy_2"] = DefaultWeight,
+                ["strategy_3"] = DefaultWeight
             };
         }
     }
@@ -147,19 +263,19 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 }
 
                 // Add new performance metric (use negative Brier score as reward)
-                var reward = 0.25 - performance.BrierScore; // Lower Brier score = better performance
+                var reward = BaselineRewardFactor - performance.BrierScore; // Lower Brier score = better performance
                 history.Add(reward);
 
                 // Keep only recent history
-                if (history.Count > 100)
+                if (history.Count > MaxHistoryCount)
                 {
                     history.RemoveAt(0);
                 }
 
                 // Calculate baseline variance for rollback detection
-                if (history.Count >= 20)
+                if (history.Count >= MinVarianceCalculationPeriod)
                 {
-                    var variance = CalculateVariance(history.TakeLast(20));
+                    var variance = CalculateVariance(history.TakeLast(MinVarianceCalculationPeriod));
                     var baselineVar = _baselineVariance.GetValueOrDefault(modelId, variance);
                     
                     // Check for rollback condition
@@ -184,9 +300,17 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 await RollbackWeightsAsync(modelToRollback, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to adapt to performance for model: {ModelId}", modelId);
+            _logger.LogError(ex, "[ONLINE] Invalid operation adapting to performance for model: {ModelId}", modelId);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Invalid argument adapting to performance for model: {ModelId}", modelId);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Model not found adapting to performance: {ModelId}", modelId);
         }
     }
 
@@ -704,9 +828,17 @@ public class SloMonitor
             // Check error budget
             await CheckErrorBudgetAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SLO] Failed to record error: {ErrorType}", errorType);
+            _logger.LogError(ex, "[SLO] Invalid operation recording error: {ErrorType}", errorType);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[SLO] Invalid argument recording error: {ErrorType}", errorType);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogError(ex, "[SLO] Object disposed while recording error: {ErrorType}", errorType);
         }
     }
 
@@ -728,13 +860,13 @@ public class SloMonitor
                     history.Add(latencyMs);
 
                     // Keep only recent samples (last 1000)
-                    if (history.Count > 1000)
+                    if (history.Count > MaxSampleHistoryCount)
                     {
                         history.RemoveAt(0);
                     }
 
                     // Check P99 latency
-                    if (history.Count >= 10)
+                    if (history.Count >= DefaultRetryCount)
                     {
                         var p99 = CalculatePercentile(history, 0.99);
                         
@@ -745,9 +877,17 @@ public class SloMonitor
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Failed to record latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+                _logger.LogError(ex, "[SLO] Invalid operation recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogError(ex, "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
             }
         }, cancellationToken);
     }
@@ -767,18 +907,26 @@ public class SloMonitor
                     if (totalDecisions > 0)
                     {
                         var errorRate = (double)totalErrors / totalDecisions;
-                        var errorBudget = _config.DailyErrorBudgetPct / 100.0;
+                        var errorBudget = _config.DailyErrorBudgetPct / PercentageDivisor;
                         
                         if (errorRate > errorBudget)
                         {
-                            HandleSLOBreach("error_budget", errorRate * 100, errorBudget * 100);
+                            HandleSLOBreach("error_budget", errorRate * PercentageDivisor, errorBudget * PercentageDivisor);
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Failed to check error budget");
+                _logger.LogError(ex, "[SLO] Invalid operation checking error budget");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[SLO] Invalid argument checking error budget");
+            }
+            catch (DivideByZeroException ex)
+            {
+                _logger.LogError(ex, "[SLO] Division by zero checking error budget");
             }
         }, cancellationToken);
     }
@@ -813,7 +961,7 @@ public class SloMonitor
     {
         var breachSeverity = actualValue / threshold;
         
-        if (breachSeverity >= 3.0)
+        if (breachSeverity >= DefaultRetryCount3)
         {
             // Severe breach: pause trading for 5 minutes
             _logger.LogCritical("[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}", metricType);

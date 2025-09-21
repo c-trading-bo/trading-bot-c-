@@ -15,6 +15,192 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StartupValidator : IStartupValidator
 {
+    // LoggerMessage delegates for CA1848 compliance - StartupValidator
+    private static readonly Action<ILogger, Exception?> ValidationStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ValidationStarted"),
+            "[STARTUP] Beginning comprehensive system validation...");
+            
+    private static readonly Action<ILogger, double, Exception?> ValidationCompleted =
+        LoggerMessage.Define<double>(LogLevel.Information, new EventId(5002, "ValidationCompleted"),
+            "[STARTUP] System validation completed in {ElapsedMs:F2}ms");
+            
+    private static readonly Action<ILogger, Exception?> ValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5003, "ValidationFailed"),
+            "[STARTUP] System validation failed");
+            
+    private static readonly Action<ILogger, string, Exception?> TestStarted =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "TestStarted"),
+            "[STARTUP] Running test: {TestName}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> TestPassed =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5005, "TestPassed"),
+            "[STARTUP] ✅ {TestName} passed ({ElapsedMs:F2}ms)");
+            
+    private static readonly Action<ILogger, string, double, Exception?> TestFailed =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5006, "TestFailed"),
+            "[STARTUP] ❌ {TestName} failed ({ElapsedMs:F2}ms)");
+            
+    private static readonly Action<ILogger, int, int, Exception?> ValidationSummary =
+        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(5007, "ValidationSummary"),
+            "[STARTUP] Validation summary: {PassedCount}/{TotalCount} tests passed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureStoreValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5008, "FeatureStoreValidation"),
+            "[STARTUP] Validating Feature Store...");
+            
+    private static readonly Action<ILogger, Exception?> ModelRegistryValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "ModelRegistryValidation"),
+            "[STARTUP] Validating Model Registry...");
+            
+    private static readonly Action<ILogger, Exception?> CalibrationValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5010, "CalibrationValidation"),
+            "[STARTUP] Validating Calibration Manager...");
+            
+    private static readonly Action<ILogger, Exception?> IdempotentOrderValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5011, "IdempotentOrderValidation"),
+            "[STARTUP] Validating Idempotent Order Service...");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5012, "LeaderElectionValidation"),
+            "[STARTUP] Validating Leader Election Service...");
+            
+    private static readonly Action<ILogger, Exception?> DependencyValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5013, "DependencyValidation"),
+            "[STARTUP] Validating Service Dependencies...");
+            
+    private static readonly Action<ILogger, Exception?> PerformanceValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5014, "PerformanceValidation"),
+            "[STARTUP] Validating System Performance...");
+            
+    private static readonly Action<ILogger, Exception?> ConfigurationValidation =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5015, "ConfigurationValidation"),
+            "[STARTUP] Validating Configuration...");
+            
+    private static readonly Action<ILogger, string, double, Exception?> TestFailedException =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5016, "TestFailedException"),
+            "[STARTUP] ❌ {TestName} FAILED with exception ({ElapsedMs:F2}ms)");
+            
+    private static readonly Action<ILogger, double, Exception?> AllTestsPassed =
+        LoggerMessage.Define<double>(LogLevel.Information, new EventId(5017, "AllTestsPassed"),
+            "[STARTUP] 🎉 ALL TESTS PASSED - Trading system is ready! Total time: {ElapsedMs:F2}ms");
+            
+    private static readonly Action<ILogger, int, Exception?> ValidationFailedSummary =
+        LoggerMessage.Define<int>(LogLevel.Critical, new EventId(5018, "ValidationFailedSummary"),
+            "[STARTUP] 🚨 STARTUP VALIDATION FAILED - Trading disabled! Failures: {Count}");
+            
+    private static readonly Action<ILogger, string, Exception?> FailureReason =
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(5019, "FailureReason"),
+            "[STARTUP] Failure: {Reason}");
+            
+    private static readonly Action<ILogger, string, Exception?> ServiceResolutionFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5020, "ServiceResolutionFailed"),
+            "[DI] Failed to resolve {ServiceType}");
+            
+    private static readonly Action<ILogger, string, Exception?> MissingServices =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5021, "MissingServices"),
+            "[DI] Missing service registrations: {Services}");
+            
+    private static readonly Action<ILogger, int, Exception?> AllServicesResolved =
+        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(5022, "AllServicesResolved"),
+            "[DI] All {Count} critical services successfully resolved");
+            
+    // Additional LoggerMessage delegates for remaining validation steps
+    private static readonly Action<ILogger, Exception?> DIValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5023, "DIValidationFailed"),
+            "[DI] DI graph validation failed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureSchemaLoadFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5024, "FeatureSchemaLoadFailed"),
+            "[FEATURES] Failed to load/create test schema");
+            
+    private static readonly Action<ILogger, Exception?> FeatureValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5025, "FeatureValidationFailed"),
+            "[FEATURES] Sample feature validation failed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureValidationPassed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5026, "FeatureValidationPassed"),
+            "[FEATURES] Schema loaded and sample validation passed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureStoreValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5027, "FeatureStoreValidationFailed"),
+            "[FEATURES] Feature store validation failed");
+            
+    private static readonly Action<ILogger, Exception?> ModelRegistryValidated =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5028, "ModelRegistryValidated"),
+            "[REGISTRY] Model registry access validated");
+            
+    private static readonly Action<ILogger, Exception?> ModelRegistryValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5029, "ModelRegistryValidationFailed"),
+            "[REGISTRY] Model registry validation failed");
+            
+    private static readonly Action<ILogger, Exception?> CalibrationMapLoadFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5030, "CalibrationMapLoadFailed"),
+            "[CALIBRATION] Failed to load calibration map");
+            
+    private static readonly Action<ILogger, double, Exception?> InvalidCalibratedConfidence =
+        LoggerMessage.Define<double>(LogLevel.Error, new EventId(5031, "InvalidCalibratedConfidence"),
+            "[CALIBRATION] Invalid calibrated confidence: {Value}");
+            
+    private static readonly Action<ILogger, double, Exception?> CalibrationValidated =
+        LoggerMessage.Define<double>(LogLevel.Debug, new EventId(5032, "CalibrationValidated"),
+            "[CALIBRATION] Calibration loaded and smoke test passed (0.75 -> {Calibrated:F3})");
+            
+    private static readonly Action<ILogger, Exception?> CalibrationValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5033, "CalibrationValidationFailed"),
+            "[CALIBRATION] Calibration validation failed");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyFirstOrderError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5034, "IdempotencyFirstOrderError"),
+            "[IDEMPOTENCY] First order incorrectly flagged as duplicate");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyDuplicateNotDetected =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5035, "IdempotencyDuplicateNotDetected"),
+            "[IDEMPOTENCY] Duplicate order not detected");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyValidated =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5036, "IdempotencyValidated"),
+            "[IDEMPOTENCY] Duplicate detection working correctly");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5037, "IdempotencyValidationFailed"),
+            "[IDEMPOTENCY] Idempotency validation failed");
+            
+    private static readonly Action<ILogger, Exception?> KillSwitchNotAvailable =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5038, "KillSwitchNotAvailable"),
+            "[KILL_SWITCH] Kill switch service not available");
+            
+    private static readonly Action<ILogger, long, Exception?> KillSwitchResponseSlow =
+        LoggerMessage.Define<long>(LogLevel.Error, new EventId(5039, "KillSwitchResponseSlow"),
+            "[KILL_SWITCH] Kill switch response too slow: {Ms}ms");
+            
+    private static readonly Action<ILogger, Exception?> KillSwitchTimeout =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5040, "KillSwitchTimeout"),
+            "[KILL_SWITCH] Kill switch test timed out");
+            
+    private static readonly Action<ILogger, long, Exception?> KillSwitchResponsive =
+        LoggerMessage.Define<long>(LogLevel.Debug, new EventId(5041, "KillSwitchResponsive"),
+            "[KILL_SWITCH] Kill switch responsive ({Ms}ms)");
+            
+    private static readonly Action<ILogger, Exception?> KillSwitchValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5042, "KillSwitchValidationFailed"),
+            "[KILL_SWITCH] Kill switch validation failed");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionWarning =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5043, "LeaderElectionWarning"),
+            "[LEADER] Could not acquire leadership (may be expected if another instance is running)");
+            
+    private static readonly Action<ILogger, Exception?> LeadershipReleaseFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5044, "LeadershipReleaseFailed"),
+            "[LEADER] Failed to release leadership");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionFunctional =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5045, "LeaderElectionFunctional"),
+            "[LEADER] Leader election system functional");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5046, "LeaderElectionValidationFailed"),
+            "[LEADER] Leader election validation failed");
+    
     private readonly ILogger<StartupValidator> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatureStore _featureStore;
@@ -43,7 +229,7 @@ public class StartupValidator : IStartupValidator
 
     public async Task<StartupValidationResult> ValidateSystemAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[STARTUP] Beginning comprehensive system validation...");
+        ValidationStarted(_logger, null);
         var stopwatch = Stopwatch.StartNew();
         
         var result = new StartupValidationResult();
@@ -63,7 +249,7 @@ public class StartupValidator : IStartupValidator
             var testStopwatch = Stopwatch.StartNew();
             try
             {
-                _logger.LogInformation("[STARTUP] Running test: {TestName}", testName);
+                TestStarted(_logger, testName, null);
                 var passed = await testFunc(cancellationToken).ConfigureAwait(false);
                 testStopwatch.Stop();
 
@@ -77,21 +263,18 @@ public class StartupValidator : IStartupValidator
 
                 if (passed)
                 {
-                    _logger.LogInformation("[STARTUP] ✅ {TestName} PASSED ({Duration}ms)", 
-                        testName, testStopwatch.ElapsedMilliseconds);
+                    TestPassed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
                 }
                 else
                 {
-                    _logger.LogError("[STARTUP] ❌ {TestName} FAILED ({Duration}ms)", 
-                        testName, testStopwatch.ElapsedMilliseconds);
+                    TestFailed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
                     result.FailureReasons.Add($"{testName} validation failed");
                 }
             }
             catch (Exception ex)
             {
                 testStopwatch.Stop();
-                _logger.LogError(ex, "[STARTUP] ❌ {TestName} FAILED with exception ({Duration}ms)", 
-                    testName, testStopwatch.ElapsedMilliseconds);
+                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
                 
                 result.TestResults[testName] = new TestResult
                 {
@@ -120,17 +303,15 @@ public class StartupValidator : IStartupValidator
 
         if (result.AllTestsPassed)
         {
-            _logger.LogInformation("[STARTUP] 🎉 ALL TESTS PASSED - Trading system is ready! Total time: {Duration}ms", 
-                stopwatch.ElapsedMilliseconds);
+            AllTestsPassed(_logger, stopwatch.ElapsedMilliseconds, null);
         }
         else
         {
-            _logger.LogCritical("[STARTUP] 🚨 STARTUP VALIDATION FAILED - Trading disabled! Failures: {Count}", 
-                result.FailureReasons.Count);
+            ValidationFailedSummary(_logger, result.FailureReasons.Count, null);
             
             foreach (var reason in result.FailureReasons)
             {
-                _logger.LogCritical("[STARTUP] Failure: {Reason}", reason);
+                FailureReason(_logger, reason, null);
                 result.ValidationErrors.Add(reason);
             }
         }
@@ -176,23 +357,23 @@ public class StartupValidator : IStartupValidator
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[DI] Failed to resolve {ServiceType}: {Error}", serviceType.Name, ex.Message);
+                    ServiceResolutionFailed(_logger, serviceType.Name, ex);
                     missingServices.Add(serviceType.Name);
                 }
             }
 
             if (missingServices.Count > 0)
             {
-                _logger.LogError("[DI] Missing service registrations: {Services}", string.Join(", ", missingServices));
+                MissingServices(_logger, string.Join(", ", missingServices), null);
                 return false;
             }
 
-            _logger.LogDebug("[DI] All {Count} critical services successfully resolved", criticalServices.Length);
+            AllServicesResolved(_logger, criticalServices.Length, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DI] DI graph validation failed");
+            DIValidationFailed(_logger, ex);
             return false;
         }
     }

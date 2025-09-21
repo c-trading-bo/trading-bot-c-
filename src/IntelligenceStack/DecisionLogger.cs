@@ -20,6 +20,43 @@ public class DecisionLogger : IDecisionLogger
     
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
     
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> DecisionLogged =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(2001, "DecisionLogged"),
+            "[DECISION] {DecisionJson}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionLogFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2002, "DecisionLogFailed"),
+            "[DECISION] Failed to log trading decision: {DecisionId}");
+            
+    private static readonly Action<ILogger, Exception?> HistoryLoadFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2003, "HistoryLoadFailed"),
+            "[DECISION] Failed to get decision history");
+            
+    private static readonly Action<ILogger, string, Exception?> ParseLineFailure =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2006, "ParseLineFailure"),
+            "[DECISION] Failed to parse decision log line: {Line}");
+            
+    private static readonly Action<ILogger, int, DateTime, DateTime, Exception?> HistoryRetrieved =
+        LoggerMessage.Define<int, DateTime, DateTime>(LogLevel.Debug, new EventId(2007, "HistoryRetrieved"),
+            "[DECISION] Retrieved {Count} decisions from {From} to {To}");
+            
+    private static readonly Action<ILogger, string, double, double, double, Exception?> DriftDetected =
+        LoggerMessage.Define<string, double, double, double>(LogLevel.Warning, new EventId(2008, "DriftDetected"),
+            "[DRIFT] Feature drift detected for {ModelId}: PSI={PSI:F3} (warn>{Warn}, block>{Block})");
+            
+    private static readonly Action<ILogger, string, Exception?> DriftDetectionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2009, "DriftDetectionFailed"),
+            "[DRIFT] Failed to detect drift for {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> BaselineSaved =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2010, "BaselineSaved"),
+            "[DRIFT] Baseline saved for model {ModelId}");
+            
+    private static readonly Action<ILogger, string, double, bool, Exception?> DriftEventLogged =
+        LoggerMessage.Define<string, double, bool>(LogLevel.Information, new EventId(2011, "DriftEventLogged"),
+            "[DRIFT-EVENT] ModelId={ModelId}, PSI={PSI:F3}, Block={Block}");
+    
     private readonly ILogger<DecisionLogger> _logger;
     private readonly string _basePath;
     private readonly bool _enabled;
@@ -59,12 +96,11 @@ public class DecisionLogger : IDecisionLogger
             await WriteToFileAsync(logEntry, cancellationToken).ConfigureAwait(false);
 
             // Also log to structured logger for real-time monitoring
-            _logger.LogInformation("[DECISION] {DecisionJson}", 
-                JsonSerializer.Serialize(logEntry, JsonOptions));
+            DecisionLogged(_logger, JsonSerializer.Serialize(logEntry, JsonOptions), null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DECISION] Failed to log trading decision: {DecisionId}", decision.DecisionId);
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
         }
     }
 
@@ -107,7 +143,7 @@ public class DecisionLogger : IDecisionLogger
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "[DECISION] Failed to parse decision log line: {Line}", line[..Math.Min(MaxLogLinePreviewLength, line.Length)]);
+                            ParseLineFailure(_logger, line[..Math.Min(MaxLogLinePreviewLength, line.Length)], ex);
                         }
                     }
                 }
@@ -115,12 +151,11 @@ public class DecisionLogger : IDecisionLogger
                 currentDate = currentDate.AddDays(1);
             }
 
-            _logger.LogDebug("[DECISION] Retrieved {Count} decisions from {From} to {To}", 
-                decisions.Count, fromTime, toTime);
+            HistoryRetrieved(_logger, decisions.Count, fromTime, toTime, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DECISION] Failed to get decision history");
+            HistoryLoadFailed(_logger, ex);
         }
 
         return decisions;
@@ -284,8 +319,7 @@ public class DriftMonitor
 
             if (hasWarning)
             {
-                _logger.LogWarning("[DRIFT] Feature drift detected for {ModelId}: PSI={PSI:F3} (warn>{Warn}, block>{Block})", 
-                    modelId, psi, _config.PsiWarn, _config.PsiBlock);
+                DriftDetected(_logger, modelId, psi, _config.PsiWarn, _config.PsiBlock, null);
                 
                 // Asynchronously log drift event for analysis
                 await LogDriftEventAsync(modelId, result, cancellationToken).ConfigureAwait(false);
@@ -295,7 +329,7 @@ public class DriftMonitor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DRIFT] Failed to detect drift for {ModelId}", modelId);
+            DriftDetectionFailed(_logger, modelId, ex);
             return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
         }
     }
@@ -367,7 +401,7 @@ public class DriftMonitor
         // Simulate async file I/O - in production this would save to database/file system
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        _logger.LogDebug("[DRIFT] Baseline saved for model {ModelId}", modelId);
+        BaselineSaved(_logger, modelId, null);
     }
 
     /// <summary>
@@ -378,8 +412,7 @@ public class DriftMonitor
         // Simulate async logging to analytics system
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        _logger.LogInformation("[DRIFT-EVENT] ModelId={ModelId}, PSI={PSI:F3}, Block={Block}", 
-            modelId, result.PSI, result.ShouldBlock);
+        DriftEventLogged(_logger, modelId, result.PSI, result.ShouldBlock, null);
     }
 
     private sealed class FeatureBaseline
