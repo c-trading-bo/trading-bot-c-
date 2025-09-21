@@ -31,6 +31,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     {
         _logger = logger;
         _config = config;
+        _spreadMedian = 0.25; // Initialize with default ES/NQ tick size
     }
 
     public async Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default)

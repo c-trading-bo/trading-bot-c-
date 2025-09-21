@@ -631,12 +631,22 @@ public class ObservabilityDashboard : IDisposable
                 _metrics[name] = new MetricTimeSeries { Name = name };
             }
             
-            _metrics[name].Points.Add(new MetricPoint
+            var point = new MetricPoint
             {
                 Timestamp = timestamp,
-                Value = value,
-                Tags = tags ?? new Dictionary<string, string>()
-            });
+                Value = value
+            };
+            
+            // Populate tags if provided
+            if (tags != null)
+            {
+                foreach (var kvp in tags)
+                {
+                    point.Tags[kvp.Key] = kvp.Value;
+                }
+            }
+            
+            _metrics[name].Points.Add(point);
             
             // Keep only recent points
             if (_metrics[name].Points.Count > 10000)
