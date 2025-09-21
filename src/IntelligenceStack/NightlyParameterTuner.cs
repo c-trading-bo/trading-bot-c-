@@ -186,7 +186,7 @@ public class NightlyParameterTuner
             {
                 bestParameters = candidateParams;
                 bestMetrics = candidateMetrics;
-                noImprovementCount;
+                noImprovementCount = 0;
                 
                 _logger.LogInformation("[BAYESIAN_OPT] New best found at trial {Trial}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
                     trial + 1, candidateMetrics.AUC, candidateMetrics.EdgeBps);
@@ -291,7 +291,7 @@ public class NightlyParameterTuner
                 StartTime = DateTime.UtcNow,
                 ParameterSpace = GetParameterSpace(),
                 TrialHistory = new List<TrialResult>()
-            }.ConfigureAwait(false);
+            };
 
             lock (_lock)
             {

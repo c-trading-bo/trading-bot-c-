@@ -335,7 +335,7 @@ public class MamlLiveIntegration
             // Check if performance gain is reasonable
             if (step.PerformanceGain < -0.1)
             {
-                return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" }.ConfigureAwait(false);
+                return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" };
             }
 
             // Check if weight changes are within reasonable bounds

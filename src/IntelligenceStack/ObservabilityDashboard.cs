@@ -75,7 +75,7 @@ public class ObservabilityDashboard : IDisposable
                 SLOBudget = await GetSLOBudgetAsync(cancellationToken),
                 RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken),
                 MamlStatus = await GetMamlStatusAsync(cancellationToken)
-            }.ConfigureAwait(false);
+            };
 
             return dashboardData;
         }

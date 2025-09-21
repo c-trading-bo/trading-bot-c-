@@ -487,7 +487,7 @@ public class RLAdvisorSystem
         {
             try
             {
-                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence").ConfigureAwait(false);
+                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence");
                 
                 var totalEdgeBps = 0.0;
                 var validAgents = 0;
@@ -515,7 +515,7 @@ public class RLAdvisorSystem
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
-                        _orderInfluenceEnabled;
+                        _orderInfluenceEnabled = false;
                         _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
                             averageEdgeBps);
                     }
@@ -769,7 +769,7 @@ public class RLAdvisorSystem
                 EndTime = window.EndTime,
                 InitialState = ExtractMarketFeatures(marketData[window.StartIndex]),
                 Actions = new List<(double[] state, RLActionResult action, double reward)>()
-            }.ConfigureAwait(false);
+            };
             
             // Generate state-action-reward sequences from market movements
             for (int i = window.StartIndex; i < window.EndIndex - 1; i++)
@@ -813,7 +813,7 @@ public class RLAdvisorSystem
         else if (priceChange < 0)
             actionType = 2; // Sell
         else
-            actionType; // Hold
+            actionType = 0; // Hold
             
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         

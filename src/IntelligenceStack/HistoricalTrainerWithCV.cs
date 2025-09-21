@@ -279,7 +279,7 @@ public class HistoricalTrainerWithCV
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HISTORICAL_CV] Fold {Fold} failed", foldNumber);
-            foldResult.Success;
+            foldResult.Success = false;
             foldResult.ErrorMessage = ex.Message;
         }
         finally

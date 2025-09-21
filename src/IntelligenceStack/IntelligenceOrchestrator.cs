@@ -448,8 +448,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         // Real ensemble prediction using active models and regime detection
         var regimeState = _regimeDetector != null ? 
-            await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken) : 
-            new RegimeState { Type = RegimeType.Range, Confidence = 0.5 }.ConfigureAwait(false);
+            await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false) : 
+            new RegimeState { Type = RegimeType.Range, Confidence = 0.5 };
         var regimeScore = regimeState.Confidence;
         var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
         
@@ -592,7 +592,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 
                 // Convert weighted features to float array for ONNX input
                 var featureArray = new float[weightedFeatures.Features.Count];
-                int i;
+                int i = 0;
                 foreach (var feature in weightedFeatures.Features.Values)
                 {
                     featureArray[i++] = (float)feature;

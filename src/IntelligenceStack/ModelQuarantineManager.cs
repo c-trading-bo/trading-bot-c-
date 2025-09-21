@@ -192,7 +192,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     return _modelHealth
                         .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                         .Select(kvp => kvp.Key)
-                        .ToList().ConfigureAwait(false);
+                        .ToList();
                 }
             }
             catch (Exception ex)
