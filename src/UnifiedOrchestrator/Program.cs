@@ -751,6 +751,11 @@ Stack Trace:
         services.AddHostedService<FeatureDemonstrationService>();
         
         // ================================================================================
+        // 🔧 MICROSTRUCTURE CALIBRATION SERVICE (ES and NQ only)
+        // ================================================================================
+        ConfigureMicrostructureCalibration(services, configuration);
+        
+        // ================================================================================
         // AUTHENTICATION & TOPSTEPX SERVICES
         // ================================================================================
         
@@ -1235,5 +1240,21 @@ public static class EnvironmentLoader
                 Console.WriteLine("No TopstepX credentials found - will attempt to use JWT token if available");
             }
         }
+    }
+
+    /// <summary>
+    /// Configure the microstructure calibration service that integrates with existing StrategyGates
+    /// Only added enhancement - no duplication of existing sophisticated components
+    /// </summary>
+    private static void ConfigureMicrostructureCalibration(IServiceCollection services, IConfiguration configuration)
+    {
+        // Configure microstructure calibration options
+        services.Configure<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationOptions>(
+            configuration.GetSection("MicrostructureCalibration"));
+        
+        // Register the calibration service as a hosted background service
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
+        
+        // Note: This service integrates with existing StrategyGates.cs - does not replace it
     }
 }
