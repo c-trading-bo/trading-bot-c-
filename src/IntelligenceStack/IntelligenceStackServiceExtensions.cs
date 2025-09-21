@@ -168,6 +168,9 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         LoggerMessage.Define(LogLevel.Information, new EventId(7001, "VerificationStarted"),
             "🔍 [PRODUCTION-VERIFICATION] Starting comprehensive intelligence stack verification...");
             
+    private static readonly Action<ILogger, string, Exception?> VerificationWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(7002, "VerificationWarning"),
+            "⚠️ [PRODUCTION-VERIFICATION] {Warning}");
 
     
     private readonly IServiceProvider _serviceProvider;

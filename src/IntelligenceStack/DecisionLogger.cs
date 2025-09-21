@@ -44,7 +44,6 @@ public class DecisionLogger : IDecisionLogger
     private readonly ILogger<DecisionLogger> _logger;
     private readonly string _basePath;
     private readonly bool _enabled;
-    private readonly DriftMonitoringConfig _config;
 
     public DecisionLogger(
         ILogger<DecisionLogger> logger,
@@ -55,7 +54,7 @@ public class DecisionLogger : IDecisionLogger
         _logger = logger;
         _enabled = config?.DecisionLine.Enabled ?? false;
         _basePath = basePath;
-        _config = driftConfig ?? new DriftMonitoringConfig();
+        // Note: driftConfig is not used in DecisionLogger, only in DriftMonitor
         
         if (_enabled)
         {
@@ -85,7 +84,19 @@ public class DecisionLogger : IDecisionLogger
             // Also log to structured logger for real-time monitoring
             DecisionLogged(_logger, JsonSerializer.Serialize(logEntry, JsonOptions), null);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (IOException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             DecisionLogFailed(_logger, decision.DecisionId, ex);
         }
@@ -128,7 +139,11 @@ public class DecisionLogger : IDecisionLogger
                                 }
                             }
                         }
-                        catch (Exception ex)
+                        catch (JsonException ex)
+                        {
+                            ParseLineFailure(_logger, line[..Math.Min(MaxLogLinePreviewLength, line.Length)], ex);
+                        }
+                        catch (ArgumentException ex)
                         {
                             ParseLineFailure(_logger, line[..Math.Min(MaxLogLinePreviewLength, line.Length)], ex);
                         }
@@ -140,7 +155,15 @@ public class DecisionLogger : IDecisionLogger
 
             HistoryRetrieved(_logger, decisions.Count, fromTime, toTime, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            HistoryLoadFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            HistoryLoadFailed(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             HistoryLoadFailed(_logger, ex);
         }
@@ -331,7 +354,22 @@ public class DriftMonitor
 
             return result;
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (InvalidOperationException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (ArgumentException ex)
         {
             DriftDetectionFailed(_logger, modelId, ex);
             return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };

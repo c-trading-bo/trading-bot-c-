@@ -628,7 +628,7 @@ public class LineageTrackingSystem
                     ProcessingTime = TimeSpan.FromMilliseconds(20)
                 }
             };
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
@@ -703,7 +703,7 @@ public class LineageTrackingSystem
             }
             
             return allEvents.OrderBy(e => e.Timestamp).ToList();
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<CompleteModelLineage> GetCompleteModelLineageAsync(string modelId, CancellationToken cancellationToken)
@@ -810,7 +810,7 @@ public class LineageTrackingSystem
             }
             
             return relatedEvents.OrderBy(e => e.Timestamp).ToList();
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static string ExtractFamilyFromId(string modelId)

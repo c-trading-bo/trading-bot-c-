@@ -131,7 +131,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             return CreateDefaultCalibrationMap(modelId);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            CalibrationLoadFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (IOException ex)
+        {
+            CalibrationLoadFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             CalibrationLoadFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);
@@ -163,7 +173,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             return bestMap;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            CalibrationFitFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            CalibrationFitFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (ArithmeticException ex)
         {
             CalibrationFitFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);
@@ -177,7 +197,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var map = await LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return ApplyCalibration(map, rawConfidence);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            ConfidenceCalibrationFailed(_logger, modelId, ex);
+            return rawConfidence; // Return uncalibrated value as fallback
+        }
+        catch (JsonException ex)
+        {
+            ConfidenceCalibrationFailed(_logger, modelId, ex);
+            return rawConfidence; // Return uncalibrated value as fallback
+        }
+        catch (ArgumentException ex)
         {
             ConfidenceCalibrationFailed(_logger, modelId, ex);
             return rawConfidence; // Return uncalibrated value as fallback
@@ -213,7 +243,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                         updated++;
                     }
                 }
-                catch (Exception ex)
+                catch (IOException ex)
+                {
+                    ModelCalibrationUpdateFailed(_logger, modelFile, ex);
+                }
+                catch (ArgumentException ex)
+                {
+                    ModelCalibrationUpdateFailed(_logger, modelFile, ex);
+                }
+                catch (InvalidOperationException ex)
                 {
                     ModelCalibrationUpdateFailed(_logger, modelFile, ex);
                 }
@@ -221,7 +259,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             NightlyCalibrationCompleted(_logger, updated, null);
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException ex)
+        {
+            NightlyCalibrationFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            NightlyCalibrationFailed(_logger, ex);
+        }
+        catch (IOException ex)
         {
             NightlyCalibrationFailed(_logger, ex);
         }
@@ -429,7 +475,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var content = await File.ReadAllTextAsync(pointsPath, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<CalibrationPoint>>(content) ?? new List<CalibrationPoint>();
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            CalibrationPointsLoadFailed(_logger, modelId, ex);
+            return new List<CalibrationPoint>();
+        }
+        catch (IOException ex)
+        {
+            CalibrationPointsLoadFailed(_logger, modelId, ex);
+            return new List<CalibrationPoint>();
+        }
+        catch (UnauthorizedAccessException ex)
         {
             CalibrationPointsLoadFailed(_logger, modelId, ex);
             return new List<CalibrationPoint>();

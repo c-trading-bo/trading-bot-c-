@@ -19,6 +19,16 @@ public class FeatureEngineer : IDisposable
 {
     private const int MinDataCount = 10;
     
+    // Feature weighting constants
+    private const double MinFeatureWeight = 0.1;
+    private const double MaxFeatureWeight = 2.0;
+    private const double BaseFeatureWeight = 1.0;
+    private const double WeightMultiplier = 2.0;
+    private const double ImportanceThreshold = 0.5;
+    private const double HighValueThreshold = 1.5;
+    private const int MaxFeatureCount = 10;
+    private const int VarianceSquared = 2;
+    
     // LoggerMessage delegates for CA1848 compliance - FeatureEngineer
     private static readonly Action<ILogger, string, Exception?> LogsDirectoryWarning =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4001, "LogsDirectoryWarning"),
@@ -55,18 +65,6 @@ public class FeatureEngineer : IDisposable
     private static readonly Action<ILogger, Exception?> MarketDataProcessingFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(4009, "MarketDataProcessingFailed"),
             "[FEATURE_ENGINEER] Failed to process market data for feature adaptation");
-            
-    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLogged =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4010, "FeatureWeightsLogged"),
-            "[FEATURE_ENGINEER] Logged feature weights to: {FilePath}");
-            
-    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLoggingFailed =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4011, "FeatureWeightsLoggingFailed"),
-            "[FEATURE_ENGINEER] Failed to log feature weights for strategy: {Strategy}");
-            
-    private static readonly Action<ILogger, Exception?> ScheduledUpdateFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4012, "ScheduledUpdateFailed"),
-            "[FEATURE_ENGINEER] Error during scheduled feature weight update");
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -283,12 +281,12 @@ public class FeatureEngineer : IDisposable
                 if (importance < _importanceThreshold)
                 {
                     // Down-weight low-importance features
-                    weight = Math.Max(0.1, importance / _importanceThreshold);
+                    weight = Math.Max(MinFeatureWeight, importance / _importanceThreshold);
                 }
                 else
                 {
                     // Up-weight high-importance features
-                    weight = Math.Min(2.0, 1.0 + (importance - _importanceThreshold) * 2.0);
+                    weight = Math.Min(MaxFeatureWeight, BaseFeatureWeight + (importance - _importanceThreshold) * WeightMultiplier);
                 }
                 
                 weights[featureName] = weight;
@@ -303,7 +301,7 @@ public class FeatureEngineer : IDisposable
             // Update online learning system immediately
             await _onlineLearningSystem.UpdateWeightsAsync($"feature_weights_{strategyId}", weights, cancellationToken).ConfigureAwait(false);
 
-            FeatureWeightsUpdated(_logger, strategyId, weights.Count(kvp => kvp.Value < 0.5), null);
+            FeatureWeightsUpdated(_logger, strategyId, weights.Count(kvp => kvp.Value < ImportanceThreshold), null);
         }
         catch (Exception ex)
         {
@@ -386,8 +384,8 @@ public class FeatureEngineer : IDisposable
                 StrategyId = strategyId,
                 Timestamp = timestamp,
                 TotalFeatures = weights.Count,
-                LowValueFeatures = weights.Count(kvp => kvp.Value < 0.5),
-                HighValueFeatures = weights.Count(kvp => kvp.Value > 1.5),
+                LowValueFeatures = weights.Count(kvp => kvp.Value < ImportanceThreshold),
+                HighValueFeatures = weights.Count(kvp => kvp.Value > HighValueThreshold),
                 AverageWeight = weights.Values.Average()
             };
 
@@ -448,7 +446,7 @@ public class FeatureEngineer : IDisposable
             // Step 2: Get feature history asynchronously
             var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken).ConfigureAwait(false);
             
-            if (featureHistory.Count < 10)
+            if (featureHistory.Count < MaxFeatureCount)
             {
                 return 0.0; // Not enough data
             }
@@ -457,7 +455,7 @@ public class FeatureEngineer : IDisposable
             var correlation = await Task.Run(() => CalculateCorrelation(featureHistory, predictions), cancellationToken).ConfigureAwait(false);
             
             // Step 4: Calculate contribution as correlation weighted by recent performance
-            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(10).Average(), cancellationToken).ConfigureAwait(false);
+            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(MaxFeatureCount).Average(), cancellationToken).ConfigureAwait(false);
             var marginalContribution = correlation * recentAccuracy * featureValue;
 
             return marginalContribution;
@@ -539,8 +537,8 @@ public class FeatureEngineer : IDisposable
         var meanY = y.Average();
         
         var numerator = x.Zip(y, (xi, yi) => (xi - meanX) * (yi - meanY)).Sum();
-        var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, 2)));
-        var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, 2)));
+        var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, VarianceSquared)));
+        var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, VarianceSquared)));
         
         if (Math.Abs(denomX) < 1e-10 || Math.Abs(denomY) < 1e-10)
         {

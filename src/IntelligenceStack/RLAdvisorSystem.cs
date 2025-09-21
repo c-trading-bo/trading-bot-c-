@@ -447,6 +447,18 @@ public class RLAdvisorSystem
         return baseReward + timingBonus - volAdjustment + cvarPenalty;
     }
 
+    private static double CalculateReward(RLMarketDataPoint current, RLMarketDataPoint next, RLActionResult action)
+    {
+        var priceChange = (next.Price - current.Price) / current.Price;
+        
+        return action.ActionType switch
+        {
+            1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
+            2 => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
+            _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
+        };
+    }
+
     private async Task UpdatePerformanceTrackingAsync(
         string agentKey,
         ExitOutcome outcome,
@@ -781,18 +793,6 @@ public class RLAdvisorSystem
         };
     }
     
-    private static double CalculateReward(RLMarketDataPoint current, RLMarketDataPoint next, RLActionResult action)
-    {
-        var priceChange = (next.Price - current.Price) / current.Price;
-        
-        return action.ActionType switch
-        {
-            1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
-            2 => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
-            _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
-        };
-    }
-
     private static async Task<AgentTrainingResult> TrainAgentAsync(
         RLAgent agent,
         List<TrainingEpisode> episodes,

@@ -23,6 +23,19 @@ public class EnsembleMetaLearner
     private const double MaxWeight = 2.0;
     private const double BaselinePerformance = 0.5;
     
+    // Sigmoid and blending constants
+    private const int SigmoidSteepness = 6;
+    private const double SigmoidCenter = 0.5;
+    private const double HighConfidenceThreshold = 0.7;
+    private const double ConfidenceBoostFactor = 1.01;
+    
+    // Performance scoring constants
+    private const double MaxBrierScore = 0.25;
+    private const double MaxLatency = 1000.0;
+    private const double BrierWeight = 0.5;
+    private const double HitRateWeight = 0.4;
+    private const double LatencyWeight = 0.1;
+    
     // LoggerMessage delegates for CA1848 compliance - EnsembleMetaLearner
     private static readonly Action<ILogger, Exception?> BlendedPredictionFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(5001, "BlendedPredictionFailed"),
@@ -129,7 +142,17 @@ public class EnsembleMetaLearner
 
             return prediction;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            BlendedPredictionFailed(_logger, ex);
+            return CreateFallbackPrediction();
+        }
+        catch (ArgumentException ex)
+        {
+            BlendedPredictionFailed(_logger, ex);
+            return CreateFallbackPrediction();
+        }
+        catch (TaskCanceledException ex)
         {
             BlendedPredictionFailed(_logger, ex);
             return CreateFallbackPrediction();
@@ -161,7 +184,19 @@ public class EnsembleMetaLearner
 
             TrainingCompleted(_logger, regime, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (IOException ex)
         {
             TrainingFailed(_logger, regime, ex);
         }
@@ -197,7 +232,15 @@ public class EnsembleMetaLearner
 
             ModelFeedbackDebug(_logger, modelId, _currentRegime, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            FeedbackUpdateFailed(_logger, modelId, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            FeedbackUpdateFailed(_logger, modelId, ex);
+        }
+        catch (TaskCanceledException ex)
         {
             FeedbackUpdateFailed(_logger, modelId, ex);
         }
@@ -324,7 +367,15 @@ public class EnsembleMetaLearner
                 var prediction = await GetModelPredictionAsync(model, context, cancellationToken).ConfigureAwait(false);
                 predictions[modelId] = prediction;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                ModelPredictionFailed(_logger, modelId, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                ModelPredictionFailed(_logger, modelId, ex);
+            }
+            catch (TaskCanceledException ex)
             {
                 ModelPredictionFailed(_logger, modelId, ex);
             }
@@ -513,7 +564,7 @@ public class EnsembleMetaLearner
         
         // Smooth sigmoid transition
         var progress = elapsed.TotalSeconds / totalDuration.TotalSeconds;
-        return 1.0 / (1.0 + Math.Exp(-6 * (progress - 0.5))); // Sigmoid centered at 0.5
+        return 1.0 / (1.0 + Math.Exp(-SigmoidSteepness * (progress - SigmoidCenter))); // Sigmoid centered at 0.5
     }
 
     private static Dictionary<string, double> BlendWeights(
@@ -544,11 +595,11 @@ public class EnsembleMetaLearner
         var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeStr, cancellationToken).ConfigureAwait(false);
         
         // Boost weights for high-confidence predictions
-        if (prediction.Confidence > 0.7)
+        if (prediction.Confidence > HighConfidenceThreshold)
         {
             foreach (var key in currentWeights.Keys.ToList())
             {
-                currentWeights[key] *= 1.01; // Small boost
+                currentWeights[key] *= ConfidenceBoostFactor; // Small boost
             }
             
             await _onlineLearning.UpdateWeightsAsync(regimeStr, currentWeights, cancellationToken).ConfigureAwait(false);
@@ -558,11 +609,11 @@ public class EnsembleMetaLearner
     private static double CalculatePerformanceScore(ModelPerformance performance)
     {
         // Combine multiple metrics into a single performance score
-        var brierScore = Math.Max(0, 0.25 - performance.BrierScore) / 0.25; // 0-1 scale
+        var brierScore = Math.Max(0, MaxBrierScore - performance.BrierScore) / MaxBrierScore; // 0-1 scale
         var hitRate = performance.HitRate; // Already 0-1 scale
-        var latencyScore = Math.Max(0, 1.0 - performance.Latency / 1000.0); // Penalize high latency
+        var latencyScore = Math.Max(0, 1.0 - performance.Latency / MaxLatency); // Penalize high latency
         
-        return (brierScore * 0.5) + (hitRate * 0.4) + (latencyScore * 0.1);
+        return (brierScore * BrierWeight) + (hitRate * HitRateWeight) + (latencyScore * LatencyWeight);
     }
 
     private EnsemblePrediction CreateFallbackPrediction()
