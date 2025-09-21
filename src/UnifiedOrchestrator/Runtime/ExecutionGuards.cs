@@ -42,6 +42,16 @@ public class ExecutionGuards
     {
         var checks = new List<(bool passed, string reason)>();
 
+        // Check 0: Kill switch (Level 2: Order placement blocking)
+        var killSwitchCheck = !BotCore.Services.ProductionKillSwitchService.IsKillSwitchActive();
+        checks.Add((killSwitchCheck, $"Kill switch: {(killSwitchCheck ? "INACTIVE" : "ACTIVE - BLOCKING ALL ORDERS")}"));
+        
+        if (!killSwitchCheck)
+        {
+            _logger.LogCritical("🔴 [EXECUTION-GUARDS] Kill switch active - blocking all order execution for {Symbol}", symbol);
+            return false; // Immediate return for kill switch
+        }
+
         // Check 1: Spread width
         var spreadTicks = CalculateSpreadInTicks(symbol, bid, ask);
         var maxAllowedSpread = GetMaxSpreadForSymbol(symbol);

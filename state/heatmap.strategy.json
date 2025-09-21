@@ -1,0 +1,54 @@
+{
+  "S2": {
+    "strategy": "VWAP Mean Reversion",
+    "timeWindows": {
+      "09:30-10:00": { "activity": 0.3, "success_rate": 0.65 },
+      "10:00-11:00": { "activity": 0.5, "success_rate": 0.72 },
+      "11:00-12:00": { "activity": 0.8, "success_rate": 0.78 },
+      "12:00-13:00": { "activity": 0.9, "success_rate": 0.82 },
+      "13:00-14:00": { "activity": 0.7, "success_rate": 0.75 },
+      "14:00-15:00": { "activity": 0.6, "success_rate": 0.68 },
+      "15:00-16:00": { "activity": 0.4, "success_rate": 0.61 }
+    },
+    "optimalWindows": ["11:00-13:00"]
+  },
+  "S3": {
+    "strategy": "Bollinger Compression",
+    "timeWindows": {
+      "09:30-10:00": { "activity": 0.9, "success_rate": 0.74 },
+      "10:00-11:00": { "activity": 0.8, "success_rate": 0.71 },
+      "11:00-12:00": { "activity": 0.4, "success_rate": 0.58 },
+      "12:00-13:00": { "activity": 0.3, "success_rate": 0.55 },
+      "13:00-14:00": { "activity": 0.5, "success_rate": 0.62 },
+      "14:00-15:00": { "activity": 0.8, "success_rate": 0.76 },
+      "15:00-16:00": { "activity": 0.7, "success_rate": 0.73 }
+    },
+    "optimalWindows": ["09:30-10:30", "14:00-15:30"]
+  },
+  "S6": {
+    "strategy": "Opening Drive",
+    "timeWindows": {
+      "09:30-10:00": { "activity": 1.0, "success_rate": 0.81 },
+      "10:00-11:00": { "activity": 0.9, "success_rate": 0.79 },
+      "11:00-12:00": { "activity": 0.2, "success_rate": 0.48 },
+      "12:00-13:00": { "activity": 0.1, "success_rate": 0.42 },
+      "13:00-14:00": { "activity": 0.1, "success_rate": 0.45 },
+      "14:00-15:00": { "activity": 0.2, "success_rate": 0.51 },
+      "15:00-16:00": { "activity": 0.3, "success_rate": 0.55 }
+    },
+    "optimalWindows": ["09:30-10:30"]
+  },
+  "S11": {
+    "strategy": "Afternoon Fade",
+    "timeWindows": {
+      "09:30-10:00": { "activity": 0.2, "success_rate": 0.52 },
+      "10:00-11:00": { "activity": 0.3, "success_rate": 0.58 },
+      "11:00-12:00": { "activity": 0.4, "success_rate": 0.62 },
+      "12:00-13:00": { "activity": 0.5, "success_rate": 0.65 },
+      "13:00-14:00": { "activity": 0.6, "success_rate": 0.68 },
+      "14:00-15:00": { "activity": 0.9, "success_rate": 0.78 },
+      "15:00-16:00": { "activity": 1.0, "success_rate": 0.83 }
+    },
+    "optimalWindows": ["14:00-16:00"]
+  }
+}
