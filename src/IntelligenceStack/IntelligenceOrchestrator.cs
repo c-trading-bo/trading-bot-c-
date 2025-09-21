@@ -30,7 +30,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double NeutralThreshold = 0.5;
     private const double BullishThreshold = 0.55;
     private const double BearishThreshold = 0.45;
-    private const int GenerationTwoGC = 2;
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;

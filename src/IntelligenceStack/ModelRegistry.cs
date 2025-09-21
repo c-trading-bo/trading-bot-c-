@@ -316,25 +316,25 @@ public class ModelRegistry : IModelRegistry
                DateTime.UtcNow - _lastPromotion >= _promotionCooldown;
     }
 
-    private string GenerateModelId(string familyName)
+    private static string GenerateModelId(string familyName)
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
         return $"{familyName}_{timestamp}";
     }
 
-    private string ExtractVersionFromId(string modelId)
+    private static string ExtractVersionFromId(string modelId)
     {
         var parts = modelId.Split('_');
         return parts.Length > 1 ? parts[^1] : "v1";
     }
 
-    private string ExtractFamilyFromId(string modelId)
+    private static string ExtractFamilyFromId(string modelId)
     {
         var lastUnderscore = modelId.LastIndexOf('_');
         return lastUnderscore > 0 ? modelId[..lastUnderscore] : modelId;
     }
 
-    private string CalculateModelChecksum(ModelArtifact model)
+    private static string CalculateModelChecksum(ModelArtifact model)
     {
         var data = model.ModelData ?? Array.Empty<byte>();
         using var sha = SHA256.Create();
@@ -342,7 +342,7 @@ public class ModelRegistry : IModelRegistry
         return Convert.ToHexString(hash)[..16];
     }
 
-    private string CalculateSchemaChecksum(string featuresVersion)
+    private static string CalculateSchemaChecksum(string featuresVersion)
     {
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(featuresVersion));
