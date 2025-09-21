@@ -221,7 +221,7 @@ public class EnsembleMetaLearner
             if (currentState.Type != _currentRegime)
             {
                 _logger.LogInformation("[ENSEMBLE] Regime transition detected: {From} -> {To}", 
-                    _currentRegime, currentState.Type).ConfigureAwait(false);
+                    _currentRegime, currentState.Type);
 
                 _previousRegime = _currentRegime;
                 _currentRegime = currentState.Type;
@@ -251,12 +251,12 @@ public class EnsembleMetaLearner
         {
             if (_inTransition)
             {
-                var transitionDuration = DateTime.UtcNow - _lastTransitionTime.ConfigureAwait(false);
+                var transitionDuration = DateTime.UtcNow - _lastTransitionTime;
                 var maxDuration = TimeSpan.FromSeconds(_config.MetaPerRegime.TransitionBlendSeconds);
                 
                 if (transitionDuration >= maxDuration)
                 {
-                    _inTransition;
+                    _inTransition = false;
                     _logger.LogDebug("[ENSEMBLE] Transition completed for regime: {Regime}", _currentRegime);
                 }
             }
@@ -653,7 +653,7 @@ public class RegimeBlendHead
     private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var exampleList = examples.ToList();
         if (exampleList.Count == 0) return 0.0;
