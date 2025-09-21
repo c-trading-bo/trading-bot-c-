@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -246,21 +247,21 @@ public class LineageTrackingSystem
         double brierScore,
         CancellationToken cancellationToken = default)
     {
-        await RecordLineageEventAsync(new LineageEvent
+        var lineageEvent = new LineageEvent
         {
             EventId = Guid.NewGuid().ToString(),
             EventType = LineageEventType.CalibrationUpdated,
             Timestamp = DateTime.UtcNow,
             EntityId = calibrationMapId,
-            EntityType = "calibration_map",
-            Properties = new Dictionary<string, object>
-            {
-                ["model_id"] = modelId,
-                ["calibration_method"] = method.ToString(),
-                ["brier_score"] = brierScore,
-                ["update_reason"] = "nightly_calibration"
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            EntityType = "calibration_map"
+        };
+        
+        lineageEvent.Properties["model_id"] = modelId;
+        lineageEvent.Properties["calibration_method"] = method.ToString();
+        lineageEvent.Properties["brier_score"] = brierScore;
+        lineageEvent.Properties["update_reason"] = "nightly_calibration";
+        
+        await RecordLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})", 
             calibrationMapId, modelId, brierScore);
@@ -296,9 +297,15 @@ public class LineageTrackingSystem
                 LineageStamp = decisionLineage.LineageStamp,
                 ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken),
                 FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken),
-                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken),
-                RelatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken)
+                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken)
             };
+            
+            // Add related events to the read-only collection
+            var relatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken);
+            foreach (var evt in relatedEvents)
+            {
+                trace.RelatedEvents.Add(evt);
+            }
 
             return trace;
         }
@@ -328,16 +335,30 @@ public class LineageTrackingSystem
             ModelPromotions = events.Count(e => e.EventType == LineageEventType.ModelPromoted),
             FeatureStoreUpdates = events.Count(e => e.EventType == LineageEventType.FeatureStoreUpdated),
             CalibrationUpdates = events.Count(e => e.EventType == LineageEventType.CalibrationUpdated),
-            UniqueModels = events.Where(e => e.EntityType == "model").Select(e => e.EntityId).Distinct().Count(),
-            ModelVersionDistribution = events
-                .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString() ?? "unknown")
-                .ToDictionary(g => g.Key, g => g.Count()),
-            FeatureVersionDistribution = events
-                .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString() ?? "unknown")
-                .ToDictionary(g => g.Key, g => g.Count())
+            UniqueModels = events.Where(e => e.EntityType == "model").Select(e => e.EntityId).Distinct().Count()
         };
+        
+        // Add model version distribution to read-only dictionary
+        var modelVersionDistribution = events
+            .Where(e => e.EventType == LineageEventType.DecisionStamped)
+            .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString() ?? "unknown")
+            .ToDictionary(g => g.Key, g => g.Count());
+            
+        foreach (var kvp in modelVersionDistribution)
+        {
+            summary.ModelVersionDistribution[kvp.Key] = kvp.Value;
+        }
+        
+        // Add feature version distribution to read-only dictionary
+        var featureVersionDistribution = events
+            .Where(e => e.EventType == LineageEventType.DecisionStamped)
+            .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString() ?? "unknown")
+            .ToDictionary(g => g.Key, g => g.Count());
+            
+        foreach (var kvp in featureVersionDistribution)
+        {
+            summary.FeatureVersionDistribution[kvp.Key] = kvp.Value;
+        }
 
         return summary;
     }
@@ -547,14 +568,21 @@ public class LineageTrackingSystem
         {
             var schema = await _featureStore.GetSchemaAsync(version, cancellationToken).ConfigureAwait(false);
             
-            return new FeatureLineageInfo
+            var featureLineageInfo = new FeatureLineageInfo
             {
                 Version = version,
                 SchemaChecksum = schema.Checksum,
                 CreatedAt = schema.CreatedAt,
-                FeatureCount = schema.Features.Count,
-                FeatureNames = schema.Features.Keys.ToList()
+                FeatureCount = schema.Features.Count
             };
+            
+            // Add feature names to the read-only collection
+            foreach (var featureName in schema.Features.Keys)
+            {
+                featureLineageInfo.FeatureNames.Add(featureName);
+            }
+            
+            return featureLineageInfo;
         }
         catch (Exception ex)
         {
@@ -598,7 +626,7 @@ public class LineageTrackingSystem
                     OutputHash = decision.DecisionId[^8..],
                     ProcessingTime = TimeSpan.FromMilliseconds(20)
                 }
-            }.ConfigureAwait(false);
+            };
         }, cancellationToken);
     }
 
@@ -663,7 +691,7 @@ public class LineageTrackingSystem
         // Retrieve lineage events in period asynchronously to avoid blocking analysis operations
         return await Task.Run(() =>
         {
-            var allEvents = new List<LineageEvent>().ConfigureAwait(false);
+            var allEvents = new List<LineageEvent>();
             
             lock (_lock)
             {
@@ -682,43 +710,85 @@ public class LineageTrackingSystem
         var events = await GetRelatedEventsAsync(modelId, cancellationToken).ConfigureAwait(false);
         var modelEvents = events.Where(e => e.EntityType == "model").ToList();
         
-        return new CompleteModelLineage
+        var modelLineage = new CompleteModelLineage
         {
             ModelId = modelId,
-            CreationEvent = modelEvents.FirstOrDefault(e => e.EventType == LineageEventType.ModelRegistered),
-            PromotionEvents = modelEvents.Where(e => e.EventType == LineageEventType.ModelPromoted).ToList(),
-            UsageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
-                e.Properties.ContainsKey("model_id") && 
-                e.Properties["model_id"].ToString() == modelId).ToList()
+            CreationEvent = modelEvents.FirstOrDefault(e => e.EventType == LineageEventType.ModelRegistered)
         };
+        
+        // Add promotion events to read-only collection
+        var promotionEvents = modelEvents.Where(e => e.EventType == LineageEventType.ModelPromoted).ToList();
+        foreach (var evt in promotionEvents)
+        {
+            modelLineage.PromotionEvents.Add(evt);
+        }
+        
+        // Add usage events to read-only collection
+        var usageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
+            e.Properties.ContainsKey("model_id") && 
+            e.Properties["model_id"].ToString() == modelId).ToList();
+        foreach (var evt in usageEvents)
+        {
+            modelLineage.UsageEvents.Add(evt);
+        }
+        
+        return modelLineage;
     }
 
     private async Task<CompleteFeatureLineage> GetCompleteFeatureLineageAsync(string version, CancellationToken cancellationToken)
     {
         var events = await GetRelatedEventsAsync($"feature_store_{version}", cancellationToken).ConfigureAwait(false);
         
-        return new CompleteFeatureLineage
+        var featureLineage = new CompleteFeatureLineage
         {
-            Version = version,
-            UpdateEvents = events.Where(e => e.EventType == LineageEventType.FeatureStoreUpdated).ToList(),
-            UsageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
-                e.Properties.ContainsKey("feature_version") && 
-                e.Properties["feature_version"].ToString() == version).ToList()
+            Version = version
         };
+        
+        // Add update events to read-only collection
+        var updateEvents = events.Where(e => e.EventType == LineageEventType.FeatureStoreUpdated).ToList();
+        foreach (var evt in updateEvents)
+        {
+            featureLineage.UpdateEvents.Add(evt);
+        }
+        
+        // Add usage events to read-only collection
+        var usageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
+            e.Properties.ContainsKey("feature_version") && 
+            e.Properties["feature_version"].ToString() == version).ToList();
+        foreach (var evt in usageEvents)
+        {
+            featureLineage.UsageEvents.Add(evt);
+        }
+        
+        return featureLineage;
     }
 
     private async Task<CompleteCalibrationLineage> GetCompleteCalibrationLineageAsync(string calibrationMapId, CancellationToken cancellationToken)
     {
         var events = await GetRelatedEventsAsync(calibrationMapId, cancellationToken).ConfigureAwait(false);
         
-        return new CompleteCalibrationLineage
+        var calibrationLineage = new CompleteCalibrationLineage
         {
-            CalibrationMapId = calibrationMapId,
-            UpdateEvents = events.Where(e => e.EventType == LineageEventType.CalibrationUpdated).ToList(),
-            UsageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
-                e.Properties.ContainsKey("calibration_map") && 
-                e.Properties["calibration_map"].ToString() == calibrationMapId).ToList()
+            CalibrationMapId = calibrationMapId
         };
+        
+        // Add update events to read-only collection
+        var updateEvents = events.Where(e => e.EventType == LineageEventType.CalibrationUpdated).ToList();
+        foreach (var evt in updateEvents)
+        {
+            calibrationLineage.UpdateEvents.Add(evt);
+        }
+        
+        // Add usage events to read-only collection
+        var usageEvents = events.Where(e => e.EventType == LineageEventType.DecisionStamped && 
+            e.Properties.ContainsKey("calibration_map") && 
+            e.Properties["calibration_map"].ToString() == calibrationMapId).ToList();
+        foreach (var evt in usageEvents)
+        {
+            calibrationLineage.UsageEvents.Add(evt);
+        }
+        
+        return calibrationLineage;
     }
 
     private async Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
@@ -726,7 +796,7 @@ public class LineageTrackingSystem
         // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
         return await Task.Run(() =>
         {
-            var relatedEvents = new List<LineageEvent>().ConfigureAwait(false);
+            var relatedEvents = new List<LineageEvent>();
             
             lock (_lock)
             {

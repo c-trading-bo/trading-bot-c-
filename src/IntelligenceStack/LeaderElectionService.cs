@@ -127,7 +127,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
             lock (_lock)
             {
-                _isLeader;
+                _isLeader = false;
             }
 
             OnLeadershipChanged(false, "Released leadership");
@@ -179,7 +179,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 // Lost leadership
                 lock (_lock)
                 {
-                    _isLeader;
+                    _isLeader = false;
                 }
                 
                 StopRenewalTimer();
@@ -196,7 +196,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             // Assume lost leadership on error
             lock (_lock)
             {
-                _isLeader;
+                _isLeader = false;
             }
             
             StopRenewalTimer();
@@ -427,7 +427,7 @@ public class QuarantineManager : IQuarantineManager
                     status.Reason = reason;
                     status.QuarantinedAt = DateTime.UtcNow;
                     status.BlendWeight = 0.0;
-                    status.ShadowDecisionCount;
+                    status.ShadowDecisionCount = 0;
                 }
 
                 _logger.LogWarning("[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})", modelId, reason);
@@ -465,7 +465,7 @@ public class QuarantineManager : IQuarantineManager
                         status.BlendWeight = 1.0;
                         status.QuarantinedAt = null;
                         status.Reason = null;
-                        status.ShadowDecisionCount;
+                        status.ShadowDecisionCount = 0;
 
                         _logger.LogInformation("[QUARANTINE] Model restored from quarantine: {ModelId}", modelId);
                         return true;

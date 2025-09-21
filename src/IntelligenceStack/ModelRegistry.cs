@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 

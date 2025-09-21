@@ -153,21 +153,27 @@ public class ObservabilityDashboard : IDisposable
             })
             .ToList();
 
-        return new RegimeTimeline
+        var regimeTimeline = new RegimeTimeline
         {
             CurrentRegime = ensembleStatus.CurrentRegime.ToString(),
             PreviousRegime = ensembleStatus.PreviousRegime.ToString(),
             InTransition = ensembleStatus.InTransition,
-            TransitionStartTime = ensembleStatus.TransitionStartTime,
-            RecentChanges = recentRegimeChanges,
-            RegimeDistribution = new Dictionary<string, double>
-            {
-                ["Range"] = 0.35,
-                ["Trend"] = 0.40,
-                ["Volatility"] = 0.15,
-                ["LowVol"] = 0.10
-            }
+            TransitionStartTime = ensembleStatus.TransitionStartTime
         };
+        
+        // Add recent changes to the read-only collection
+        foreach (var change in recentRegimeChanges)
+        {
+            regimeTimeline.RecentChanges.Add(change);
+        }
+        
+        // Add regime distribution to the read-only dictionary
+        regimeTimeline.RegimeDistribution["Range"] = 0.35;
+        regimeTimeline.RegimeDistribution["Trend"] = 0.40;
+        regimeTimeline.RegimeDistribution["Volatility"] = 0.15;
+        regimeTimeline.RegimeDistribution["LowVol"] = 0.10;
+        
+        return regimeTimeline;
     }
 
     /// <summary>
@@ -180,9 +186,8 @@ public class ObservabilityDashboard : IDisposable
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
-        return new EnsembleWeightsDashboard
+        var ensembleWeights = new EnsembleWeightsDashboard
         {
-            CurrentRegimeWeights = ensembleStatus.ActiveModels,
             RegimeHeadWeights = ensembleStatus.RegimeHeadStatus.ToDictionary(
                 kvp => kvp.Key.ToString(),
                 kvp => new Dictionary<string, double>
@@ -190,18 +195,32 @@ public class ObservabilityDashboard : IDisposable
                     ["validation_score"] = kvp.Value.ValidationScore,
                     ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
                 }
-            ),
-            WeightChangesOverTime = GetRecentMetrics("ensemble_weights")
-                .TakeLast(100)
-                .Select(m => new WeightChange
-                {
-                    Timestamp = m.Timestamp,
-                    ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
-                    Weight = m.Value,
-                    Regime = m.Tags.GetValueOrDefault("regime", "unknown")
-                })
-                .ToList()
+            )
         };
+        
+        // Add current regime weights to the read-only dictionary
+        foreach (var kvp in ensembleStatus.ActiveModels)
+        {
+            ensembleWeights.CurrentRegimeWeights[kvp.Key] = kvp.Value;
+        }
+        
+        var weightChanges = GetRecentMetrics("ensemble_weights")
+            .TakeLast(100)
+            .Select(m => new WeightChange
+            {
+                Timestamp = m.Timestamp,
+                ModelId = m.Tags.GetValueOrDefault("model_id", "unknown"),
+                Weight = m.Value,
+                Regime = m.Tags.GetValueOrDefault("regime", "unknown")
+            })
+            .ToList();
+            
+        foreach (var change in weightChanges)
+        {
+            ensembleWeights.WeightChangesOverTime.Add(change);
+        }
+        
+        return ensembleWeights;
     }
 
     /// <summary>
@@ -219,15 +238,22 @@ public class ObservabilityDashboard : IDisposable
 
         var histogram = CreateHistogram(recentConfidences, 10);
         
-        return new ConfidenceDistribution
+        var confidenceDistribution = new ConfidenceDistribution
         {
-            Histogram = histogram,
             Mean = recentConfidences.Count > 0 ? recentConfidences.Average() : 0.0,
             Median = CalculatePercentile(recentConfidences, 0.5),
             P90 = CalculatePercentile(recentConfidences, 0.9),
             P10 = CalculatePercentile(recentConfidences, 0.1),
             CalibrationScore = CalculateCalibrationScore(recentConfidences)
         };
+        
+        // Add histogram to the read-only dictionary
+        foreach (var kvp in histogram)
+        {
+            confidenceDistribution.Histogram[kvp.Key] = kvp.Value;
+        }
+        
+        return confidenceDistribution;
     }
 
     /// <summary>
@@ -238,15 +264,29 @@ public class ObservabilityDashboard : IDisposable
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        return new SlippageVsSpread
+        var slippageData = new SlippageVsSpread
         {
             AverageSlippageBps = 1.2,
             AverageSpreadBps = 0.8,
             SlippageRatio = 1.5, // Slippage / Spread
-            ByTimeOfDay = CreateTimeOfDayProfile("slippage"),
-            ByVolatility = CreateVolatilityProfile("slippage"),
             IsHealthy = true // Slippage < 2 * Spread
         };
+        
+        // Add time of day data to read-only dictionary
+        var timeOfDayProfile = CreateTimeOfDayProfile("slippage");
+        foreach (var kvp in timeOfDayProfile)
+        {
+            slippageData.ByTimeOfDay[kvp.Key] = kvp.Value;
+        }
+        
+        // Add volatility data to read-only dictionary
+        var volatilityProfile = CreateVolatilityProfile("slippage");
+        foreach (var kvp in volatilityProfile)
+        {
+            slippageData.ByVolatility[kvp.Key] = kvp.Value;
+        }
+        
+        return slippageData;
     }
 
     /// <summary>
@@ -288,15 +328,28 @@ public class ObservabilityDashboard : IDisposable
             })
             .ToList();
 
-        return new SafetyEventsDashboard
+        var safetyDashboard = new SafetyEventsDashboard
         {
-            RecentEvents = recentEvents,
-            EventCounts = recentEvents
-                .GroupBy(e => e.EventType)
-                .ToDictionary(g => g.Key, g => g.Count()),
             CriticalEvents = recentEvents.Count(e => e.Severity == "critical"),
             WarningEvents = recentEvents.Count(e => e.Severity == "warning")
         };
+        
+        // Add recent events to read-only collection
+        foreach (var evt in recentEvents)
+        {
+            safetyDashboard.RecentEvents.Add(evt);
+        }
+        
+        // Add event counts to read-only dictionary
+        var eventCounts = recentEvents
+            .GroupBy(e => e.EventType)
+            .ToDictionary(g => g.Key, g => g.Count());
+        foreach (var kvp in eventCounts)
+        {
+            safetyDashboard.EventCounts[kvp.Key] = kvp.Value;
+        }
+        
+        return safetyDashboard;
     }
 
     /// <summary>

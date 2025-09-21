@@ -82,7 +82,7 @@ public static class IntelligenceStackServiceExtensions
         // Configure minimal CloudFlowOptions for compatibility (local definition)
         services.Configure<CloudFlowOptions>(options =>
         {
-            options.Enabled;
+            options.Enabled = false;
             options.CloudEndpoint = "";
             options.InstanceId = Environment.MachineName;
             options.TimeoutSeconds = 30;
@@ -210,7 +210,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                         var error = $"CRITICAL ERROR: Service {serviceName} uses SIMULATION implementation: {typeName} from {assemblyName}";
                         _logger.LogError("❌ [PRODUCTION-VERIFICATION] {Error}", error);
                         result.Errors.Add(error);
-                        result.IsProductionReady;
+                        result.IsProductionReady = false;
                     }
                     else
                     {

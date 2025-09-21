@@ -213,9 +213,14 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 driftState = new FeatureDriftState
                 {
                     ModelId = modelId,
-                    BaselineFeatures = new Dictionary<string, double>(features.Features),
                     LastUpdated = DateTime.UtcNow
                 };
+                
+                // Copy features to the baseline
+                foreach (var kvp in features.Features)
+                {
+                    driftState.BaselineFeatures[kvp.Key] = kvp.Value;
+                }
             }
             else
             {
@@ -228,7 +233,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                         modelId, driftScore);
                     
                     // Reset baseline to new distribution
-                    driftState.BaselineFeatures = new Dictionary<string, double>(features.Features);
+                    driftState.BaselineFeatures.Clear();
+                    foreach (var kvp in features.Features)
+                    {
+                        driftState.BaselineFeatures[kvp.Key] = kvp.Value;
+                    }
                     driftState.LastUpdated = DateTime.UtcNow;
                     driftState.DriftDetectedCount++;
                 }
@@ -434,9 +443,14 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                         kvp => kvp.Key,
                         kvp => new Dictionary<string, double>(kvp.Value)
                     ),
-                    BaselineVariance = new Dictionary<string, double>(_baselineVariance),
                     LastSaved = DateTime.UtcNow
                 };
+                
+                // Copy baseline variance
+                foreach (var kvp in _baselineVariance)
+                {
+                    state.BaselineVariance[kvp.Key] = kvp.Value;
+                }
             }
 
             var stateFile = Path.Combine(_statePath, "online_learning_state.json");
@@ -707,7 +721,7 @@ public class SloMonitor
                 {
                     if (!_latencyHistory.TryGetValue(metricType, out var history))
                     {
-                        history = new List<double>().ConfigureAwait(false);
+                        history = new List<double>();
                         _latencyHistory[metricType] = history;
                     }
 
@@ -747,7 +761,7 @@ public class SloMonitor
             {
                 lock (_lock)
                 {
-                    var totalErrors = _errorCounts.Values.Sum().ConfigureAwait(false);
+                    var totalErrors = _errorCounts.Values.Sum();
                     var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
                     
                     if (totalDecisions > 0)

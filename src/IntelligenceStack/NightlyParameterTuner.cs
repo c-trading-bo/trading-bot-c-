@@ -90,11 +90,16 @@ public class NightlyParameterTuner
                 }
             }
 
-            result.BestParameters = bayesianResult.BestParameters;
             result.BaselineMetrics = bayesianResult.BaselineMetrics;
             result.BestMetrics = bayesianResult.BestMetrics;
             result.TrialsCompleted = bayesianResult.TrialsCompleted;
             result.ImprovedBaseline = bayesianResult.ImprovedBaseline;
+            
+            // Copy best parameters to the read-only dictionary
+            foreach (var kvp in bayesianResult.BestParameters)
+            {
+                result.BestParameters[kvp.Key] = kvp.Value;
+            }
 
             // Promote model if improvement found
             if (bayesianResult.ImprovedBaseline)
@@ -173,13 +178,20 @@ public class NightlyParameterTuner
             var candidateMetrics = await EvaluateParametersAsync(session.ModelFamily, candidateParams, cancellationToken).ConfigureAwait(false);
             
             // Update session history
-            session.TrialHistory.Add(new TrialResult
+            var trialResult = new TrialResult
             {
                 TrialNumber = trial + 1,
-                Parameters = candidateParams,
                 Metrics = candidateMetrics,
                 Timestamp = DateTime.UtcNow
-            });
+            };
+            
+            // Copy parameters to the read-only dictionary
+            foreach (var kvp in candidateParams)
+            {
+                trialResult.Parameters[kvp.Key] = kvp.Value;
+            }
+            
+            session.TrialHistory.Add(trialResult);
 
             // Check if this is the best result so far
             if (IsBetterMetrics(candidateMetrics, bestMetrics))
@@ -199,10 +211,15 @@ public class NightlyParameterTuner
             result.TrialsCompleted = trial + 1;
         }
 
-        result.BestParameters = bestParameters;
         result.BestMetrics = bestMetrics;
         result.ImprovedBaseline = IsBetterMetrics(bestMetrics, result.BaselineMetrics);
         result.EndTime = DateTime.UtcNow;
+        
+        // Copy best parameters to the read-only dictionary
+        foreach (var kvp in bestParameters)
+        {
+            result.BestParameters[kvp.Key] = kvp.Value;
+        }
 
         _logger.LogInformation("[BAYESIAN_OPT] Completed: {Trials} trials, Best AUC: {AUC:F3}, Improved: {Improved}", 
             result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline);
@@ -268,10 +285,15 @@ public class NightlyParameterTuner
             }
         }
 
-        result.BestParameters = bestParameters;
         result.BestMetrics = bestMetrics;
         result.ImprovedBaseline = IsBetterMetrics(bestMetrics, result.BaselineMetrics);
         result.EndTime = DateTime.UtcNow;
+        
+        // Copy best parameters to the read-only dictionary
+        foreach (var kvp in bestParameters)
+        {
+            result.BestParameters[kvp.Key] = kvp.Value;
+        }
 
         _logger.LogInformation("[EVOLUTIONARY] Completed: {Trials} evaluations, Best AUC: {AUC:F3}, Improved: {Improved}", 
             result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline);
