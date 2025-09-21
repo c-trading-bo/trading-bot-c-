@@ -184,7 +184,19 @@ public class EnsembleMetaLearner
 
             TrainingCompleted(_logger, regime, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            TrainingFailed(_logger, regime, ex);
+        }
+        catch (IOException ex)
         {
             TrainingFailed(_logger, regime, ex);
         }
@@ -220,7 +232,15 @@ public class EnsembleMetaLearner
 
             ModelFeedbackDebug(_logger, modelId, _currentRegime, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            FeedbackUpdateFailed(_logger, modelId, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            FeedbackUpdateFailed(_logger, modelId, ex);
+        }
+        catch (TaskCanceledException ex)
         {
             FeedbackUpdateFailed(_logger, modelId, ex);
         }
@@ -347,7 +367,15 @@ public class EnsembleMetaLearner
                 var prediction = await GetModelPredictionAsync(model, context, cancellationToken).ConfigureAwait(false);
                 predictions[modelId] = prediction;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                ModelPredictionFailed(_logger, modelId, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                ModelPredictionFailed(_logger, modelId, ex);
+            }
+            catch (TaskCanceledException ex)
             {
                 ModelPredictionFailed(_logger, modelId, ex);
             }

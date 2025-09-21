@@ -475,7 +475,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var content = await File.ReadAllTextAsync(pointsPath, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<CalibrationPoint>>(content) ?? new List<CalibrationPoint>();
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            CalibrationPointsLoadFailed(_logger, modelId, ex);
+            return new List<CalibrationPoint>();
+        }
+        catch (IOException ex)
+        {
+            CalibrationPointsLoadFailed(_logger, modelId, ex);
+            return new List<CalibrationPoint>();
+        }
+        catch (UnauthorizedAccessException ex)
         {
             CalibrationPointsLoadFailed(_logger, modelId, ex);
             return new List<CalibrationPoint>();

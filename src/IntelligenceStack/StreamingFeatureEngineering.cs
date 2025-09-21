@@ -156,7 +156,17 @@ public class StreamingFeatureEngineering : IDisposable
             
             return features;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            CachedFeaturesFailed(_logger, symbol, ex);
+            return null;
+        }
+        catch (ArgumentException ex)
+        {
+            CachedFeaturesFailed(_logger, symbol, ex);
+            return null;
+        }
+        catch (TaskCanceledException ex)
         {
             CachedFeaturesFailed(_logger, symbol, ex);
             return null;
@@ -176,7 +186,11 @@ public class StreamingFeatureEngineering : IDisposable
                 cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-CacheExpiredMinutes));
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            BackgroundRefreshFailed(_logger, symbol, ex);
+        }
+        catch (ArgumentException ex)
         {
             BackgroundRefreshFailed(_logger, symbol, ex);
         }
