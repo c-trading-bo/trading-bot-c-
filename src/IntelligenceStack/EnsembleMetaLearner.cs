@@ -351,7 +351,7 @@ public class EnsembleMetaLearner
             features["volatility_regime"] = features.GetValueOrDefault("atr", 1.0) / features.GetValueOrDefault("sma_atr", 1.0);
             
             return features;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private static async Task<(double Confidence, double Direction)> RunModelInferenceAsync(
@@ -371,7 +371,7 @@ public class EnsembleMetaLearner
             var confidence = Math.Min(0.95, 0.5 + Math.Abs(direction) * 0.3);
             
             return (confidence, Math.Tanh(direction)); // Tanh to bound direction between -1 and 1
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private static async Task<(double Confidence, double Direction)> CalibrateModelOutputAsync(
@@ -388,7 +388,7 @@ public class EnsembleMetaLearner
             var calibratedConfidence = confidence * calibrationFactor;
             
             return (calibratedConfidence, direction);
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<EnsemblePrediction> BlendPredictionsAsync(

@@ -397,7 +397,7 @@ public class FeatureEngineer : IDisposable
                 }
                 
                 return validPairs > 0 ? correlationSum / validPairs : 0.0;
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             // Step 2: Get feature history asynchronously
             var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken).ConfigureAwait(false);
@@ -636,7 +636,7 @@ public class FeatureImportanceTracker
                     }
                 }
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public List<double> GetRecentPredictions()
