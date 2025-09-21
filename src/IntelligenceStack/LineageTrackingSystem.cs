@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -851,7 +852,7 @@ public class LineageStamp
     public RegimeLineageInfo RegimeContext { get; set; } = new();
     public ModelLineageInfo? ModelLineage { get; set; }
     public FeatureLineageInfo? FeatureLineage { get; set; }
-    public List<ProcessingStep> ProcessingChain { get; } = new();
+    public Collection<ProcessingStep> ProcessingChain { get; } = new();
 }
 
 public class LineageEvent
@@ -873,7 +874,7 @@ public class LineageTrace
     public CompleteModelLineage? ModelLineage { get; set; }
     public CompleteFeatureLineage? FeatureLineage { get; set; }
     public CompleteCalibrationLineage? CalibrationLineage { get; set; }
-    public List<LineageEvent> RelatedEvents { get; } = new();
+    public Collection<LineageEvent> RelatedEvents { get; } = new();
 }
 
 public class LineageSummary
@@ -917,7 +918,7 @@ public class FeatureLineageInfo
     public string SchemaChecksum { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int FeatureCount { get; set; }
-    public List<string> FeatureNames { get; } = new();
+    public Collection<string> FeatureNames { get; } = new();
 }
 
 public class ProcessingStep
@@ -952,22 +953,22 @@ public class CompleteModelLineage
 {
     public string ModelId { get; set; } = string.Empty;
     public LineageEvent? CreationEvent { get; set; }
-    public List<LineageEvent> PromotionEvents { get; } = new();
-    public List<LineageEvent> UsageEvents { get; } = new();
+    public Collection<LineageEvent> PromotionEvents { get; } = new();
+    public Collection<LineageEvent> UsageEvents { get; } = new();
 }
 
 public class CompleteFeatureLineage
 {
     public string Version { get; set; } = string.Empty;
-    public List<LineageEvent> UpdateEvents { get; } = new();
-    public List<LineageEvent> UsageEvents { get; } = new();
+    public Collection<LineageEvent> UpdateEvents { get; } = new();
+    public Collection<LineageEvent> UsageEvents { get; } = new();
 }
 
 public class CompleteCalibrationLineage
 {
     public string CalibrationMapId { get; set; } = string.Empty;
-    public List<LineageEvent> UpdateEvents { get; } = new();
-    public List<LineageEvent> UsageEvents { get; } = new();
+    public Collection<LineageEvent> UpdateEvents { get; } = new();
+    public Collection<LineageEvent> UsageEvents { get; } = new();
 }
 
 public enum LineageEventType

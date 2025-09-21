@@ -1057,7 +1057,7 @@ public class RLAdvisorRecommendation
     public string Reasoning { get; set; } = string.Empty;
     public bool IsAdviseOnly { get; set; } = true;
     public RLAgentType AgentType { get; set; }
-    public double[] StateVector { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> StateVector { get; set; } = Array.Empty<double>();
     public RLActionResult RawAction { get; set; } = new();
     public DateTime Timestamp { get; set; }
 }
@@ -1099,7 +1099,7 @@ public class RLDecision
     public DateTime Timestamp { get; set; }
     public ExitDecisionContext Context { get; set; } = new();
     public RLAdvisorRecommendation Recommendation { get; set; } = new();
-    public double[] StateVector { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> StateVector { get; set; } = Array.Empty<double>();
     public RLActionResult RawAction { get; set; } = new();
 }
 

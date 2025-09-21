@@ -844,7 +844,7 @@ public class SloMonitor
         return sorted[index];
     }
 
-    public SloStatus GetCurrentSloStatus()
+    internal SloStatus GetCurrentSloStatus()
     {
         lock (_lock)
         {
@@ -870,7 +870,7 @@ public class SloMonitor
         }
     }
 
-    public class SloStatus
+    internal class SloStatus
     {
         public double DecisionLatencyP99Ms { get; set; }
         public double OrderLatencyP99Ms { get; set; }

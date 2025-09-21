@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -186,17 +187,17 @@ public class ObservabilityDashboard : IDisposable
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
-        var ensembleWeights = new EnsembleWeightsDashboard
+        var ensembleWeights = new EnsembleWeightsDashboard();
+        
+        // Populate the regime head weights dictionary
+        foreach (var kvp in ensembleStatus.RegimeHeadStatus)
         {
-            RegimeHeadWeights = ensembleStatus.RegimeHeadStatus.ToDictionary(
-                kvp => kvp.Key.ToString(),
-                kvp => new Dictionary<string, double>
-                {
-                    ["validation_score"] = kvp.Value.ValidationScore,
-                    ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
-                }
-            )
-        };
+            ensembleWeights.RegimeHeadWeights[kvp.Key.ToString()] = new Dictionary<string, double>
+            {
+                ["validation_score"] = kvp.Value.ValidationScore,
+                ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
+            };
+        }
         
         // Add current regime weights to the read-only dictionary
         foreach (var kvp in ensembleStatus.ActiveModels)
@@ -811,7 +812,7 @@ public class RegimeTimeline
     public string PreviousRegime { get; set; } = string.Empty;
     public bool InTransition { get; set; }
     public DateTime TransitionStartTime { get; set; }
-    public List<RegimeChange> RecentChanges { get; } = new();
+    public Collection<RegimeChange> RecentChanges { get; } = new();
     public Dictionary<string, double> RegimeDistribution { get; } = new();
 }
 
@@ -827,8 +828,8 @@ public class RegimeChange
 public class EnsembleWeightsDashboard
 {
     public Dictionary<string, double> CurrentRegimeWeights { get; } = new();
-    public Dictionary<string, Dictionary<string, double>> RegimeHeadWeights { get; set; } = new();
-    public List<WeightChange> WeightChangesOverTime { get; } = new();
+    public Dictionary<string, Dictionary<string, double>> RegimeHeadWeights { get; } = new();
+    public Collection<WeightChange> WeightChangesOverTime { get; } = new();
 }
 
 public class WeightChange
@@ -864,14 +865,14 @@ public class DrawdownForecast
     public double CurrentDrawdownPct { get; set; }
     public double MaxDrawdownPct { get; set; }
     public double ForecastedMaxDrawdown { get; set; }
-    public double[] ConfidenceInterval95 { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> ConfidenceInterval95 { get; set; } = Array.Empty<double>();
     public TimeSpan RecoveryTimeEstimate { get; set; }
     public string RiskLevel { get; set; } = string.Empty;
 }
 
 public class SafetyEventsDashboard
 {
-    public List<SafetyEvent> RecentEvents { get; } = new();
+    public Collection<SafetyEvent> RecentEvents { get; } = new();
     public Dictionary<string, int> EventCounts { get; } = new();
     public int CriticalEvents { get; set; }
     public int WarningEvents { get; set; }
@@ -894,7 +895,7 @@ public class ModelHealthDashboard
     public int DegradeModels { get; set; }
     public int QuarantinedModels { get; set; }
     public Dictionary<string, ModelHealthView> ModelDetails { get; } = new();
-    public List<QuarantineEvent> QuarantineTimeline { get; } = new();
+    public Collection<QuarantineEvent> QuarantineTimeline { get; } = new();
 }
 
 public class ModelHealthView
@@ -935,7 +936,7 @@ public class RLAdvisorDashboard
     public bool Enabled { get; set; }
     public bool OrderInfluenceEnabled { get; set; }
     public Dictionary<string, RLAgentPerformance> AgentPerformance { get; } = new();
-    public List<RLDecisionView> RecentDecisions { get; } = new();
+    public Collection<RLDecisionView> RecentDecisions { get; } = new();
 }
 
 public class RLAgentPerformance
@@ -976,7 +977,7 @@ public class MamlRegimeView
 public class MetricTimeSeries
 {
     public string Name { get; set; } = string.Empty;
-    public List<MetricPoint> Points { get; } = new();
+    public Collection<MetricPoint> Points { get; } = new();
 }
 
 public class MetricPoint

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -633,7 +634,7 @@ public class NightlyParameterTuner
         {
             ParameterType.Uniform => range.Min + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (range.Max - range.Min),
             ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (Math.Log(range.Max) - Math.Log(range.Min))),
-            ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Length)],
+            ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Count)],
             _ => range.Min
         };
     }
@@ -971,7 +972,7 @@ public class TuningSession
     public string ModelFamily { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public Dictionary<string, ParameterRange> ParameterSpace { get; } = new();
-    public List<TrialResult> TrialHistory { get; } = new();
+    public Collection<TrialResult> TrialHistory { get; } = new();
 }
 
 public class TrialResult
@@ -987,7 +988,7 @@ public class ParameterRange
     public double Min { get; set; }
     public double Max { get; set; }
     public ParameterType Type { get; set; }
-    public double[]? Categories { get; set; }
+    public IReadOnlyList<double>? Categories { get; set; }
 }
 
 public class Individual
@@ -1007,7 +1008,7 @@ public class TuningResult
     public ModelMetrics? BestMetrics { get; set; }
     public int TrialsCompleted { get; set; }
     public bool RolledBack { get; set; }
-    public Dictionary<string, double>? BestParameters { get; set; }
+    public Dictionary<string, double>? BestParameters { get; }
 }
 
 public enum TuningMethod
