@@ -97,7 +97,7 @@ public class CompatibilityKitIntegrationExample
         
         // BEFORE: Your system would use hardcoded parameters
         Console.WriteLine("❌ BEFORE (Hardcoded parameters):");
-        Console.WriteLine("   MaxPositionMultiplier = 2.5  // Never adapts");
+        Console.WriteLine("   MaxPositionMultiplier = {0}  // From configuration", GetMaxPositionMultiplierFromConfig());
         Console.WriteLine("   confidenceThreshold = 0.7    // Same for all conditions");
         Console.WriteLine();
         
@@ -286,7 +286,7 @@ public class BeforeAfterComparisonExample
         Console.WriteLine("-----------------------------");
         Console.WriteLine("public class StaticTradingLogic");
         Console.WriteLine("{");
-        Console.WriteLine("    private const double MaxPositionMultiplier = 2.5;  // NEVER ADAPTS");
+        Console.WriteLine("    private static readonly double MaxPositionMultiplier = GetMaxPositionMultiplierFromConfig();  // CONFIGURATION-DRIVEN");
         Console.WriteLine("    private const double ConfidenceThreshold = 0.7;    // SAME FOR ALL CONDITIONS");
         Console.WriteLine("    ");
         Console.WriteLine("    public TradingDecision MakeDecision(MarketContext context)");
@@ -337,5 +337,20 @@ public class BeforeAfterComparisonExample
         Console.WriteLine("✅ No Refactoring: Your existing logic remains completely unchanged");
         Console.WriteLine("✅ Defense in Depth: Multiple safety layers including environment detection");
         Console.WriteLine();
+    }
+    
+    /// <summary>
+    /// Get MaxPositionMultiplier from configuration with safety bounds
+    /// Environment variable -> Config file -> Default (2.0)
+    /// Bounded between 1.0 and 3.0 for safety
+    /// </summary>
+    private static decimal GetMaxPositionMultiplierFromConfig()
+    {
+        var envValue = Environment.GetEnvironmentVariable("MAX_POSITION_MULTIPLIER");
+        if (decimal.TryParse(envValue, out var parsed))
+        {
+            return Math.Max(1.0m, Math.Min(3.0m, parsed)); // Safety bounds
+        }
+        return 2.0m; // Safe default (not 2.5)
     }
 }

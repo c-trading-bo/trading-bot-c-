@@ -687,7 +687,7 @@ public sealed class OnnxModelLoader : IDisposable
                     data[i] = i switch
                     {
                         0 => 0.001f,  // Price return: 0.1%
-                        1 => 2.5f,    // Time in position: 2.5 hours
+                        1 => 2.5f,    // Time in trade: 2.5 trading hours
                         2 => 50.0f,   // PnL per unit
                         3 => 0.15f,   // Volatility: 15%
                         4 => 0.6f,    // RSI: 60%
