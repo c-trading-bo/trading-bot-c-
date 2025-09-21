@@ -127,9 +127,21 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             _logger.LogDebug("[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})", 
                 regimeType, CalculateLearningRate(regimeType));
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to update weights for regime: {Regime}", regimeType);
+            _logger.LogError(ex, "[ONLINE] Access denied updating weights for regime: {Regime}", regimeType);
+        }
+        catch (IOException ex) 
+        {
+            _logger.LogError(ex, "[ONLINE] IO error updating weights for regime: {Regime}", regimeType);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Invalid operation updating weights for regime: {Regime}", regimeType);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Invalid argument updating weights for regime: {Regime}", regimeType);
         }
     }
 
@@ -212,9 +224,17 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 await RollbackWeightsAsync(modelToRollback, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to adapt to performance for model: {ModelId}", modelId);
+            _logger.LogError(ex, "[ONLINE] Invalid operation adapting to performance for model: {ModelId}", modelId);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Invalid argument adapting to performance for model: {ModelId}", modelId);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Model not found adapting to performance: {ModelId}", modelId);
         }
     }
 
@@ -732,9 +752,17 @@ public class SloMonitor
             // Check error budget
             await CheckErrorBudgetAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SLO] Failed to record error: {ErrorType}", errorType);
+            _logger.LogError(ex, "[SLO] Invalid operation recording error: {ErrorType}", errorType);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[SLO] Invalid argument recording error: {ErrorType}", errorType);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogError(ex, "[SLO] Object disposed while recording error: {ErrorType}", errorType);
         }
     }
 
@@ -773,9 +801,17 @@ public class SloMonitor
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Failed to record latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+                _logger.LogError(ex, "[SLO] Invalid operation recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogError(ex, "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
             }
         }, cancellationToken);
     }
@@ -804,9 +840,17 @@ public class SloMonitor
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Failed to check error budget");
+                _logger.LogError(ex, "[SLO] Invalid operation checking error budget");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[SLO] Invalid argument checking error budget");
+            }
+            catch (DivideByZeroException ex)
+            {
+                _logger.LogError(ex, "[SLO] Division by zero checking error budget");
             }
         }, cancellationToken);
     }
