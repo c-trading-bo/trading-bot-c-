@@ -264,15 +264,29 @@ public class ObservabilityDashboard : IDisposable
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        return new SlippageVsSpread
+        var slippageData = new SlippageVsSpread
         {
             AverageSlippageBps = 1.2,
             AverageSpreadBps = 0.8,
             SlippageRatio = 1.5, // Slippage / Spread
-            ByTimeOfDay = CreateTimeOfDayProfile("slippage"),
-            ByVolatility = CreateVolatilityProfile("slippage"),
             IsHealthy = true // Slippage < 2 * Spread
         };
+        
+        // Add time of day data to read-only dictionary
+        var timeOfDayProfile = CreateTimeOfDayProfile("slippage");
+        foreach (var kvp in timeOfDayProfile)
+        {
+            slippageData.ByTimeOfDay[kvp.Key] = kvp.Value;
+        }
+        
+        // Add volatility data to read-only dictionary
+        var volatilityProfile = CreateVolatilityProfile("slippage");
+        foreach (var kvp in volatilityProfile)
+        {
+            slippageData.ByVolatility[kvp.Key] = kvp.Value;
+        }
+        
+        return slippageData;
     }
 
     /// <summary>
@@ -314,15 +328,28 @@ public class ObservabilityDashboard : IDisposable
             })
             .ToList();
 
-        return new SafetyEventsDashboard
+        var safetyDashboard = new SafetyEventsDashboard
         {
-            RecentEvents = recentEvents,
-            EventCounts = recentEvents
-                .GroupBy(e => e.EventType)
-                .ToDictionary(g => g.Key, g => g.Count()),
             CriticalEvents = recentEvents.Count(e => e.Severity == "critical"),
             WarningEvents = recentEvents.Count(e => e.Severity == "warning")
         };
+        
+        // Add recent events to read-only collection
+        foreach (var evt in recentEvents)
+        {
+            safetyDashboard.RecentEvents.Add(evt);
+        }
+        
+        // Add event counts to read-only dictionary
+        var eventCounts = recentEvents
+            .GroupBy(e => e.EventType)
+            .ToDictionary(g => g.Key, g => g.Count());
+        foreach (var kvp in eventCounts)
+        {
+            safetyDashboard.EventCounts[kvp.Key] = kvp.Value;
+        }
+        
+        return safetyDashboard;
     }
 
     /// <summary>
