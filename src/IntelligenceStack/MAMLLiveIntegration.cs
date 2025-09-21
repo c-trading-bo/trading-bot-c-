@@ -629,7 +629,7 @@ public class MamlLiveIntegration
     {
         try
         {
-            await Task.Yield(); // Placeholder for async operation
+            await Task.Yield().ConfigureAwait(false); // Placeholder for async operation
             
             // In a full implementation, this would integrate with:
             // 1. TopstepX market data API for recent regime-specific market conditions

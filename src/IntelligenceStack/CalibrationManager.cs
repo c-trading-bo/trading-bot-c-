@@ -16,6 +16,9 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class CalibrationManager : ICalibrationManager, IDisposable
 {
+    private const int MinCalibrationPoints = 10;
+    private const int MinStableCalibrationPoints = 50;
+    
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
     private readonly Dictionary<string, CalibrationMap> _calibrationCache = new();
@@ -80,7 +83,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         try
         {
             var pointsList = points.ToList();
-            if (pointsList.Count < 10)
+            if (pointsList.Count < MinCalibrationPoints)
             {
                 _logger.LogWarning("[CALIBRATION] Insufficient data for calibration: {ModelId} ({Count} points)", 
                     modelId, pointsList.Count);
@@ -146,7 +149,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                     var fileName = Path.GetFileNameWithoutExtension(modelFile);
                     var calibrationPoints = await LoadCalibrationPointsAsync(fileName, cancellationToken).ConfigureAwait(false);
                     
-                    if (calibrationPoints.Count >= 50) // Minimum points for stable calibration
+                    if (calibrationPoints.Count >= MinStableCalibrationPoints) // Minimum points for stable calibration
                     {
                         await FitCalibrationAsync(fileName, calibrationPoints, cancellationToken).ConfigureAwait(false);
                         updated++;

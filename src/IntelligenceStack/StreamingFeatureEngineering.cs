@@ -75,7 +75,7 @@ public class StreamingFeatureEngineering : IDisposable
     {
         try
         {
-            await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
             
             if (!_featureCaches.TryGetValue(symbol, out var cache))
             {
@@ -342,7 +342,7 @@ public class StreamingAggregator
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
     {
         // Make this a proper async operation instead of Task.FromResult
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         lock (_lock)
         {

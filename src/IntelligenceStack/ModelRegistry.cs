@@ -302,7 +302,7 @@ public class ModelRegistry : IModelRegistry
         return latestId;
     }
 
-    private bool MeetsPromotionCriteria(ModelArtifact model, PromotionCriteria criteria)
+    private static bool MeetsPromotionCriteria(ModelArtifact model, PromotionCriteria criteria)
     {
         return model.Metrics.AUC >= criteria.MinAuc &&
                model.Metrics.PrAt10 >= criteria.MinPrAt10 &&

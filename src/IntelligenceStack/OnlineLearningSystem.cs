@@ -833,7 +833,7 @@ public class SloMonitor
         }
     }
 
-    private double CalculatePercentile(List<double> values, double percentile)
+    private static double CalculatePercentile(List<double> values, double percentile)
     {
         if (values.Count == 0) return 0.0;
         

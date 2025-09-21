@@ -289,7 +289,7 @@ public class EnsembleMetaLearner
         return predictions;
     }
 
-    private async Task<ModelPrediction> GetModelPredictionAsync(
+    private static async Task<ModelPrediction> GetModelPredictionAsync(
         ModelArtifact model,
         MarketContext context,
         CancellationToken cancellationToken)
@@ -676,7 +676,7 @@ public class RegimeBlendHead
     private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var exampleList = examples.ToList();
         if (exampleList.Count == 0) return 0.0;
