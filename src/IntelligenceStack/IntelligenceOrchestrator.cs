@@ -619,16 +619,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                         Direction = direction,
                         ModelId = $"ensemble_{strategyId}",
                         Timestamp = DateTime.UtcNow,
-                        IsValid = !ensemblePrediction.IsAnomaly,
-                        Metadata = new Dictionary<string, object>
-                        {
-                            ["ensemble_result"] = ensemblePrediction.EnsembleResult,
-                            ["latency_ms"] = ensemblePrediction.LatencyMs,
-                            ["is_anomaly"] = ensemblePrediction.IsAnomaly,
-                            ["strategy_id"] = strategyId,
-                            ["model_count"] = ensemblePrediction.Predictions.Count
-                        }
+                        IsValid = !ensemblePrediction.IsAnomaly
                     };
+                    
+                    prediction.Metadata["ensemble_result"] = ensemblePrediction.EnsembleResult;
+                    prediction.Metadata["latency_ms"] = ensemblePrediction.LatencyMs;
+                    prediction.Metadata["is_anomaly"] = ensemblePrediction.IsAnomaly;
+                    prediction.Metadata["strategy_id"] = strategyId;
+                    prediction.Metadata["model_count"] = ensemblePrediction.Predictions.Count;
 
                     _logger.LogDebug("[ONLINE_PREDICTION] ONNX prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}, result={Result:F3}", 
                         symbol, strategyId, prediction.Confidence, ensemblePrediction.EnsembleResult);

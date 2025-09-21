@@ -542,7 +542,7 @@ public class RLAdvisorSystem
         // Production-grade episode generation from historical market data
         return await Task.Run(async () =>
         {
-            var episodes = new List<TrainingEpisode>().ConfigureAwait(false);
+            var episodes = new List<TrainingEpisode>();
             
             // Step 1: Load historical market data asynchronously via SDK adapter
             var marketDataTask = LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate);
@@ -735,7 +735,7 @@ public class RLAdvisorSystem
     {
         return await Task.Run(() =>
         {
-            var windows = new List<EpisodeWindow>().ConfigureAwait(false);
+            var windows = new List<EpisodeWindow>();
             
             for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
@@ -766,9 +766,10 @@ public class RLAdvisorSystem
             {
                 StartTime = window.StartTime,
                 EndTime = window.EndTime,
-                InitialState = ExtractMarketFeatures(marketData[window.StartIndex]),
-                Actions = new List<(double[] state, RLActionResult action, double reward)>()
+                InitialState = ExtractMarketFeatures(marketData[window.StartIndex])
             };
+            
+            episode.Actions.Clear(); // Ensure it's empty
             
             // Generate state-action-reward sequences from market movements
             for (int i = window.StartIndex; i < window.EndIndex - 1; i++)

@@ -137,20 +137,18 @@ public class RealTradingMetricsService : BackgroundService
                     PredictionAccuracy = CalculatePredictionAccuracy(),
                     FeatureDrift = CalculateFeatureDrift(),
                     ActiveModels = GetActiveModelCount(),
-                    MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024),
-                    CustomMetrics = new Dictionary<string, double>
-                    {
-                        ["daily_pnl"] = (double)_dailyPnL,
-                        ["total_positions"] = _totalPositions,
-                        ["total_fills"] = _totalFills,
-                        ["uptime_hours"] = (DateTime.UtcNow - _lastMetricsPush).TotalHours,
-                        ["fills_per_hour"] = CalculateFillsPerHour(),
-                        ["avg_position_size"] = CalculateAveragePositionSize(),
-                        ["daily_trades"] = GetDailyTradeCount(),
-                        ["win_rate"] = CalculateWinRate(),
-                        ["sharpe_ratio"] = CalculateSharpeRatio()
-                    }
+                    MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024)
                 };
+                
+                metrics.CustomMetrics["daily_pnl"] = (double)_dailyPnL;
+                metrics.CustomMetrics["total_positions"] = _totalPositions;
+                metrics.CustomMetrics["total_fills"] = _totalFills;
+                metrics.CustomMetrics["uptime_hours"] = (DateTime.UtcNow - _lastMetricsPush).TotalHours;
+                metrics.CustomMetrics["fills_per_hour"] = CalculateFillsPerHour();
+                metrics.CustomMetrics["avg_position_size"] = CalculateAveragePositionSize();
+                metrics.CustomMetrics["daily_trades"] = GetDailyTradeCount();
+                metrics.CustomMetrics["win_rate"] = CalculateWinRate();
+                metrics.CustomMetrics["sharpe_ratio"] = CalculateSharpeRatio();
             }
 
             // Push real metrics to cloud

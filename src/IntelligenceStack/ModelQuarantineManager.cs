@@ -108,7 +108,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 healthState.LastChecked = DateTime.UtcNow;
 
                 // Reset shadow decision count
-                _shadowDecisionCounts[modelId];
+                _shadowDecisionCounts[modelId] = 0;
 
                 _logger.LogWarning("[QUARANTINE] 🚫 Model quarantined: {ModelId} (reason: {Reason}, previous: {PreviousState})", 
                     modelId, reason, previousState);

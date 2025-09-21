@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -246,21 +247,21 @@ public class LineageTrackingSystem
         double brierScore,
         CancellationToken cancellationToken = default)
     {
-        await RecordLineageEventAsync(new LineageEvent
+        var lineageEvent = new LineageEvent
         {
             EventId = Guid.NewGuid().ToString(),
             EventType = LineageEventType.CalibrationUpdated,
             Timestamp = DateTime.UtcNow,
             EntityId = calibrationMapId,
-            EntityType = "calibration_map",
-            Properties = new Dictionary<string, object>
-            {
-                ["model_id"] = modelId,
-                ["calibration_method"] = method.ToString(),
-                ["brier_score"] = brierScore,
-                ["update_reason"] = "nightly_calibration"
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            EntityType = "calibration_map"
+        };
+        
+        lineageEvent.Properties["model_id"] = modelId;
+        lineageEvent.Properties["calibration_method"] = method.ToString();
+        lineageEvent.Properties["brier_score"] = brierScore;
+        lineageEvent.Properties["update_reason"] = "nightly_calibration";
+        
+        await RecordLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})", 
             calibrationMapId, modelId, brierScore);

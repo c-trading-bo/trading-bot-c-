@@ -380,10 +380,10 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     {
         return await Task.Run(() =>
         {
-            using var sha256 = SHA256.Create().ConfigureAwait(false);
+            using var sha256 = SHA256.Create();
             var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(hash).ToLowerInvariant();
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
