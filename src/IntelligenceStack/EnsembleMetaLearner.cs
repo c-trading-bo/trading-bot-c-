@@ -23,6 +23,67 @@ public class EnsembleMetaLearner
     private const double MaxWeight = 2.0;
     private const double BaselinePerformance = 0.5;
     
+    // LoggerMessage delegates for CA1848 compliance - EnsembleMetaLearner
+    private static readonly Action<ILogger, Exception?> BlendedPredictionFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5001, "BlendedPredictionFailed"),
+            "[ENSEMBLE] Failed to get blended prediction");
+            
+    private static readonly Action<ILogger, RegimeType, Exception?> NoBlendHeadFound =
+        LoggerMessage.Define<RegimeType>(LogLevel.Warning, new EventId(5002, "NoBlendHeadFound"),
+            "[ENSEMBLE] No blend head found for regime: {Regime}");
+            
+    private static readonly Action<ILogger, RegimeType, int, Exception?> TrainingBlendHead =
+        LoggerMessage.Define<RegimeType, int>(LogLevel.Information, new EventId(5003, "TrainingBlendHead"),
+            "[ENSEMBLE] Training blend head for regime: {Regime} with {Count} examples");
+            
+    private static readonly Action<ILogger, RegimeType, Exception?> TrainingCompleted =
+        LoggerMessage.Define<RegimeType>(LogLevel.Information, new EventId(5004, "TrainingCompleted"),
+            "[ENSEMBLE] Completed training for regime: {Regime}");
+            
+    private static readonly Action<ILogger, RegimeType, Exception?> TrainingFailed =
+        LoggerMessage.Define<RegimeType>(LogLevel.Error, new EventId(5005, "TrainingFailed"),
+            "[ENSEMBLE] Failed to train regime head: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelPerformanceDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5006, "ModelPerformanceDebug"),
+            "[ENSEMBLE] Model performance update: {PerformanceInfo}");
+            
+    private static readonly Action<ILogger, Exception?> PerformanceUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5007, "PerformanceUpdateFailed"),
+            "[ENSEMBLE] Failed to update model performance");
+            
+    private static readonly Action<ILogger, RegimeType, string, Exception?> RegimeInformation =
+        LoggerMessage.Define<RegimeType, string>(LogLevel.Information, new EventId(5008, "RegimeInformation"),
+            "[ENSEMBLE] Regime: {Regime} - {Information}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> ModelBlendDebug =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5009, "ModelBlendDebug"),
+            "[ENSEMBLE] Model: {ModelId}, Weight: {Weight:F3}");
+            
+    private static readonly Action<ILogger, Exception?> BlendCalculationWarning =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5010, "BlendCalculationWarning"),
+            "[ENSEMBLE] Blend calculation encountered issue");
+            
+    private static readonly Action<ILogger, string, RegimeType, Exception?> ModelFeedbackDebug =
+        LoggerMessage.Define<string, RegimeType>(LogLevel.Debug, new EventId(5011, "ModelFeedbackDebug"),
+            "[ENSEMBLE] Updated feedback for model: {ModelId} in regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> FeedbackUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5012, "FeedbackUpdateFailed"),
+            "[ENSEMBLE] Failed to update feedback for model: {ModelId}");
+            
+    private static readonly Action<ILogger, RegimeType, RegimeType, Exception?> RegimeTransitionDetected =
+        LoggerMessage.Define<RegimeType, RegimeType>(LogLevel.Information, new EventId(5013, "RegimeTransitionDetected"),
+            "[ENSEMBLE] Regime transition detected: {From} -> {To}");
+            
+    private static readonly Action<ILogger, RegimeType, Exception?> TransitionCompleted =
+        LoggerMessage.Define<RegimeType>(LogLevel.Debug, new EventId(5014, "TransitionCompleted"),
+            "[ENSEMBLE] Transition completed for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelPredictionFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5015, "ModelPredictionFailed"),
+            "[ENSEMBLE] Failed to get prediction from model: {ModelId}");
+    
     private readonly ILogger<EnsembleMetaLearner> _logger;
     private readonly EnsembleConfig _config;
     private readonly IRegimeDetector _regimeDetector;
@@ -88,7 +149,7 @@ public class EnsembleMetaLearner
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ENSEMBLE] Failed to get blended prediction");
+            BlendedPredictionFailed(_logger, ex);
             return CreateFallbackPrediction();
         }
     }
@@ -105,23 +166,22 @@ public class EnsembleMetaLearner
         {
             if (!_regimeHeads.TryGetValue(regime, out var head))
             {
-                _logger.LogWarning("[ENSEMBLE] No blend head found for regime: {Regime}", regime);
+                NoBlendHeadFound(_logger, regime, null);
                 return;
             }
 
-            _logger.LogInformation("[ENSEMBLE] Training blend head for regime: {Regime} with {Count} examples", 
-                regime, examples.Count());
+            TrainingBlendHead(_logger, regime, examples.Count(), null);
 
             await head.TrainAsync(examples, cancellationToken).ConfigureAwait(false);
             
             // Save updated state
             await SaveStateAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[ENSEMBLE] Completed training for regime: {Regime}", regime);
+            TrainingCompleted(_logger, regime, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ENSEMBLE] Failed to train regime head: {Regime}", regime);
+            TrainingFailed(_logger, regime, ex);
         }
     }
 
@@ -153,12 +213,11 @@ public class EnsembleMetaLearner
 
             await _onlineLearning.UpdateWeightsAsync(regimeTypeStr, currentWeights, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[ENSEMBLE] Updated feedback for model: {ModelId} in regime: {Regime}", 
-                modelId, _currentRegime);
+            ModelFeedbackDebug(_logger, modelId, _currentRegime, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ENSEMBLE] Failed to update feedback for model: {ModelId}", modelId);
+            FeedbackUpdateFailed(_logger, modelId, ex);
         }
     }
 
@@ -224,8 +283,7 @@ public class EnsembleMetaLearner
         {
             if (currentState.Type != _currentRegime)
             {
-                _logger.LogInformation("[ENSEMBLE] Regime transition detected: {From} -> {To}", 
-                    _currentRegime, currentState.Type);
+                RegimeTransitionDetected(_logger, _currentRegime, currentState.Type, null);
 
                 _previousRegime = _currentRegime;
                 _currentRegime = currentState.Type;
@@ -261,7 +319,7 @@ public class EnsembleMetaLearner
                 if (transitionDuration >= maxDuration)
                 {
                     _inTransition = false;
-                    _logger.LogDebug("[ENSEMBLE] Transition completed for regime: {Regime}", _currentRegime);
+                    TransitionCompleted(_logger, _currentRegime, null);
                 }
             }
             return (RegimeTransition?)null;
@@ -286,7 +344,7 @@ public class EnsembleMetaLearner
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[ENSEMBLE] Failed to get prediction from model: {ModelId}", modelId);
+                ModelPredictionFailed(_logger, modelId, ex);
             }
         }
 

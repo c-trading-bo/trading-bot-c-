@@ -19,6 +19,23 @@ public class FeatureEngineer : IDisposable
 {
     private const int MinDataCount = 10;
     
+    // LoggerMessage delegates for CA1848 compliance - FeatureEngineer
+    private static readonly Action<ILogger, string, Exception?> LogsDirectoryWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4001, "LogsDirectoryWarning"),
+            "[FEATURE_ENGINEER] Could not create logs directory {LogsPath}, using temp directory");
+            
+    private static readonly Action<ILogger, string, Exception?> InitializationComplete =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4002, "InitializationComplete"),
+            "[FEATURE_ENGINEER] Initialized with logs path: {LogsPath}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> SHAPCalculationDebug =
+        LoggerMessage.Define<string, int>(LogLevel.Debug, new EventId(4003, "SHAPCalculationDebug"),
+            "[FEATURE_ENGINEER] Calculated SHAP values for {Strategy}: {FeatureCount} features");
+            
+    private static readonly Action<ILogger, string, Exception?> SHAPCalculationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4004, "SHAPCalculationFailed"),
+            "[FEATURE_ENGINEER] Failed to calculate rolling SHAP for strategy: {Strategy}");
+    
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
     private readonly string _logsPath;
@@ -52,7 +69,7 @@ public class FeatureEngineer : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[FEATURE_ENGINEER] Could not create logs directory {LogsPath}, using temp directory", _logsPath);
+            LogsDirectoryWarning(_logger, _logsPath, ex);
             _logsPath = Path.Combine(Path.GetTempPath(), "trading-bot", "features");
             Directory.CreateDirectory(_logsPath);
         }
@@ -60,7 +77,7 @@ public class FeatureEngineer : IDisposable
         // Start periodic update timer
         _updateTimer = new Timer(PerformScheduledUpdate, null, _updateInterval, _updateInterval);
         
-        _logger.LogInformation("[FEATURE_ENGINEER] Initialized with logs path: {LogsPath}", _logsPath);
+        InitializationComplete(_logger, _logsPath, null);
     }
 
     /// <summary>
@@ -123,14 +140,13 @@ public class FeatureEngineer : IDisposable
                 shapValues = normalizedShap;
             }
 
-            _logger.LogDebug("[FEATURE_ENGINEER] Calculated SHAP values for {Strategy}: {FeatureCount} features", 
-                strategyId, shapValues.Count);
+            SHAPCalculationDebug(_logger, strategyId, shapValues.Count, null);
 
             return shapValues;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Failed to calculate rolling SHAP for strategy: {Strategy}", strategyId);
+            SHAPCalculationFailed(_logger, strategyId, ex);
             return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
         }
     }
