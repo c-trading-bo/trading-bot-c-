@@ -17,6 +17,8 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class FeatureEngineer : IDisposable
 {
+    private const int MinDataCount = 10;
+    
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
     private readonly string _logsPath;
@@ -77,7 +79,7 @@ public class FeatureEngineer : IDisposable
             var predictions = recentPredictions.TakeLast(_rollingWindowSize).ToList();
             var outcomes = recentOutcomes.TakeLast(_rollingWindowSize).ToList();
             
-            if (predictions.Count < 10 || outcomes.Count < 10)
+            if (predictions.Count < MinDataCount || outcomes.Count < MinDataCount)
             {
                 // Not enough data for reliable SHAP calculation, return default weights
                 foreach (var feature in features.Features.Keys)

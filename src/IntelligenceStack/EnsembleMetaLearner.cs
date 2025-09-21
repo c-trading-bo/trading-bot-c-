@@ -619,6 +619,7 @@ public class EnsembleMetaLearner
 public class RegimeBlendHead
 {
     private const int MinimumValidationSamples = 5;
+    private const int DefaultDelayMs = 10;
     
     private readonly ILogger _logger;
     private readonly RegimeType _regime;
@@ -643,7 +644,7 @@ public class RegimeBlendHead
         await Task.Run(async () =>
         {
             // Simulate training data preprocessing
-            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Perform validation score calculation asynchronously
             var validationExamples = exampleList.TakeLast(Math.Min(100, exampleList.Count / 5));

@@ -18,6 +18,8 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 {
     private const int MinCalibrationPoints = 10;
     private const int MinStableCalibrationPoints = 50;
+    private const int DefaultThresholdCount = 10;
+    private const int ExponentValue = 2;
     
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
@@ -282,7 +284,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         var bestBin = 0;
         var minDiff = double.MaxValue;
         
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < DefaultThresholdCount; i++)
         {
             if (parameters.TryGetValue($"threshold_{i}", out var threshold))
             {
@@ -307,7 +309,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         {
             var prediction = predictor(point);
             var outcome = point.Outcome ? 1.0 : 0.0;
-            sum += Math.Pow(prediction - outcome, 2) * point.Weight;
+            sum += Math.Pow(prediction - outcome, ExponentValue) * point.Weight;
         }
         
         return sum / points.Sum(p => p.Weight);
