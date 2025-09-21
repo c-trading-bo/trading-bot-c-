@@ -680,7 +680,7 @@ public class RegimeBlendHead
     private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var exampleList = examples.ToList();
         if (exampleList.Count == 0) return 0.0;

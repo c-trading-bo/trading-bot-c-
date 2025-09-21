@@ -37,7 +37,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     public async Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default)
     {
         // Ensure proper async execution
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         lock (_lock)
         {

@@ -15,9 +15,6 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StreamingFeatureEngineering : IDisposable
 {
-    private const int ShortTermEmaPeriod = 12;
-    private const int LongTermEmaPeriod = 26;
-    
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
     private readonly ConcurrentDictionary<string, StreamingAggregator> _aggregators = new();
@@ -78,7 +75,7 @@ public class StreamingFeatureEngineering : IDisposable
     {
         try
         {
-        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
+        await Task.Yield(); // Ensure async behavior
             
             if (!_featureCaches.TryGetValue(symbol, out var cache))
             {
@@ -335,8 +332,8 @@ public class StreamingAggregator
         {
             return period switch
             {
-                ShortTermEmaPeriod => _ema12,
-                LongTermEmaPeriod => _ema26,
+                12 => _ema12,
+                26 => _ema26,
                 _ => CalculateEMA(period)
             };
         }
@@ -345,7 +342,7 @@ public class StreamingAggregator
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
     {
         // Make this a proper async operation instead of Task.FromResult
-        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
+        await Task.Yield(); // Ensure async behavior
         
         lock (_lock)
         {

@@ -403,7 +403,7 @@ public class RLAdvisorSystem
     private async Task IncrementShadowDecisionCountAsync(string agentKey)
     {
         // Brief yield for async context
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         // Increment shadow decision count for the agent
         var decisions = _decisionHistory.GetValueOrDefault(agentKey, new List<RLDecision>());
