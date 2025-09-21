@@ -6,6 +6,7 @@ using TradingBot.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -326,8 +327,8 @@ public class ProductionVerificationResult
 {
     public bool IsProductionReady { get; set; } = true;
     public Dictionary<string, string> ProductionServices { get; } = new();
-    public List<string> Errors { get; } = new();
-    public List<string> Warnings { get; } = new();
+    public Collection<string> Errors { get; } = new();
+    public Collection<string> Warnings { get; } = new();
     public DateTime VerificationTime { get; set; } = DateTime.UtcNow;
     
     public string GetSummary()
