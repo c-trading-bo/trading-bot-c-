@@ -17,7 +17,6 @@ public class StreamingFeatureEngineering : IDisposable
 {
     // Constants for magic number violations
     private const int DefaultBatchSize = 50;
-    private const int DefaultDelayMs = 10;
     
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();

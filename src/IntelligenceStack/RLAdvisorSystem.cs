@@ -21,10 +21,6 @@ public class RLAdvisorSystem
 {
     // Constants for magic number violations (S109)
     private const int UpliftCheckHours = 24;
-    private const int MaxRandomSeed = 10000;
-    private const int RandomSeedBase = 500;
-    private const int DefaultStepsCount = 10;
-    private const int DefaultPercentage = 100;
     
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
