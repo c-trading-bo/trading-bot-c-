@@ -235,6 +235,8 @@ public class FeatureStore : IFeatureStore
 
     public async Task SaveSchemaAsync(FeatureSchema schema, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(schema);
+
         try
         {
             schema.Checksum = CalculateSchemaChecksum(schema);

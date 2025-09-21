@@ -31,6 +31,8 @@ public static class IntelligenceStackServiceExtensions
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         // ================================================================================
         // PRODUCTION INTELLIGENCE SERVICES ONLY - ZERO SIMULATION IMPLEMENTATIONS
         // ================================================================================

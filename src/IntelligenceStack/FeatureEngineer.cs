@@ -268,6 +268,8 @@ public class FeatureEngineer : IDisposable
         Dictionary<string, double> importanceScores,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(importanceScores);
+
         try
         {
             var timestamp = DateTime.UtcNow;
@@ -328,6 +330,8 @@ public class FeatureEngineer : IDisposable
         Func<FeatureSet, Task<double>> predictionFunction,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(marketData);
+
         try
         {
             // Extract features from market data

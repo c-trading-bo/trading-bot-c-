@@ -294,6 +294,8 @@ public class DriftMonitor
 
     public async Task<DriftDetectionResult> DetectFeatureDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         if (!_config.Enabled)
         {
             return new DriftDetectionResult { HasDrift = false };
