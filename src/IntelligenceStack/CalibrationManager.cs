@@ -131,7 +131,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             return CreateDefaultCalibrationMap(modelId);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            CalibrationLoadFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (IOException ex)
+        {
+            CalibrationLoadFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             CalibrationLoadFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);
@@ -163,7 +173,17 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
             return bestMap;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            CalibrationFitFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            CalibrationFitFailed(_logger, modelId, ex);
+            return CreateDefaultCalibrationMap(modelId);
+        }
+        catch (ArithmeticException ex)
         {
             CalibrationFitFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);

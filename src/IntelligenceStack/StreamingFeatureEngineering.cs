@@ -147,8 +147,7 @@ public class StreamingFeatureEngineering : IDisposable
                 var age = DateTime.UtcNow - timestamp;
                 if (age > TimeSpan.FromMinutes(5)) // Features older than 5 minutes
                 {
-                    _logger.LogDebug("Features for {Symbol} are stale ({Age:F1} minutes old), refreshing", 
-                        symbol, age.TotalMinutes);
+                    FeaturesStale(_logger, symbol, age.TotalMinutes, null);
                     
                     // Trigger background refresh but return current features
                     _ = Task.Run(() => RefreshFeaturesForSymbol(symbol), cancellationToken);
@@ -159,7 +158,7 @@ public class StreamingFeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get cached features for {Symbol}", symbol);
+            CachedFeaturesFailed(_logger, symbol, ex);
             return null;
         }
     }
@@ -179,7 +178,7 @@ public class StreamingFeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to refresh features for {Symbol}", symbol);
+            BackgroundRefreshFailed(_logger, symbol, ex);
         }
     }
 

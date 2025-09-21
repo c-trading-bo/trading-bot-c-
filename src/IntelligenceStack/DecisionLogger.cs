@@ -84,7 +84,19 @@ public class DecisionLogger : IDecisionLogger
             // Also log to structured logger for real-time monitoring
             DecisionLogged(_logger, JsonSerializer.Serialize(logEntry, JsonOptions), null);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (IOException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DecisionLogFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             DecisionLogFailed(_logger, decision.DecisionId, ex);
         }
@@ -330,7 +342,22 @@ public class DriftMonitor
 
             return result;
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (InvalidOperationException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+            return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
+        }
+        catch (ArgumentException ex)
         {
             DriftDetectionFailed(_logger, modelId, ex);
             return new DriftDetectionResult { HasDrift = false, Message = "Drift detection failed" };
