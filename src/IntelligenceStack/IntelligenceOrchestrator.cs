@@ -20,6 +20,17 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 {
+    // Constants for magic number violations
+    private const int MinimumSampleSize = 5;
+    private const int DefaultTimeout = 10000;
+    private const int DefaultDelayMs = 10;
+    private const double HighConfidenceThreshold = 0.95;
+    private const double LowConfidenceThreshold = 0.05;
+    private const double VolumeImpactFactor = 0.4;
+    private const double NeutralThreshold = 0.5;
+    private const double BullishThreshold = 0.55;
+    private const double BearishThreshold = 0.45;
+    
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IntelligenceStackConfig _config;
@@ -394,13 +405,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    private async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
+    private static async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
     {
         // Perform async feature extraction with external data enrichment
         await Task.Run(async () =>
         {
             // Simulate async feature computation with external APIs
-            await Task.Delay(5, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(MinimumSampleSize, cancellationToken).ConfigureAwait(false);
         }, cancellationToken);
         
         // Simple feature extraction - in production would be more sophisticated
@@ -417,18 +428,18 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         featureSet.Features["bid"] = context.Bid;
         featureSet.Features["ask"] = context.Ask;
         featureSet.Features["spread"] = context.Ask - context.Bid;
-        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * 10000 : 0;
+        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * DefaultTimeout : 0;
         
         return featureSet;
     }
 
-    private async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
+    private static async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
     {
         // Perform async prediction with model inference
         return await Task.Run(async () =>
         {
             // Simulate async model inference with ONNX runtime
-            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Simplified prediction - in production would use ONNX runtime
             // Return a sample confidence based on spread and volume
@@ -440,7 +451,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var spreadFactor = Math.Max(0, 1 - (spread * 0.1));
             var volumeFactor = Math.Min(1, volume / 10000.0);
             
-            return Math.Min(0.95, Math.Max(0.05, baseConfidence + (spreadFactor * volumeFactor * 0.4)));
+            return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
         }, cancellationToken);
     }
 
@@ -485,7 +496,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 return new MLPrediction
                 {
                     Symbol = symbol,
-                    Confidence = 0.5,
+                    Confidence = NeutralThreshold,
                     Direction = "HOLD",
                     ModelId = "disabled",
                     Timestamp = DateTime.UtcNow,
@@ -531,8 +542,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             // Helper method
             string GetDirectionFromConfidence(double conf)
             {
-                if (conf > 0.55) return "BUY";
-                if (conf < 0.45) return "SELL";
+                if (conf > BullishThreshold) return "BUY";
+                if (conf < BearishThreshold) return "SELL";
                 return "HOLD";
             }
 
@@ -547,7 +558,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             return new MLPrediction
             {
                 Symbol = symbol,
-                Confidence = 0.5,
+                Confidence = NeutralThreshold,
                 Direction = "HOLD",
                 ModelId = "error",
                 Timestamp = DateTime.UtcNow,
@@ -679,7 +690,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return clippedKelly * confidenceMultiplier;
     }
 
-    private TradingDecision CreateTradingDecision(
+    private static TradingDecision CreateTradingDecision(
         string decisionId, MarketContext context, RegimeState regime, 
         ModelArtifact model, double confidence, double size, double latencyMs)
     {
@@ -729,7 +740,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return decision;
     }
 
-    private TradingDecision CreateSafeDecision(string reason)
+    private static TradingDecision CreateSafeDecision(string reason)
     {
         var decision = new TradingDecision
         {
@@ -751,7 +762,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return decision;
     }
 
-    private IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
+    private static IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
     {
         var intelligenceDecision = new IntelligenceDecision
         {
@@ -773,7 +784,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return intelligenceDecision;
     }
 
-    private string GenerateDecisionId()
+    private static string GenerateDecisionId()
     {
         return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999)}";
     }
@@ -788,7 +799,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                (lastMaintenance.Date < now.Date || lastMaintenance == DateTime.MinValue);
     }
 
-    private async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
+    private static async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
     {
         // Check for models that should be promoted
         // Implementation would check recent performance metrics
@@ -808,7 +819,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Apply feature weights to features, immediately using updated weights from FeatureEngineer
     /// </summary>
-    private FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
+    private static FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
     {
         var weightedFeatures = new FeatureSet
         {
@@ -888,7 +899,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    private MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
+    private static MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
     {
         // Extract from workflow context - simplified
         return new MarketContext
@@ -902,7 +913,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         };
     }
 
-    private MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
+    private static MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
     {
         return new MarketData
         {

@@ -428,7 +428,7 @@ public class LineageTrackingSystem
         return calibrationMaps;
     }
 
-    private async Task<string> CalculateConfigurationHashAsync(CancellationToken cancellationToken)
+    private static async Task<string> CalculateConfigurationHashAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
@@ -447,7 +447,7 @@ public class LineageTrackingSystem
         return Convert.ToHexString(hash)[..16];
     }
 
-    private async Task<Dictionary<string, string>> GetSystemComponentVersionsAsync(CancellationToken cancellationToken)
+    private static async Task<Dictionary<string, string>> GetSystemComponentVersionsAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
@@ -465,7 +465,7 @@ public class LineageTrackingSystem
         };
     }
 
-    private EnvironmentInfo GetEnvironmentInfo()
+    private static EnvironmentInfo GetEnvironmentInfo()
     {
         return new EnvironmentInfo
         {
@@ -515,7 +515,7 @@ public class LineageTrackingSystem
         }
     }
 
-    private string CalculateInputDataHash(IntelligenceDecision decision)
+    private static string CalculateInputDataHash(IntelligenceDecision decision)
     {
         var inputData = new
         {
@@ -531,7 +531,7 @@ public class LineageTrackingSystem
         return Convert.ToHexString(hash)[..16];
     }
 
-    private string GetRegimeTransitionId(IntelligenceDecision decision)
+    private static string GetRegimeTransitionId(IntelligenceDecision decision)
     {
         // Generate regime transition ID based on regime and timestamp
         return $"{decision.Regime}_{decision.Timestamp:yyyyMMddHH}";

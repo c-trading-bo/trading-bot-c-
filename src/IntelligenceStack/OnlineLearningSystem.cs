@@ -318,7 +318,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         return baseLearningRate * Math.Pow(0.9, hoursSinceUpdate);
     }
 
-    private double CalculateVariance(IEnumerable<double> values)
+    private static double CalculateVariance(IEnumerable<double> values)
     {
         var valuesList = values.ToList();
         if (valuesList.Count < 2) return 0.0;
@@ -328,7 +328,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         return sumSquaredDiffs / (valuesList.Count - 1);
     }
 
-    private double CalculateDriftScore(Dictionary<string, double> baseline, Dictionary<string, double> current)
+    private static double CalculateDriftScore(Dictionary<string, double> baseline, Dictionary<string, double> current)
     {
         if (baseline.Count == 0) return 0.0;
         
@@ -463,7 +463,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateTradeHitRate(TradeRecord tradeRecord)
+    private static double CalculateTradeHitRate(TradeRecord tradeRecord)
     {
         try
         {
@@ -581,7 +581,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateAccuracy(TradeRecord tradeRecord)
+    private static double CalculateAccuracy(TradeRecord tradeRecord)
     {
         try
         {

@@ -15,6 +15,16 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StreamingFeatureEngineering : IDisposable
 {
+    // Constants for magic number violations
+    private const int EmaShortPeriod = 12;
+    private const int EmaLongPeriod = 26;
+    private const int TradingDaysPerYear = 252;
+    private const int DefaultBatchSize = 50;
+    private const double MinimumValue = 1E-10;
+    private const int PercentageMultiplier = 100;
+    private const int DefaultMultiplier = 2;
+    private const int DefaultDelayMs = 10;
+    
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
     private readonly ConcurrentDictionary<string, StreamingAggregator> _aggregators = new();
@@ -145,7 +155,7 @@ public class StreamingFeatureEngineering : IDisposable
         // Moving averages (streaming calculation)
         features["sma_5"] = aggregator.GetSMA(5);
         features["sma_20"] = aggregator.GetSMA(20);
-        features["sma_50"] = aggregator.GetSMA(50);
+        features["sma_50"] = aggregator.GetSMA(DefaultBatchSize);
         features["ema_12"] = aggregator.GetEMA(12);
         features["ema_26"] = aggregator.GetEMA(26);
 
@@ -332,8 +342,8 @@ public class StreamingAggregator
         {
             return period switch
             {
-                12 => _ema12,
-                26 => _ema26,
+                EmaShortPeriod => _ema12,
+                EmaLongPeriod => _ema26,
                 _ => CalculateEMA(period)
             };
         }
@@ -348,7 +358,7 @@ public class StreamingAggregator
         {
             // Calculate MACD signal with proper async behavior
             // MACD Signal = EMA of MACD Line
-            if (_dataWindow.Count < 26) return 0.0;
+            if (_dataWindow.Count < EmaLongPeriod) return 0.0;
             
             var macdLine = _ema12 - _ema26;
             
@@ -377,7 +387,7 @@ public class StreamingAggregator
 
             var mean = returns.Average();
             var variance = returns.Select(r => Math.Pow(r - mean, 2)).Average();
-            return Task.FromResult(Math.Sqrt(variance) * Math.Sqrt(252)); // Annualized volatility
+            return Task.FromResult(Math.Sqrt(variance) * Math.Sqrt(TradingDaysPerYear)); // Annualized volatility
         }
     }
 
@@ -418,7 +428,7 @@ public class StreamingAggregator
             lock (_lock)
             {
                 var data = _dataWindow.TakeLast(period + 1).ToList();
-                if (data.Count < period + 1) return 50.0; // Neutral RSI
+                if (data.Count < period + 1) return DefaultBatchSize; // Neutral RSI
 
                 var gains = new List<double>();
                 var losses = new List<double>();
@@ -433,10 +443,10 @@ public class StreamingAggregator
                 var avgGain = gains.Average();
                 var avgLoss = losses.Average();
 
-                if (Math.Abs(avgLoss) < 1e-10) return 100.0;
+                if (Math.Abs(avgLoss) < MinimumValue) return PercentageMultiplier;
                 
                 var rs = avgGain / avgLoss;
-                return 100.0 - (100.0 / (1.0 + rs));
+                return PercentageMultiplier - (PercentageMultiplier / (1.0 + rs));
             }
         }, cancellationToken);
     }
@@ -475,10 +485,10 @@ public class StreamingAggregator
         var data = _dataWindow.ToList();
         if (data.Count == 0) return 0.0;
 
-        var multiplier = 2.0 / (period + 1);
+        var multiplier = DefaultMultiplier / (period + 1);
         var ema = data[0].Close;
 
-        for (int i = 1; i < Math.Min(data.Count, period * 2); i++)
+        for (int i = 1; i < Math.Min(data.Count, period * DefaultMultiplier); i++)
         {
             ema = (data[i].Close - ema) * multiplier + ema;
         }

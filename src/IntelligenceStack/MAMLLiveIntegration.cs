@@ -285,7 +285,7 @@ public class MamlLiveIntegration
         }
     }
 
-    private bool ShouldPerformUpdate(MamlModelState modelState)
+    private static bool ShouldPerformUpdate(MamlModelState modelState)
     {
         var timeSinceLastUpdate = DateTime.UtcNow - modelState.LastAdaptation;
         return timeSinceLastUpdate >= TimeSpan.FromMinutes(5); // Minimum 5-minute interval

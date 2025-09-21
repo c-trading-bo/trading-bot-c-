@@ -373,7 +373,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
     }
 
-    private HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue)
+    private static HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue)
     {
         // Check for quarantine conditions (most severe)
         if (brierDelta > 0.1 || hitRateDelta > 0.1 || latencyIssue) // Brier increase of 0.1 or hit rate drop of 0.1
@@ -397,7 +397,7 @@ public class ModelQuarantineManager : IQuarantineManager
         return HealthState.Healthy;
     }
 
-    private QuarantineReason GetQuarantineReason(double hitRateDelta, bool latencyIssue)
+    private static QuarantineReason GetQuarantineReason(double hitRateDelta, bool latencyIssue)
     {
         if (latencyIssue)
             return QuarantineReason.LatencyTooHigh;
@@ -431,7 +431,7 @@ public class ModelQuarantineManager : IQuarantineManager
         };
     }
 
-    private double CalculateBlendWeight(ModelHealthState healthState)
+    private static double CalculateBlendWeight(ModelHealthState healthState)
     {
         return healthState.State switch
         {

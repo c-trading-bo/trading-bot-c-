@@ -415,7 +415,7 @@ public class RLAdvisorSystem
         }
     }
 
-    private double CalculateReward(RLDecision decision, ExitOutcome outcome)
+    private static double CalculateReward(RLDecision decision, ExitOutcome outcome)
     {
         // Calculate reward based on the outcome of the exit decision
         var baseReward = outcome.RealizedPnL;
@@ -662,7 +662,7 @@ public class RLAdvisorSystem
         }
     }
 
-    private List<RLMarketDataPoint> LoadHistoricalMarketDataFallback(string symbol, DateTime startDate, DateTime endDate)
+    private static List<RLMarketDataPoint> LoadHistoricalMarketDataFallback(string symbol, DateTime startDate, DateTime endDate)
     {
         // Load historical market data from data store
         // For production, this would integrate with historical data providers
@@ -685,7 +685,7 @@ public class RLAdvisorSystem
         return dataPoints;
     }
     
-    private async Task<List<EpisodeWindow>> GenerateEpisodeWindowsAsync(List<RLMarketDataPoint> marketData, CancellationToken cancellationToken)
+    private static async Task<List<EpisodeWindow>> GenerateEpisodeWindowsAsync(List<RLMarketDataPoint> marketData, CancellationToken cancellationToken)
     {
         return await Task.Run(() =>
         {
@@ -758,7 +758,7 @@ public class RLAdvisorSystem
         };
     }
     
-    private RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
+    private static RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
     {
         var priceChange = next.Price - current.Price;
         int actionType = 0;
@@ -790,7 +790,7 @@ public class RLAdvisorSystem
         };
     }
 
-    private async Task<AgentTrainingResult> TrainAgentAsync(
+    private static async Task<AgentTrainingResult> TrainAgentAsync(
         RLAgent agent,
         List<TrainingEpisode> episodes,
         CancellationToken cancellationToken)
