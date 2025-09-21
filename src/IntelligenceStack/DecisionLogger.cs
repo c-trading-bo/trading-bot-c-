@@ -96,10 +96,6 @@ public class DecisionLogger : IDecisionLogger
         {
             DecisionLogFailed(_logger, decision.DecisionId, ex);
         }
-        catch (DirectoryNotFoundException ex)
-        {
-            DecisionLogFailed(_logger, decision.DecisionId, ex);
-        }
     }
 
     public async Task<List<IntelligenceDecision>> GetDecisionHistoryAsync(DateTime fromTime, DateTime toTime, CancellationToken cancellationToken = default)
@@ -160,10 +156,6 @@ public class DecisionLogger : IDecisionLogger
             HistoryLoadFailed(_logger, ex);
         }
         catch (UnauthorizedAccessException ex)
-        {
-            HistoryLoadFailed(_logger, ex);
-        }
-        catch (DirectoryNotFoundException ex)
         {
             HistoryLoadFailed(_logger, ex);
         }

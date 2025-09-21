@@ -55,6 +55,8 @@ public class UnifiedDecisionLogger
     /// </summary>
     public async Task LogDecisionAsync(UnifiedDecisionRecord decision)
     {
+        ArgumentNullException.ThrowIfNull(decision);
+
         try
         {
             // Add timestamp if not set

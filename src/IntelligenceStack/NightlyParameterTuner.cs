@@ -549,7 +549,7 @@ public class NightlyParameterTuner
                     .Take(3)
                     .ToList();
                 
-                if (bestTrials.Any())
+                if (bestTrials.Count > 0)
                 {
                     var bestParam = bestTrials.First().Parameters.GetValueOrDefault(paramName, range.Min);
                     var noiseRange = (range.Max - range.Min) * 0.1;

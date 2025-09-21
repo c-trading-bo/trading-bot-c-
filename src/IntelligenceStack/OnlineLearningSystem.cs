@@ -621,7 +621,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
             
             // Calculate weighted average confidence
-            if (factors.Any())
+            if (factors.Count > 0)
             {
                 var avgConfidence = factors.Average();
                 return Math.Max(0.1, Math.Min(0.95, avgConfidence)); // Bound between 0.1-0.95

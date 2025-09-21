@@ -28,21 +28,7 @@ public class StreamingFeatureEngineering : IDisposable
         LoggerMessage.Define(LogLevel.Error, new EventId(5003, "MarketDataProcessingFailed"),
             "Failed to process market data for feature engineering");
             
-    private static readonly Action<ILogger, string, Exception?> BatchProcessingComplete =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "BatchProcessingComplete"),
-            "Batch processing complete for {Symbol}");
-            
-    private static readonly Action<ILogger, Exception?> BatchProcessingFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5005, "BatchProcessingFailed"),
-            "Failed to process batch market data");
-            
-    private static readonly Action<ILogger, Exception?> CacheCleanupFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(5006, "CacheCleanupFailed"),
-            "Failed during cache cleanup operation");
-            
-    private static readonly Action<ILogger, Exception?> FeatureCachingFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5007, "FeatureCachingFailed"),
-            "Failed to cache features");
+
             
     private static readonly Action<ILogger, string, double, Exception?> FeaturesStale =
         LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5008, "FeaturesStale"),
@@ -107,13 +93,15 @@ public class StreamingFeatureEngineering : IDisposable
     /// </summary>
     public async Task<Dictionary<string, double>> ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         try
         {
             var symbol = data.Symbol;
             var timestamp = data.Timestamp;
 
             // Get or create aggregator for this symbol
-            var aggregator = _aggregators.GetOrAdd(symbol, _ => new StreamingAggregator(symbol, _logger));
+            var aggregator = _aggregators.GetOrAdd(symbol, s => new StreamingAggregator(s, _logger));
 
             // Update aggregator with new data
             await aggregator.UpdateAsync(data, cancellationToken).ConfigureAwait(false);
@@ -153,7 +141,7 @@ public class StreamingFeatureEngineering : IDisposable
             var features = cache.GetFeatures(timestamp);
             
             // Add validation and enhancement of cached features
-            if (features != null && features.Any())
+            if (features != null && features.Count > 0)
             {
                 // Validate feature quality and recalculate if stale
                 var age = DateTime.UtcNow - timestamp;
@@ -271,7 +259,7 @@ public class StreamingFeatureEngineering : IDisposable
     {
         try
         {
-            var cache = _featureCaches.GetOrAdd(symbol, _ => new FeatureCache(symbol, _maxCacheSize));
+            var cache = _featureCaches.GetOrAdd(symbol, s => new FeatureCache(s, _maxCacheSize));
             await Task.Run(() => cache.AddFeatures(timestamp, features), cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -365,6 +353,8 @@ public class StreamingAggregator
 
     public Task UpdateAsync(MarketData data, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         lock (_lock)
         {
             _dataWindow.Enqueue(data);
@@ -540,7 +530,7 @@ public class StreamingAggregator
             var data = _dataWindow.TakeLast(period + 1).ToList();
             if (data.Count < period + 1) return Task.FromResult(0.0);
 
-            var currentPrice = data.Last().Close;
+            var currentPrice = data[data.Count - 1].Close;
             var pastPrice = data[data.Count - period - 1].Close;
 
             return Task.FromResult(pastPrice > 0 ? (currentPrice - pastPrice) / pastPrice : 0.0);

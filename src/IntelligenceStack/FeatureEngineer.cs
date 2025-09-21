@@ -224,7 +224,7 @@ public class FeatureEngineer : IDisposable
 
                 // Permute this feature (use median of recent values)
                 var tracker = _importanceTrackers.GetOrAdd(strategyId,
-                    _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                    id => new FeatureImportanceTracker(id, _rollingWindowSize));
                 
                 var medianValue = tracker.GetFeatureMedian(featureName);
                 permutedFeatures.Features[featureName] = medianValue;
@@ -342,7 +342,7 @@ public class FeatureEngineer : IDisposable
 
             // Get tracker for this strategy
             var tracker = _importanceTrackers.GetOrAdd(strategyId, 
-                _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                id => new FeatureImportanceTracker(id, _rollingWindowSize));
 
             // Only update if enough time has passed
             if (DateTime.UtcNow - _lastUpdate < _updateInterval)
