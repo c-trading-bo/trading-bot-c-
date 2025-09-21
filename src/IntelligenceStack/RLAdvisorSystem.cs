@@ -287,19 +287,19 @@ public class RLAdvisorSystem
         }
     }
 
-    private string GetAgentKey(ExitDecisionContext context)
+    private static string GetAgentKey(ExitDecisionContext context)
     {
         var symbol = context.Symbol;
         var agentType = context.UsesCVaR ? "CVaR_PPO" : "PPO";
         return $"{symbol}_{agentType}";
     }
 
-    private string GetAgentKeyFromDecision(RLDecision decision)
+    private static string GetAgentKeyFromDecision(RLDecision decision)
     {
         return decision.AgentKey;
     }
 
-    private double[] CreateStateVector(ExitDecisionContext context)
+    private static double[] CreateStateVector(ExitDecisionContext context)
     {
         // Create state representation for RL agent
         return new double[]
@@ -316,7 +316,7 @@ public class RLAdvisorSystem
         };
     }
 
-    private ExitAction ConvertToExitAction(RLActionResult rlAction)
+    private static ExitAction ConvertToExitAction(RLActionResult rlAction)
     {
         return rlAction.ActionType switch
         {
@@ -328,7 +328,7 @@ public class RLAdvisorSystem
         };
     }
 
-    private string GenerateReasoning(RLActionResult rlAction, ExitDecisionContext context)
+    private static string GenerateReasoning(RLActionResult rlAction, ExitDecisionContext context)
     {
         var reasons = new List<string>();
         
@@ -545,11 +545,7 @@ public class RLAdvisorSystem
             var episodes = new List<TrainingEpisode>();
             
             // Step 1: Load historical market data asynchronously via SDK adapter
-            var marketDataTask = LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate);
-            var tradeDataTask = Task.Run(() => LoadHistoricalTradeData(symbol, startDate, endDate), cancellationToken);
-            
-            var marketData = await marketDataTask.ConfigureAwait(false);
-            var tradeData = await tradeDataTask.ConfigureAwait(false);
+            var marketData = await LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate).ConfigureAwait(false);
             
             // Step 2: Generate episodes based on market regimes and volatility clusters
             var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false);

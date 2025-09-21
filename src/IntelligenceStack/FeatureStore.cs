@@ -242,7 +242,7 @@ public class FeatureStore : IFeatureStore
         }
     }
 
-    private ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
+    private static ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
     {
         var totalFeatures = schema.Features.Count;
         var missingCount = 0;
@@ -303,7 +303,7 @@ public class FeatureStore : IFeatureStore
         };
     }
 
-    private FeatureSchema CreateDefaultSchema(string version)
+    private static FeatureSchema CreateDefaultSchema(string version)
     {
         var schema = new FeatureSchema
         {
