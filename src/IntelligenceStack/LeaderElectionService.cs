@@ -494,7 +494,7 @@ public class QuarantineManager : IQuarantineManager
                     .Select(kvp => kvp.Key)
                     .ToList();
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateModelPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)

@@ -332,7 +332,7 @@ public class MamlLiveIntegration
         step.PerformanceGain = newPerformance - currentPerformance;
 
         return step;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<ValidationResult> ValidateAdaptationAsync(
@@ -356,7 +356,7 @@ public class MamlLiveIntegration
             }
 
             return new ValidationResult { IsValid = true };
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private AdaptationStep ApplyBoundedUpdates(AdaptationStep step)
