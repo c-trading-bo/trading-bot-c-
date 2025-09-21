@@ -35,6 +35,38 @@ public class FeatureEngineer : IDisposable
     private static readonly Action<ILogger, string, Exception?> SHAPCalculationFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4004, "SHAPCalculationFailed"),
             "[FEATURE_ENGINEER] Failed to calculate rolling SHAP for strategy: {Strategy}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> PermutationImportanceDebug =
+        LoggerMessage.Define<string, int>(LogLevel.Debug, new EventId(4005, "PermutationImportanceDebug"),
+            "[FEATURE_ENGINEER] Calculated permutation importance for {Strategy}: {FeatureCount} features");
+            
+    private static readonly Action<ILogger, string, Exception?> PermutationImportanceFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4006, "PermutationImportanceFailed"),
+            "[FEATURE_ENGINEER] Failed to calculate permutation importance for strategy: {Strategy}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> FeatureWeightsUpdated =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4007, "FeatureWeightsUpdated"),
+            "[FEATURE_ENGINEER] Updated feature weights for {Strategy}: {LowValueFeatures} low-value features down-weighted");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureWeightsUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4008, "FeatureWeightsUpdateFailed"),
+            "[FEATURE_ENGINEER] Failed to update feature weights for strategy: {Strategy}");
+            
+    private static readonly Action<ILogger, Exception?> MarketDataProcessingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4009, "MarketDataProcessingFailed"),
+            "[FEATURE_ENGINEER] Failed to process market data for feature adaptation");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLogged =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4010, "FeatureWeightsLogged"),
+            "[FEATURE_ENGINEER] Logged feature weights to: {FilePath}");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLoggingFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4011, "FeatureWeightsLoggingFailed"),
+            "[FEATURE_ENGINEER] Failed to log feature weights for strategy: {Strategy}");
+            
+    private static readonly Action<ILogger, Exception?> ScheduledUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4012, "ScheduledUpdateFailed"),
+            "[FEATURE_ENGINEER] Error during scheduled feature weight update");
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -218,14 +250,13 @@ public class FeatureEngineer : IDisposable
                 importanceScores = normalizedImportance;
             }
 
-            _logger.LogDebug("[FEATURE_ENGINEER] Calculated permutation importance for {Strategy}: {FeatureCount} features", 
-                strategyId, importanceScores.Count);
+            PermutationImportanceDebug(_logger, strategyId, importanceScores.Count, null);
 
             return importanceScores;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Failed to calculate permutation importance for strategy: {Strategy}", strategyId);
+            PermutationImportanceFailed(_logger, strategyId, ex);
             return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
         }
     }
@@ -272,12 +303,11 @@ public class FeatureEngineer : IDisposable
             // Update online learning system immediately
             await _onlineLearningSystem.UpdateWeightsAsync($"feature_weights_{strategyId}", weights, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[FEATURE_ENGINEER] Updated feature weights for {Strategy}: {LowValueFeatures} low-value features down-weighted", 
-                strategyId, weights.Count(kvp => kvp.Value < 0.5));
+            FeatureWeightsUpdated(_logger, strategyId, weights.Count(kvp => kvp.Value < 0.5), null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Failed to update feature weights for strategy: {Strategy}", strategyId);
+            FeatureWeightsUpdateFailed(_logger, strategyId, ex);
         }
     }
 
@@ -336,7 +366,7 @@ public class FeatureEngineer : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Failed to process market data for feature adaptation");
+            MarketDataProcessingFailed(_logger, ex);
         }
     }
 
