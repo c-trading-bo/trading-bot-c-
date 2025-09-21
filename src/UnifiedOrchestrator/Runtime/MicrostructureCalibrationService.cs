@@ -192,27 +192,95 @@ public class MicrostructureCalibrationService : BackgroundService
     }
 
     /// <summary>
-    /// Update existing StrategyGates parameters instead of creating new ones
+    /// Update existing StrategyGates parameters - REAL integration with sophisticated existing infrastructure
     /// </summary>
     private async Task<List<(string parameter, decimal oldValue, decimal newValue, decimal percentChange)>> UpdateStrategyGatesParametersAsync(
         string symbol, CalibrationData data)
     {
         var changes = new List<(string, decimal, decimal, decimal)>();
         
-        // This would integrate with existing StrategyGates configuration
-        // For now, just simulate parameter updates
-        
-        // Example: Update spread threshold based on P95 analysis
-        var oldSpreadMax = symbol == "ES" ? 3.0m : 4.0m;
-        var newSpreadMax = Math.Max(2.0m, data.P95SpreadTicks * 1.1m);
-        
-        if (Math.Abs(newSpreadMax - oldSpreadMax) / oldSpreadMax * 100 >= _options.UpdateThresholdPercentage)
+        try
         {
-            changes.Add(("SpreadTicksMax", oldSpreadMax, newSpreadMax, (newSpreadMax - oldSpreadMax) / oldSpreadMax * 100));
+            // Read existing symbol configuration
+            var symbolConfigPath = Path.Combine("config", "symbols", $"{symbol}.json");
+            if (!File.Exists(symbolConfigPath))
+            {
+                _logger.LogWarning("📝 [MICROSTRUCTURE-CALIBRATION] Symbol config not found: {Path}", symbolConfigPath);
+                return changes;
+            }
             
-            // Here you would update the actual StrategyGates configuration
-            _logger.LogInformation("📝 [MICROSTRUCTURE-CALIBRATION] Would update {Symbol} SpreadTicksMax: {Old} → {New}",
-                symbol, oldSpreadMax, newSpreadMax);
+            var configJson = await File.ReadAllTextAsync(symbolConfigPath).ConfigureAwait(false);
+            var symbolConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
+            
+            if (symbolConfig == null)
+            {
+                _logger.LogWarning("📝 [MICROSTRUCTURE-CALIBRATION] Failed to parse symbol config: {Symbol}", symbol);
+                return changes;
+            }
+            
+            // Update spread threshold based on P95 analysis
+            if (symbolConfig.TryGetValue("MaxSpreadTicks", out var spreadObj) && 
+                decimal.TryParse(spreadObj.ToString(), out var oldSpreadMax))
+            {
+                var newSpreadMax = Math.Max(2.0m, Math.Min(8.0m, data.P95SpreadTicks * 1.1m)); // Bounded between 2-8 ticks
+                
+                if (Math.Abs(newSpreadMax - oldSpreadMax) / oldSpreadMax * 100 >= _options.UpdateThresholdPercentage)
+                {
+                    symbolConfig["MaxSpreadTicks"] = newSpreadMax;
+                    changes.Add(("MaxSpreadTicks", oldSpreadMax, newSpreadMax, (newSpreadMax - oldSpreadMax) / oldSpreadMax * 100));
+                    
+                    _logger.LogInformation("📝 [MICROSTRUCTURE-CALIBRATION] Updated {Symbol} MaxSpreadTicks: {Old:F2} → {New:F2}",
+                        symbol, oldSpreadMax, newSpreadMax);
+                }
+            }
+            
+            // Update latency threshold based on P95 analysis
+            if (symbolConfig.TryGetValue("MaxLatencyMs", out var latencyObj) &&
+                int.TryParse(latencyObj.ToString(), out var oldLatencyMax))
+            {
+                var newLatencyMax = Math.Max(50, Math.Min(200, data.P95LatencyMs + 10)); // Bounded between 50-200ms
+                
+                if (Math.Abs(newLatencyMax - oldLatencyMax) / (decimal)oldLatencyMax * 100 >= _options.UpdateThresholdPercentage)
+                {
+                    symbolConfig["MaxLatencyMs"] = newLatencyMax;
+                    changes.Add(("MaxLatencyMs", oldLatencyMax, newLatencyMax, (newLatencyMax - oldLatencyMax) / (decimal)oldLatencyMax * 100));
+                    
+                    _logger.LogInformation("📝 [MICROSTRUCTURE-CALIBRATION] Updated {Symbol} MaxLatencyMs: {Old} → {New}",
+                        symbol, oldLatencyMax, newLatencyMax);
+                }
+            }
+            
+            // Update volume threshold based on analysis
+            if (symbolConfig.TryGetValue("MinVolumeThreshold", out var volumeObj) &&
+                decimal.TryParse(volumeObj.ToString(), out var oldVolumeMin))
+            {
+                var newVolumeMin = Math.Max(500m, Math.Min(5000m, data.MinVolume * 0.8m)); // 80% of observed minimum, bounded
+                
+                if (Math.Abs(newVolumeMin - oldVolumeMin) / oldVolumeMin * 100 >= _options.UpdateThresholdPercentage)
+                {
+                    symbolConfig["MinVolumeThreshold"] = newVolumeMin;
+                    changes.Add(("MinVolumeThreshold", oldVolumeMin, newVolumeMin, (newVolumeMin - oldVolumeMin) / oldVolumeMin * 100));
+                    
+                    _logger.LogInformation("📝 [MICROSTRUCTURE-CALIBRATION] Updated {Symbol} MinVolumeThreshold: {Old:F0} → {New:F0}",
+                        symbol, oldVolumeMin, newVolumeMin);
+                }
+            }
+            
+            // Write back updated configuration if changes were made
+            if (changes.Any())
+            {
+                symbolConfig["LastUpdated"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                
+                var updatedJson = JsonSerializer.Serialize(symbolConfig, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(symbolConfigPath, updatedJson).ConfigureAwait(false);
+                
+                _logger.LogInformation("💾 [MICROSTRUCTURE-CALIBRATION] Saved updated {Symbol} configuration with {Count} changes",
+                    symbol, changes.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [MICROSTRUCTURE-CALIBRATION] Failed to update StrategyGates parameters for {Symbol}", symbol);
         }
         
         return changes;
