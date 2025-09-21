@@ -33,11 +33,12 @@
 
 ### Checkpoint 3.2: CA2007 ConfigureAwait ⏳ IN PROGRESS  
 - [x] **TARGET**: Add .ConfigureAwait(false) to await calls
-- [x] **SCOPE**: ~100 violations identified  
+- [x] **SCOPE**: ~24 violations remaining (reduced from 28)
 - [x] **APPROACH**: Pattern-based replacements for `await Task.` calls
-- [x] **PROGRESS**: 16/100 fixed (98 → 82) 
-- [x] **FILES**: EnsembleMetaLearner.cs (3 fixes), FeatureEngineer.cs (2 fixes), StreamingFeatureEngineering.cs (3 fixes)
-- [x] **STATUS**: 8 fixes in 15-minute checkpoint ✅
+- [x] **PROGRESS**: 4/28 fixed (28 → 24) ✅
+- [x] **FILES**: LeaderElectionService.cs (1 fix), ModelQuarantineManager.cs (1 fix), MAMLLiveIntegration.cs (2 fixes)
+- [x] **STATUS**: Checkpoint system operational with crash resilience ✅
+- [x] **AUTOMATION**: `./checkpoint-executor.sh` and `./resume-from-checkpoint.sh` implemented
 
 ### Checkpoint 3.3: CA1848 LoggerMessage Performance 🔄 QUEUED
 - [ ] **TARGET**: Replace direct logging with compiled delegates
@@ -74,21 +75,32 @@
 
 ## 🔄 Resumption Instructions
 
-### To Resume from Current Checkpoint:
-```bash
-# Verify current state
-dotnet build src/IntelligenceStack/IntelligenceStack.csproj 2>&1 | grep -E "(warning|error)" | wc -l
+## 🔄 Resumption Instructions
 
-# Continue CA2007 ConfigureAwait fixes
-dotnet build src/IntelligenceStack/IntelligenceStack.csproj 2>&1 | grep "CA2007" | head -10
+### **CRASH RECOVERY** (Primary Use Case):
+```bash
+# If execution stops/crashes, immediately run:
+./resume-from-checkpoint.sh
+```
+
+### **Checkpoint System Available**:
+```bash
+# Check current progress
+./checkpoint-executor.sh status
+
+# Continue from current checkpoint  
+./checkpoint-executor.sh continue
+
+# Start fresh execution
+./checkpoint-executor.sh start
 ```
 
 ### Next Action (15-minute checkpoint):
-1. **TARGET**: Fix 10-15 CA2007 violations using pattern replacement
-2. **FILES**: Focus on EnsembleMetaLearner.cs, StreamingFeatureEngineering.cs  
-3. **PATTERN**: `await Task.` → `await Task....ConfigureAwait(false)`
-4. **VALIDATION**: Build and count remaining CA2007 violations
-5. **COMMIT**: After validation, commit with violation count update
+1. **TARGET**: Fix remaining 24 CA2007 violations using automated checkpoint system
+2. **APPROACH**: `./resume-from-checkpoint.sh` for crash-resilient execution
+3. **AUTOMATION**: 15-minute checkpoints prevent hour-long failures
+4. **TRACKING**: Progress automatically persisted in `.checkpoints/state.json`
+5. **VALIDATION**: Guardrails validated at each checkpoint
 
 ## 🛡️ Guardrail Checklist (Verify at each checkpoint)
 - [ ] No suppressions added (#pragma warning disable, [SuppressMessage])
@@ -101,8 +113,15 @@ dotnet build src/IntelligenceStack/IntelligenceStack.csproj 2>&1 | grep "CA2007"
 - **Start**: ~2700 violations
 - **Post Phase 2**: 2690 violations  
 - **Post Checkpoint 3.1**: 2592 violations (-98 total)
-- **Post Checkpoint 3.2**: 2576 violations (-124 total)
+- **Post Checkpoint 3.2**: CA2007: 28 → 24 violations (-4 with checkpoint system)
 - **Target**: 0 violations
+
+## 🔧 New Checkpoint System Features
+- **Crash Recovery**: `./resume-from-checkpoint.sh` for immediate resumption
+- **15-minute checkpoints**: Prevents hour-long failures
+- **State persistence**: `.checkpoints/state.json` tracks progress automatically  
+- **Guardrail validation**: Safety checks at each checkpoint
+- **Progress tracking**: Real-time violation count monitoring
 
 ---
 *Last Updated*: Current session - Checkpoint 3.2 in progress

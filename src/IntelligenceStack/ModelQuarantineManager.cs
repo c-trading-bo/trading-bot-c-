@@ -200,7 +200,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 _logger.LogError(ex, "[QUARANTINE] Failed to get quarantined models");
                 return new List<string>();
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
