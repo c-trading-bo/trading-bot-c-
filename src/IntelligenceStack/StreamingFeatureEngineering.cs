@@ -17,7 +17,19 @@ public class StreamingFeatureEngineering : IDisposable
 {
     // Constants for magic number violations
     private const int DefaultBatchSize = 50;
-    private const int DefaultDelayMs = 10;
+    
+    // Technical analysis periods
+    private const int ShortSMA = 5;
+    private const int MediumSMA = 20;
+    private const int LongSMA = 50;
+    private const int ShortEMA = 12;
+    private const int LongEMA = 26;
+    private const int ShortVolatility = 10;
+    private const int MediumVolatility = 20;
+    private const int ATRPeriod = 14;
+    private const int RSIPeriod = 14;
+    private const int ReturnsShort = 1;
+    private const int CacheExpiredMinutes = 10;
     
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
@@ -123,7 +135,7 @@ public class StreamingFeatureEngineering : IDisposable
             if (_featureCaches.TryGetValue(symbol, out var cache))
             {
                 // Trigger feature recalculation
-                cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-10));
+                cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-CacheExpiredMinutes));
             }
         }
         catch (Exception ex)
@@ -147,16 +159,16 @@ public class StreamingFeatureEngineering : IDisposable
         features["volume"] = currentData.Volume;
 
         // Moving averages (streaming calculation)
-        features["sma_5"] = aggregator.GetSMA(5);
-        features["sma_20"] = aggregator.GetSMA(20);
+        features["sma_5"] = aggregator.GetSMA(ShortSMA);
+        features["sma_20"] = aggregator.GetSMA(MediumSMA);
         features["sma_50"] = aggregator.GetSMA(DefaultBatchSize);
-        features["ema_12"] = aggregator.GetEMA(12);
-        features["ema_26"] = aggregator.GetEMA(26);
+        features["ema_12"] = aggregator.GetEMA(ShortEMA);
+        features["ema_26"] = aggregator.GetEMA(LongEMA);
 
         // Volatility features
-        features["volatility_10"] = await aggregator.GetVolatilityAsync(10, cancellationToken).ConfigureAwait(false);
-        features["volatility_20"] = await aggregator.GetVolatilityAsync(20, cancellationToken).ConfigureAwait(false);
-        features["atr_14"] = await aggregator.GetATRAsync(14, cancellationToken).ConfigureAwait(false);
+        features["volatility_10"] = await aggregator.GetVolatilityAsync(ShortVolatility, cancellationToken).ConfigureAwait(false);
+        features["volatility_20"] = await aggregator.GetVolatilityAsync(MediumVolatility, cancellationToken).ConfigureAwait(false);
+        features["atr_14"] = await aggregator.GetATRAsync(ATRPeriod, cancellationToken).ConfigureAwait(false);
 
         // Price ratios and differences
         if (features["sma_20"] > 0)
@@ -169,21 +181,21 @@ public class StreamingFeatureEngineering : IDisposable
         }
 
         // Momentum features
-        features["rsi_14"] = await aggregator.GetRSIAsync(14, cancellationToken).ConfigureAwait(false);
+        features["rsi_14"] = await aggregator.GetRSIAsync(RSIPeriod, cancellationToken).ConfigureAwait(false);
         features["macd"] = features["ema_12"] - features["ema_26"];
         features["macd_signal"] = await aggregator.GetMACDSignalAsync(cancellationToken).ConfigureAwait(false);
 
         // Volume features
-        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(20, cancellationToken).ConfigureAwait(false);
+        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(MediumSMA, cancellationToken).ConfigureAwait(false);
         if (features["volume_sma_20"] > 0)
         {
             features["volume_ratio"] = features["volume"] / features["volume_sma_20"];
         }
 
         // Returns and changes
-        features["returns_1"] = await aggregator.GetReturnsAsync(1, cancellationToken).ConfigureAwait(false);
-        features["returns_5"] = await aggregator.GetReturnsAsync(5, cancellationToken).ConfigureAwait(false);
-        features["returns_20"] = await aggregator.GetReturnsAsync(20, cancellationToken).ConfigureAwait(false);
+        features["returns_1"] = await aggregator.GetReturnsAsync(ReturnsShort, cancellationToken).ConfigureAwait(false);
+        features["returns_5"] = await aggregator.GetReturnsAsync(ShortSMA, cancellationToken).ConfigureAwait(false);
+        features["returns_20"] = await aggregator.GetReturnsAsync(MediumSMA, cancellationToken).ConfigureAwait(false);
 
         return features;
     }
@@ -394,93 +406,81 @@ public class StreamingAggregator
         }
     }
 
-    public async Task<double> GetATRAsync(int period, CancellationToken cancellationToken)
+    public Task<double> GetATRAsync(int period, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            var data = _dataWindow.TakeLast(period + 1).ToList();
+            if (data.Count < 2) return Task.FromResult(0.0);
+
+            var trueRanges = new List<double>();
+            for (int i = 1; i < data.Count; i++)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
-                if (data.Count < 2) return 0.0;
-
-                var trueRanges = new List<double>();
-                for (int i = 1; i < data.Count; i++)
-                {
-                    var current = data[i];
-                    var previous = data[i - 1];
-                    
-                    var tr = Math.Max(
-                        current.High - current.Low,
-                        Math.Max(
-                            Math.Abs(current.High - previous.Close),
-                            Math.Abs(current.Low - previous.Close)
-                        )
-                    );
-                    trueRanges.Add(tr);
-                }
-
-                return trueRanges.Average();
-            }
-        }, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task<double> GetRSIAsync(int period, CancellationToken cancellationToken)
-    {
-        return await Task.Run(() =>
-        {
-            lock (_lock)
-            {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
-                if (data.Count < period + 1) return DefaultBatchSize; // Neutral RSI
-
-                var gains = new List<double>();
-                var losses = new List<double>();
-
-                for (int i = 1; i < data.Count; i++)
-                {
-                    var change = data[i].Close - data[i - 1].Close;
-                    gains.Add(Math.Max(change, 0));
-                    losses.Add(Math.Max(-change, 0));
-                }
-
-                var avgGain = gains.Average();
-                var avgLoss = losses.Average();
-
-                if (Math.Abs(avgLoss) < MinimumValue) return PercentageMultiplier;
+                var current = data[i];
+                var previous = data[i - 1];
                 
-                var rs = avgGain / avgLoss;
-                return PercentageMultiplier - (PercentageMultiplier / (1.0 + rs));
+                var tr = Math.Max(
+                    current.High - current.Low,
+                    Math.Max(
+                        Math.Abs(current.High - previous.Close),
+                        Math.Abs(current.Low - previous.Close)
+                    )
+                );
+                trueRanges.Add(tr);
             }
-        }, cancellationToken).ConfigureAwait(false);
+
+            return Task.FromResult(trueRanges.Average());
+        }
     }
 
-    public async Task<double> GetVolumeSMAAsync(int period, CancellationToken cancellationToken)
+    public Task<double> GetRSIAsync(int period, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            var data = _dataWindow.TakeLast(period + 1).ToList();
+            if (data.Count < period + 1) return Task.FromResult((double)DefaultBatchSize); // Neutral RSI
+
+            var gains = new List<double>();
+            var losses = new List<double>();
+
+            for (int i = 1; i < data.Count; i++)
             {
-                var data = _dataWindow.TakeLast(period).ToList();
-                return data.Count > 0 ? data.Average(d => d.Volume) : 0.0;
+                var change = data[i].Close - data[i - 1].Close;
+                gains.Add(Math.Max(change, 0));
+                losses.Add(Math.Max(-change, 0));
             }
-        }, cancellationToken).ConfigureAwait(false);
+
+            var avgGain = gains.Average();
+            var avgLoss = losses.Average();
+
+            if (Math.Abs(avgLoss) < MinimumValue) return Task.FromResult((double)PercentageMultiplier);
+            
+            var rs = avgGain / avgLoss;
+            return Task.FromResult(PercentageMultiplier - (PercentageMultiplier / (1.0 + rs)));
+        }
     }
 
-    public async Task<double> GetReturnsAsync(int period, CancellationToken cancellationToken)
+    public Task<double> GetVolumeSMAAsync(int period, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
-                if (data.Count < period + 1) return 0.0;
+            var data = _dataWindow.TakeLast(period).ToList();
+            return Task.FromResult(data.Count > 0 ? data.Average(d => d.Volume) : 0.0);
+        }
+    }
 
-                var currentPrice = data.Last().Close;
-                var pastPrice = data[data.Count - period - 1].Close;
+    public Task<double> GetReturnsAsync(int period, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            var data = _dataWindow.TakeLast(period + 1).ToList();
+            if (data.Count < period + 1) return Task.FromResult(0.0);
 
-                return pastPrice > 0 ? (currentPrice - pastPrice) / pastPrice : 0.0;
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            var currentPrice = data.Last().Close;
+            var pastPrice = data[data.Count - period - 1].Close;
+
+            return Task.FromResult(pastPrice > 0 ? (currentPrice - pastPrice) / pastPrice : 0.0);
+        }
     }
 
     private double CalculateEMA(int period)

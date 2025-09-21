@@ -362,7 +362,7 @@ public class NightlyParameterTuner
             
             _logger.LogInformation("[NIGHTLY_TUNING] Created tuning session {SessionId} for {ModelFamily}", 
                 session.SessionId, session.ModelFamily);
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         return session;
     }
@@ -428,7 +428,7 @@ public class NightlyParameterTuner
                 return bestResult?.BestParameters;
             }
             return null;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Dictionary<string, double>?> LoadParametersFromRegistryAsync(string modelFamily, CancellationToken cancellationToken)
@@ -457,7 +457,7 @@ public class NightlyParameterTuner
                 _logger.LogWarning(ex, "[NIGHTLY_TUNING] Failed to load parameters from registry for {ModelFamily}", modelFamily);
             }
             return null;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
@@ -488,7 +488,7 @@ public class NightlyParameterTuner
             }
 
             return defaults;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<ModelMetrics> EvaluateParametersAsync(

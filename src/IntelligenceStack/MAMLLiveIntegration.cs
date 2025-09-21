@@ -407,7 +407,7 @@ public class MamlLiveIntegration
             
             // Check if current variance exceeds rollback threshold
             return variance > baselineVariance * _config.RollbackVarMultiplier;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task PerformRollbackAsync(MamlModelState modelState, CancellationToken cancellationToken)
@@ -428,7 +428,7 @@ public class MamlLiveIntegration
             }
 
             _logger.LogWarning("[MAML_LIVE] Performed rollback for regime: {Regime}", modelState.RegimeKey);
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ApplyAdaptationAsync(
@@ -472,7 +472,7 @@ public class MamlLiveIntegration
                     _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
                 }
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task UpdateEnsembleWeightsAsync(

@@ -32,21 +32,27 @@ public class HistoricalTrainerWithCV
         LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2001, "WalkForwardCVStarted"),
             "[HISTORICAL_CV] Starting walk-forward CV for {ModelFamily}: {Start} to {End}");
             
+    private static readonly Action<ILogger, int, Exception?> FoldsGenerated =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(2002, "FoldsGenerated"),
+            "[HISTORICAL_CV] Generated {Count} CV folds");
+            
     private static readonly Action<ILogger, int, int, double, double, Exception?> FoldCompleted =
-        LoggerMessage.Define<int, int, double, double>(LogLevel.Information, new EventId(2002, "FoldCompleted"),
+        LoggerMessage.Define<int, int, double, double>(LogLevel.Information, new EventId(2003, "FoldCompleted"),
             "[HISTORICAL_CV] Completed fold {Fold}/{Total} - AUC: {AUC:F3}, EdgeBps: {Edge:F1}");
             
     private static readonly Action<ILogger, int, double, double, bool, Exception?> WalkForwardCVCompleted =
-        LoggerMessage.Define<int, double, double, bool>(LogLevel.Information, new EventId(2003, "WalkForwardCVCompleted"),
+        LoggerMessage.Define<int, double, double, bool>(LogLevel.Information, new EventId(2004, "WalkForwardCVCompleted"),
             "[HISTORICAL_CV] Completed walk-forward CV: {Folds} folds, Avg AUC: {AUC:F3}, Avg Edge: {Edge:F1}, Promotion: {Promotion}");
             
     private static readonly Action<ILogger, string, Exception?> WalkForwardCVFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2004, "WalkForwardCVFailed"),
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2005, "WalkForwardCVFailed"),
             "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}");
             
     private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> LeakSafeLabelingStarted =
-        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2005, "LeakSafeLabelingStarted"),
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2006, "LeakSafeLabelingStarted"),
             "[LEAK_SAFE_LABELING] Generating labels for {Symbol}: {Start} to {End}");
+            
+
 
     public HistoricalTrainerWithCV(
         ILogger<HistoricalTrainerWithCV> logger,
@@ -104,7 +110,7 @@ public class HistoricalTrainerWithCV
             // Generate time series splits with proper embargo and purging
             var splits = GenerateTimeSeriesSplits(startDate, endDate, trainingWindow, testWindow);
             
-            _logger.LogInformation("[HISTORICAL_CV] Generated {Count} CV folds", splits.Count);
+            FoldsGenerated(_logger, splits.Count, null);
 
             // Run each fold
             var foldNumber = 1;
@@ -118,8 +124,7 @@ public class HistoricalTrainerWithCV
                     
                 cvResult.FoldResults.Add(foldResult);
                 
-                _logger.LogInformation("[HISTORICAL_CV] Completed fold {Fold}/{Total} - AUC: {AUC:F3}, EdgeBps: {Edge:F1}", 
-                    foldNumber, splits.Count, foldResult.TestMetrics?.AUC ?? 0.0, foldResult.TestMetrics?.EdgeBps ?? 0.0);
+                FoldCompleted(_logger, foldNumber, splits.Count, foldResult.TestMetrics?.AUC ?? 0.0, foldResult.TestMetrics?.EdgeBps ?? 0.0, null);
                 
                 foldNumber++;
                 
@@ -137,12 +142,7 @@ public class HistoricalTrainerWithCV
             var meetsPromotionCriteria = CheckPromotionCriteria(cvResult);
             cvResult.MeetsPromotionCriteria = meetsPromotionCriteria;
 
-            _logger.LogInformation("[HISTORICAL_CV] Completed walk-forward CV: {Folds} folds, " +
-                "Avg AUC: {AUC:F3}, Avg Edge: {Edge:F1}, Promotion: {Promotion}", 
-                cvResult.FoldResults.Count, 
-                cvResult.AggregateMetrics.AUC, 
-                cvResult.AggregateMetrics.EdgeBps,
-                meetsPromotionCriteria);
+            WalkForwardCVCompleted(_logger, cvResult.FoldResults.Count, cvResult.AggregateMetrics.AUC, cvResult.AggregateMetrics.EdgeBps, meetsPromotionCriteria, null);
 
             // Save results
             await SaveCVResultsAsync(cvResult, cancellationToken).ConfigureAwait(false);
@@ -157,8 +157,7 @@ public class HistoricalTrainerWithCV
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}", 
-                modelFamily);
+            WalkForwardCVFailed(_logger, modelFamily, ex);
             throw new InvalidOperationException($"Cross-validation failed for model family {modelFamily}", ex);
         }
     }
@@ -174,8 +173,7 @@ public class HistoricalTrainerWithCV
     {
         try
         {
-            _logger.LogInformation("[LEAK_SAFE_LABELING] Generating labels for {Symbol}: {Start} to {End}", 
-                symbol, startTime, endTime);
+            LeakSafeLabelingStarted(_logger, symbol, startTime, endTime, null);
 
             var examples = new List<TrainingExample>();
             

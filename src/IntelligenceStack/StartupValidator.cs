@@ -20,14 +20,7 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ValidationStarted"),
             "[STARTUP] Beginning comprehensive system validation...");
             
-    private static readonly Action<ILogger, double, Exception?> ValidationCompleted =
-        LoggerMessage.Define<double>(LogLevel.Information, new EventId(5002, "ValidationCompleted"),
-            "[STARTUP] System validation completed in {ElapsedMs:F2}ms");
-            
-    private static readonly Action<ILogger, Exception?> ValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5003, "ValidationFailed"),
-            "[STARTUP] System validation failed");
-            
+
     private static readonly Action<ILogger, string, Exception?> TestStarted =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "TestStarted"),
             "[STARTUP] Running test: {TestName}");
@@ -40,42 +33,9 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5006, "TestFailed"),
             "[STARTUP] ❌ {TestName} failed ({ElapsedMs:F2}ms)");
             
-    private static readonly Action<ILogger, int, int, Exception?> ValidationSummary =
-        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(5007, "ValidationSummary"),
-            "[STARTUP] Validation summary: {PassedCount}/{TotalCount} tests passed");
+
             
-    private static readonly Action<ILogger, Exception?> FeatureStoreValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5008, "FeatureStoreValidation"),
-            "[STARTUP] Validating Feature Store...");
-            
-    private static readonly Action<ILogger, Exception?> ModelRegistryValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "ModelRegistryValidation"),
-            "[STARTUP] Validating Model Registry...");
-            
-    private static readonly Action<ILogger, Exception?> CalibrationValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5010, "CalibrationValidation"),
-            "[STARTUP] Validating Calibration Manager...");
-            
-    private static readonly Action<ILogger, Exception?> IdempotentOrderValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5011, "IdempotentOrderValidation"),
-            "[STARTUP] Validating Idempotent Order Service...");
-            
-    private static readonly Action<ILogger, Exception?> LeaderElectionValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5012, "LeaderElectionValidation"),
-            "[STARTUP] Validating Leader Election Service...");
-            
-    private static readonly Action<ILogger, Exception?> DependencyValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5013, "DependencyValidation"),
-            "[STARTUP] Validating Service Dependencies...");
-            
-    private static readonly Action<ILogger, Exception?> PerformanceValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5014, "PerformanceValidation"),
-            "[STARTUP] Validating System Performance...");
-            
-    private static readonly Action<ILogger, Exception?> ConfigurationValidation =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5015, "ConfigurationValidation"),
-            "[STARTUP] Validating Configuration...");
-            
+
     private static readonly Action<ILogger, string, double, Exception?> TestFailedException =
         LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5016, "TestFailedException"),
             "[STARTUP] ❌ {TestName} FAILED with exception ({ElapsedMs:F2}ms)");
@@ -109,97 +69,9 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define(LogLevel.Error, new EventId(5023, "DIValidationFailed"),
             "[DI] DI graph validation failed");
             
-    private static readonly Action<ILogger, Exception?> FeatureSchemaLoadFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5024, "FeatureSchemaLoadFailed"),
-            "[FEATURES] Failed to load/create test schema");
+
             
-    private static readonly Action<ILogger, Exception?> FeatureValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5025, "FeatureValidationFailed"),
-            "[FEATURES] Sample feature validation failed");
-            
-    private static readonly Action<ILogger, Exception?> FeatureValidationPassed =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5026, "FeatureValidationPassed"),
-            "[FEATURES] Schema loaded and sample validation passed");
-            
-    private static readonly Action<ILogger, Exception?> FeatureStoreValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5027, "FeatureStoreValidationFailed"),
-            "[FEATURES] Feature store validation failed");
-            
-    private static readonly Action<ILogger, Exception?> ModelRegistryValidated =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5028, "ModelRegistryValidated"),
-            "[REGISTRY] Model registry access validated");
-            
-    private static readonly Action<ILogger, Exception?> ModelRegistryValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5029, "ModelRegistryValidationFailed"),
-            "[REGISTRY] Model registry validation failed");
-            
-    private static readonly Action<ILogger, Exception?> CalibrationMapLoadFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5030, "CalibrationMapLoadFailed"),
-            "[CALIBRATION] Failed to load calibration map");
-            
-    private static readonly Action<ILogger, double, Exception?> InvalidCalibratedConfidence =
-        LoggerMessage.Define<double>(LogLevel.Error, new EventId(5031, "InvalidCalibratedConfidence"),
-            "[CALIBRATION] Invalid calibrated confidence: {Value}");
-            
-    private static readonly Action<ILogger, double, Exception?> CalibrationValidated =
-        LoggerMessage.Define<double>(LogLevel.Debug, new EventId(5032, "CalibrationValidated"),
-            "[CALIBRATION] Calibration loaded and smoke test passed (0.75 -> {Calibrated:F3})");
-            
-    private static readonly Action<ILogger, Exception?> CalibrationValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5033, "CalibrationValidationFailed"),
-            "[CALIBRATION] Calibration validation failed");
-            
-    private static readonly Action<ILogger, Exception?> IdempotencyFirstOrderError =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5034, "IdempotencyFirstOrderError"),
-            "[IDEMPOTENCY] First order incorrectly flagged as duplicate");
-            
-    private static readonly Action<ILogger, Exception?> IdempotencyDuplicateNotDetected =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5035, "IdempotencyDuplicateNotDetected"),
-            "[IDEMPOTENCY] Duplicate order not detected");
-            
-    private static readonly Action<ILogger, Exception?> IdempotencyValidated =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5036, "IdempotencyValidated"),
-            "[IDEMPOTENCY] Duplicate detection working correctly");
-            
-    private static readonly Action<ILogger, Exception?> IdempotencyValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5037, "IdempotencyValidationFailed"),
-            "[IDEMPOTENCY] Idempotency validation failed");
-            
-    private static readonly Action<ILogger, Exception?> KillSwitchNotAvailable =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5038, "KillSwitchNotAvailable"),
-            "[KILL_SWITCH] Kill switch service not available");
-            
-    private static readonly Action<ILogger, long, Exception?> KillSwitchResponseSlow =
-        LoggerMessage.Define<long>(LogLevel.Error, new EventId(5039, "KillSwitchResponseSlow"),
-            "[KILL_SWITCH] Kill switch response too slow: {Ms}ms");
-            
-    private static readonly Action<ILogger, Exception?> KillSwitchTimeout =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5040, "KillSwitchTimeout"),
-            "[KILL_SWITCH] Kill switch test timed out");
-            
-    private static readonly Action<ILogger, long, Exception?> KillSwitchResponsive =
-        LoggerMessage.Define<long>(LogLevel.Debug, new EventId(5041, "KillSwitchResponsive"),
-            "[KILL_SWITCH] Kill switch responsive ({Ms}ms)");
-            
-    private static readonly Action<ILogger, Exception?> KillSwitchValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5042, "KillSwitchValidationFailed"),
-            "[KILL_SWITCH] Kill switch validation failed");
-            
-    private static readonly Action<ILogger, Exception?> LeaderElectionWarning =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(5043, "LeaderElectionWarning"),
-            "[LEADER] Could not acquire leadership (may be expected if another instance is running)");
-            
-    private static readonly Action<ILogger, Exception?> LeadershipReleaseFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5044, "LeadershipReleaseFailed"),
-            "[LEADER] Failed to release leadership");
-            
-    private static readonly Action<ILogger, Exception?> LeaderElectionFunctional =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5045, "LeaderElectionFunctional"),
-            "[LEADER] Leader election system functional");
-            
-    private static readonly Action<ILogger, Exception?> LeaderElectionValidationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5046, "LeaderElectionValidationFailed"),
-            "[LEADER] Leader election validation failed");
+
     
     private readonly ILogger<StartupValidator> _logger;
     private readonly IServiceProvider _serviceProvider;
