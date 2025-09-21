@@ -626,14 +626,13 @@ public class HistoricalTrainerWithCV
                 TrainingWindow = cvResult.TrainingWindow,
                 FeaturesVersion = "v1.0",
                 Metrics = cvResult.AggregateMetrics,
-                ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count),
-                Metadata = new Dictionary<string, object>
-                {
-                    ["cv_folds"] = cvResult.FoldResults.Count,
-                    ["best_fold"] = bestFold.FoldNumber,
-                    ["cv_date"] = cvResult.StartedAt
-                }
+                ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count)
             };
+            
+            // Populate the read-only Metadata dictionary
+            registration.Metadata["cv_folds"] = cvResult.FoldResults.Count;
+            registration.Metadata["best_fold"] = bestFold.FoldNumber;
+            registration.Metadata["cv_date"] = cvResult.StartedAt;
 
             var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
             

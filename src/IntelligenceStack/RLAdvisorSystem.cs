@@ -174,8 +174,7 @@ public class RLAdvisorSystem
                 Enabled = _config.Enabled,
                 OrderInfluenceEnabled = _orderInfluenceEnabled,
                 MinShadowDecisions = _config.ShadowMinDecisions,
-                MinEdgeBps = _config.MinEdgeBps,
-                AgentStates = new Dictionary<string, RLAgentStatus>()
+                MinEdgeBps = _config.MinEdgeBps
             };
 
             foreach (var (agentKey, agent) in _agents)

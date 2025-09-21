@@ -144,7 +144,13 @@ public class MamlLiveIntegration
             await UpdateEnsembleWeightsAsync(regime, boundedStep, cancellationToken).ConfigureAwait(false);
 
             result.Success = true;
-            result.WeightChanges = boundedStep.WeightChanges;
+            
+            // Populate the read-only WeightChanges dictionary
+            foreach (var weightChange in boundedStep.WeightChanges)
+            {
+                result.WeightChanges[weightChange.Key] = weightChange.Value;
+            }
+            
             result.PerformanceImprovement = boundedStep.PerformanceGain;
             result.EndTime = DateTime.UtcNow;
 
@@ -177,8 +183,7 @@ public class MamlLiveIntegration
                 Enabled = _config.Enabled,
                 LastUpdate = _lastUpdate,
                 MaxWeightChangePct = _config.MaxWeightChangePctPer5Min,
-                RollbackMultiplier = _config.RollbackVarMultiplier,
-                RegimeStates = new Dictionary<string, MamlRegimeStatus>()
+                RollbackMultiplier = _config.RollbackVarMultiplier
             };
 
             foreach (var (regime, modelState) in _modelStates)
@@ -186,16 +191,23 @@ public class MamlLiveIntegration
                 var adaptationHistory = _adaptationHistory.GetValueOrDefault(regime, new List<AdaptationStep>());
                 var recentAdaptations = adaptationHistory.TakeLast(10).ToList();
                 
-                status.RegimeStates[regime] = new MamlRegimeStatus
+                var regimeStatus = new MamlRegimeStatus
                 {
                     LastAdaptation = modelState.LastAdaptation,
                     AdaptationCount = modelState.AdaptationCount,
-                    CurrentWeights = new Dictionary<string, double>(modelState.CurrentWeights),
                     BaselinePerformance = _baselinePerformance.GetValueOrDefault(regime, 0.0),
                     RecentPerformanceGain = recentAdaptations.Count > 0 ? 
                         recentAdaptations.Average(a => a.PerformanceGain) : 0.0,
                     IsStable = modelState.IsStable
                 };
+                
+                // Populate the read-only CurrentWeights dictionary
+                foreach (var weight in modelState.CurrentWeights)
+                {
+                    regimeStatus.CurrentWeights[weight.Key] = weight.Value;
+                }
+                
+                status.RegimeStates[regime] = regimeStatus;
             }
 
             return status;
