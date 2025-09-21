@@ -417,7 +417,7 @@ public class HistoricalTrainerWithCV
         }
         
         return example;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<List<MarketDataPoint>> GetMarketDataAsync(
@@ -466,7 +466,7 @@ public class HistoricalTrainerWithCV
                 dataPoints.Count, symbol, startTime, endTime);
             
             return dataPoints;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
     
     private static async Task<List<MarketDataPoint>> LoadPrimaryMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
@@ -547,7 +547,7 @@ public class HistoricalTrainerWithCV
             }
             
             return validDataPoints;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static ModelMetrics CalculateAggregateMetrics(IEnumerable<CVFoldResult> foldResults)

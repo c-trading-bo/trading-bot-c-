@@ -123,7 +123,7 @@ public class NightlyParameterTuner
             else
             {
                 // Check if rollback is needed due to degradation
-                if (await ShouldRollbackAsync(modelFamily, bayesianResult.BaselineMetrics, cancellationToken))
+                if (await ShouldRollbackAsync(modelFamily, bayesianResult.BaselineMetrics, cancellationToken).ConfigureAwait(false))
                 {
                     await PerformRollbackAsync(modelFamily, cancellationToken).ConfigureAwait(false);
                     result.RolledBack = true;

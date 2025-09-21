@@ -394,12 +394,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 // Real prediction implementation using ensemble models and regime detection
                 var prediction = await CalculateRealPredictionAsync(features, data, cancellationToken).ConfigureAwait(false);
                 return prediction.Confidence;
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             // Check if nightly maintenance is due
             if (ShouldPerformNightlyMaintenance())
             {
-                _ = Task.Run(async () => await PerformNightlyMaintenanceAsync(cancellationToken)).ConfigureAwait(false);
+                _ = Task.Run(async () => await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -573,7 +573,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             // Simulate async feature computation with external APIs
             await Task.Delay(MinimumSampleSize, cancellationToken).ConfigureAwait(false);
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
         
         // Simple feature extraction - in production would be more sophisticated
         var featureSet = new FeatureSet
@@ -613,7 +613,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var volumeFactor = Math.Min(1, volume / 10000.0);
             
             return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<MLPrediction> CalculateRealPredictionAsync(FeatureSet features, MarketData data, CancellationToken cancellationToken)

@@ -59,7 +59,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             var lockData = CreateLockData();
             
             // Try to acquire the lock
-            if (await TryCreateLockFileAsync(lockData, cancellationToken))
+            if (await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
             {
                 lock (_lock)
                 {
@@ -74,9 +74,9 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
             
             // Check if we can take over from expired leader
-            if (await CanTakeoverLeadershipAsync(cancellationToken))
+            if (await CanTakeoverLeadershipAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (await TryCreateLockFileAsync(lockData, cancellationToken))
+                if (await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
                 {
                     lock (_lock)
                     {
@@ -169,7 +169,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             var lockData = CreateLockData();
             
             // Update the lock file with new timestamp
-            if (await TryCreateLockFileAsync(lockData, cancellationToken))
+            if (await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
             {
                 _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId);
                 return true;
@@ -405,7 +405,7 @@ public class QuarantineManager : IQuarantineManager
 
                 return status;
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task QuarantineModelAsync(string modelId, QuarantineReason reason, CancellationToken cancellationToken = default)
@@ -436,7 +436,7 @@ public class QuarantineManager : IQuarantineManager
             {
                 _logger.LogError(ex, "[QUARANTINE] Failed to quarantine model: {ModelId}", modelId);
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> TryRestoreModelAsync(string modelId, CancellationToken cancellationToken = default)
@@ -479,7 +479,7 @@ public class QuarantineManager : IQuarantineManager
                 _logger.LogError(ex, "[QUARANTINE] Failed to restore model: {ModelId}", modelId);
                 return false;
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
