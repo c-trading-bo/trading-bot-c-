@@ -817,6 +817,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 /// </summary>
 public class SloMonitor
 {
+    // Constants for magic number violations (S109)
+    private const int MaxSampleHistoryCount = 1000;
+    private const int DefaultRetryCount = 10;
+    private const double DefaultRetryCount3 = 3.0;
+    private const double PercentageDivisor = 100.0;
+    
     private readonly ILogger<SloMonitor> _logger;
     private readonly SloConfig _config;
     private readonly Dictionary<string, List<double>> _latencyHistory = new();
@@ -853,6 +859,10 @@ public class SloMonitor
             // Check error budget
             await CheckErrorBudgetAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogError(ex, "[SLO] Object disposed while recording error: {ErrorType}", errorType);
+        }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "[SLO] Invalid operation recording error: {ErrorType}", errorType);
@@ -860,10 +870,6 @@ public class SloMonitor
         catch (ArgumentException ex)
         {
             _logger.LogError(ex, "[SLO] Invalid argument recording error: {ErrorType}", errorType);
-        }
-        catch (ObjectDisposedException ex)
-        {
-            _logger.LogError(ex, "[SLO] Object disposed while recording error: {ErrorType}", errorType);
         }
     }
 
@@ -902,6 +908,10 @@ public class SloMonitor
                     }
                 }
             }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogError(ex, "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "[SLO] Invalid operation recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
@@ -909,10 +919,6 @@ public class SloMonitor
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
-            }
-            catch (ObjectDisposedException ex)
-            {
-                _logger.LogError(ex, "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
             }
         }, cancellationToken);
     }

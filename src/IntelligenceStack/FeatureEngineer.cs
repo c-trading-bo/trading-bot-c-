@@ -579,6 +579,11 @@ public class FeatureEngineer : IDisposable
 /// </summary>
 public class FeatureImportanceTracker
 {
+    // Constants for magic number violations (S109)
+    private const int MiddleIndexDivisor = 2;
+    private const double MedianDivisor = 2.0;
+    private const int MinimumDataRequirement = 20;
+    
     private readonly int _maxWindowSize;
     private readonly Queue<FeatureSet> _featureHistory = new();
     private readonly Queue<double> _predictionHistory = new();

@@ -125,7 +125,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                     _calibrationCache[modelId] = map;
                 }
                 
-                CalibrationMapLoaded(_logger, modelId, map.Method, null);
+                CalibrationMapLoaded(_logger, modelId, map.Method.ToString(), null);
                 return map;
             }
 
@@ -159,7 +159,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             // Save the best calibration map
             await SaveCalibrationMapAsync(bestMap, cancellationToken).ConfigureAwait(false);
 
-            CalibrationFittedWithBrier(_logger, modelId, bestMap.Method, bestMap.BrierScore, null);
+            CalibrationFittedWithBrier(_logger, modelId, bestMap.Method.ToString(), bestMap.BrierScore, null);
 
             return bestMap;
         }

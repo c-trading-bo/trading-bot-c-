@@ -893,6 +893,10 @@ public class RLAdvisorSystem
 
 public class RLAgent
 {
+    // Constants for magic number violations (S109)
+    private const int DefaultPercentage = 100;
+    private const int ActionTypeCount = 4;
+    
     private readonly AdvisorConfig _config;
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
@@ -998,6 +1002,11 @@ public class RLAgent
 
 public class PerformanceTracker
 {
+    // Constants for magic number violations (S109)
+    private const int MaxRandomSeed = 10000;
+    private const int RandomSeedBase = 500;
+    private const int DefaultStepsCount = 10;
+    
     private readonly List<double> _returns = new();
     private readonly List<TimeSpan> _durations = new();
 
