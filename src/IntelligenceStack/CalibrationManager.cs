@@ -22,6 +22,63 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private const int ExponentValue = 2;
     
     // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> NoCalibrationMapFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3001, "NoCalibrationMapFound"),
+            "[CALIBRATION] No calibration map found for model: {ModelId}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> CalibrationMapLoaded =
+        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(3002, "CalibrationMapLoaded"),
+            "[CALIBRATION] Loaded calibration map for {ModelId} (method: {Method})");
+            
+    private static readonly Action<ILogger, string, Exception?> CalibrationLoadFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3003, "CalibrationLoadFailed"),
+            "[CALIBRATION] Failed to load calibration map for {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> CalibrationFitFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3006, "CalibrationFitFailed"),
+            "[CALIBRATION] Failed to fit calibration for {ModelId}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> InsufficientDataForCalibration =
+        LoggerMessage.Define<string, int>(LogLevel.Warning, new EventId(3008, "InsufficientDataForCalibration"),
+            "[CALIBRATION] Insufficient data for calibration: {ModelId} ({Count} points)");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> CalibrationFittedWithBrier =
+        LoggerMessage.Define<string, string, double>(LogLevel.Information, new EventId(3009, "CalibrationFittedWithBrier"),
+            "[CALIBRATION] Fitted calibration for {ModelId}: {Method} (Brier: {Brier:F4})");
+            
+    private static readonly Action<ILogger, string, Exception?> ConfidenceCalibrationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3010, "ConfidenceCalibrationFailed"),
+            "[CALIBRATION] Failed to calibrate confidence for {ModelId}");
+            
+    private static readonly Action<ILogger, DateTime, Exception?> NightlyCalibrationStarted =
+        LoggerMessage.Define<DateTime>(LogLevel.Information, new EventId(3011, "NightlyCalibrationStarted"),
+            "[CALIBRATION] Starting nightly calibration update at {Time}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelsDirectoryNotFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3012, "ModelsDirectoryNotFound"),
+            "[CALIBRATION] Models directory not found: {Dir}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelCalibrationUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3013, "ModelCalibrationUpdateFailed"),
+            "[CALIBRATION] Failed to update calibration for model: {Model}");
+            
+    private static readonly Action<ILogger, int, Exception?> NightlyCalibrationCompleted =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(3014, "NightlyCalibrationCompleted"),
+            "[CALIBRATION] Nightly calibration completed: {Updated} models updated");
+            
+    private static readonly Action<ILogger, Exception?> NightlyCalibrationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3015, "NightlyCalibrationFailed"),
+            "[CALIBRATION] Nightly calibration failed");
+            
+    private static readonly Action<ILogger, string, Exception?> CalibrationPointsLoadFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3016, "CalibrationPointsLoadFailed"),
+            "[CALIBRATION] Failed to load calibration points for {ModelId}");
+            
+    private static readonly Action<ILogger, DateTime, Exception?> NightlyCalibrationScheduled =
+        LoggerMessage.Define<DateTime>(LogLevel.Information, new EventId(3017, "NightlyCalibrationScheduled"),
+            "[CALIBRATION] Scheduled nightly calibration for {Time}");
+    
+    
     
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
@@ -54,7 +111,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var calibrationPath = Path.Combine(_basePath, $"{modelId}_calibration.json");
             if (!File.Exists(calibrationPath))
             {
-                _logger.LogWarning("[CALIBRATION] No calibration map found for model: {ModelId}", modelId);
+                NoCalibrationMapFound(_logger, modelId, null);
                 return CreateDefaultCalibrationMap(modelId);
             }
 
@@ -68,8 +125,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                     _calibrationCache[modelId] = map;
                 }
                 
-                _logger.LogDebug("[CALIBRATION] Loaded calibration map for {ModelId} (method: {Method})", 
-                    modelId, map.Method);
+                CalibrationMapLoaded(_logger, modelId, map.Method, null);
                 return map;
             }
 
@@ -77,7 +133,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CALIBRATION] Failed to load calibration map for {ModelId}", modelId);
+            CalibrationLoadFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);
         }
     }
@@ -89,8 +145,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var pointsList = points.ToList();
             if (pointsList.Count < MinCalibrationPoints)
             {
-                _logger.LogWarning("[CALIBRATION] Insufficient data for calibration: {ModelId} ({Count} points)", 
-                    modelId, pointsList.Count);
+                InsufficientDataForCalibration(_logger, modelId, pointsList.Count, null);
                 return CreateDefaultCalibrationMap(modelId);
             }
 
@@ -104,14 +159,13 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             // Save the best calibration map
             await SaveCalibrationMapAsync(bestMap, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[CALIBRATION] Fitted calibration for {ModelId}: {Method} (Brier: {Brier:F4})", 
-                modelId, bestMap.Method, bestMap.BrierScore);
+            CalibrationFittedWithBrier(_logger, modelId, bestMap.Method, bestMap.BrierScore, null);
 
             return bestMap;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CALIBRATION] Failed to fit calibration for {ModelId}", modelId);
+            CalibrationFitFailed(_logger, modelId, ex);
             return CreateDefaultCalibrationMap(modelId);
         }
     }
@@ -125,7 +179,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CALIBRATION] Failed to calibrate confidence for {ModelId}", modelId);
+            ConfidenceCalibrationFailed(_logger, modelId, ex);
             return rawConfidence; // Return uncalibrated value as fallback
         }
     }
@@ -134,12 +188,12 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     {
         try
         {
-            _logger.LogInformation("[CALIBRATION] Starting nightly calibration update at {Time}", DateTime.Now);
+            NightlyCalibrationStarted(_logger, DateTime.Now, null);
 
             var modelsDir = Path.Combine(_basePath, "..", "models", "metadata");
             if (!Directory.Exists(modelsDir))
             {
-                _logger.LogWarning("[CALIBRATION] Models directory not found: {Dir}", modelsDir);
+                ModelsDirectoryNotFound(_logger, modelsDir, null);
                 return;
             }
 
@@ -161,15 +215,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[CALIBRATION] Failed to update calibration for model: {Model}", modelFile);
+                    ModelCalibrationUpdateFailed(_logger, modelFile, ex);
                 }
             }
 
-            _logger.LogInformation("[CALIBRATION] Nightly calibration completed: {Updated} models updated", updated);
+            NightlyCalibrationCompleted(_logger, updated, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CALIBRATION] Nightly calibration failed");
+            NightlyCalibrationFailed(_logger, ex);
         }
     }
 
@@ -377,7 +431,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[CALIBRATION] Failed to load calibration points for {ModelId}", modelId);
+            CalibrationPointsLoadFailed(_logger, modelId, ex);
             return new List<CalibrationPoint>();
         }
     }
@@ -405,7 +459,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[CALIBRATION] Nightly calibration failed");
+                    NightlyCalibrationFailed(_logger, ex);
                 }
             });
             
@@ -414,7 +468,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             
         }, null, delay, Timeout.InfiniteTimeSpan);
 
-        _logger.LogInformation("[CALIBRATION] Scheduled nightly calibration for {Time}", scheduled);
+        NightlyCalibrationScheduled(_logger, scheduled, null);
     }
 
     public void Dispose()

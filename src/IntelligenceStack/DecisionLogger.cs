@@ -60,15 +60,18 @@ public class DecisionLogger : IDecisionLogger
     private readonly ILogger<DecisionLogger> _logger;
     private readonly string _basePath;
     private readonly bool _enabled;
+    private readonly DriftMonitoringConfig _config;
 
     public DecisionLogger(
         ILogger<DecisionLogger> logger,
         ObservabilityConfig config,
+        DriftMonitoringConfig driftConfig,
         string basePath = "data/decisions")
     {
         _logger = logger;
         _enabled = config?.DecisionLine.Enabled ?? false;
         _basePath = basePath;
+        _config = driftConfig ?? new DriftMonitoringConfig();
         
         if (_enabled)
         {

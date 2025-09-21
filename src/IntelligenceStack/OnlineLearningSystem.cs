@@ -26,13 +26,6 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double BaselineRewardFactor = 0.25;
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
-    private const double DefaultLearningRate = 0.1;
-    private const double MinLearningRate = 0.01;
-    private const double MaxLearningRate = 0.5;
-    private const double PerformanceThreshold = 0.02;
-    private const double DriftThreshold = 0.05;
-    private const int SaveIntervalMinutes = 10;
-    private const double DefaultVariance = 0.001;
     private const int HistoryWindowSize = 50;
     private const double ConfidenceInterval = 0.95;
     private const double ZScore = 1.96; // 95% confidence interval
@@ -84,6 +77,39 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private static readonly Action<ILogger, Exception?> StateLoadingFailed =
         LoggerMessage.Define(LogLevel.Warning, new EventId(6010, "StateLoadingFailed"),
             "[ONLINE] Failed to load state, starting fresh");
+            
+    private static readonly Action<ILogger, string, double, double, double, Exception?> HighVarianceDetected =
+        LoggerMessage.Define<string, double, double, double>(LogLevel.Warning, new EventId(6011, "HighVarianceDetected"),
+            "[ONLINE] High variance detected for {ModelId}: {Current:F4} > {Baseline:F4} * {Multiplier}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelNotFoundAdapting =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6012, "ModelNotFoundAdapting"),
+            "[ONLINE] Model not found adapting to performance: {ModelId}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> FeatureDriftDetected =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6013, "FeatureDriftDetected"),
+            "[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}");
+            
+    private static readonly Action<ILogger, string, Exception?> DriftDetectionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6014, "DriftDetectionFailed"),
+            "[ONLINE] Failed to detect drift for model: {ModelId}");
+            
+    private static readonly Action<ILogger, string, string, string, decimal, decimal, Exception?> ProcessingTradeRecord =
+        LoggerMessage.Define<string, string, string, decimal, decimal>(LogLevel.Debug, new EventId(6015, "ProcessingTradeRecord"),
+            "[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}");
+            
+    private static readonly Action<ILogger, string, string, string, double, Exception?> ModelUpdateCompleted =
+        LoggerMessage.Define<string, string, string, double>(LogLevel.Information, new EventId(6016, "ModelUpdateCompleted"),
+            "[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6017, "ModelUpdateFailed"),
+            "[ONLINE] Failed to update model with trade record: {TradeId}");
+            
+    private static readonly Action<ILogger, string, Exception?> WeightsRolledBack =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(6018, "WeightsRolledBack"),
+            "[ONLINE] Rolled back weights for model: {ModelId}");
+    
             
     private static readonly Action<ILogger, Exception?> StateSavingFailed =
         LoggerMessage.Define(LogLevel.Warning, new EventId(6011, "StateSavingFailed"),
@@ -281,8 +307,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                     // Check for rollback condition
                     if (variance > baselineVar * _config.RollbackVarMultiplier)
                     {
-                        _logger.LogWarning("[ONLINE] High variance detected for {ModelId}: {Current:F4} > {Baseline:F4} * {Multiplier}", 
-                            modelId, variance, baselineVar, _config.RollbackVarMultiplier);
+                        HighVarianceDetected(_logger, modelId, variance, baselineVar, _config.RollbackVarMultiplier, null);
                         
                         shouldRollback = true;
                         modelToRollback = modelId;
@@ -302,15 +327,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Invalid operation adapting to performance for model: {ModelId}", modelId);
+            InvalidOperationError(_logger, modelId, ex);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Invalid argument adapting to performance for model: {ModelId}", modelId);
+            ArgumentError(_logger, modelId, ex);
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogError(ex, "[ONLINE] Model not found adapting to performance: {ModelId}", modelId);
+            ModelNotFoundAdapting(_logger, modelId, ex);
         }
     }
 
@@ -723,7 +748,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculatePrecision(TradeRecord tradeRecord)
+    private static double CalculatePrecision(TradeRecord tradeRecord)
     {
         try
         {
@@ -738,7 +763,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateRecall(TradeRecord tradeRecord)
+    private static double CalculateRecall(TradeRecord tradeRecord)
     {
         try
         {
@@ -753,7 +778,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateF1Score(TradeRecord tradeRecord)
+    private static double CalculateF1Score(TradeRecord tradeRecord)
     {
         try
         {

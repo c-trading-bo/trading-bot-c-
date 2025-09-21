@@ -119,10 +119,10 @@ public class LineageTrackingSystem
             {
                 DecisionId = decisionId,
                 Timestamp = DateTime.UtcNow,
-                ModelRegistryVersion = await GetModelVersionForDecisionAsync(decision, cancellationToken),
-                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken),
-                CalibrationMapId = await GetCalibrationMapIdAsync(decision.ModelId, cancellationToken),
-                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken),
+                ModelRegistryVersion = await GetModelVersionForDecisionAsync(decision, cancellationToken).ConfigureAwait(false),
+                FeatureStoreVersion = await GetCurrentFeatureStoreVersionAsync(cancellationToken).ConfigureAwait(false),
+                CalibrationMapId = await GetCalibrationMapIdAsync(decision.ModelId, cancellationToken).ConfigureAwait(false),
+                ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken).ConfigureAwait(false),
                 InputDataHash = CalculateInputDataHash(decision),
                 RegimeContext = new RegimeLineageInfo
                 {
@@ -131,8 +131,8 @@ public class LineageTrackingSystem
                     RegimeConfidence = decision.Confidence,
                     RegimeTransitionId = GetRegimeTransitionId(decision)
                 },
-                ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken),
-                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken)
+                ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken).ConfigureAwait(false),
+                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken).ConfigureAwait(false)
             };
 
             // Populate read-only ProcessingChain
@@ -296,9 +296,9 @@ public class LineageTrackingSystem
                 StartTime = decisionLineage.Decision.Timestamp,
                 EndTime = DateTime.UtcNow,
                 LineageStamp = decisionLineage.LineageStamp,
-                ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken),
-                FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken),
-                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken)
+                ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken).ConfigureAwait(false),
+                FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken).ConfigureAwait(false),
+                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken).ConfigureAwait(false)
             };
             
             // Add related events to the read-only collection
@@ -592,7 +592,7 @@ public class LineageTrackingSystem
         }
     }
 
-    private async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
+    private static async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
         // Build processing chain asynchronously to avoid blocking lineage recording
         return await Task.Run(() =>
@@ -813,13 +813,13 @@ public class LineageTrackingSystem
         }, cancellationToken);
     }
 
-    private string ExtractFamilyFromId(string modelId)
+    private static string ExtractFamilyFromId(string modelId)
     {
         var lastUnderscore = modelId.LastIndexOf('_');
         return lastUnderscore > 0 ? modelId[..lastUnderscore] : modelId;
     }
 
-    private string ExtractVersionFromId(string modelId)
+    private static string ExtractVersionFromId(string modelId)
     {
         var parts = modelId.Split('_');
         return parts.Length > 1 ? parts[^1] : "v1";

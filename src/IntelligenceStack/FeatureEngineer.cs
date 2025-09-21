@@ -18,6 +18,9 @@ namespace TradingBot.IntelligenceStack;
 public class FeatureEngineer : IDisposable
 {
     private const int MinDataCount = 10;
+    private const int MiddleIndexDivisor = 2;
+    private const double MedianDivisor = 2.0;
+    private const int MinimumDataRequirement = 20;
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -678,10 +681,10 @@ public class FeatureImportanceTracker
             }
 
             var sorted = history.OrderBy(x => x).ToList();
-            var mid = sorted.Count / 2;
+            var mid = sorted.Count / MiddleIndexDivisor;
             
-            return sorted.Count % 2 == 0 
-                ? (sorted[mid - 1] + sorted[mid]) / 2.0 
+            return sorted.Count % MiddleIndexDivisor == 0 
+                ? (sorted[mid - 1] + sorted[mid]) / MedianDivisor 
                 : sorted[mid];
         }
     }
@@ -690,7 +693,7 @@ public class FeatureImportanceTracker
     {
         lock (_lock)
         {
-            return _featureHistory.Count >= 20 && _predictionHistory.Count >= 20 && _outcomeHistory.Count >= 20;
+            return _featureHistory.Count >= MinimumDataRequirement && _predictionHistory.Count >= MinimumDataRequirement && _outcomeHistory.Count >= MinimumDataRequirement;
         }
     }
 }

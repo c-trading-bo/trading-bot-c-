@@ -17,6 +17,13 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ObservabilityDashboard : IDisposable
 {
+    // Target SLO constants for golden signals
+    private const int TargetDecisionLatencyP99Ms = 120;
+    private const int TargetDecisionsPerSecond = 10;
+    private const double TargetErrorRatePercent = 0.5;
+    private const double TargetErrorRateThreshold = 0.005;
+    private const int PercentageConversionFactor = 100;
+    
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
     private readonly EnsembleMetaLearner _ensemble;
@@ -65,17 +72,17 @@ public class ObservabilityDashboard : IDisposable
             var dashboardData = new DashboardData
             {
                 Timestamp = DateTime.UtcNow,
-                GoldenSignals = await GetGoldenSignalsAsync(cancellationToken),
-                RegimeTimeline = await GetRegimeTimelineAsync(cancellationToken),
-                EnsembleWeights = await GetEnsembleWeightsAsync(cancellationToken),
-                ConfidenceDistribution = await GetConfidenceDistributionAsync(cancellationToken),
-                SlippageVsSpread = await GetSlippageVsSpreadAsync(cancellationToken),
-                DrawdownForecast = await GetDrawdownForecastAsync(cancellationToken),
-                SafetyEvents = await GetSafetyEventsAsync(cancellationToken),
-                ModelHealth = await GetModelHealthDashboardAsync(cancellationToken),
-                SLOBudget = await GetSLOBudgetAsync(cancellationToken),
-                RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken),
-                MamlStatus = await GetMamlStatusAsync(cancellationToken)
+                GoldenSignals = await GetGoldenSignalsAsync(cancellationToken).ConfigureAwait(false),
+                RegimeTimeline = await GetRegimeTimelineAsync(cancellationToken).ConfigureAwait(false),
+                EnsembleWeights = await GetEnsembleWeightsAsync(cancellationToken).ConfigureAwait(false),
+                ConfidenceDistribution = await GetConfidenceDistributionAsync(cancellationToken).ConfigureAwait(false),
+                SlippageVsSpread = await GetSlippageVsSpreadAsync(cancellationToken).ConfigureAwait(false),
+                DrawdownForecast = await GetDrawdownForecastAsync(cancellationToken).ConfigureAwait(false),
+                SafetyEvents = await GetSafetyEventsAsync(cancellationToken).ConfigureAwait(false),
+                ModelHealth = await GetModelHealthDashboardAsync(cancellationToken).ConfigureAwait(false),
+                SLOBudget = await GetSLOBudgetAsync(cancellationToken).ConfigureAwait(false),
+                RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken).ConfigureAwait(false),
+                MamlStatus = await GetMamlStatusAsync(cancellationToken).ConfigureAwait(false)
             };
 
             return dashboardData;
@@ -104,20 +111,20 @@ public class ObservabilityDashboard : IDisposable
             {
                 DecisionLatencyP99Ms = sloStatus.DecisionLatencyP99Ms,
                 OrderLatencyP99Ms = sloStatus.OrderLatencyP99Ms,
-                Target = 120, // Target P99 decision latency
-                IsHealthy = sloStatus.DecisionLatencyP99Ms < 120
+                Target = TargetDecisionLatencyP99Ms, // Target P99 decision latency
+                IsHealthy = sloStatus.DecisionLatencyP99Ms < TargetDecisionLatencyP99Ms
             },
             Throughput = new ThroughputMetrics
             {
                 DecisionsPerSecond = CalculateDecisionsPerSecond(),
-                Target = 10, // Target decisions per second
+                Target = TargetDecisionsPerSecond, // Target decisions per second
                 IsHealthy = true // Simplified
             },
             ErrorRate = new ErrorMetrics
             {
-                ErrorRatePercent = sloStatus.ErrorRate * 100,
-                Target = 0.5, // Target error rate
-                IsHealthy = sloStatus.ErrorRate < 0.005
+                ErrorRatePercent = sloStatus.ErrorRate * PercentageConversionFactor,
+                Target = TargetErrorRatePercent, // Target error rate
+                IsHealthy = sloStatus.ErrorRate < TargetErrorRateThreshold
             },
             Saturation = new SaturationMetrics
             {
@@ -699,7 +706,7 @@ public class ObservabilityDashboard : IDisposable
         return histogram;
     }
 
-    private double CalculatePercentile(List<double> values, double percentile)
+    private static double CalculatePercentile(List<double> values, double percentile)
     {
         if (values.Count == 0) return 0.0;
         

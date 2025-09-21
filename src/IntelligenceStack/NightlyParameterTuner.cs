@@ -17,6 +17,18 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class NightlyParameterTuner
 {
+    // ML Hyperparameter ranges constants
+    private const double MinLearningRate = 0.001;
+    private const double MaxLearningRate = 0.1;
+    private const int MinHiddenSize = 64;
+    private const int MaxHiddenSize = 512;
+    private const double MinDropoutRate = 0.0;
+    private const double MaxDropoutRate = 0.5;
+    private const double MinL2Regularization = 1e-6;
+    private const double MaxL2Regularization = 1e-2;
+    private const int MinEnsembleSize = 3;
+    private const int MaxEnsembleSize = 10;
+    
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
     private readonly NetworkConfig _networkConfig;
@@ -367,12 +379,12 @@ public class NightlyParameterTuner
         
         return new Dictionary<string, ParameterRange>
         {
-            ["learning_rate"] = new ParameterRange { Min = 0.001, Max = 0.1, Type = ParameterType.LogUniform },
+            ["learning_rate"] = new ParameterRange { Min = MinLearningRate, Max = MaxLearningRate, Type = ParameterType.LogUniform },
             ["batch_size"] = new ParameterRange { Min = _networkConfig.Batch.MinBatchSize, Max = _networkConfig.Batch.MaxBatchSize, Type = ParameterType.Categorical, Categories = batchSizes },
-            ["hidden_size"] = new ParameterRange { Min = 64, Max = 512, Type = ParameterType.LogUniform },
-            ["dropout_rate"] = new ParameterRange { Min = 0.0, Max = 0.5, Type = ParameterType.Uniform },
-            ["l2_regularization"] = new ParameterRange { Min = 1e-6, Max = 1e-2, Type = ParameterType.LogUniform },
-            ["ensemble_size"] = new ParameterRange { Min = 3, Max = 10, Type = ParameterType.Categorical, Categories = new double[] { 3, 5, 7, 10 } }
+            ["hidden_size"] = new ParameterRange { Min = MinHiddenSize, Max = MaxHiddenSize, Type = ParameterType.LogUniform },
+            ["dropout_rate"] = new ParameterRange { Min = MinDropoutRate, Max = MaxDropoutRate, Type = ParameterType.Uniform },
+            ["l2_regularization"] = new ParameterRange { Min = MinL2Regularization, Max = MaxL2Regularization, Type = ParameterType.LogUniform },
+            ["ensemble_size"] = new ParameterRange { Min = MinEnsembleSize, Max = MaxEnsembleSize, Type = ParameterType.Categorical, Categories = new double[] { MinEnsembleSize, 5, 7, MaxEnsembleSize } }
         };
     }
 
