@@ -63,7 +63,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 lock (_lock)
                 {
-                    _isLeader = true.ConfigureAwait(false);
+                    _isLeader = true;
                 }
                 
                 StartRenewalTimer();
@@ -80,7 +80,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 {
                     lock (_lock)
                     {
-                        _isLeader = true.ConfigureAwait(false);
+                        _isLeader = true;
                     }
                     
                     StartRenewalTimer();
@@ -141,7 +141,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
     public async Task<bool> IsLeaderAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield().ConfigureAwait(false); // Ensure proper async execution
+        await Task.Yield(); // Ensure proper async execution
         
         if (!_config.Enabled)
         {

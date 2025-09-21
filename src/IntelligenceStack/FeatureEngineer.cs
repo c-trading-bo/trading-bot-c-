@@ -584,7 +584,7 @@ public class FeatureImportanceTracker
             lock (_lock)
             {
                 // Update feature history
-                _featureHistory.Enqueue(features).ConfigureAwait(false);
+                _featureHistory.Enqueue(features);
                 if (_featureHistory.Count > _maxWindowSize)
                 {
                     _featureHistory.Dequeue();

@@ -305,17 +305,18 @@ public class FeatureStore : IFeatureStore
 
     private FeatureSchema CreateDefaultSchema(string version)
     {
-        return new FeatureSchema
+        var schema = new FeatureSchema
         {
-            Version = version,
-            Features = new Dictionary<string, FeatureDefinition>
-            {
-                ["price"] = new() { Name = "price", DataType = typeof(double), MinValue = 0, Required = true },
-                ["volume"] = new() { Name = "volume", DataType = typeof(double), MinValue = 0, Required = true },
-                ["volatility"] = new() { Name = "volatility", DataType = typeof(double), MinValue = 0, Required = false },
-                ["trend_strength"] = new() { Name = "trend_strength", DataType = typeof(double), MinValue = -1, MaxValue = 1, Required = false }
-            }
+            Version = version
         };
+
+        // Populate the read-only Features dictionary
+        schema.Features["price"] = new() { Name = "price", DataType = typeof(double), MinValue = 0, Required = true };
+        schema.Features["volume"] = new() { Name = "volume", DataType = typeof(double), MinValue = 0, Required = true };
+        schema.Features["volatility"] = new() { Name = "volatility", DataType = typeof(double), MinValue = 0, Required = false };
+        schema.Features["trend_strength"] = new() { Name = "trend_strength", DataType = typeof(double), MinValue = -1, MaxValue = 1, Required = false };
+
+        return schema;
     }
 
     private static string CalculateChecksum(FeatureSet features)
