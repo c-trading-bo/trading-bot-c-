@@ -778,7 +778,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private double CalculateF1Score(TradeRecord tradeRecord)
+    private static double CalculateF1Score(TradeRecord tradeRecord)
     {
         try
         {

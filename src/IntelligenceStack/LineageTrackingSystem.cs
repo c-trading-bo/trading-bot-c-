@@ -131,8 +131,8 @@ public class LineageTrackingSystem
                     RegimeConfidence = decision.Confidence,
                     RegimeTransitionId = GetRegimeTransitionId(decision)
                 },
-                ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken),
-                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken)
+                ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken).ConfigureAwait(false),
+                FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken).ConfigureAwait(false)
             };
 
             // Populate read-only ProcessingChain
@@ -296,9 +296,9 @@ public class LineageTrackingSystem
                 StartTime = decisionLineage.Decision.Timestamp,
                 EndTime = DateTime.UtcNow,
                 LineageStamp = decisionLineage.LineageStamp,
-                ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken),
-                FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken),
-                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken)
+                ModelLineage = await GetCompleteModelLineageAsync(decisionLineage.LineageStamp.ModelLineage?.ModelId ?? "", cancellationToken).ConfigureAwait(false),
+                FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken).ConfigureAwait(false),
+                CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken).ConfigureAwait(false)
             };
             
             // Add related events to the read-only collection
