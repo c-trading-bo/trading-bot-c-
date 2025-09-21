@@ -15,6 +15,9 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StreamingFeatureEngineering : IDisposable
 {
+    private const int ShortTermEmaPeriod = 12;
+    private const int LongTermEmaPeriod = 26;
+    
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
     private readonly ConcurrentDictionary<string, StreamingAggregator> _aggregators = new();
@@ -332,8 +335,8 @@ public class StreamingAggregator
         {
             return period switch
             {
-                12 => _ema12,
-                26 => _ema26,
+                ShortTermEmaPeriod => _ema12,
+                LongTermEmaPeriod => _ema26,
                 _ => CalculateEMA(period)
             };
         }
