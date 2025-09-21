@@ -16,13 +16,7 @@ namespace TradingBot.IntelligenceStack;
 public class StreamingFeatureEngineering : IDisposable
 {
     // Constants for magic number violations
-    private const int EmaShortPeriod = 12;
-    private const int EmaLongPeriod = 26;
-    private const int TradingDaysPerYear = 252;
     private const int DefaultBatchSize = 50;
-    private const double MinimumValue = 1E-10;
-    private const int PercentageMultiplier = 100;
-    private const int DefaultMultiplier = 2;
     private const int DefaultDelayMs = 10;
     
     private readonly ILogger<StreamingFeatureEngineering> _logger;
@@ -270,6 +264,15 @@ public class StreamingFeatureEngineering : IDisposable
 /// </summary>
 public class StreamingAggregator
 {
+    // Constants for magic number violations (moved from main class)
+    private const int EmaShortPeriod = 12;
+    private const int EmaLongPeriod = 26;
+    private const int TradingDaysPerYear = 252;
+    private const int DefaultBatchSize = 50;
+    private const double MinimumValue = 1E-10;
+    private const int PercentageMultiplier = 100;
+    private const int DefaultMultiplier = 2;
+    
     private readonly Queue<MarketData> _dataWindow = new();
     private readonly object _lock = new();
     private readonly int _maxWindowSize = 200; // Keep last 200 data points

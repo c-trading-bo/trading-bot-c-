@@ -14,6 +14,19 @@ namespace TradingBot.IntelligenceStack;
 public class UnifiedDecisionLogger
 {
     private readonly ILogger<UnifiedDecisionLogger> _logger;
+    
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> LoggerInitialized =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(1001, "LoggerInitialized"),
+            "[UNIFIED_LOGGER] Decision logger initialized: {LogFile}");
+            
+    private static readonly Action<ILogger, string, string, string, double, int, string, Exception?> DecisionLogged =
+        LoggerMessage.Define<string, string, string, double, int, string>(LogLevel.Information, new EventId(1002, "DecisionLogged"),
+            "[UNIFIED_DECISION] {Symbol} {Strategy} {Regime}: P_final={PFinal:F3} size={Size} action={Action}");
+            
+    private static readonly Action<ILogger, Exception?> DecisionLogFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(1003, "DecisionLogFailed"),
+            "[UNIFIED_LOGGER] Failed to log decision");
     private readonly string _logFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
     
@@ -34,7 +47,7 @@ public class UnifiedDecisionLogger
             WriteIndented = false
         };
         
-        _logger.LogInformation("[UNIFIED_LOGGER] Decision logger initialized: {LogFile}", _logFilePath);
+        LoggerInitialized(_logger, _logFilePath, null);
     }
     
     /// <summary>
@@ -57,13 +70,12 @@ public class UnifiedDecisionLogger
             await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine).ConfigureAwait(false);
             
             // Also log to console for immediate visibility
-            _logger.LogInformation("[UNIFIED_DECISION] {Symbol} {Strategy} {Regime}: P_final={PFinal:F3} size={Size} action={Action}",
-                decision.Symbol, decision.Strategy, decision.Regime, decision.PFinal, decision.FinalSize, decision.Action);
+            DecisionLogged(_logger, decision.Symbol, decision.Strategy, decision.Regime, decision.PFinal, decision.FinalSize, decision.Action, null);
                 
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[UNIFIED_LOGGER] Failed to log decision");
+            DecisionLogFailed(_logger, ex);
         }
     }
     

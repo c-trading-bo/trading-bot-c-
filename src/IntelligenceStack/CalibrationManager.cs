@@ -21,6 +21,63 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private const int DefaultThresholdCount = 10;
     private const int ExponentValue = 2;
     
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> NoCalibrationMapWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3001, "NoCalibrationMapWarning"),
+            "[CALIBRATION] No calibration map found for model: {ModelId}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> CalibrationMapLoaded =
+        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(3002, "CalibrationMapLoaded"),
+            "[CALIBRATION] Loaded calibration map for {ModelId} (method: {Method})");
+            
+    private static readonly Action<ILogger, string, Exception?> LoadCalibrationMapFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3003, "LoadCalibrationMapFailed"),
+            "[CALIBRATION] Failed to load calibration map for {ModelId}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> InsufficientDataWarning =
+        LoggerMessage.Define<string, int>(LogLevel.Warning, new EventId(3004, "InsufficientDataWarning"),
+            "[CALIBRATION] Insufficient data for calibration: {ModelId} ({Count} points)");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> CalibrationFitted =
+        LoggerMessage.Define<string, string, double>(LogLevel.Information, new EventId(3005, "CalibrationFitted"),
+            "[CALIBRATION] Fitted calibration for {ModelId}: {Method} (Brier: {Brier:F4})");
+            
+    private static readonly Action<ILogger, string, Exception?> FitCalibrationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3006, "FitCalibrationFailed"),
+            "[CALIBRATION] Failed to fit calibration for {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> CalibrateConfidenceFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3007, "CalibrateConfidenceFailed"),
+            "[CALIBRATION] Failed to calibrate confidence for {ModelId}");
+            
+    private static readonly Action<ILogger, DateTime, Exception?> NightlyCalibrationStarted =
+        LoggerMessage.Define<DateTime>(LogLevel.Information, new EventId(3008, "NightlyCalibrationStarted"),
+            "[CALIBRATION] Starting nightly calibration update at {Time}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelsDirectoryNotFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3009, "ModelsDirectoryNotFound"),
+            "[CALIBRATION] Models directory not found: {Dir}");
+            
+    private static readonly Action<ILogger, string, Exception?> UpdateCalibrationFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3010, "UpdateCalibrationFailed"),
+            "[CALIBRATION] Failed to update calibration for model: {Model}");
+            
+    private static readonly Action<ILogger, int, Exception?> NightlyCalibrationCompleted =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(3011, "NightlyCalibrationCompleted"),
+            "[CALIBRATION] Nightly calibration completed: {Updated} models updated");
+            
+    private static readonly Action<ILogger, Exception?> NightlyCalibrationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3012, "NightlyCalibrationFailed"),
+            "[CALIBRATION] Nightly calibration failed");
+            
+    private static readonly Action<ILogger, string, Exception?> LoadCalibrationPointsFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3013, "LoadCalibrationPointsFailed"),
+            "[CALIBRATION] Failed to load calibration points for {ModelId}");
+            
+    private static readonly Action<ILogger, TimeSpan, Exception?> NightlyCalibrationScheduled =
+        LoggerMessage.Define<TimeSpan>(LogLevel.Information, new EventId(3014, "NightlyCalibrationScheduled"),
+            "[CALIBRATION] Scheduled nightly calibration for {Time}");
+    
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
     private readonly Dictionary<string, CalibrationMap> _calibrationCache = new();
