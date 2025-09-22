@@ -15,6 +15,13 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StartupValidator : IStartupValidator
 {
+    // Configuration constants to eliminate magic numbers
+    private const int StartupDelayMs = 100;
+    private const int KillSwitchTimeoutMs = 3000;
+    private const double TestPrice = 100.0;
+    private const double TestVolume = 1000.0;
+    private const double TestVolatility = 0.15;
+    
     // LoggerMessage delegates for CA1848 compliance - StartupValidator
     private static readonly Action<ILogger, Exception?> ValidationStarted =
         LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ValidationStarted"),
@@ -68,6 +75,103 @@ public class StartupValidator : IStartupValidator
     private static readonly Action<ILogger, Exception?> DIValidationFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(5023, "DIValidationFailed"),
             "[DI] DI graph validation failed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureStoreSchemaFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5024, "FeatureStoreSchemaFailed"),
+            "[FEATURES] Failed to load/create test schema");
+            
+    private static readonly Action<ILogger, Exception?> FeatureValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5025, "FeatureValidationFailed"),
+            "[FEATURES] Sample feature validation failed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureValidationPassed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5026, "FeatureValidationPassed"),
+            "[FEATURES] Schema loaded and sample validation passed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureStoreValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5027, "FeatureStoreValidationFailed"),
+            "[FEATURES] Feature store validation failed");
+            
+    // Registry validation delegates
+    private static readonly Action<ILogger, Exception?> RegistryValidationPassed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5028, "RegistryValidationPassed"),
+            "[REGISTRY] Model registry access validated");
+            
+    private static readonly Action<ILogger, Exception?> RegistryValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5029, "RegistryValidationFailed"),
+            "[REGISTRY] Model registry validation failed");
+            
+    // Calibration validation delegates
+    private static readonly Action<ILogger, Exception?> CalibrationLoadFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5030, "CalibrationLoadFailed"),
+            "[CALIBRATION] Failed to load calibration map");
+            
+    private static readonly Action<ILogger, double, Exception?> CalibrationInvalidValue =
+        LoggerMessage.Define<double>(LogLevel.Error, new EventId(5031, "CalibrationInvalidValue"),
+            "[CALIBRATION] Invalid calibrated confidence: {Value}");
+            
+    private static readonly Action<ILogger, double, Exception?> CalibrationPassed =
+        LoggerMessage.Define<double>(LogLevel.Debug, new EventId(5032, "CalibrationPassed"),
+            "[CALIBRATION] Calibration loaded and smoke test passed (0.75 -> {Calibrated:F3})");
+            
+    private static readonly Action<ILogger, Exception?> CalibrationValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5033, "CalibrationValidationFailed"),
+            "[CALIBRATION] Calibration validation failed");
+            
+    // Idempotency validation delegates  
+    private static readonly Action<ILogger, Exception?> IdempotencyFirstOrderFlagged =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5034, "IdempotencyFirstOrderFlagged"),
+            "[IDEMPOTENCY] First order incorrectly flagged as duplicate");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyDuplicateNotDetected =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5035, "IdempotencyDuplicateNotDetected"),
+            "[IDEMPOTENCY] Duplicate order not detected");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyPassed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5036, "IdempotencyPassed"),
+            "[IDEMPOTENCY] Duplicate detection working correctly");
+            
+    private static readonly Action<ILogger, Exception?> IdempotencyValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5037, "IdempotencyValidationFailed"),
+            "[IDEMPOTENCY] Idempotency validation failed");
+            
+    // Kill switch validation delegates
+    private static readonly Action<ILogger, Exception?> KillSwitchNotAvailable =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5038, "KillSwitchNotAvailable"),
+            "[KILL_SWITCH] Kill switch service not available");
+            
+    private static readonly Action<ILogger, long, Exception?> KillSwitchTooSlow =
+        LoggerMessage.Define<long>(LogLevel.Error, new EventId(5039, "KillSwitchTooSlow"),
+            "[KILL_SWITCH] Kill switch response too slow: {Ms}ms");
+            
+    private static readonly Action<ILogger, Exception?> KillSwitchTimedOut =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5040, "KillSwitchTimedOut"),
+            "[KILL_SWITCH] Kill switch test timed out");
+            
+    private static readonly Action<ILogger, long, Exception?> KillSwitchResponsive =
+        LoggerMessage.Define<long>(LogLevel.Debug, new EventId(5041, "KillSwitchResponsive"),
+            "[KILL_SWITCH] Kill switch responsive ({Ms}ms)");
+            
+    private static readonly Action<ILogger, Exception?> KillSwitchValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5042, "KillSwitchValidationFailed"),
+            "[KILL_SWITCH] Kill switch validation failed");
+            
+    // Leader election validation delegates
+    private static readonly Action<ILogger, Exception?> LeaderElectionNoAcquisition =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5043, "LeaderElectionNoAcquisition"),
+            "[LEADER] Could not acquire leadership (may be expected if another instance is running)");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionReleaseFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5044, "LeaderElectionReleaseFailed"),
+            "[LEADER] Failed to release leadership");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionPassed =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5045, "LeaderElectionPassed"),
+            "[LEADER] Leader election system functional");
+            
+    private static readonly Action<ILogger, Exception?> LeaderElectionValidationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5046, "LeaderElectionValidationFailed"),
+            "[LEADER] Leader election validation failed");
             
 
             
@@ -196,7 +300,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Brief delay to allow DI container to stabilize during startup
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(StartupDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Test that all critical services can be resolved
             var criticalServices = new[]
@@ -258,7 +362,7 @@ public class StartupValidator : IStartupValidator
             var schema = await _featureStore.GetSchemaAsync("test_v1", cancellationToken).ConfigureAwait(false);
             if (schema == null)
             {
-                _logger.LogError("[FEATURES] Failed to load/create test schema");
+                FeatureStoreSchemaFailed(_logger, null);
                 return false;
             }
 
@@ -271,23 +375,23 @@ public class StartupValidator : IStartupValidator
             };
             
             // Populate read-only Features collection
-            sampleFeatures.Features["price"] = 100.0;
-            sampleFeatures.Features["volume"] = 1000.0;
-            sampleFeatures.Features["volatility"] = 0.15;
+            sampleFeatures.Features["price"] = TestPrice;
+            sampleFeatures.Features["volume"] = TestVolume;
+            sampleFeatures.Features["volatility"] = TestVolatility;
 
             var isValid = await _featureStore.ValidateSchemaAsync(sampleFeatures, cancellationToken).ConfigureAwait(false);
             if (!isValid)
             {
-                _logger.LogError("[FEATURES] Sample feature validation failed");
+                FeatureValidationFailed(_logger, null);
                 return false;
             }
 
-            _logger.LogDebug("[FEATURES] Schema loaded and sample validation passed");
+            FeatureValidationPassed(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Feature store validation failed");
+            FeatureStoreValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -310,12 +414,12 @@ public class StartupValidator : IStartupValidator
             // Verify we can compute metrics
             await _modelRegistry.GetModelMetricsAsync("test_model_123", cancellationToken).ConfigureAwait(false);
             
-            _logger.LogDebug("[REGISTRY] Model registry access validated");
+            RegistryValidationPassed(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Model registry validation failed");
+            RegistryValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -328,7 +432,7 @@ public class StartupValidator : IStartupValidator
             var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync("test_model", cancellationToken).ConfigureAwait(false);
             if (calibrationMap == null)
             {
-                _logger.LogError("[CALIBRATION] Failed to load calibration map");
+                CalibrationLoadFailed(_logger, null);
                 return false;
             }
 
@@ -336,16 +440,16 @@ public class StartupValidator : IStartupValidator
             var calibratedConf = await _calibrationManager.CalibrateConfidenceAsync("test_model", 0.75, cancellationToken).ConfigureAwait(false);
             if (calibratedConf < 0.0 || calibratedConf > 1.0)
             {
-                _logger.LogError("[CALIBRATION] Invalid calibrated confidence: {Value}", calibratedConf);
+                CalibrationInvalidValue(_logger, calibratedConf, null);
                 return false;
             }
 
-            _logger.LogDebug("[CALIBRATION] Calibration loaded and smoke test passed (0.75 -> {Calibrated:F3})", calibratedConf);
+            CalibrationPassed(_logger, calibratedConf, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CALIBRATION] Calibration validation failed");
+            CalibrationValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -371,7 +475,7 @@ public class StartupValidator : IStartupValidator
             var result1 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken).ConfigureAwait(false);
             if (result1.IsDuplicate)
             {
-                _logger.LogError("[IDEMPOTENCY] First order incorrectly flagged as duplicate");
+                IdempotencyFirstOrderFlagged(_logger, null);
                 return false;
             }
 
@@ -382,16 +486,16 @@ public class StartupValidator : IStartupValidator
             var result2 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken).ConfigureAwait(false);
             if (!result2.IsDuplicate)
             {
-                _logger.LogError("[IDEMPOTENCY] Duplicate order not detected");
+                IdempotencyDuplicateNotDetected(_logger, null);
                 return false;
             }
 
-            _logger.LogDebug("[IDEMPOTENCY] Duplicate detection working correctly");
+            IdempotencyPassed(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENCY] Idempotency validation failed");
+            IdempotencyValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -403,7 +507,7 @@ public class StartupValidator : IStartupValidator
             var killSwitch = _serviceProvider.GetService<IKillSwitchWatcher>();
             if (killSwitch == null)
             {
-                _logger.LogError("[KILL_SWITCH] Kill switch service not available");
+                KillSwitchNotAvailable(_logger, null);
                 return false;
             }
 
@@ -412,32 +516,32 @@ public class StartupValidator : IStartupValidator
             
             // Simulate halt test (should complete in < 3 seconds)
             var stopwatch = Stopwatch.StartNew();
-            using var timeout = new CancellationTokenSource(3000);
+            using var timeout = new CancellationTokenSource(KillSwitchTimeoutMs);
             
             try
             {
                 // Test that the system can respond to kill switch quickly
-                await Task.Delay(100, timeout.Token).ConfigureAwait(false); // Simulate brief processing
+                await Task.Delay(StartupDelayMs, timeout.Token).ConfigureAwait(false); // Simulate brief processing
                 stopwatch.Stop();
                 
-                if (stopwatch.ElapsedMilliseconds >= 3000)
+                if (stopwatch.ElapsedMilliseconds >= KillSwitchTimeoutMs)
                 {
-                    _logger.LogError("[KILL_SWITCH] Kill switch response too slow: {Ms}ms", stopwatch.ElapsedMilliseconds);
+                    KillSwitchTooSlow(_logger, stopwatch.ElapsedMilliseconds, null);
                     return false;
                 }
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "[KILL_SWITCH] Kill switch test timed out");
+                KillSwitchTimedOut(_logger, ex);
                 return false;
             }
 
-            _logger.LogDebug("[KILL_SWITCH] Kill switch responsive ({Ms}ms)", stopwatch.ElapsedMilliseconds);
+            KillSwitchResponsive(_logger, stopwatch.ElapsedMilliseconds, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[KILL_SWITCH] Kill switch validation failed");
+            KillSwitchValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -450,7 +554,7 @@ public class StartupValidator : IStartupValidator
             var acquired = await _leaderElectionService.TryAcquireLeadershipAsync(cancellationToken).ConfigureAwait(false);
             if (!acquired)
             {
-                _logger.LogWarning("[LEADER] Could not acquire leadership (may be expected if another instance is running)");
+                LeaderElectionNoAcquisition(_logger, null);
                 // This is not necessarily a failure in a distributed environment
             }
 
@@ -465,17 +569,17 @@ public class StartupValidator : IStartupValidator
                 
                 if (stillLeader)
                 {
-                    _logger.LogError("[LEADER] Failed to release leadership");
+                    LeaderElectionReleaseFailed(_logger, null);
                     return false;
                 }
             }
 
-            _logger.LogDebug("[LEADER] Leader election system functional");
+            LeaderElectionPassed(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Leader election validation failed");
+            LeaderElectionValidationFailed(_logger, ex);
             return false;
         }
     }

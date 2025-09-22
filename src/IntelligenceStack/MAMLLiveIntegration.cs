@@ -291,7 +291,7 @@ public class MamlLiveIntegration
         return timeSinceLastUpdate >= TimeSpan.FromMinutes(5); // Minimum 5-minute interval
     }
 
-    private async Task<AdaptationStep> PerformInnerLoopAdaptationAsync(
+    private static async Task<AdaptationStep> PerformInnerLoopAdaptationAsync(
         MamlModelState modelState,
         List<TrainingExample> examples,
         CancellationToken cancellationToken)
@@ -522,7 +522,7 @@ public class MamlLiveIntegration
         return (double)correctPredictions / examples.Count;
     }
 
-    private double CalculateSimulatedGradient(List<TrainingExample> examples, string strategyKey)
+    private static double CalculateSimulatedGradient(List<TrainingExample> examples, string strategyKey)
     {
         // Simplified gradient calculation
         var gradient = 0.0;
