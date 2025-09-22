@@ -408,7 +408,7 @@ public class ModelQuarantineManager : IQuarantineManager
         return QuarantineReason.BrierDeltaTooHigh;
     }
 
-    private ModelPerformance CalculateBaselinePerformance(List<ModelPerformance> history)
+    private static ModelPerformance CalculateBaselinePerformance(List<ModelPerformance> history)
     {
         if (history.Count < 5)
         {

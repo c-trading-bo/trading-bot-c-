@@ -522,7 +522,7 @@ public class MamlLiveIntegration
         return (double)correctPredictions / examples.Count;
     }
 
-    private double CalculateSimulatedGradient(List<TrainingExample> examples, string strategyKey)
+    private static double CalculateSimulatedGradient(List<TrainingExample> examples, string strategyKey)
     {
         // Simplified gradient calculation
         var gradient = 0.0;

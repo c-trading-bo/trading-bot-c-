@@ -723,7 +723,7 @@ public class ObservabilityDashboard : IDisposable
         return Math.Max(0.0, 1.0 - Math.Abs(confidences.Average() - _config.CalibrationScoreOffset) * _config.CalibrationScoreMultiplier);
     }
 
-    private Dictionary<string, double> CreateTimeOfDayProfile(string metricName)
+    private static Dictionary<string, double> CreateTimeOfDayProfile(string metricName)
     {
         // Simplified time-of-day profile
         return new Dictionary<string, double>

@@ -15,6 +15,13 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class StartupValidator : IStartupValidator
 {
+    // Configuration constants to eliminate magic numbers
+    private const int StartupDelayMs = 100;
+    private const int KillSwitchTimeoutMs = 3000;
+    private const double TestPrice = 100.0;
+    private const double TestVolume = 1000.0;
+    private const double TestVolatility = 0.15;
+    
     // LoggerMessage delegates for CA1848 compliance - StartupValidator
     private static readonly Action<ILogger, Exception?> ValidationStarted =
         LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ValidationStarted"),
@@ -196,7 +203,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Brief delay to allow DI container to stabilize during startup
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(StartupDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Test that all critical services can be resolved
             var criticalServices = new[]
@@ -271,9 +278,9 @@ public class StartupValidator : IStartupValidator
             };
             
             // Populate read-only Features collection
-            sampleFeatures.Features["price"] = 100.0;
-            sampleFeatures.Features["volume"] = 1000.0;
-            sampleFeatures.Features["volatility"] = 0.15;
+            sampleFeatures.Features["price"] = TestPrice;
+            sampleFeatures.Features["volume"] = TestVolume;
+            sampleFeatures.Features["volatility"] = TestVolatility;
 
             var isValid = await _featureStore.ValidateSchemaAsync(sampleFeatures, cancellationToken).ConfigureAwait(false);
             if (!isValid)
@@ -412,15 +419,15 @@ public class StartupValidator : IStartupValidator
             
             // Simulate halt test (should complete in < 3 seconds)
             var stopwatch = Stopwatch.StartNew();
-            using var timeout = new CancellationTokenSource(3000);
+            using var timeout = new CancellationTokenSource(KillSwitchTimeoutMs);
             
             try
             {
                 // Test that the system can respond to kill switch quickly
-                await Task.Delay(100, timeout.Token).ConfigureAwait(false); // Simulate brief processing
+                await Task.Delay(StartupDelayMs, timeout.Token).ConfigureAwait(false); // Simulate brief processing
                 stopwatch.Stop();
                 
-                if (stopwatch.ElapsedMilliseconds >= 3000)
+                if (stopwatch.ElapsedMilliseconds >= KillSwitchTimeoutMs)
                 {
                     _logger.LogError("[KILL_SWITCH] Kill switch response too slow: {Ms}ms", stopwatch.ElapsedMilliseconds);
                     return false;
