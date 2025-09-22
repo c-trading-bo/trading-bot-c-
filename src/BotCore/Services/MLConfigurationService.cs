@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using BotCore.Configuration;
+using TradingBot.Abstractions;
 
 namespace TradingBot.BotCore.Services
 {
@@ -10,6 +11,11 @@ namespace TradingBot.BotCore.Services
     public class MLConfigurationService
     {
         private readonly TradingConfiguration _config;
+
+        /// <summary>
+        /// Default rollback variance multiplier constant for use in configuration classes
+        /// </summary>
+        public const double DefaultRollbackVarMultiplier = MLConfigurationConstants.DefaultRollbackVarMultiplier;
 
         public MLConfigurationService(IOptions<TradingConfiguration> config)
         {

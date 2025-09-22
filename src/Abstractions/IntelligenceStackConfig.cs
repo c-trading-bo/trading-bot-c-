@@ -3,6 +3,17 @@ using System.Text.Json.Serialization;
 namespace TradingBot.Abstractions;
 
 /// <summary>
+/// Constants for ML/AI configuration values to replace hardcoded magic numbers
+/// </summary>
+public static class MLConfigurationConstants
+{
+    /// <summary>
+    /// Default rollback variance multiplier (replaces hardcoded 2.5)
+    /// </summary>
+    public const double DefaultRollbackVarMultiplier = 2.5;
+}
+
+/// <summary>
 /// Configuration for the complete intelligence stack
 /// </summary>
 public class IntelligenceStackConfig
@@ -117,7 +128,7 @@ public class MetaLearningConfig
 {
     public bool Enabled { get; set; } = true;
     public int MaxWeightChangePctPer5Min { get; set; } = 10;
-    public double RollbackVarMultiplier { get; set; } = 2.5;
+    public double RollbackVarMultiplier { get; set; } = MLConfigurationConstants.DefaultRollbackVarMultiplier;
 }
 
 public class DriftConfig

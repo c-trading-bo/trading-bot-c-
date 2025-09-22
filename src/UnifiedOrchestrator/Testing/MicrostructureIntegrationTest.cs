@@ -5,6 +5,8 @@ using Microsoft.Extensions.Options;
 using TradingBot.UnifiedOrchestrator.Runtime;
 using BotCore.Config;
 using BotCore.Models;
+using TradingBot.BotCore.Services;
+using BotCore.Configuration;
 using Xunit;
 using System;
 using System.Threading.Tasks;
@@ -20,6 +22,7 @@ public class MicrostructureIntegrationTest
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly MicrostructureCalibrationService _calibrationService;
+    private readonly MLConfigurationService _mlConfigurationService;
     private readonly ILogger<MicrostructureIntegrationTest> _logger;
 
     public MicrostructureIntegrationTest()
@@ -28,6 +31,12 @@ public class MicrostructureIntegrationTest
         
         // Configure logging
         services.AddLogging(builder => builder.AddConsole());
+        
+        // Configure TradingConfiguration for MLConfigurationService
+        services.Configure<TradingConfiguration>(config =>
+        {
+            config.DefaultPositionSizeMultiplier = 2.5;
+        });
         
         // Configure microstructure calibration options
         services.Configure<MicrostructureCalibrationOptions>(options =>
@@ -39,11 +48,13 @@ public class MicrostructureIntegrationTest
             options.UpdateThresholdPercentage = 5.0m;
         });
         
-        // Register the calibration service
+        // Register services
         services.AddSingleton<MicrostructureCalibrationService>();
+        services.AddSingleton<MLConfigurationService>();
         
         _serviceProvider = services.BuildServiceProvider();
         _calibrationService = _serviceProvider.GetRequiredService<MicrostructureCalibrationService>();
+        _mlConfigurationService = _serviceProvider.GetRequiredService<MLConfigurationService>();
         _logger = _serviceProvider.GetRequiredService<ILogger<MicrostructureIntegrationTest>>();
     }
 
@@ -78,7 +89,7 @@ public class MicrostructureIntegrationTest
         var snapshot = new MarketSnapshot
         {
             Symbol = "ES",
-            SpreadTicks = 2.5m,
+            SpreadTicks = (decimal)_mlConfigurationService.GetPositionSizeMultiplier(),
             Z5mReturnDiff = 0.8m,
             Bias = 0.3m,
             IsMajorNewsNow = false,
