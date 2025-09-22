@@ -22,6 +22,10 @@ public class RLAdvisorSystem
 {
     // Constants for magic number violations (S109)
     private const int UpliftCheckHours = 24;
+    private const double MinutesPerHour = 60.0;
+    private const double DefaultRsi = 50.0;
+    private const double RsiNormalizationFactor = 100.0;
+    private const double DefaultBollingerPosition = 0.5;
     
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
@@ -310,11 +314,11 @@ public class RLAdvisorSystem
         return new double[]
         {
             context.CurrentPrice / context.EntryPrice - 1.0, // Normalized return
-            context.TimeInPosition.TotalMinutes / 60.0, // Hours in position
+            context.TimeInPosition.TotalMinutes / MinutesPerHour, // Hours in position
             context.UnrealizedPnL / Math.Abs(context.PositionSize), // PnL per unit
             context.CurrentVolatility, // Market volatility
-            context.TechnicalIndicators.GetValueOrDefault("rsi", 50) / 100.0, // RSI normalized
-            context.TechnicalIndicators.GetValueOrDefault("bollinger_position", 0.5), // Bollinger position
+            context.TechnicalIndicators.GetValueOrDefault("rsi", DefaultRsi) / RsiNormalizationFactor, // RSI normalized
+            context.TechnicalIndicators.GetValueOrDefault("bollinger_position", DefaultBollingerPosition), // Bollinger position
             context.MarketRegime == "TRENDING" ? 1.0 : 0.0, // Regime indicator
             context.MarketRegime == "RANGING" ? 1.0 : 0.0,
             context.MarketRegime == "VOLATILE" ? 1.0 : 0.0
@@ -878,6 +882,9 @@ public class RLAgent
     // Constants for magic number violations (S109)
     private const int DefaultPercentage = 100;
     private const int ActionTypeCount = 4;
+    private const int NumActions = 4; // Q-learning action space size
+    private const double MinExplorationRate = 0.01;
+    private const double ExplorationDecayFactor = 0.9999;
     
     private readonly AdvisorConfig _config;
     public RLAgentType AgentType { get; set; }
@@ -967,7 +974,7 @@ public class RLAgent
         var nextStateKey = string.Join(",", nextState.Select(s => Math.Round(s, 2)));
         var maxNextQ = 0.0;
         
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < NumActions; i++)
         {
             var nextActionKey = $"{nextStateKey}_{i}";
             maxNextQ = Math.Max(maxNextQ, _qTable.GetValueOrDefault(nextActionKey, 0.0));
@@ -978,7 +985,7 @@ public class RLAgent
         _qTable[actionKey] = currentQ + learningRate * (target - currentQ);
         
         // Decay exploration rate
-        ExplorationRate = Math.Max(0.01, ExplorationRate * 0.9999);
+        ExplorationRate = Math.Max(MinExplorationRate, ExplorationRate * ExplorationDecayFactor);
     }
 }
 
