@@ -1,37 +1,52 @@
 {
-  "timestamp": "2025-09-22T09:31:50.697922",
+  "timestamp": "2025-09-22T12:49:39.754319",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "82",
+  "workflow_run": "83",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-22T09:27:06.660372",
+    "timestamp": "2025-09-22T12:44:38.766237",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 9,
+    "total_articles_processed": 10,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "NQ": {
-        "sentiment_score": -0.24166666666666667,
+        "sentiment_score": 0.10733333333333332,
         "article_count": 1,
         "articles": [
           {
-            "title": "Big Tech stocks hold steady after Trump visa fees crackdown",
-            "sentiment": -0.24166666666666667,
-            "textblob_score": 0.08333333333333333,
-            "keyword_score": -1.0,
+            "title": "Stock market today: Dow, S&P 500, Nasdaq futures pull back from records as gold powers to fresh high",
+            "sentiment": 0.10733333333333332,
+            "textblob_score": 0.15333333333333332,
+            "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/big-tech-shares-steady-trump-063324397.html",
-            "published": "2025-09-22T06:33:24Z",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-pull-back-from-records-as-gold-powers-to-fresh-high-234423457.html",
+            "published": "2025-09-21T23:44:23Z",
             "relevance_keywords": [
-              "tech stocks"
+              "S&P"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
+      },
+      "NQ": {
+        "sentiment_score": 0.10733333333333332,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq futures pull back from records as gold powers to fresh high",
+            "sentiment": 0.10733333333333332,
+            "textblob_score": 0.15333333333333332,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-pull-back-from-records-as-gold-powers-to-fresh-high-234423457.html",
+            "published": "2025-09-21T23:44:23Z",
+            "relevance_keywords": [
+              "Nasdaq"
             ]
           }
         ],
@@ -58,75 +73,45 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.38666666666666666,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "Metaplanet Cracks Top Five Bitcoin Treasuries After $632M Buy",
-            "sentiment": 0.6499999999999999,
-            "textblob_score": 0.5,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/metaplanets-1-4b-international-offering-160215720.html",
-            "published": "2025-09-22T09:02:15Z",
-            "relevance_keywords": [
-              "Bitcoin"
-            ]
-          },
-          {
-            "title": "Cryptocurrencies Sink as $1.5 Billion in Bullish Bets Wiped Out",
-            "sentiment": 0.0875,
-            "textblob_score": 0.125,
-            "keyword_score": 0.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/cryptocurrencies-sink-as-1-5-billion-in-bullish-bets-wiped-out",
-            "published": "Mon, 22 Sep 2025 07:01:47 GMT",
-            "relevance_keywords": [
-              "cryptocurrency",
-              "crypto"
-            ]
-          },
-          {
-            "title": "A $20 Billion South African Fund Warns Against Full Bitcoin Bet",
-            "sentiment": 0.4225,
-            "textblob_score": 0.175,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/a-20-billion-south-african-fund-warns-against-full-bitcoin-bet",
-            "published": "Mon, 22 Sep 2025 08:22:54 GMT",
-            "relevance_keywords": [
-              "Bitcoin",
-              "crypto"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.3,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.2185,
-        "article_count": 5,
+        "sentiment_score": 0.14211125541125538,
+        "article_count": 7,
         "articles": [
           {
-            "title": "BBVA Boosts Sabadell Takeover Bid by 10% to $20 Billion",
-            "sentiment": 0.6499999999999999,
-            "textblob_score": 0.5,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/bbva-boosts-offer-for-sabadell-with-17-billion-all-share-bid",
-            "published": "Mon, 22 Sep 2025 06:09:27 GMT",
+            "title": "Stock Market Today: Dow Falls Ahead Of Inflation Data; Tesla Up On Target Hike (Live Coverage)",
+            "sentiment": 0.09545454545454544,
+            "textblob_score": 0.13636363636363635,
+            "keyword_score": 0.0,
+            "source": "yahoo_finance",
+            "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-tesla-stock-tsla/?src=A00220&yptr=yahoo",
+            "published": "2025-09-22T12:16:34Z",
             "relevance_keywords": [
-              "EV"
+              "Tesla"
             ]
           },
           {
-            "title": "US Stocks Slip From Highs as Gold Tops $3,700: Markets Wrap",
-            "sentiment": 0.0525,
-            "textblob_score": 0.075,
+            "title": "Tesla Stock Has Soared 28% This Month. Here's Why This Analyst Sees Shares Hitting Record Highs",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://www.investors.com/news/tesla-stock-has-soared-month-analyst-sees-shares-hitting-new-all-time-highs/?src=A00220&yptr=yahoo",
+            "published": "2025-09-22T12:16:12Z",
+            "relevance_keywords": [
+              "Tesla"
+            ]
+          },
+          {
+            "title": "Stocks Slip From Post-Fed High as Gold Hits Record: Markets Wrap",
+            "sentiment": 0.08349090909090909,
+            "textblob_score": 0.11927272727272728,
             "keyword_score": 0,
             "source": "bloomberg",
             "url": "https://www.bloomberg.com/news/articles/2025-09-21/us-futures-slip-as-traders-gauge-h-1b-visa-fallout-markets-wrap",
@@ -136,47 +121,59 @@
             ]
           },
           {
-            "title": "U.S. stock futures dip after Friday\u2019s record highs, even as \u2018the market has learned to thrive in ambiguity\u2019",
-            "sentiment": -0.0525,
-            "textblob_score": -0.075,
+            "title": "Kazakhstan Plans Yuan Bonds Sales to Grow China Ties",
+            "sentiment": 0.09333333333333332,
+            "textblob_score": 0.13333333333333333,
             "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/u-s-stock-futures-flat-after-fridays-record-highs-as-market-has-learned-to-thrive-in-ambiguity-ef6c1512?mod=mw_rss_topstories",
-            "published": "Mon, 22 Sep 2025 02:13:00 GMT",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/kazakhstan-plans-up-to-2-billion-yuan-bonds-to-grow-china-ties",
+            "published": "Mon, 22 Sep 2025 08:11:18 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Bad news for coffee drinkers: The record-high prices you\u2019re paying will go even higher when tariffs take their toll",
-            "sentiment": 0.14250000000000004,
-            "textblob_score": -0.22499999999999992,
+            "title": "India\u2019s Largest REIT\u00a0Plans $181 Million Debut Rupee Bond Sale",
+            "sentiment": 0.49249999999999994,
+            "textblob_score": 0.27499999999999997,
             "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/bad-news-for-coffee-drinkers-the-record-high-prices-youre-paying-will-go-even-higher-when-tariffs-take-their-toll-1c26981a?mod=mw_rss_topstories",
-            "published": "Sun, 21 Sep 2025 19:20:00 GMT",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/india-s-largest-reit-plans-181-million-debut-rupee-bond-sale",
+            "published": "Mon, 22 Sep 2025 11:47:41 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Preformed Line Products Company: Growth Justifies A Revision (Rating Upgrade)",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
+            "title": "Anheuser-Busch InBev: Reasonably Priced But Nothing To Justify A Breakout",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.2,
+            "keyword_score": 0,
             "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824717-preformed-line-products-company-growth-justifies-revision?source=feed_all_articles",
-            "published": "Mon, 22 Sep 2025 03:57:50 -0400",
+            "url": "https://seekingalpha.com/article/4824767-anheuser-busch-inbev-reasonably-priced-but-nothing-to-justify-a-breakout?source=feed_all_articles",
+            "published": "Mon, 22 Sep 2025 08:43:43 -0400",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Solvay: A Complex Macro Environment Is Buffered By Elevated Cash Conversion",
+            "sentiment": -0.21,
+            "textblob_score": -0.3,
+            "keyword_score": 0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4824764-solvay-a-complex-macro-environment-is-buffered-by-elevated-cash-conversion?source=feed_all_articles",
+            "published": "Mon, 22 Sep 2025 08:25:58 -0400",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.5,
+        "confidence": 0.7,
         "sources": [
+          "yahoo_finance",
           "bloomberg",
-          "marketwatch",
           "seeking_alpha"
         ]
       },
@@ -189,12 +186,27 @@
         "sources": []
       },
       "AAPL": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": -0.21,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Solvay: A Complex Macro Environment Is Buffered By Elevated Cash Conversion",
+            "sentiment": -0.21,
+            "textblob_score": -0.3,
+            "keyword_score": 0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4824764-solvay-a-complex-macro-environment-is-buffered-by-elevated-cash-conversion?source=feed_all_articles",
+            "published": "Mon, 22 Sep 2025 08:25:58 -0400",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "seeking_alpha"
+        ]
       }
     },
     "sources_used": [
@@ -207,7 +219,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-22T09:31:50.558274",
+    "timestamp": "2025-09-22T12:49:39.621655",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -229,7 +241,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-22T09:27:04.646879",
+    "timestamp": "2025-09-22T12:44:36.600250",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -280,13 +292,6 @@
         "keyword": "trading"
       },
       {
-        "title": "Pasukan Petugas Geoekonomi ASEAN mulakan siri mesyuarat AEM pada Isnin",
-        "url": "https://www.astroawani.com/berita-bisnes/pasukan-petugas-geoekonomi-asean-mulakan-siri-mesyuarat-aem-pada-isnin-539463",
-        "source": "astroawani.com",
-        "date": "20250922T010000Z",
-        "keyword": "trading"
-      },
-      {
         "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
         "url": "https://www.koreastardaily.com/tc/news/159375",
         "source": "koreastardaily.com",
@@ -301,10 +306,17 @@
         "keyword": "trading"
       },
       {
-        "title": "Why Dayforce Shares Are Trading Higher By Around 21 %; Here Are 20 Stocks Moving Premarket - Advent Technologies Hldgs ( NASDAQ : ADN ), Adaptimmune Therapeutics ( NASDAQ : ADAP ) ",
-        "url": "https://www.benzinga.com/news/25/08/47181278/why-dayforce-shares-are-trading-higher-by-around-21-here-are-20-stocks-moving-premarket",
-        "source": "benzinga.com",
-        "date": "20250818T131500Z",
+        "title": " \u300a \u57fa\u91d1 \u300b \u5df4\u83f2\u7279\u6e05\u7a7a\u6bd4\u4e9e\u8fea\u7e8c\u8cb7\u65e5\u672c\u4e94\u5927\u5546\u793e \u570b\u5167\u65e5\u80a1ETF\u64c1\u5229\u591a - \u8ca1\u7d93",
+        "url": "https://www.chinatimes.com/realtimenews/20250922003697-260410",
+        "source": "chinatimes.com",
+        "date": "20250922T101500Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Paysafe Partners With CMC Markets to Expand Presence in Online Trading",
+        "url": "https://www.finanznachrichten.de/nachrichten-2025-09/66494438-paysafe-partners-with-cmc-markets-to-expand-presence-in-online-trading-004.htm",
+        "source": "finanznachrichten.de",
+        "date": "20250922T091500Z",
         "keyword": "trading"
       },
       {
@@ -336,15 +348,15 @@
         "keyword": "futures"
       },
       {
-        "title": "\u4ea4\u6613\u968f\u884c \uff1a \u751f\u732a\u672c\u5468\u591a\u5f3a\u52bf20250922 _ \u671f\u8d27\u8bc4\u8bba _ \u671f\u8d27 _ \u4e2d\u91d1\u5728\u7ebf",
-        "url": "http://futures.cnfol.com/mingjialunshi/20250922/31661320.shtml",
-        "source": "futures.cnfol.com",
-        "date": "20250922T014500Z",
+        "title": "\u671f\u8d27\u5e02\u573a\u4ea4\u6295\u6d3b\u8dc3 -- \u7ecf\u6d4e \u00b7 \u79d1\u6280 -- \u4eba\u6c11\u7f51",
+        "url": "http://finance.people.com.cn/n1/2025/0726/c1004-40530039.html",
+        "source": "finance.people.com.cn",
+        "date": "20250726T043000Z",
         "keyword": "futures"
       }
     ]
   },
-  "overall_market_sentiment": "BULLISH",
+  "overall_market_sentiment": "NEUTRAL",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
