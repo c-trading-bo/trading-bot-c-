@@ -28,6 +28,51 @@ public class ModelRegistry : IModelRegistry
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    // LoggerMessage delegates for CA1848 compliance - ModelRegistry
+    private static readonly Action<ILogger, string, double, Exception?> ModelRetrieved =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5001, "ModelRetrieved"),
+            "[REGISTRY] Retrieved model: {ModelId} (AUC: {AUC:F3})");
+
+    private static readonly Action<ILogger, string, string, Exception?> FailedToGetModel =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(5002, "FailedToGetModel"),
+            "[REGISTRY] Failed to get model: {Family}_{Version}");
+
+    private static readonly Action<ILogger, string, double, double, Exception?> ModelRegistered =
+        LoggerMessage.Define<string, double, double>(LogLevel.Information, new EventId(5003, "ModelRegistered"),
+            "[REGISTRY] Registered model: {ModelId} (AUC: {AUC:F3}, PR@10: {PR:F3})");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToRegisterModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5004, "FailedToRegisterModel"),
+            "[REGISTRY] Failed to register model: {Family}");
+
+    private static readonly Action<ILogger, string, Exception?> PromotionBlockedByCooldown =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5005, "PromotionBlockedByCooldown"),
+            "[REGISTRY] Promotion blocked by cooldown: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelNotFoundForPromotion =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5006, "ModelNotFoundForPromotion"),
+            "[REGISTRY] Model not found for promotion: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelDoesNotMeetPromotionCriteria =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5007, "ModelDoesNotMeetPromotionCriteria"),
+            "[REGISTRY] Model does not meet promotion criteria: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelPromoted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(5008, "ModelPromoted"),
+            "[REGISTRY] Promoted model: {ModelId} to production");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToPromoteModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5009, "FailedToPromoteModel"),
+            "[REGISTRY] Failed to promote model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToGetMetrics =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5010, "FailedToGetMetrics"),
+            "[REGISTRY] Failed to get metrics for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToParseModelMetadata =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5011, "FailedToParseModelMetadata"),
+            "[REGISTRY] Failed to parse model metadata: {File}");
+
     public ModelRegistry(
         ILogger<ModelRegistry> logger, 
         PromotionsConfig config,
@@ -108,14 +153,13 @@ public class ModelRegistry : IModelRegistry
                 _modelCache[cacheKey] = model;
             }
 
-            _logger.LogDebug("[REGISTRY] Retrieved model: {ModelId} (AUC: {AUC:F3})", 
-                model.Id, model.Metrics.AUC);
+            ModelRetrieved(_logger, model.Id, model.Metrics.AUC, null);
 
             return model;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to get model: {Family}_{Version}", familyName, version);
+            FailedToGetModel(_logger, familyName, version, ex);
             throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
         }
     }
@@ -160,8 +204,7 @@ public class ModelRegistry : IModelRegistry
                 _modelCache[$"{registration.FamilyName}_{version}"] = model;
             }
 
-            _logger.LogInformation("[REGISTRY] Registered model: {ModelId} (AUC: {AUC:F3}, PR@10: {PR:F3})", 
-                modelId, model.Metrics.AUC, model.Metrics.PrAt10);
+            ModelRegistered(_logger, modelId, model.Metrics.AUC, model.Metrics.PrAt10, null);
 
             // Check for automatic promotion
             if (ShouldAutoPromote(model))
@@ -173,7 +216,7 @@ public class ModelRegistry : IModelRegistry
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to register model: {Family}", registration.FamilyName);
+            FailedToRegisterModel(_logger, registration.FamilyName, ex);
             throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
         }
     }
@@ -185,21 +228,21 @@ public class ModelRegistry : IModelRegistry
             // Check cooldown
             if (DateTime.UtcNow - _lastPromotion < _promotionCooldown)
             {
-                _logger.LogWarning("[REGISTRY] Promotion blocked by cooldown: {ModelId}", modelId);
+                PromotionBlockedByCooldown(_logger, modelId, null);
                 return false;
             }
 
             var model = await GetModelByIdAsync(modelId, cancellationToken).ConfigureAwait(false);
             if (model == null)
             {
-                _logger.LogWarning("[REGISTRY] Model not found for promotion: {ModelId}", modelId);
+                ModelNotFoundForPromotion(_logger, modelId, null);
                 return false;
             }
 
             // Check promotion criteria
             if (!MeetsPromotionCriteria(model, criteria))
             {
-                _logger.LogWarning("[REGISTRY] Model does not meet promotion criteria: {ModelId}", modelId);
+                ModelDoesNotMeetPromotionCriteria(_logger, modelId, null);
                 return false;
             }
 
@@ -226,12 +269,12 @@ public class ModelRegistry : IModelRegistry
 
             _lastPromotion = DateTime.UtcNow;
 
-            _logger.LogInformation("[REGISTRY] Promoted model: {ModelId} to production", modelId);
+            ModelPromoted(_logger, modelId, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to promote model: {ModelId}", modelId);
+            FailedToPromoteModel(_logger, modelId, ex);
             return false;
         }
     }
@@ -245,7 +288,7 @@ public class ModelRegistry : IModelRegistry
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to get metrics for model: {ModelId}", modelId);
+            FailedToGetMetrics(_logger, modelId, ex);
             return new ModelMetrics();
         }
     }
@@ -291,7 +334,7 @@ public class ModelRegistry : IModelRegistry
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[REGISTRY] Failed to parse model metadata: {File}", file);
+                FailedToParseModelMetadata(_logger, file, ex);
             }
         }
 

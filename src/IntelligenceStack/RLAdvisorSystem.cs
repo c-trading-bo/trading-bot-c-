@@ -160,6 +160,19 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, Exception?> StateLoadFailed =
         LoggerMessage.Define(LogLevel.Warning, new EventId(4034, "StateLoadFailed"),
             "[RL_ADVISOR] Failed to load state");
+
+    // Additional LoggerMessage delegates for remaining CA1848 violations  
+    private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataViaSDK =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "LoadingHistoricalDataViaSDK"),
+            "[RL_ADVISOR] Loading historical data via SDK adapter for {Symbol}");
+
+    private static readonly Action<ILogger, int, string, Exception?> DataPointsLoadedViaSDK =
+        LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(4042, "DataPointsLoadedViaSDK"),
+            "[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> HistoricalDataLoadFailedViaSDK =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4043, "HistoricalDataLoadFailedViaSDK"),
+            "[RL_ADVISOR] Failed to load historical data via SDK adapter for {Symbol}");
             
     // Action mapping constants for S109 compliance
     private const int ActionHold = 0;
@@ -761,8 +774,7 @@ public class RLAdvisorSystem
                 episodes.Add(episode);
             }
             
-            _logger.LogInformation("[RL_ADVISOR] Generated {EpisodeCount} training episodes for {Symbol} from {Start} to {End}",
-                episodes.Count, symbol, startDate, endDate);
+            TrainingEpisodesGenerated(_logger, episodes.Count, null);
             
             return episodes;
         }, cancellationToken).ConfigureAwait(false);
@@ -772,13 +784,13 @@ public class RLAdvisorSystem
     {
         try
         {
-            _logger.LogDebug("[RL_ADVISOR] Loading historical data via SDK adapter for {Symbol}", symbol);
+            LoadingHistoricalDataViaSDK(_logger, symbol, null);
 
             // Call Python SDK bridge to get historical data
             var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
             if (!File.Exists(pythonScript))
             {
-                _logger.LogWarning("[RL_ADVISOR] SDK bridge script not found, using fallback data");
+                SDKBridgeScriptNotFound(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
@@ -799,7 +811,7 @@ public class RLAdvisorSystem
             using var process = Process.Start(startInfo);
             if (process == null)
             {
-                _logger.LogWarning("[RL_ADVISOR] Failed to start SDK bridge process");
+                SDKBridgeStartFailed(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
@@ -809,13 +821,13 @@ public class RLAdvisorSystem
 
             if (process.ExitCode != 0)
             {
-                _logger.LogDebug("[RL_ADVISOR] SDK bridge returned exit code {ExitCode}: {Error}", process.ExitCode, error);
+                SDKBridgeExitCode(_logger, process.ExitCode, error, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
             if (string.IsNullOrWhiteSpace(output))
             {
-                _logger.LogDebug("[RL_ADVISOR] SDK bridge returned empty output");
+                SDKBridgeEmptyOutput(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
@@ -851,17 +863,17 @@ public class RLAdvisorSystem
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("[RL_ADVISOR] Failed to parse bar data: {Error}", ex.Message);
+                    BarDataParseFailed(_logger, ex.Message, null);
                 }
             }
             }
 
-            _logger.LogInformation("[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}", dataPoints.Count, symbol);
+            DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
             return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Failed to load historical data via SDK adapter for {Symbol}", symbol);
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
             return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
         }
     }

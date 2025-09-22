@@ -78,12 +78,6 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> ErrorDuringDispose =
         LoggerMessage.Define(LogLevel.Warning, new EventId(3018, "ErrorDuringDispose"), "[LEADER] Error during dispose");
 
-
-
-    private static readonly Action<ILogger, string, string, string, double, double, Exception?> ModelHealthChanged =
-        LoggerMessage.Define<string, string, string, double, double>(LogLevel.Information, new EventId(3024, "ModelHealthChanged"), 
-            "[QUARANTINE] Model health changed: {ModelId} {From} -> {To} (Brier: {Brier:F3}, Latency: {Latency:F1}ms)");
-
     // JSON serializer options for CA1869 compliance
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
 
@@ -161,17 +155,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             FailedToAcquireLeadershipDebug(_logger, null);
             return false;
         }
+        catch (DirectoryNotFoundException ex)
+        {
+            FailedToAcquireLeadershipError(_logger, ex);
+            return false;
+        }
         catch (UnauthorizedAccessException ex)
         {
             FailedToAcquireLeadershipError(_logger, ex);
             return false;
         }
         catch (System.IO.IOException ex)
-        {
-            FailedToAcquireLeadershipError(_logger, ex);
-            return false;
-        }
-        catch (DirectoryNotFoundException ex)
         {
             FailedToAcquireLeadershipError(_logger, ex);
             return false;
@@ -450,6 +444,26 @@ public class QuarantineManager : IQuarantineManager
     private readonly Dictionary<string, List<ModelPerformance>> _performanceHistory = new();
     private readonly object _lock = new();
 
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, string, Exception?> ModelQuarantined =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(4001, "ModelQuarantined"), "[QUARANTINE] Model {ModelId} quarantined: {Reason}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToQuarantineModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4002, "FailedToQuarantineModel"), "[QUARANTINE] Failed to quarantine model {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelRestoredFromQuarantine =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4003, "ModelRestoredFromQuarantine"), "[QUARANTINE] Model {ModelId} restored from quarantine");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToRestoreModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4004, "FailedToRestoreModel"), "[QUARANTINE] Failed to restore model {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToUpdatePerformance =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "FailedToUpdatePerformance"), "[QUARANTINE] Failed to update performance for model {ModelId}");
+
+    private static readonly Action<ILogger, string, string, string, double, double, Exception?> ModelHealthChanged =
+        LoggerMessage.Define<string, string, string, double, double>(LogLevel.Information, new EventId(4006, "ModelHealthChanged"), 
+            "[QUARANTINE] Model health changed: {ModelId} {From} -> {To} (Brier: {Brier:F3}, Latency: {Latency:F1}ms)");
+
     // Constants for magic numbers (S109 compliance)
     private const double BaseBrierThreshold = 0.25;
     private const double HalfBlendWeight = 0.5;
@@ -513,7 +527,7 @@ public class QuarantineManager : IQuarantineManager
                     status.ShadowDecisionCount = 0;
                 }
 
-                ModelQuarantined(_logger, modelId, reason, null);
+                ModelQuarantined(_logger, modelId, reason.ToString(), null);
             }
             catch (Exception ex)
             {

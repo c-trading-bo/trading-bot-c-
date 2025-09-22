@@ -196,15 +196,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                     {
                         File.Delete(orderPath);
                     }
+                    catch (DirectoryNotFoundException ex)
+                    {
+                        OrderPersistenceWarning(_logger, orderKey, ex);
+                    }
                     catch (UnauthorizedAccessException ex)
                     {
                         OrderPersistenceWarning(_logger, orderKey, ex);
                     }
                     catch (System.IO.IOException ex)
-                    {
-                        OrderPersistenceWarning(_logger, orderKey, ex);
-                    }
-                    catch (DirectoryNotFoundException ex)
                     {
                         OrderPersistenceWarning(_logger, orderKey, ex);
                     }
@@ -487,15 +487,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                             deletedCount++;
                         }
                     }
+                    catch (DirectoryNotFoundException ex)
+                    {
+                        ExpiredFileDeleteWarning(_logger, file, ex);
+                    }
                     catch (UnauthorizedAccessException ex)
                     {
                         ExpiredFileDeleteWarning(_logger, file, ex);
                     }
                     catch (System.IO.IOException ex)
-                    {
-                        ExpiredFileDeleteWarning(_logger, file, ex);
-                    }
-                    catch (DirectoryNotFoundException ex)
                     {
                         ExpiredFileDeleteWarning(_logger, file, ex);
                     }

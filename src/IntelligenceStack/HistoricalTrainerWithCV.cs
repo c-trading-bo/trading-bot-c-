@@ -94,6 +94,43 @@ public class HistoricalTrainerWithCV
         LoggerMessage.Define<int>(LogLevel.Error, new EventId(2012, "FoldFailed"),
             "[HISTORICAL_CV] Fold {Fold} failed");
 
+    // Additional LoggerMessage delegates for remaining CA1848 violations
+    private static readonly Action<ILogger, int, int, Exception?> TrainingDataPurged =
+        LoggerMessage.Define<int, int>(LogLevel.Debug, new EventId(2013, "TrainingDataPurged"),
+            "[HISTORICAL_CV] Training data: {Original} -> {Purged} after purging");
+
+    private static readonly Action<ILogger, string, Exception?> PrimaryDataSourceFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2014, "PrimaryDataSourceFailed"),
+            "[HISTORICAL_TRAINER] Primary data source failed, using backup for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> MarketDataLoadFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2015, "MarketDataLoadFailed"),
+            "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}. System refuses to generate synthetic data.");
+
+    private static readonly Action<ILogger, int, string, DateTime, DateTime, Exception?> DataPointsRetrieved =
+        LoggerMessage.Define<int, string, DateTime, DateTime>(LogLevel.Information, new EventId(2016, "DataPointsRetrieved"),
+            "[HISTORICAL_TRAINER] Retrieved {Count} data points for {Symbol} from {Start} to {End}");
+
+    private static readonly Action<ILogger, int, Exception?> InvalidDataPointsFiltered =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(2017, "InvalidDataPointsFiltered"),
+            "[HISTORICAL_TRAINER] Filtered out {RemovedCount} invalid data points");
+
+    private static readonly Action<ILogger, string, Exception?> CVResultsSaved =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(2018, "CVResultsSaved"),
+            "[HISTORICAL_CV] Saved CV results to: {File}");
+
+    private static readonly Action<ILogger, Exception?> CVResultsSaveFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2019, "CVResultsSaveFailed"),
+            "[HISTORICAL_CV] Failed to save CV results");
+
+    private static readonly Action<ILogger, string, int, Exception?> BestModelRegistered =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(2020, "BestModelRegistered"),
+            "[HISTORICAL_CV] Registered best model: {ModelId} from fold {Fold}");
+
+    private static readonly Action<ILogger, Exception?> ModelRegistrationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(2021, "ModelRegistrationFailed"),
+            "[HISTORICAL_CV] Failed to register best model");
+
     // Constants for magic numbers (S109 compliance)
     private const int TrainingDelayMilliseconds = 100;
     private const int EvaluationDelayMilliseconds = 50;
@@ -388,8 +425,7 @@ public class HistoricalTrainerWithCV
         var purgedExamples = examples.Where(ex => 
             ex.Timestamp < split.PurgeStart || ex.Timestamp > split.PurgeEnd).ToList();
             
-        _logger.LogDebug("[HISTORICAL_CV] Training data: {Original} -> {Purged} after purging", 
-            examples.Count, purgedExamples.Count);
+        TrainingDataPurged(_logger, examples.Count, purgedExamples.Count, null);
 
         return purgedExamples;
     }
@@ -526,7 +562,7 @@ public class HistoricalTrainerWithCV
                 
                 if (dataPoints.Count == 0)
                 {
-                    _logger.LogWarning("[HISTORICAL_TRAINER] Primary data source failed, using backup for {Symbol}", symbol);
+                    PrimaryDataSourceFailed(_logger, symbol, null);
                     dataPoints = await backupDataTask.ConfigureAwait(false);
                 }
                 
@@ -537,7 +573,7 @@ public class HistoricalTrainerWithCV
             catch (Exception ex)
             {
                 // FAIL FAST: No synthetic data generation allowed
-                _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}. System refuses to generate synthetic data.", symbol);
+                MarketDataLoadFailed(_logger, symbol, ex);
                 throw new InvalidOperationException($"Real market data required for training {symbol}. " +
                     "System will not operate on synthetic data. Implement real market data loading from TopstepX API.");
             }
@@ -545,8 +581,7 @@ public class HistoricalTrainerWithCV
             // Step 2: Apply data quality checks and cleaning
             dataPoints = await ApplyDataQualityChecksAsync(dataPoints, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[HISTORICAL_TRAINER] Retrieved {Count} data points for {Symbol} from {Start} to {End}",
-                dataPoints.Count, symbol, startTime, endTime);
+            DataPointsRetrieved(_logger, dataPoints.Count, symbol, startTime, endTime, null);
             
             return dataPoints;
         }, cancellationToken).ConfigureAwait(false);
@@ -625,8 +660,7 @@ public class HistoricalTrainerWithCV
             // Fill gaps if necessary
             if (validDataPoints.Count != dataPoints.Count)
             {
-                _logger.LogWarning("[HISTORICAL_TRAINER] Filtered out {RemovedCount} invalid data points", 
-                    dataPoints.Count - validDataPoints.Count);
+                InvalidDataPointsFiltered(_logger, dataPoints.Count - validDataPoints.Count, null);
             }
             
             return validDataPoints;
@@ -680,11 +714,11 @@ public class HistoricalTrainerWithCV
             var json = JsonSerializer.Serialize(cvResult, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[HISTORICAL_CV] Saved CV results to: {File}", resultFile);
+            CVResultsSaved(_logger, resultFile, null);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[HISTORICAL_CV] Failed to save CV results");
+            CVResultsSaveFailed(_logger, ex);
         }
     }
 
@@ -720,12 +754,11 @@ public class HistoricalTrainerWithCV
 
             var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[HISTORICAL_CV] Registered best model: {ModelId} from fold {Fold}", 
-                model.Id, bestFold.FoldNumber);
+            BestModelRegistered(_logger, model.Id, bestFold.FoldNumber, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL_CV] Failed to register best model");
+            ModelRegistrationFailed(_logger, ex);
         }
     }
     
