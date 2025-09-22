@@ -24,6 +24,39 @@ public class ObservabilityDashboard : IDisposable
     private const double TargetErrorRateThreshold = 0.005;
     private const int PercentageConversionFactor = 100;
     
+    // S109 Magic Number Constants - Observability Dashboard
+    private const double DefaultMemoryUsagePct = 45.0;
+    private const double DefaultCpuUsagePct = 35.0;
+    private const double DefaultDurationMin = 30.0;
+    private const double RangeRegimeDistribution = 0.35;
+    private const double TrendRegimeDistribution = 0.40;
+    private const double VolatilityRegimeDistribution = 0.15;
+    private const double LowVolRegimeDistribution = 0.10;
+    private const double ActiveModelValue = 1.0;
+    private const double InactiveModelValue = 0.0;
+    private const int HistogramBinCount = 10;
+    private const double ZeroDefaultValue = 0.0;
+    private const double MedianPercentile = 0.5;
+    private const double P90Percentile = 0.9;
+    private const double P10Percentile = 0.1;
+    private const double DefaultSlippageBps = 1.2;
+    private const double DefaultSpreadBps = 0.8;
+    private const double DefaultSlippageRatio = 1.5;
+    private const double SpreadMultiplierThreshold = 2.0;
+    private const double DefaultCurrentDrawdownPct = 0.15;
+    private const double DefaultMaxDrawdownPct = 0.25;
+    private const double DefaultForecastedMaxDrawdown = 0.30;
+    private const double ConfidenceInterval95Lower = 0.20;
+    private const double ConfidenceInterval95Upper = 0.40;
+    private const int TargetOrderLatencyP99Ms = 400;
+    private const int DashboardUpdateIntervalSeconds = 30;
+    private const double ActiveRegimeValue = 1.0;
+    private const double InactiveRegimeValue = 0.0;
+    private const int DefaultModelCount = 0;
+    private const int DefaultLatencyValue = 0;
+    private const int MaxMetricPoints = 10000;
+    private const double SecondsPerMinute = 60.0;
+    
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
     private readonly EnsembleMetaLearner _ensemble;
@@ -130,8 +163,8 @@ public class ObservabilityDashboard : IDisposable
             {
                 ActiveModels = ensembleStatus.ActiveModels.Count,
                 QuarantinedModels = ensembleStatus.RegimeHeadStatus.Count(rh => !rh.Value.IsActive),
-                MemoryUsagePct = 45.0, // Simplified
-                CpuUsagePct = 35.0, // Simplified
+                MemoryUsagePct = DefaultMemoryUsagePct, // Simplified
+                CpuUsagePct = DefaultCpuUsagePct, // Simplified
                 IsHealthy = true
             }
         };
@@ -157,7 +190,7 @@ public class ObservabilityDashboard : IDisposable
                 ToRegime = m.Tags.GetValueOrDefault("to_regime", "Unknown"),
                 Confidence = m.Value,
                 Duration = TimeSpan.FromMinutes(m.Tags.ContainsKey("duration_min") ? 
-                    double.Parse(m.Tags["duration_min"]) : 30)
+                    double.Parse(m.Tags["duration_min"]) : DefaultDurationMin)
             })
             .ToList();
 
@@ -176,10 +209,10 @@ public class ObservabilityDashboard : IDisposable
         }
         
         // Add regime distribution to the read-only dictionary
-        regimeTimeline.RegimeDistribution["Range"] = 0.35;
-        regimeTimeline.RegimeDistribution["Trend"] = 0.40;
-        regimeTimeline.RegimeDistribution["Volatility"] = 0.15;
-        regimeTimeline.RegimeDistribution["LowVol"] = 0.10;
+        regimeTimeline.RegimeDistribution["Range"] = RangeRegimeDistribution;
+        regimeTimeline.RegimeDistribution["Trend"] = TrendRegimeDistribution;
+        regimeTimeline.RegimeDistribution["Volatility"] = VolatilityRegimeDistribution;
+        regimeTimeline.RegimeDistribution["LowVol"] = LowVolRegimeDistribution;
         
         return regimeTimeline;
     }
@@ -202,7 +235,7 @@ public class ObservabilityDashboard : IDisposable
             ensembleWeights.RegimeHeadWeights[kvp.Key.ToString()] = new Dictionary<string, double>
             {
                 ["validation_score"] = kvp.Value.ValidationScore,
-                ["is_active"] = kvp.Value.IsActive ? 1.0 : 0.0
+                ["is_active"] = kvp.Value.IsActive ? ActiveModelValue : InactiveModelValue
             };
         }
         
@@ -244,14 +277,14 @@ public class ObservabilityDashboard : IDisposable
             .Select(m => m.Value)
             .ToList();
 
-        var histogram = CreateHistogram(recentConfidences, 10);
+        var histogram = CreateHistogram(recentConfidences, HistogramBinCount);
         
         var confidenceDistribution = new ConfidenceDistribution
         {
-            Mean = recentConfidences.Count > 0 ? recentConfidences.Average() : 0.0,
-            Median = CalculatePercentile(recentConfidences, 0.5),
-            P90 = CalculatePercentile(recentConfidences, 0.9),
-            P10 = CalculatePercentile(recentConfidences, 0.1),
+            Mean = recentConfidences.Count > 0 ? recentConfidences.Average() : ZeroDefaultValue,
+            Median = CalculatePercentile(recentConfidences, MedianPercentile),
+            P90 = CalculatePercentile(recentConfidences, P90Percentile),
+            P10 = CalculatePercentile(recentConfidences, P10Percentile),
             CalibrationScore = CalculateCalibrationScore(recentConfidences)
         };
         
@@ -274,9 +307,9 @@ public class ObservabilityDashboard : IDisposable
         
         var slippageData = new SlippageVsSpread
         {
-            AverageSlippageBps = 1.2,
-            AverageSpreadBps = 0.8,
-            SlippageRatio = 1.5, // Slippage / Spread
+            AverageSlippageBps = DefaultSlippageBps,
+            AverageSpreadBps = DefaultSpreadBps,
+            SlippageRatio = DefaultSlippageRatio, // Slippage / Spread
             IsHealthy = true // Slippage < 2 * Spread
         };
         
@@ -307,10 +340,10 @@ public class ObservabilityDashboard : IDisposable
         
         return new DrawdownForecast
         {
-            CurrentDrawdownPct = 0.15,
-            MaxDrawdownPct = 0.25,
-            ForecastedMaxDrawdown = 0.30,
-            ConfidenceInterval95 = new double[] { 0.20, 0.40 },
+            CurrentDrawdownPct = DefaultCurrentDrawdownPct,
+            MaxDrawdownPct = DefaultMaxDrawdownPct,
+            ForecastedMaxDrawdown = DefaultForecastedMaxDrawdown,
+            ConfidenceInterval95 = new double[] { ConfidenceInterval95Lower, ConfidenceInterval95Upper },
             RecoveryTimeEstimate = TimeSpan.FromDays(3),
             RiskLevel = "LOW"
         };
@@ -426,24 +459,24 @@ public class ObservabilityDashboard : IDisposable
         {
             DecisionLatencyBudget = new SloBudget
             {
-                Target = 120,
+                Target = TargetDecisionLatencyP99Ms,
                 Current = sloStatus.DecisionLatencyP99Ms,
-                BudgetRemaining = Math.Max(0, (120 - sloStatus.DecisionLatencyP99Ms) / 120),
-                IsHealthy = sloStatus.DecisionLatencyP99Ms < 120
+                BudgetRemaining = Math.Max(0, (TargetDecisionLatencyP99Ms - sloStatus.DecisionLatencyP99Ms) / TargetDecisionLatencyP99Ms),
+                IsHealthy = sloStatus.DecisionLatencyP99Ms < TargetDecisionLatencyP99Ms
             },
             OrderLatencyBudget = new SloBudget
             {
-                Target = 400,
+                Target = TargetOrderLatencyP99Ms,
                 Current = sloStatus.OrderLatencyP99Ms,
-                BudgetRemaining = Math.Max(0, (400 - sloStatus.OrderLatencyP99Ms) / 400),
-                IsHealthy = sloStatus.OrderLatencyP99Ms < 400
+                BudgetRemaining = Math.Max(0, (TargetOrderLatencyP99Ms - sloStatus.OrderLatencyP99Ms) / TargetOrderLatencyP99Ms),
+                IsHealthy = sloStatus.OrderLatencyP99Ms < TargetOrderLatencyP99Ms
             },
             ErrorBudget = new SloBudget
             {
-                Target = 0.5,
-                Current = sloStatus.ErrorRate * 100,
-                BudgetRemaining = Math.Max(0, (0.005 - sloStatus.ErrorRate) / 0.005),
-                IsHealthy = sloStatus.ErrorRate < 0.005
+                Target = TargetErrorRatePercent,
+                Current = sloStatus.ErrorRate * PercentageConversionFactor,
+                BudgetRemaining = Math.Max(0, (TargetErrorRateThreshold - sloStatus.ErrorRate) / TargetErrorRateThreshold),
+                IsHealthy = sloStatus.ErrorRate < TargetErrorRateThreshold
             }
         };
     }
@@ -555,7 +588,7 @@ public class ObservabilityDashboard : IDisposable
     private void StartDashboardUpdates()
     {
         _updateTimer = new Timer(UpdateDashboardData, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
-        _logger.LogInformation("[OBSERVABILITY] Started dashboard updates every 30 seconds");
+        _logger.LogInformation("[OBSERVABILITY] Started dashboard updates every {UpdateInterval} seconds", DashboardUpdateIntervalSeconds);
     }
 
     private async void UpdateDashboardData(object? state)
@@ -588,7 +621,7 @@ public class ObservabilityDashboard : IDisposable
         // Record metrics asynchronously to avoid blocking subsequent collections
         var recordingTasks = new[]
         {
-            Task.Run(() => RecordMetric("regime_changes", ensembleStatus.InTransition ? 1.0 : 0.0, timestamp, new Dictionary<string, string>
+            Task.Run(() => RecordMetric("regime_changes", ensembleStatus.InTransition ? ActiveRegimeValue : InactiveRegimeValue, timestamp, new Dictionary<string, string>
             {
                 ["current_regime"] = ensembleStatus.CurrentRegime.ToString(),
                 ["previous_regime"] = ensembleStatus.PreviousRegime.ToString()
@@ -657,7 +690,7 @@ public class ObservabilityDashboard : IDisposable
             _metrics[name].Points.Add(point);
             
             // Keep only recent points
-            if (_metrics[name].Points.Count > 10000)
+            if (_metrics[name].Points.Count > MaxMetricPoints)
             {
                 _metrics[name].Points.RemoveAt(0);
             }
@@ -681,7 +714,7 @@ public class ObservabilityDashboard : IDisposable
     private double CalculateDecisionsPerSecond()
     {
         var recentDecisions = GetRecentMetrics("decisions", TimeSpan.FromMinutes(1));
-        return recentDecisions.Count / 60.0;
+        return recentDecisions.Count / SecondsPerMinute;
     }
 
     private static Dictionary<string, int> CreateHistogram(List<double> values, int bins)

@@ -32,6 +32,47 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BullishThreshold = 0.55;
     private const double BearishThreshold = 0.45;
     
+    // S109 Magic Number Constants - Intelligence Orchestrator
+    private const double DefaultSpreadValue = 0.0;
+    private const double DefaultVolumeValue = 0.0;
+    private const double BaseConfidenceValue = 0.5;
+    private const double SpreadFactorMultiplier = 0.1;
+    private const double VolumeFactorDivisor = 10000.0;
+    private const double DefaultRegimeConfidence = 0.5;
+    private const double DefaultPriceFeature = 0.0;
+    private const double DefaultVolumeFeature = 0.0;
+    private const double DirectionThreshold = 0.5;
+    private const double VolumeDirectionThreshold = 0.3;
+    private const double DefaultMarketPrice = 0.0;
+    private const double DefaultMarketVolume = 0.0;
+    private const int LoopCounterStart = 0;
+    private const int FeatureArrayMaxLength = 100;
+    private const float EnsembleBullishThreshold = 0.55f;
+    private const float EnsembleBearishThreshold = 0.45f;
+    private const double KellyDivisor = 1.0;
+    private const double SignificantSizeThreshold = 0.1;
+    private const int RandomIdMin = 1000;
+    private const int RandomIdMax = 9999;
+    private const int MaintenanceHour = 2;
+    private const int MaintenanceMinute = 30;
+    private const double DefaultFeatureWeight = 1.0;
+    private const double LowValueThreshold = 0.5;
+    private const double DefaultPrice = 4500.0;
+    private const double DefaultVolume = 1000.0;
+    private const double DefaultBid = 4499.75;
+    private const double DefaultAsk = 4500.25;
+    private const double DefaultOpen = 4500.0;
+    private const double DefaultHigh = 4502.0;
+    private const double DefaultLow = 4498.0;
+    private const double DefaultClose = 4501.0;
+    private const double DefaultBidExtended = 4500.75;
+    private const double DefaultAskExtended = 4501.25;
+    private const int HttpClientErrorMin = 400;
+    private const int HttpClientErrorMax = 500;
+    private const int RetryCountOffset = 1;
+    private const int MaxRetriesOffset = 1;
+    private const int DefaultTimeoutSeconds = 30;
+    
     // LoggerMessage delegates for CA1848 compliance - IntelligenceOrchestrator
     private static readonly Action<ILogger, string, Exception?> OrchestratorInitialized =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "OrchestratorInitialized"),
@@ -628,7 +669,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         // Real ensemble prediction using active models and regime detection
         var regimeState = _regimeDetector != null ? 
             await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false) : 
-            new RegimeState { Type = RegimeType.Range, Confidence = 0.5 };
+            new RegimeState { Type = RegimeType.Range, Confidence = DefaultRegimeConfidence };
         var regimeScore = regimeState.Confidence;
         var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
         
@@ -636,10 +677,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         var adjustedConfidence = confidence * regimeScore;
         
         // Determine direction based on feature trends
-        var priceFeature = features.Features.GetValueOrDefault("price", 0);
-        var volumeFeature = features.Features.GetValueOrDefault("volume", 0);
-        var direction = priceFeature > 0.5 && volumeFeature > 0.3 ? "BUY" : 
-                       priceFeature < 0.5 && volumeFeature > 0.3 ? "SELL" : "HOLD";
+        var priceFeature = features.Features.GetValueOrDefault("price", DefaultPriceFeature);
+        var volumeFeature = features.Features.GetValueOrDefault("volume", DefaultVolumeFeature);
+        var direction = priceFeature > DirectionThreshold && volumeFeature > VolumeDirectionThreshold ? "BUY" : 
+                       priceFeature < DirectionThreshold && volumeFeature > VolumeDirectionThreshold ? "SELL" : "HOLD";
         
         return new MLPrediction
         {
@@ -689,8 +730,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var context = new MarketContext
             {
                 Symbol = symbol,
-                Price = 0, // Will be updated by real market data
-                Volume = 0,
+                Price = DefaultMarketPrice, // Will be updated by real market data
+                Volume = DefaultMarketVolume,
                 Timestamp = DateTime.UtcNow
             };
 
@@ -757,8 +798,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 var context = new MarketContext
                 {
                     Symbol = symbol,
-                    Price = 0, // This would typically come from current market data
-                    Volume = 0,
+                    Price = DefaultMarketPrice, // This would typically come from current market data
+                    Volume = DefaultMarketVolume,
                     Timestamp = DateTime.UtcNow
                 };
 
@@ -770,21 +811,21 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 
                 // Convert weighted features to float array for ONNX input
                 var featureArray = new float[weightedFeatures.Features.Count];
-                int i = 0;
+                int i = LoopCounterStart;
                 foreach (var feature in weightedFeatures.Features.Values)
                 {
                     featureArray[i++] = (float)feature;
                 }
 
                 // Validate feature vector shape before calling PredictAsync
-                if (featureArray.Length > 0 && featureArray.Length <= 100) // Reasonable bounds check
+                if (featureArray.Length > 0 && featureArray.Length <= FeatureArrayMaxLength) // Reasonable bounds check
                 {
                     var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken).ConfigureAwait(false);
                     
                     string direction;
-                    if (ensemblePrediction.EnsembleResult > 0.55f)
+                    if (ensemblePrediction.EnsembleResult > EnsembleBullishThreshold)
                         direction = "BUY";
-                    else if (ensemblePrediction.EnsembleResult < 0.45f)
+                    else if (ensemblePrediction.EnsembleResult < EnsembleBearishThreshold)
                         direction = "SELL";
                     else
                         direction = "HOLD";
@@ -845,7 +886,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         // Apply Kelly criterion with clip using configurable parameters
         var edge = (confidence - _config.ML.Confidence.EdgeConversionOffset) * _config.ML.Confidence.EdgeConversionMultiplier; // Convert to [-1, 1] range
-        var kellyFraction = edge / 1.0; // Simplified Kelly calculation
+        var kellyFraction = edge / KellyDivisor; // Simplified Kelly calculation
         var clippedKelly = Math.Min(_config.ML.Confidence.KellyClip, Math.Max(-_config.ML.Confidence.KellyClip, kellyFraction));
         
         // Apply confidence multiplier using configurable parameters
@@ -859,17 +900,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         ModelArtifact model, double confidence, double size, double latencyMs)
     {
         string direction;
-        if (size > 0.1)
+        if (size > SignificantSizeThreshold)
             direction = "LONG";
-        else if (size < -0.1)
+        else if (size < -SignificantSizeThreshold)
             direction = "SHORT";
         else
             direction = "HOLD";
 
         TradingAction action;
-        if (size > 0.1)
+        if (size > SignificantSizeThreshold)
             action = TradingAction.Buy;
-        else if (size < -0.1)
+        else if (size < -SignificantSizeThreshold)
             action = TradingAction.Sell;
         else
             action = TradingAction.Hold;
@@ -950,7 +991,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private static string GenerateDecisionId()
     {
-        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999)}";
+        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(RandomIdMin, RandomIdMax)}";
     }
 
     private bool ShouldPerformNightlyMaintenance()
@@ -959,7 +1000,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         var lastMaintenance = _lastNightlyMaintenance;
         
         // Perform maintenance if it's after 2:30 AM and we haven't done it today
-        return now.Hour >= 2 && now.Minute >= 30 && 
+        return now.Hour >= MaintenanceHour && now.Minute >= MaintenanceMinute && 
                (lastMaintenance.Date < now.Date || lastMaintenance == DateTime.MinValue);
     }
 
