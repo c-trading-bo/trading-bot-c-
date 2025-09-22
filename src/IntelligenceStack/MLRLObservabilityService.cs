@@ -376,7 +376,7 @@ public class MlrlObservabilityService : IDisposable
 /// <summary>
 /// Metric value storage
 /// </summary>
-internal class MetricValue
+internal sealed class MetricValue
 {
     public string Name { get; set; } = string.Empty;
     public double Value { get; set; }
