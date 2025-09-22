@@ -55,11 +55,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const int RandomIdMax = 9999;
     private const int MaintenanceHour = 2;
     private const int MaintenanceMinute = 30;
-    private const double DefaultFeatureWeight = 1.0;
-    private const double LowValueThreshold = 0.5;
-    private const double DefaultPrice = 4500.0;
-    private const double DefaultVolume = 1000.0;
-    private const double DefaultBid = 4499.75;
+
+
+
+
+
     private const double DefaultAsk = 4500.25;
     private const double DefaultOpen = 4500.0;
     private const double DefaultHigh = 4502.0;

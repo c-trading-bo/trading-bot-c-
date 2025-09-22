@@ -70,16 +70,16 @@ public class RLAdvisorSystem
 
 
 
-    private const int DefaultRewardBufferSize = 100; // Default reward buffer size
-    private const int MaxRewardBufferSize = 1000; // Maximum reward buffer size
-    private const double DefaultLearningRate = 0.01; // Default learning rate
-    private const int DefaultEpisodeLength = 20; // Default episode length
-    private const int MaxEpisodeLength = 1000; // Maximum episode length
-    private const double PolicyUpdateInterval = 240.0; // Policy update interval in minutes
-    private const double ValueUpdateInterval = 120.0; // Value update interval in minutes
-    private const int MaxMemorySize = 500; // Maximum memory size
-    private const int DefaultBatchSize = 100; // Default batch size for training
-    private const int ObservationWindowHours = 12; // Observation window in hours
+
+
+
+
+
+
+
+
+
+
     private const double RewardScalingFactor = 2.0; // Reward scaling factor
     
     private readonly ILogger<RLAdvisorSystem> _logger;
