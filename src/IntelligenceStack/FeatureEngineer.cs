@@ -412,11 +412,11 @@ public class FeatureEngineer : IDisposable
         {
             MarketDataProcessingFailed(_logger, ex);
         }
-        catch (ArithmeticException ex)
+        catch (OverflowException ex)
         {
             MarketDataProcessingFailed(_logger, ex);
         }
-        catch (OverflowException ex)
+        catch (ArithmeticException ex)
         {
             MarketDataProcessingFailed(_logger, ex);
         }

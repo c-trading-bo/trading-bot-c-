@@ -35,9 +35,7 @@ public class RLAdvisorSystem
     private const double LongHoldPenalty = -0.1;
     private const double HoldInactionPenalty = 0.1;
     private const double SmallLearningRate = 0.02;
-    private const double ModerateLearningRate = 0.1;
     private const double HighLearningRate = 0.2;
-    private const int MinRequiredSamples = 2;
     private const int LargeStateSpaceSize = 4000;
     
     // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
@@ -70,37 +68,9 @@ public class RLAdvisorSystem
         LoggerMessage.Define<int>(LogLevel.Information, new EventId(4007, "TrainingEpisodesGenerated"),
             "[RL_ADVISOR] Generated {Count} training episodes");
 
-    private static readonly Action<ILogger, string, int, double, Exception?> AgentTrained =
-        LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4008, "AgentTrained"),
-            "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
-
     private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4009, "HistoricalTrainingFailed"),
             "[RL_ADVISOR] Historical training failed for {Symbol}");
-
-    private static readonly Action<ILogger, string, Exception?> ModelSavingStarted =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4010, "ModelSavingStarted"),
-            "[RL_ADVISOR] Saving trained models for {Symbol}");
-
-    private static readonly Action<ILogger, string, Exception?> ModelCheckingStarted =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4011, "ModelCheckingStarted"),
-            "[RL_ADVISOR] Checking/loading existing models for {Symbol}");
-
-    private static readonly Action<ILogger, string, Exception?> ExistingModelLoaded =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4012, "ExistingModelLoaded"),
-            "[RL_ADVISOR] Loaded existing model for {AgentKey}");
-
-    private static readonly Action<ILogger, string, Exception?> ModelLoadWarning =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4013, "ModelLoadWarning"),
-            "[RL_ADVISOR] Model file exists but loading failed for {AgentKey}, will retrain");
-
-    private static readonly Action<ILogger, Exception?> ModelCheckingFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4014, "ModelCheckingFailed"),
-            "[RL_ADVISOR] Failed to check/load existing models");
-
-    private static readonly Action<ILogger, string, Exception?> BacktestingStarted =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4015, "BacktestingStarted"),
-            "[RL_ADVISOR] Starting backtesting for {Symbol}");
 
     // Additional LoggerMessage delegates for remaining CA1848 violations
     private static readonly Action<ILogger, string, int, double, Exception?> AgentTrainingCompleted =

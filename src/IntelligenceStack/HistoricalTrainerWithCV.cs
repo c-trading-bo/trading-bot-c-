@@ -29,12 +29,6 @@ public class HistoricalTrainerWithCV
 
     // Constants for S109 compliance - simulation and training parameters  
     private const int SimulatedNetworkDelayMs = 100;
-    private const int DefaultMaxEpochs = 50;
-    private const int DefaultEarlyStoppingPatience = 10;
-    private const int PrimaryDataMaxPoints = 1000;
-    private const int FallbackDataMaxPoints = 5000;
-    private const int SafeFallbackMaxPoints = 200;
-    private const int MinimumValidationDataPoints = 50;
     private const int PriceChangeRange = 50; // -50 to +50 range for price changes
     private const double PriceChangeDivisor = 10.0; // Divisor for price change normalization
     private const int BaseVolume = 1000; // Base volume for market data simulation
@@ -105,11 +99,6 @@ public class HistoricalTrainerWithCV
     
     // Additional S109 constants for ML hyperparameters
     private const int DefaultIterations = 10;
-    private const int TrainingIterations = 100;
-    private const int HyperparameterTrials = 50;
-    private const int StandardEpochs = 1000;
-    private const int ExtendedEpochs = 5000;
-    private const int EstimatorCount = 200;
             
 
 
