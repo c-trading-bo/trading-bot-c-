@@ -24,6 +24,79 @@ public class ModelQuarantineManager : IQuarantineManager
     private const double LowPerformanceThreshold = 0.02;
     private const double ConfidenceThreshold = 0.8;
     
+    // LoggerMessage delegates for CA1848 compliance - ModelQuarantineManager
+    private static readonly Action<ILogger, string, Exception?> ModelHealthCheckFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5001, "ModelHealthCheckFailed"),
+            "[QUARANTINE] Failed to check model health: {ModelId}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> ModelQuarantined =
+        LoggerMessage.Define<string, string, string>(LogLevel.Warning, new EventId(5002, "ModelQuarantined"),
+            "[QUARANTINE] 🚫 Model quarantined: {ModelId} (reason: {Reason}, previous: {PreviousState})");
+
+    private static readonly Action<ILogger, string, Exception?> QuarantineModelFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5003, "QuarantineModelFailed"),
+            "[QUARANTINE] Failed to quarantine model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> UnknownModelRestoreAttempt =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5004, "UnknownModelRestoreAttempt"),
+            "[QUARANTINE] Cannot restore unknown model: {ModelId}");
+
+    private static readonly Action<ILogger, string, string, Exception?> ModelNotInQuarantine =
+        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(5005, "ModelNotInQuarantine"),
+            "[QUARANTINE] Model not in quarantine: {ModelId} (state: {State})");
+
+    private static readonly Action<ILogger, string, int, int, Exception?> InsufficientShadowDecisions =
+        LoggerMessage.Define<string, int, int>(LogLevel.Debug, new EventId(5006, "InsufficientShadowDecisions"),
+            "[QUARANTINE] Insufficient shadow decisions for model: {ModelId} ({Count}/{Required})");
+
+    private static readonly Action<ILogger, string, Exception?> PoorShadowPerformance =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5007, "PoorShadowPerformance"),
+            "[QUARANTINE] Poor shadow performance for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, int, Exception?> ModelRestored =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(5008, "ModelRestored"),
+            "[QUARANTINE] ✅ Model restored to Watch state: {ModelId} (shadow decisions: {Count})");
+
+    private static readonly Action<ILogger, string, Exception?> RestoreModelFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5009, "RestoreModelFailed"),
+            "[QUARANTINE] Failed to restore model: {ModelId}");
+
+    private static readonly Action<ILogger, Exception?> GetQuarantinedModelsFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5010, "GetQuarantinedModelsFailed"),
+            "[QUARANTINE] Failed to get quarantined models");
+
+    private static readonly Action<ILogger, string, Exception?> RecordPerformanceFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5011, "RecordPerformanceFailed"),
+            "[QUARANTINE] Failed to record performance for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, double, Exception?> HighExceptionRate =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(5012, "HighExceptionRate"),
+            "[QUARANTINE] High exception rate for model: {ModelId} ({Rate:F3}/min)");
+
+    private static readonly Action<ILogger, string, Exception?> RecordExceptionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5013, "RecordExceptionFailed"),
+            "[QUARANTINE] Failed to record exception for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, string, string, string, Exception?> StateTransitionWarning =
+        LoggerMessage.Define<string, string, string, string>(LogLevel.Warning, new EventId(5014, "StateTransitionWarning"),
+            "[QUARANTINE] State transition: {ModelId} {From} -> {To} (reason: {Reason})");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> StateTransitionInfo =
+        LoggerMessage.Define<string, string, string>(LogLevel.Information, new EventId(5015, "StateTransitionInfo"),
+            "[QUARANTINE] State transition: {ModelId} {From} -> {To}");
+
+    private static readonly Action<ILogger, Exception?> SaveStateFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5016, "SaveStateFailed"),
+            "[QUARANTINE] Failed to save state");
+
+    private static readonly Action<ILogger, int, Exception?> StateLoaded =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(5017, "StateLoaded"),
+            "[QUARANTINE] Loaded quarantine state with {Models} models");
+
+    private static readonly Action<ILogger, Exception?> LoadStateFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5018, "LoadStateFailed"),
+            "[QUARANTINE] Failed to load state");
+    
     private readonly ILogger<ModelQuarantineManager> _logger;
     private readonly QuarantineConfig _config;
     private readonly string _statePath;
@@ -87,7 +160,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to check model health: {ModelId}", modelId);
+            ModelHealthCheckFailed(_logger, modelId, ex);
             return new QuarantineStatus
             {
                 State = HealthState.Quarantine,
@@ -118,15 +191,14 @@ public class ModelQuarantineManager : IQuarantineManager
                 // Reset shadow decision count
                 _shadowDecisionCounts[modelId] = 0;
 
-                _logger.LogWarning("[QUARANTINE] 🚫 Model quarantined: {ModelId} (reason: {Reason}, previous: {PreviousState})", 
-                    modelId, reason, previousState);
+                ModelQuarantined(_logger, modelId, reason, previousState.ToString(), null);
             }
 
             await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to quarantine model: {ModelId}", modelId);
+            QuarantineModelFailed(_logger, modelId, ex);
         }
     }
 
@@ -138,14 +210,13 @@ public class ModelQuarantineManager : IQuarantineManager
             {
                 if (!_modelHealth.TryGetValue(modelId, out var healthState))
                 {
-                    _logger.LogWarning("[QUARANTINE] Cannot restore unknown model: {ModelId}", modelId);
+                    UnknownModelRestoreAttempt(_logger, modelId, null);
                     return false;
                 }
 
                 if (healthState.State != HealthState.Quarantine)
                 {
-                    _logger.LogDebug("[QUARANTINE] Model not in quarantine: {ModelId} (state: {State})", 
-                        modelId, healthState.State);
+                    ModelNotInQuarantine(_logger, modelId, healthState.State.ToString(), null);
                     return true;
                 }
 
@@ -153,15 +224,14 @@ public class ModelQuarantineManager : IQuarantineManager
                 var shadowCount = _shadowDecisionCounts.GetValueOrDefault(modelId, 0);
                 if (shadowCount < _config.ShadowDecisionsForReentry)
                 {
-                    _logger.LogDebug("[QUARANTINE] Insufficient shadow decisions for model: {ModelId} ({Count}/{Required})", 
-                        modelId, shadowCount, _config.ShadowDecisionsForReentry);
+                    InsufficientShadowDecisions(_logger, modelId, shadowCount, _config.ShadowDecisionsForReentry, null);
                     return false;
                 }
 
                 // Check recent performance in shadow mode
                 if (!HasGoodShadowPerformance(modelId))
                 {
-                    _logger.LogDebug("[QUARANTINE] Poor shadow performance for model: {ModelId}", modelId);
+                    PoorShadowPerformance(_logger, modelId, null);
                     return false;
                 }
 
@@ -179,7 +249,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to restore model: {ModelId}", modelId);
+            RestoreModelFailed(_logger, modelId, ex);
             return false;
         }
         finally
@@ -205,7 +275,7 @@ public class ModelQuarantineManager : IQuarantineManager
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[QUARANTINE] Failed to get quarantined models");
+                GetQuarantinedModelsFailed(_logger, ex);
                 return new List<string>();
             }
         }, cancellationToken).ConfigureAwait(false);
@@ -243,7 +313,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to record performance for model: {ModelId}", modelId);
+            RecordPerformanceFailed(_logger, modelId, ex);
         }
     }
 
@@ -286,7 +356,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to record exception for model: {ModelId}", modelId);
+            RecordExceptionFailed(_logger, modelId, ex);
         }
     }
 
@@ -529,7 +599,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[QUARANTINE] Failed to save state");
+            SaveStateFailed(_logger, ex);
         }
     }
 
@@ -569,7 +639,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[QUARANTINE] Failed to load state");
+            LoadStateFailed(_logger, ex);
         }
     }
 }
