@@ -131,6 +131,39 @@ public class NightlyParameterTuner
     private static readonly Action<ILogger, int, double, bool, Exception?> CompletedEvolutionarySearch =
         LoggerMessage.Define<int, double, bool>(LogLevel.Information, new EventId(4010, "CompletedEvolutionarySearch"), 
             "[EVOLUTIONARY] Completed: {Trials} evaluations, Best AUC: {AUC:F3}, Improved: {Improved}");
+
+    // Additional LoggerMessage delegates for remaining CA1848 violations
+    private static readonly Action<ILogger, string, string, Exception?> CreatedTuningSession =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(4011, "CreatedTuningSession"), 
+            "[NIGHTLY_TUNING] Created tuning session {SessionId} for {ModelFamily}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToLoadParametersFromRegistry =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4012, "FailedToLoadParametersFromRegistry"), 
+            "[NIGHTLY_TUNING] Failed to load parameters from registry for {ModelFamily}");
+
+    private static readonly Action<ILogger, string, Exception?> PromotingImprovedModel =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4013, "PromotingImprovedModel"), 
+            "[NIGHTLY_TUNING] Promoting improved model for {ModelFamily}");
+
+    private static readonly Action<ILogger, string, Exception?> PerformingRollback =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4014, "PerformingRollback"), 
+            "[NIGHTLY_TUNING] Performing rollback for {ModelFamily} due to performance degradation");
+
+    private static readonly Action<ILogger, string, string, Exception?> RestoredStableParameters =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(4015, "RestoredStableParameters"), 
+            "[NIGHTLY_TUNING] Restored stable parameters for {ModelFamily} from {BackupPath}");
+
+    private static readonly Action<ILogger, string, DateTime, Exception?> CompletedRollback =
+        LoggerMessage.Define<string, DateTime>(LogLevel.Information, new EventId(4016, "CompletedRollback"), 
+            "[NIGHTLY_TUNING] Successfully completed rollback for {ModelFamily} to stable version from {StableDate}");
+
+    private static readonly Action<ILogger, string, Exception?> RollbackFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4017, "RollbackFailed"), 
+            "[NIGHTLY_TUNING] Rollback failed for {ModelFamily}");
+
+    private static readonly Action<ILogger, Exception?> FailedToSaveTuningResult =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4018, "FailedToSaveTuningResult"), 
+            "[NIGHTLY_TUNING] Failed to save tuning result");
     
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
@@ -334,8 +367,7 @@ public class NightlyParameterTuner
             result.BestParameters[kvp.Key] = kvp.Value;
         }
 
-        _logger.LogInformation("[BAYESIAN_OPT] Completed: {Trials} trials, Best AUC: {AUC:F3}, Improved: {Improved}", 
-            result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline);
+        CompletedBayesianOptimization(_logger, result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline, null);
 
         return result;
     }
@@ -347,7 +379,7 @@ public class NightlyParameterTuner
         TuningSession session,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[EVOLUTIONARY] Starting evolutionary search for {ModelFamily}", session.ModelFamily);
+        StartingEvolutionarySearch(_logger, session.ModelFamily, null);
 
         var result = new OptimizationResult
         {
@@ -393,8 +425,7 @@ public class NightlyParameterTuner
                 bestMetrics = currentBest.Metrics!;
                 bestParameters = currentBest.Parameters;
                 
-                _logger.LogInformation("[EVOLUTIONARY] New best found at generation {Gen}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
-                    generation + GenerationOffset, bestMetrics.AUC, bestMetrics.EdgeBps);
+                NewBestFoundEvolutionary(_logger, generation + GenerationOffset, bestMetrics.AUC, bestMetrics.EdgeBps, null);
             }
         }
 
@@ -408,8 +439,7 @@ public class NightlyParameterTuner
             result.BestParameters[kvp.Key] = kvp.Value;
         }
 
-        _logger.LogInformation("[EVOLUTIONARY] Completed: {Trials} evaluations, Best AUC: {AUC:F3}, Improved: {Improved}", 
-            result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline);
+        CompletedEvolutionarySearch(_logger, result.TrialsCompleted, bestMetrics.AUC, result.ImprovedBaseline, null);
 
         return result;
     }
@@ -460,8 +490,7 @@ public class NightlyParameterTuner
             var metadataJson = JsonSerializer.Serialize(sessionMetadata, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[NIGHTLY_TUNING] Created tuning session {SessionId} for {ModelFamily}", 
-                session.SessionId, session.ModelFamily);
+            CreatedTuningSession(_logger, session.SessionId, session.ModelFamily, null);
         }, cancellationToken).ConfigureAwait(false);
 
         return session;
@@ -554,7 +583,7 @@ public class NightlyParameterTuner
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[NIGHTLY_TUNING] Failed to load parameters from registry for {ModelFamily}", modelFamily);
+                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
             }
             return null;
         }, cancellationToken).ConfigureAwait(false);
@@ -834,7 +863,7 @@ public class NightlyParameterTuner
         OptimizationResult result,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[NIGHTLY_TUNING] Promoting improved model for {ModelFamily}", modelFamily);
+        PromotingImprovedModel(_logger, modelFamily, null);
         
         // Register the improved model
         var registration = new ModelRegistration
@@ -899,7 +928,7 @@ public class NightlyParameterTuner
 
     private async Task PerformRollbackAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        _logger.LogWarning("[NIGHTLY_TUNING] Performing rollback for {ModelFamily} due to performance degradation", modelFamily);
+        PerformingRollback(_logger, modelFamily, null);
         
         // Production-grade rollback implementation
         try
@@ -971,8 +1000,7 @@ public class NightlyParameterTuner
                     registration.Metadata["rollback_timestamp"] = DateTime.UtcNow;
                     await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
                     
-                    _logger.LogInformation("[NIGHTLY_TUNING] Restored stable parameters for {ModelFamily} from {BackupPath}", 
-                        modelFamily, parameterBackupPath);
+                    RestoredStableParameters(_logger, modelFamily, parameterBackupPath, null);
                 }
             }, cancellationToken);
 
@@ -992,12 +1020,11 @@ public class NightlyParameterTuner
             // Wait for all rollback operations to complete
             await Task.WhenAll(restoreTask, historyUpdateTask).ConfigureAwait(false);
 
-            _logger.LogInformation("[NIGHTLY_TUNING] Successfully completed rollback for {ModelFamily} to stable version from {StableDate}", 
-                modelFamily, stableVersion.StartTime);
+            CompletedRollback(_logger, modelFamily, stableVersion.StartTime, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[NIGHTLY_TUNING] Rollback failed for {ModelFamily}", modelFamily);
+            RollbackFailed(_logger, modelFamily, ex);
             throw new InvalidOperationException($"Parameter rollback failed for model family {modelFamily}", ex);
         }
     }
@@ -1037,7 +1064,7 @@ public class NightlyParameterTuner
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[NIGHTLY_TUNING] Failed to save tuning result");
+            FailedToSaveTuningResult(_logger, ex);
         }
     }
 }
