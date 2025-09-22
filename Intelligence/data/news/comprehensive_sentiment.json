@@ -1,56 +1,40 @@
 {
-  "timestamp": "2025-09-19T15:22:17.475248",
+  "timestamp": "2025-09-22T06:34:58.225599",
   "analysis_mode": "comprehensive",
-  "market_session": "regular",
-  "total_articles_processed": 17,
+  "market_session": "extended",
+  "total_articles_processed": 11,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.475,
+      "sentiment_score": -0.175,
       "article_count": 1,
       "articles": [
         {
-          "title": "ISPY: Daily Calls Offering More Upside",
-          "sentiment": 0.475,
-          "textblob_score": 0.25,
-          "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4824368-ispy-daily-calls-offering-more-upside?source=feed_all_articles",
-          "published": "Fri, 19 Sep 2025 10:21:54 -0400",
-          "relevance_keywords": [
-            "SPY"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.1,
-      "sources": [
-        "seeking_alpha"
-      ]
-    },
-    "NQ": {
-      "sentiment_score": 0.09333333333333332,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Risky Biotech Stocks\u2019 Recovery Hinges on Deeper Fed Rate Cuts",
-          "sentiment": 0.09333333333333332,
-          "textblob_score": 0.13333333333333333,
+          "title": "S&P 500 Earnings: Scary Charts - Don't Forget To Pay Attention To Asset Classes That Haven't Worked In The Last 15 Years",
+          "sentiment": -0.175,
+          "textblob_score": -0.25,
           "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-19/risky-biotech-stocks-recovery-hinges-on-deeper-fed-rate-cuts",
-          "published": "Fri, 19 Sep 2025 15:07:52 GMT",
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4824704-sp500-earnings-scary-charts-pay-attention-to-asset-classes-that-havent-worked-last-15-years?source=feed_all_articles",
+          "published": "Mon, 22 Sep 2025 01:35:00 -0400",
           "relevance_keywords": [
-            "tech stocks",
-            "technology sector"
+            "S&P"
           ]
         }
       ],
       "signal": "NEUTRAL",
       "confidence": 0.1,
       "sources": [
-        "bloomberg"
+        "seeking_alpha"
       ]
+    },
+    "NQ": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -69,21 +53,9 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": -0.20249999999999996,
-      "article_count": 2,
+      "sentiment_score": -0.5449999999999999,
+      "article_count": 1,
       "articles": [
-        {
-          "title": "What Trump\u2019s bitcoin binge really says to Americans about their money",
-          "sentiment": 0.13999999999999999,
-          "textblob_score": 0.2,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/when-the-u-s-government-loads-up-on-bitcoin-you-have-to-wonder-about-your-money-fd115f3e?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 14:58:00 GMT",
-          "relevance_keywords": [
-            "Bitcoin"
-          ]
-        },
         {
           "title": "Are your parents afraid of investing in crypto? How to talk with them so they\u2019ll actually listen.",
           "sentiment": -0.5449999999999999,
@@ -91,92 +63,91 @@
           "keyword_score": -1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 13:41:00 GMT",
+          "published": "Sun, 21 Sep 2025 12:07:00 GMT",
           "relevance_keywords": [
             "Bitcoin",
             "crypto"
           ]
         }
       ],
-      "signal": "NEUTRAL",
-      "confidence": 0.2,
+      "signal": "BEARISH",
+      "confidence": 0.1,
       "sources": [
         "marketwatch"
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.09784280303030304,
-      "article_count": 8,
+      "sentiment_score": 0.09210317460317463,
+      "article_count": 7,
       "articles": [
         {
-          "title": "Stock Market Today: Dow Rises 100 Points During Trump-Xi Call; Tesla Upgraded (Live Coverage)",
-          "sentiment": 0.39545454545454545,
-          "textblob_score": 0.13636363636363635,
-          "keyword_score": 1.0,
+          "title": "Jim Cramer Thinks Tesla, Inc. (TSLA) Might See Better Numbers",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-trump-xi-call-tesla-tsla-stock/?src=A00220&yptr=yahoo",
-          "published": "2025-09-19T14:54:30Z",
+          "url": "https://finance.yahoo.com/news/jim-cramer-thinks-tesla-inc-190333446.html",
+          "published": "2025-09-20T19:03:33Z",
           "relevance_keywords": [
             "Tesla"
           ]
         },
         {
-          "title": "Stock Market Rallies To New Highs On Fed Rate Cut, Nvidia News; Tesla Jumps: Weekly Review",
-          "sentiment": 0.09545454545454544,
-          "textblob_score": 0.13636363636363635,
+          "title": "Mideast Royals Invest $680 Million In London Developer Regal",
+          "sentiment": 0.06999999999999999,
+          "textblob_score": 0.1,
           "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.investors.com/news/stock-market-rallies-new-highs-fed-rate-cut-nvidia-intel-news-tesla-jumps/?src=A00220&yptr=yahoo",
-          "published": "2025-09-19T14:52:02Z",
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/mideast-royals-invest-680-million-in-london-developer-regal",
+          "published": "Mon, 22 Sep 2025 06:00:00 GMT",
           "relevance_keywords": [
-            "Tesla",
             "EV"
           ]
         },
         {
-          "title": "Trupanion pet insurance review 2025",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
+          "title": "La Caisse to Buy Edify Energy in Australian Renewables Bet",
+          "sentiment": 0.3525,
+          "textblob_score": 0.075,
           "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/personal-finance/insurance/review/trupanion-pet-insurance-review-201451945.html",
-          "published": "2025-06-02T20:14:51Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Risky Biotech Stocks\u2019 Recovery Hinges on Deeper Fed Rate Cuts",
-          "sentiment": 0.09333333333333332,
-          "textblob_score": 0.13333333333333333,
-          "keyword_score": 0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-19/risky-biotech-stocks-recovery-hinges-on-deeper-fed-rate-cuts",
-          "published": "Fri, 19 Sep 2025 15:07:52 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/la-caisse-cdpq-to-buy-australia-s-edify-energy-in-c-1-billion-renewables-deal",
+          "published": "Mon, 22 Sep 2025 05:12:22 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Anti-Americanism Is Coming for US Brands",
-          "sentiment": 0.0875,
-          "textblob_score": 0.125,
-          "keyword_score": 0,
+          "title": "Hong Kong Exchange Is \u2018Closely Monitoring\u2019 Incoming Typhoon",
+          "sentiment": 0.3272222222222222,
+          "textblob_score": 0.03888888888888888,
+          "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-19/opinion-anti-americanism-is-coming-for-us-brands-video",
-          "published": "Fri, 19 Sep 2025 14:20:31 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/hong-kong-exchange-is-closely-monitoring-incoming-typhoon",
+          "published": "Mon, 22 Sep 2025 05:28:50 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
-          "sentiment": 0.055999999999999994,
-          "textblob_score": 0.08,
+          "title": "U.S. stock futures dip after Friday\u2019s record highs, even as \u2018the market has learned to thrive in ambiguity\u2019",
+          "sentiment": -0.0525,
+          "textblob_score": -0.075,
           "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 14:09:00 GMT",
+          "url": "https://www.marketwatch.com/story/u-s-stock-futures-flat-after-fridays-record-highs-as-market-has-learned-to-thrive-in-ambiguity-ef6c1512?mod=mw_rss_topstories",
+          "published": "Mon, 22 Sep 2025 02:13:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Bad news for coffee drinkers: The record-high prices you\u2019re paying will go even higher when tariffs take their toll",
+          "sentiment": 0.14250000000000004,
+          "textblob_score": -0.22499999999999992,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/bad-news-for-coffee-drinkers-the-record-high-prices-youre-paying-will-go-even-higher-when-tariffs-take-their-toll-1c26981a?mod=mw_rss_topstories",
+          "published": "Sun, 21 Sep 2025 19:20:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -188,26 +159,14 @@
           "keyword_score": -1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 13:41:00 GMT",
+          "published": "Sun, 21 Sep 2025 12:07:00 GMT",
           "relevance_keywords": [
             "EV"
-          ]
-        },
-        {
-          "title": "How Tesla\u2019s metamorphosis may see its stock surge to $3,000 in just 10 years",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/how-teslas-metamorphosis-may-see-its-stock-surge-to-3-000-in-just-10-years-7c721f2f?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 13:30:00 GMT",
-          "relevance_keywords": [
-            "Tesla"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.8,
+      "confidence": 0.7,
       "sources": [
         "yahoo_finance",
         "bloomberg",
@@ -215,90 +174,47 @@
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.3718181818181818,
-      "article_count": 3,
+      "sentiment_score": 0.4684999999999999,
+      "article_count": 2,
       "articles": [
         {
-          "title": "Stock Market Rallies To New Highs On Fed Rate Cut, Nvidia News; Tesla Jumps: Weekly Review",
-          "sentiment": 0.09545454545454544,
-          "textblob_score": 0.13636363636363635,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.investors.com/news/stock-market-rallies-new-highs-fed-rate-cut-nvidia-intel-news-tesla-jumps/?src=A00220&yptr=yahoo",
-          "published": "2025-09-19T14:52:02Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Buy Intel\u2019s stock after the Nvidia bump? The question is perplexing Wall Street.",
-          "sentiment": 0.72,
-          "textblob_score": 0.6,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/buy-intels-stock-after-the-nvidia-bump-the-question-is-perplexing-wall-street-684b953b?mod=mw_rss_topstories",
-          "published": "Fri, 19 Sep 2025 14:23:00 GMT",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Nvidia: The Oracle Earnings Are Not Bullish",
+          "title": "Prediction: These AI Chip Stocks Could Soar (Hint: It's Not Nvidia or Broadcom)",
           "sentiment": 0.3,
           "textblob_score": 0.0,
           "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4824386-nvidia-oracle-earnings-are-not-bullish?source=feed_all_articles",
-          "published": "Fri, 19 Sep 2025 11:17:20 -0400",
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/prediction-ai-chip-stocks-could-190500381.html",
+          "published": "2025-09-20T19:05:00Z",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "CoreWeave, Inc. (CRWV)\u2019s Deal With NVIDIA Is \u201cVery Good,\u201d Says Jim Cramer",
+          "sentiment": 0.6369999999999999,
+          "textblob_score": 0.9099999999999999,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/coreweave-inc-crwv-deal-nvidia-190514967.html",
+          "published": "2025-09-20T19:05:14Z",
           "relevance_keywords": [
             "Nvidia"
           ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.3,
+      "confidence": 0.2,
       "sources": [
-        "yahoo_finance",
-        "marketwatch",
-        "seeking_alpha"
+        "yahoo_finance"
       ]
     },
     "AAPL": {
-      "sentiment_score": 0.07469696969696968,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Dave Wright | Pattern\u2019s $300M IPO",
-          "sentiment": -0.23333333333333334,
-          "textblob_score": 0.09523809523809523,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-19/dave-wright-pattern-s-300m-ipo-video",
-          "published": "Fri, 19 Sep 2025 14:48:38 GMT",
-          "relevance_keywords": [
-            "Mac"
-          ]
-        },
-        {
-          "title": "Apple iPhone 17 Goes on Sale Around the World",
-          "sentiment": 0.3827272727272727,
-          "textblob_score": 0.11818181818181818,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-19/apple-iphone-17-goes-on-sale-around-the-world-video",
-          "published": "Fri, 19 Sep 2025 14:36:52 GMT",
-          "relevance_keywords": [
-            "Apple",
-            "iPhone",
-            "Tim Cook"
-          ]
-        }
-      ],
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
       "signal": "NEUTRAL",
-      "confidence": 0.2,
-      "sources": [
-        "bloomberg"
-      ]
+      "confidence": 0.0,
+      "sources": []
     }
   },
   "sources_used": [
