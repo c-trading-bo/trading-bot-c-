@@ -650,6 +650,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             LoadActiveModelsFailed(_logger, ex);
         }
+        catch (FileNotFoundException ex)
+        {
+            LoadActiveModelsFailed(_logger, ex);
+        }
     }
 
     private async Task<ModelArtifact?> GetModelForRegimeAsync(RegimeType regime, CancellationToken cancellationToken)
@@ -1143,6 +1147,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
+    }
+
+    private async Task<WorkflowExecutionResult> ProcessMarketDataWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         try
         {
@@ -1151,28 +1158,26 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
+    }
+
+    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         try
         {
             await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
+    }
+
+    private static MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
     {
         // Extract from workflow context - simplified
         return new MarketContext
@@ -1255,17 +1260,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("trades", payload, cancellationToken).ConfigureAwait(false);
             TradeRecordPushedInfo(_logger, tradeRecord.TradeId, null);
         }
-        catch (HttpRequestException ex)
-        {
-            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
-            // Don't throw - cloud push failures shouldn't stop trading
-        }
-        catch (TaskCanceledException ex)
-        {
-            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
-            // Don't throw - cloud push failures shouldn't stop trading
-        }
-        catch (JsonException ex)
+        catch (Exception ex)
         {
             TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
             // Don't throw - cloud push failures shouldn't stop trading
@@ -1296,17 +1291,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("metrics", payload, cancellationToken).ConfigureAwait(false);
             MetricsPushedDebug(_logger, null);
         }
-        catch (HttpRequestException ex)
-        {
-            MetricsPushFailed(_logger, ex);
-            // Don't throw - metrics push failures shouldn't stop trading
-        }
-        catch (TaskCanceledException ex)
-        {
-            MetricsPushFailed(_logger, ex);
-            // Don't throw - metrics push failures shouldn't stop trading
-        }
-        catch (JsonException ex)
+        catch (Exception ex)
         {
             MetricsPushFailed(_logger, ex);
             // Don't throw - metrics push failures shouldn't stop trading
@@ -1342,15 +1327,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken).ConfigureAwait(false);
             DecisionIntelligencePushedDebug(_logger, decision.DecisionId, null);
         }
-        catch (HttpRequestException ex)
-        {
-            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
-        }
-        catch (TaskCanceledException ex)
-        {
-            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
-        }
-        catch (JsonException ex)
+        catch (Exception ex)
         {
             DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
         }
