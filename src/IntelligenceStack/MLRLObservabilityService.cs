@@ -40,6 +40,47 @@ public class MlrlObservabilityService : IDisposable
     private readonly ConcurrentDictionary<string, MetricValue> _metricsStorage = new();
     private readonly object _lock = new();
 
+    // LoggerMessage delegates for CA1848 compliance - MLRLObservabilityService
+    private static readonly Action<ILogger, Exception?> ObservabilityServiceInitialized =
+        LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ObservabilityServiceInitialized"), 
+            "ML/RL Observability service initialized with Prometheus export");
+
+    private static readonly Action<ILogger, string, double, double, int, Exception?> RecordedPredictionMetric =
+        LoggerMessage.Define<string, double, double, int>(LogLevel.Debug, new EventId(5002, "RecordedPredictionMetric"), 
+            "Recorded prediction metric for {ModelId}: prediction={Prediction:F3}, confidence={Confidence:F3}, latency={Latency}ms");
+
+    private static readonly Action<ILogger, string, double, Exception?> RecordedPredictionAccuracy =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(5003, "RecordedPredictionAccuracy"), 
+            "Recorded prediction accuracy for {ModelId}: {Accuracy:F3}");
+
+    private static readonly Action<ILogger, string, double, Exception?> HighDriftScoreDetected =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(5004, "HighDriftScoreDetected"), 
+            "High drift score detected for {ModelId}: {DriftScore:F3}");
+
+    private static readonly Action<ILogger, string, int, double, Exception?> RecordedRLReward =
+        LoggerMessage.Define<string, int, double>(LogLevel.Debug, new EventId(5005, "RecordedRLReward"), 
+            "Recorded RL reward for {AgentId}: episode={Episode}, reward={Reward:F3}");
+
+    private static readonly Action<ILogger, string, double, Exception?> HighPolicyNormDetected =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(5006, "HighPolicyNormDetected"), 
+            "High policy norm detected for {AgentId}: {PolicyNorm:F3}");
+
+    private static readonly Action<ILogger, double, int, Exception?> HighEnsembleVarianceDetected =
+        LoggerMessage.Define<double, int>(LogLevel.Warning, new EventId(5007, "HighEnsembleVarianceDetected"), 
+            "High ensemble variance detected: {Variance:F3} with {ModelCount} models");
+
+    private static readonly Action<ILogger, Exception?> FailedToExportMetrics =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5008, "FailedToExportMetrics"), 
+            "Failed to export metrics");
+
+    private static readonly Action<ILogger, Exception?> SuccessfullyExportedMetrics =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "SuccessfullyExportedMetrics"), 
+            "Successfully exported metrics to Prometheus gateway");
+
+    private static readonly Action<ILogger, int, Exception?> FailedToExportMetricsToPrometheus =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(5010, "FailedToExportMetricsToPrometheus"), 
+            "Failed to export metrics to Prometheus: {StatusCode}");
+
     public MlrlObservabilityService(
         ILogger<MlrlObservabilityService> logger,
         HttpClient httpClient)
@@ -63,7 +104,7 @@ public class MlrlObservabilityService : IDisposable
         // Start export timer (every 15 seconds)
         _exportTimer = new Timer(ExportMetricsAsync, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
 
-        _logger.LogInformation("ML/RL Observability service initialized with Prometheus export");
+        ObservabilityServiceInitialized(_logger, null);
     }
 
     #region Prediction Metrics
@@ -79,8 +120,7 @@ public class MlrlObservabilityService : IDisposable
         UpdateMetricValue($"ml_predictions_total{{model_id=\"{modelId}\"}}", 1, MetricType.Counter);
         UpdateMetricValue($"ml_prediction_latency_ms{{model_id=\"{modelId}\"}}", latency.TotalMilliseconds, MetricType.Histogram);
         
-        _logger.LogDebug("Recorded prediction metric for {ModelId}: prediction={Prediction:F3}, confidence={Confidence:F3}, latency={Latency}ms",
-            modelId, prediction, confidence, latency.TotalMilliseconds);
+        RecordedPredictionMetric(_logger, modelId, prediction, confidence, (int)latency.TotalMilliseconds, null);
     }
 
     public void RecordPredictionAccuracy(string modelId, double actualValue, double predictedValue)
@@ -91,7 +131,7 @@ public class MlrlObservabilityService : IDisposable
         _predictionAccuracy.Record(accuracy, new TagList { { "model_id", modelId } });
         UpdateMetricValue($"ml_prediction_accuracy{{model_id=\"{modelId}\"}}", accuracy, MetricType.Histogram);
 
-        _logger.LogDebug("Recorded prediction accuracy for {ModelId}: {Accuracy:F3}", modelId, accuracy);
+        RecordedPredictionAccuracy(_logger, modelId, accuracy, null);
     }
 
     public void RecordDriftScore(string modelId, double driftScore)
@@ -101,7 +141,7 @@ public class MlrlObservabilityService : IDisposable
 
         if (driftScore > 0.7) // Configurable threshold
         {
-            _logger.LogWarning("High drift score detected for {ModelId}: {DriftScore:F3}", modelId, driftScore);
+            HighDriftScoreDetected(_logger, modelId, driftScore, null);
         }
     }
 
@@ -114,8 +154,7 @@ public class MlrlObservabilityService : IDisposable
         _rlRewards.Record(reward, new TagList { { "agent_id", agentId } });
         UpdateMetricValue($"rl_rewards{{agent_id=\"{agentId}\"}}", reward, MetricType.Histogram);
 
-        _logger.LogDebug("Recorded RL reward for {AgentId}: episode={Episode}, reward={Reward:F3}", 
-            agentId, episode, reward);
+        RecordedRLReward(_logger, agentId, episode, reward, null);
     }
 
     public void RecordExplorationRate(string agentId, double explorationRate)

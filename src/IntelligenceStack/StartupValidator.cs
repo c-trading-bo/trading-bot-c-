@@ -247,7 +247,39 @@ public class StartupValidator : IStartupValidator
                     result.FailureReasons.Add($"{testName} validation failed");
                 }
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
+            {
+                testStopwatch.Stop();
+                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
+                
+                result.TestResults[testName] = new TestResult
+                {
+                    Passed = false,
+                    TestName = testName,
+                    Duration = testStopwatch.Elapsed,
+                    ErrorMessage = ex.Message,
+                    ExecutedAt = DateTime.UtcNow
+                };
+                
+                result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                testStopwatch.Stop();
+                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
+                
+                result.TestResults[testName] = new TestResult
+                {
+                    Passed = false,
+                    TestName = testName,
+                    Duration = testStopwatch.Elapsed,
+                    ErrorMessage = ex.Message,
+                    ExecutedAt = DateTime.UtcNow
+                };
+                
+                result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
+            }
+            catch (TimeoutException ex)
             {
                 testStopwatch.Stop();
                 TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);

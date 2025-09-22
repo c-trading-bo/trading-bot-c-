@@ -361,7 +361,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             StackInitialized(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            InitializationFailed(_logger, ex);
+            _isTradingEnabled = false;
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            InitializationFailed(_logger, ex);
+            _isTradingEnabled = false;
+            return false;
+        }
+        catch (FileNotFoundException ex)
         {
             InitializationFailed(_logger, ex);
             _isTradingEnabled = false;
@@ -424,7 +436,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
             return decision;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            stopwatch.Stop();
+            DecisionFailed(_logger, context.Symbol, ex);
+            return CreateSafeDecision($"Decision making failed: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            stopwatch.Stop();
+            DecisionFailed(_logger, context.Symbol, ex);
+            return CreateSafeDecision($"Decision making failed: {ex.Message}");
+        }
+        catch (TimeoutException ex)
         {
             stopwatch.Stop();
             DecisionFailed(_logger, context.Symbol, ex);
@@ -463,7 +487,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 _ = Task.Run(async () => await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            MarketDataProcessingFailed(_logger, data.Symbol, ex);
+        }
+        catch (ArgumentException ex)
         {
             MarketDataProcessingFailed(_logger, data.Symbol, ex);
         }
@@ -489,7 +517,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             NightlyMaintenanceCompleted(_logger, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            NightlyMaintenanceFailed(_logger, ex);
+            RaiseEvent("NightlyMaintenanceFailed", $"Nightly maintenance failed: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
         {
             NightlyMaintenanceFailed(_logger, ex);
             RaiseEvent("NightlyMaintenanceFailed", $"Nightly maintenance failed: {ex.Message}");

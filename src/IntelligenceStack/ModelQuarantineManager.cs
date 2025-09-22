@@ -22,7 +22,6 @@ public class ModelQuarantineManager : IQuarantineManager
     private const double HighPerformanceThreshold = 0.1;
     private const double MediumPerformanceThreshold = 0.05;
     private const double LowPerformanceThreshold = 0.02;
-    private const double ConfidenceThreshold = 0.8;
     
     // LoggerMessage delegates for CA1848 compliance - ModelQuarantineManager
     private static readonly Action<ILogger, string, Exception?> ModelHealthCheckFailed =

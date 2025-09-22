@@ -34,10 +34,6 @@ public class LineageTrackingSystem
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(5003, "FailedToCreateLineageSnapshot"),
             "[LINEAGE] Failed to create lineage snapshot: {SnapshotId}");
     
-    private static readonly Action<ILogger, string, Exception?> StampingDecisionWithLineage =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "StampingDecisionWithLineage"),
-            "[LINEAGE] Stamping decision {DecisionId} with complete lineage");
-    
     private static readonly Action<ILogger, string, Exception?> FailedToStampDecision =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(5005, "FailedToStampDecision"),
             "[LINEAGE] Failed to stamp decision with lineage: {DecisionId}");
@@ -65,30 +61,6 @@ public class LineageTrackingSystem
     private static readonly Action<ILogger, string, Exception?> FailedToGetModelVersion =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5011, "FailedToGetModelVersion"),
             "[LINEAGE] Failed to get version for model family: {Family}");
-    
-    private static readonly Action<ILogger, Exception?> FailedToGetFeatureStoreVersion =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(5012, "FailedToGetFeatureStoreVersion"),
-            "[LINEAGE] Failed to get feature store version");
-    
-    private static readonly Action<ILogger, string, Exception?> FailedToGetCalibrationMap =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5013, "FailedToGetCalibrationMap"),
-            "[LINEAGE] Failed to get calibration map for model: {ModelFamily}");
-    
-    private static readonly Action<ILogger, Exception?> FailedToGetModelVersionForDecision =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(5014, "FailedToGetModelVersionForDecision"),
-            "[LINEAGE] Failed to get model version for decision");
-    
-    private static readonly Action<ILogger, string, Exception?> FailedToGetCalibrationMapId =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5015, "FailedToGetCalibrationMapId"),
-            "[LINEAGE] Failed to get calibration map ID for model: {ModelId}");
-    
-    private static readonly Action<ILogger, string, Exception?> FailedToGetModelLineage =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5016, "FailedToGetModelLineage"),
-            "[LINEAGE] Failed to get model lineage: {ModelId}");
-    
-    private static readonly Action<ILogger, string, Exception?> FailedToGetFeatureLineage =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5017, "FailedToGetFeatureLineage"),
-            "[LINEAGE] Failed to get feature lineage: {Version}");
     
     private readonly IModelRegistry _modelRegistry;
     private readonly IFeatureStore _featureStore;
