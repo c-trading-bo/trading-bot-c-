@@ -191,7 +191,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 // Reset shadow decision count
                 _shadowDecisionCounts[modelId] = 0;
 
-                ModelQuarantined(_logger, modelId, reason, previousState.ToString(), null);
+                ModelQuarantined(_logger, modelId, reason.ToString(), previousState.ToString(), null);
             }
 
             await SaveStateAsync(cancellationToken).ConfigureAwait(false);
@@ -241,8 +241,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 healthState.QuarantineReason = null;
                 healthState.LastChecked = DateTime.UtcNow;
 
-                _logger.LogInformation("[QUARANTINE] ✅ Model restored to Watch state: {ModelId} (shadow decisions: {Count})", 
-                    modelId, shadowCount);
+                ModelRestored(_logger, modelId, shadowCount, null);
                 
                 return true;
             }
@@ -341,8 +340,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 var recentExceptions = CalculateExceptionRate(modelId);
                 if (recentExceptions > _config.ExceptionRatePerMin)
                 {
-                    _logger.LogWarning("[QUARANTINE] High exception rate for model: {ModelId} ({Rate:F3}/min)", 
-                        modelId, recentExceptions);
+                    HighExceptionRate(_logger, modelId, recentExceptions, null);
                     
                     shouldQuarantine = true;
                 }
@@ -440,13 +438,11 @@ public class ModelQuarantineManager : IQuarantineManager
                 healthState.QuarantineReason = reason;
                 healthState.QuarantinedAt = DateTime.UtcNow;
                 
-                _logger.LogWarning("[QUARANTINE] State transition: {ModelId} {From} -> {To} (reason: {Reason})", 
-                    modelId, previousState, newState, reason);
+                StateTransitionWarning(_logger, modelId, previousState.ToString(), newState.ToString(), reason.ToString(), null);
             }
             else
             {
-                _logger.LogInformation("[QUARANTINE] State transition: {ModelId} {From} -> {To}", 
-                    modelId, previousState, newState);
+                StateTransitionInfo(_logger, modelId, previousState.ToString(), newState.ToString(), null);
             }
         }
     }
@@ -633,8 +629,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     }
                 }
 
-                _logger.LogInformation("[QUARANTINE] Loaded quarantine state with {Models} models", 
-                    state.ModelHealth.Count);
+                StateLoaded(_logger, state.ModelHealth.Count, null);
             }
         }
         catch (Exception ex)

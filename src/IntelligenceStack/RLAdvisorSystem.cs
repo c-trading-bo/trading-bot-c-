@@ -100,6 +100,83 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, string, Exception?> BacktestingStarted =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(4015, "BacktestingStarted"),
             "[RL_ADVISOR] Starting backtesting for {Symbol}");
+
+    // Additional LoggerMessage delegates for remaining CA1848 violations
+    private static readonly Action<ILogger, string, int, double, Exception?> AgentTrainingCompleted =
+        LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4016, "AgentTrainingCompleted"),
+            "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4017, "HistoricalTrainingFailed"),
+            "[RL_ADVISOR] Historical training failed for {Symbol}");
+
+    private static readonly Action<ILogger, string, int, Exception?> MinimumShadowDecisionsReached =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4018, "MinimumShadowDecisionsReached"),
+            "[RL_ADVISOR] Agent {Agent} has reached minimum shadow decisions: {Count}");
+
+    private static readonly Action<ILogger, Exception?> CheckingProvenUplift =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4019, "CheckingProvenUplift"),
+            "[RL_ADVISOR] Checking for proven uplift to enable order influence");
+
+    private static readonly Action<ILogger, double, Exception?> OrderInfluenceEnabled =
+        LoggerMessage.Define<double>(LogLevel.Information, new EventId(4020, "OrderInfluenceEnabled"),
+            "[RL_ADVISOR] ✅ Enabled order influence - proven uplift: {EdgeBps:F1} bps");
+
+    private static readonly Action<ILogger, double, Exception?> OrderInfluenceDisabled =
+        LoggerMessage.Define<double>(LogLevel.Warning, new EventId(4021, "OrderInfluenceDisabled"),
+            "[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps");
+
+    private static readonly Action<ILogger, Exception?> ProvenUpliftCheckFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4022, "ProvenUpliftCheckFailed"),
+            "[RL_ADVISOR] Failed to check for proven uplift");
+
+    private static readonly Action<ILogger, int, string, DateTime, DateTime, Exception?> TrainingEpisodesGenerated =
+        LoggerMessage.Define<int, string, DateTime, DateTime>(LogLevel.Information, new EventId(4023, "TrainingEpisodesGenerated"),
+            "[RL_ADVISOR] Generated {EpisodeCount} training episodes for {Symbol} from {Start} to {End}");
+
+    private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataSDK =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4024, "LoadingHistoricalDataSDK"),
+            "[RL_ADVISOR] Loading historical data via SDK adapter for {Symbol}");
+
+    private static readonly Action<ILogger, Exception?> SDKBridgeScriptNotFound =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4025, "SDKBridgeScriptNotFound"),
+            "[RL_ADVISOR] SDK bridge script not found, using fallback data");
+
+    private static readonly Action<ILogger, Exception?> SDKBridgeStartFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4026, "SDKBridgeStartFailed"),
+            "[RL_ADVISOR] Failed to start SDK bridge process");
+
+    private static readonly Action<ILogger, int, string, Exception?> SDKBridgeExitCode =
+        LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(4027, "SDKBridgeExitCode"),
+            "[RL_ADVISOR] SDK bridge returned exit code {ExitCode}: {Error}");
+
+    private static readonly Action<ILogger, Exception?> SDKBridgeEmptyOutput =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4028, "SDKBridgeEmptyOutput"),
+            "[RL_ADVISOR] SDK bridge returned empty output");
+
+    private static readonly Action<ILogger, string, Exception?> BarDataParseFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4029, "BarDataParseFailed"),
+            "[RL_ADVISOR] Failed to parse bar data: {Error}");
+
+    private static readonly Action<ILogger, int, string, Exception?> HistoricalDataLoaded =
+        LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(4030, "HistoricalDataLoaded"),
+            "[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> HistoricalDataLoadFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "HistoricalDataLoadFailed"),
+            "[RL_ADVISOR] Failed to load historical data via SDK adapter for {Symbol}");
+
+    private static readonly Action<ILogger, Exception?> SaveTrainingResultFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4032, "SaveTrainingResultFailed"),
+            "[RL_ADVISOR] Failed to save training result");
+
+    private static readonly Action<ILogger, bool, Exception?> StateLoaded =
+        LoggerMessage.Define<bool>(LogLevel.Information, new EventId(4033, "StateLoaded"),
+            "[RL_ADVISOR] Loaded state - order influence: {Enabled}");
+
+    private static readonly Action<ILogger, Exception?> StateLoadFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4034, "StateLoadFailed"),
+            "[RL_ADVISOR] Failed to load state");
             
     // Action mapping constants for S109 compliance
     private const int ActionHold = 0;
