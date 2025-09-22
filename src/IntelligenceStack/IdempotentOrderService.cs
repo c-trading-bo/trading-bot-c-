@@ -476,7 +476,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         // Simulate async audit logging to external system
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        OrderKeyGenerated(_logger, orderKey[..8], request.Symbol, request.Side.ToString(), priceBucket, null);
+        OrderKeyGenerated(_logger, orderKey[..8], request.Symbol, request.Side.ToString(), (double)priceBucket, null);
     }
 
     private sealed class OrderRecord
