@@ -27,6 +27,18 @@ public class RLAdvisorSystem
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     
+    // Additional S109 constants for RL advisor operations
+    private const int MaxDecisionHistoryCount = 1000;
+    private const double QuickExitThresholdMinutes = 30;
+    private const double QuickExitBonus = 0.1;
+    private const double LongHoldThresholdHours = 8;
+    private const double LongHoldPenalty = -0.1;
+    private const double SmallLearningRate = 0.02;
+    private const double ModerateLearningRate = 0.1;
+    private const double HighLearningRate = 0.2;
+    private const int MinRequiredSamples = 2;
+    private const int LargeStateSpaceSize = 4000;
+    
     // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
     private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
         LoggerMessage.Define<string, ExitAction, double>(LogLevel.Debug, new EventId(4001, "RecommendationGenerated"),
@@ -438,7 +450,7 @@ public class RLAdvisorSystem
             decisions.Add(decision);
             
             // Keep only recent decisions
-            if (_decisionHistory[agentKey].Count > 1000)
+            if (_decisionHistory[agentKey].Count > MaxDecisionHistoryCount)
             {
                 _decisionHistory[agentKey].RemoveAt(0);
             }
@@ -484,13 +496,13 @@ public class RLAdvisorSystem
         
         // Add timing bonus/penalty
         var timingBonus = 0.0;
-        if (outcome.TimeToExit.TotalMinutes < 30)
+        if (outcome.TimeToExit.TotalMinutes < QuickExitThresholdMinutes)
         {
-            timingBonus = 0.1; // Bonus for quick profitable exits
+            timingBonus = QuickExitBonus; // Bonus for quick profitable exits
         }
-        else if (outcome.TimeToExit.TotalHours > 8)
+        else if (outcome.TimeToExit.TotalHours > LongHoldThresholdHours)
         {
-            timingBonus = -0.1; // Penalty for very long holds
+            timingBonus = LongHoldPenalty; // Penalty for very long holds
         }
         
         // Add volatility adjustment
@@ -498,9 +510,9 @@ public class RLAdvisorSystem
         
         // CVaR penalty for high-risk scenarios
         var cvarPenalty = 0.0;
-        if (decision.Context.UsesCVaR && outcome.MaxDrawdownDuringExit > 0.02)
+        if (decision.Context.UsesCVaR && outcome.MaxDrawdownDuringExit > SmallLearningRate)
         {
-            cvarPenalty = -0.2; // CVaR agents should avoid high drawdown scenarios
+            cvarPenalty = -HighLearningRate; // CVaR agents should avoid high drawdown scenarios
         }
         
         return baseReward + timingBonus - volAdjustment + cvarPenalty;
@@ -513,7 +525,7 @@ public class RLAdvisorSystem
         return action.ActionType switch
         {
             1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
-            2 => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
+            ActionFullExit => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
             _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
         };
     }
@@ -749,7 +761,7 @@ public class RLAdvisorSystem
             {
                 Timestamp = current,
                 Symbol = symbol,
-                Price = 4000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
+                Price = LargeStateSpaceSize + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
                 Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100, 1000),
                 Volatility = 0.01 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 20) / 1000.0)
             });
@@ -820,7 +832,7 @@ public class RLAdvisorSystem
     {
         return new double[]
         {
-            dataPoint.Price / 4000.0 - 1.0, // Normalized price
+            dataPoint.Price / LargeStateSpaceSize - 1.0, // Normalized price
             dataPoint.Volume / 500.0 - 1.0, // Normalized volume
             dataPoint.Volatility * 100, // Volatility in basis points
             Math.Sin(dataPoint.Timestamp.Hour * Math.PI / 12), // Time of day feature
