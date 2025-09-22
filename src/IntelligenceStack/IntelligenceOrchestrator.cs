@@ -33,11 +33,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BearishThreshold = 0.45;
     
     // S109 Magic Number Constants - Intelligence Orchestrator
-    private const double DefaultSpreadValue = 0.0;
-    private const double DefaultVolumeValue = 0.0;
-    private const double BaseConfidenceValue = 0.5;
-    private const double SpreadFactorMultiplier = 0.1;
-    private const double VolumeFactorDivisor = 10000.0;
+
+
+
+
+
     private const double DefaultRegimeConfidence = 0.5;
     private const double DefaultPriceFeature = 0.0;
     private const double DefaultVolumeFeature = 0.0;
@@ -55,11 +55,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const int RandomIdMax = 9999;
     private const int MaintenanceHour = 2;
     private const int MaintenanceMinute = 30;
-    private const double DefaultFeatureWeight = 1.0;
-    private const double LowValueThreshold = 0.5;
-    private const double DefaultPrice = 4500.0;
-    private const double DefaultVolume = 1000.0;
-    private const double DefaultBid = 4499.75;
+
+
+
+
+
     private const double DefaultAsk = 4500.25;
     private const double DefaultOpen = 4500.0;
     private const double DefaultHigh = 4502.0;
@@ -419,9 +419,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)
+    public Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)
     {
-        return await _startupValidator.ValidateSystemAsync(cancellationToken).ConfigureAwait(false);
+        return _startupValidator.ValidateSystemAsync(cancellationToken);
     }
 
     public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData data, CancellationToken cancellationToken = default)
@@ -522,32 +522,32 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
     }
 
-    public async Task RunMLModelsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task RunMLModelsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         RunningMLModels(_logger, null);
         // Implementation for ML model execution
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         UpdatingRLTraining(_logger, null);
         // Implementation for RL training updates
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         GeneratingPredictions(_logger, null);
         // Implementation for prediction generation
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         AnalyzingCorrelations(_logger, null);
         // Implementation for correlation analysis
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     #endregion
@@ -877,9 +877,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Alternative method name for backwards compatibility
     /// </summary>
-    public async Task<MLPrediction?> GetLivePredictionAsync(string symbol, string strategyId, CancellationToken cancellationToken = default)
+    public Task<MLPrediction?> GetLivePredictionAsync(string symbol, string strategyId, CancellationToken cancellationToken = default)
     {
-        return await GetOnlinePredictionAsync(symbol, strategyId, cancellationToken).ConfigureAwait(false);
+        return GetOnlinePredictionAsync(symbol, strategyId, cancellationToken);
     }
 
     private double CalculatePositionSize(double confidence)

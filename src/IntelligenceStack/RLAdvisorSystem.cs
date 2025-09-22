@@ -60,26 +60,26 @@ public class RLAdvisorSystem
     private const double LongTimeInPositionHours = 4.0;
     
     // Additional S109 constants for RL system
-    private const int MaxStateDimensions = 1000; // Maximum state vector dimensions
-    private const int DefaultTimestepsPerEpoch = 30; // Default timesteps per training epoch
-    private const double MinimumActionThreshold = 0.1; // Minimum action value threshold
-    private const int DefaultActionSpace = 8; // Default action space size
-    private const double ExplorationNoiseScale = 0.02; // Scale for exploration noise
-    private const double BaselineDiscount = 0.2; // Baseline discount factor
-    private const double DivergenceThreshold = 2.0; // Divergence threshold for policy update
-    private const double LearningRateDecay = 0.1; // Learning rate decay factor
-    private const int DefaultStateBufferSize = 4000; // Default state buffer size
-    private const int DefaultActionBufferSize = 200; // Default action buffer size
-    private const int DefaultRewardBufferSize = 100; // Default reward buffer size
-    private const int MaxRewardBufferSize = 1000; // Maximum reward buffer size
-    private const double DefaultLearningRate = 0.01; // Default learning rate
-    private const int DefaultEpisodeLength = 20; // Default episode length
-    private const int MaxEpisodeLength = 1000; // Maximum episode length
-    private const double PolicyUpdateInterval = 240.0; // Policy update interval in minutes
-    private const double ValueUpdateInterval = 120.0; // Value update interval in minutes
-    private const int MaxMemorySize = 500; // Maximum memory size
-    private const int DefaultBatchSize = 100; // Default batch size for training
-    private const int ObservationWindowHours = 12; // Observation window in hours
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private const double RewardScalingFactor = 2.0; // Reward scaling factor
     
     private readonly ILogger<RLAdvisorSystem> _logger;

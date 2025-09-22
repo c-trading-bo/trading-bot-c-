@@ -38,10 +38,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             "[IDEMPOTENT] Registered order: {OrderKey} -> {OrderId}");
             
     // Additional LoggerMessage delegates for CA1848 compliance
-    private static readonly Action<ILogger, string, Exception?> DuplicateOrderWarning =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1004, "DuplicateOrderWarning"),
-            "[IDEMPOTENT] Duplicate order detected for key: {OrderKey}");
-            
+
     private static readonly Action<ILogger, string, DateTime, Exception?> DuplicateOrderWithTimestamp =
         LoggerMessage.Define<string, DateTime>(LogLevel.Warning, new EventId(1013, "DuplicateOrderWithTimestamp"),
             "[IDEMPOTENT] Duplicate order detected: {OrderKey} (first seen: {FirstSeen})");
@@ -50,14 +47,8 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(1005, "OrderExecutionFailed"),
             "[IDEMPOTENT] Failed to execute order for key: {OrderKey}");
             
-    private static readonly Action<ILogger, string, Exception?> OrderLookupWarning =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1006, "OrderLookupWarning"),
-            "[IDEMPOTENT] Order lookup failed for key: {OrderKey}");
-            
-    private static readonly Action<ILogger, int, Exception?> OrderCleanupInfo =
-        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1007, "OrderCleanupInfo"),
-            "[IDEMPOTENT] Cleaned up {Count} expired orders");
-            
+
+
     private static readonly Action<ILogger, Exception?> OrderCleanupFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(1008, "OrderCleanupFailed"),
             "[IDEMPOTENT] Failed to cleanup expired orders");
@@ -66,18 +57,12 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1009, "OrderPersistenceWarning"),
             "[IDEMPOTENT] Failed to persist order state for key: {OrderKey}");
             
-    private static readonly Action<ILogger, int, Exception?> OrderStatePersisted =
-        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1010, "OrderStatePersisted"),
-            "[IDEMPOTENT] Persisted {Count} order records to disk");
-            
+
     private static readonly Action<ILogger, Exception?> OrderStateLoadFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(1011, "OrderStateLoadFailed"),
             "[IDEMPOTENT] Failed to load order state from disk");
             
-    private static readonly Action<ILogger, int, Exception?> OrdersCleanedFromMemory =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(1012, "OrdersCleanedFromMemory"),
-            "[IDEMPOTENT] Cleaned {Count} expired orders from memory");
-            
+
     private static readonly Action<ILogger, string, Exception?> MaxRetryAttemptsExceeded =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1014, "MaxRetryAttemptsExceeded"),
             "[IDEMPOTENT] Max retry attempts exceeded for order: {OrderKey}");
@@ -463,14 +448,14 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     /// <summary>
     /// Async hash computation for production systems
     /// </summary>
-    private static async Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
+    private static Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             using var sha256 = SHA256.Create();
             var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(hash).ToLowerInvariant();
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     /// <summary>

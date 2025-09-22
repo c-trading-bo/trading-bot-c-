@@ -41,6 +41,9 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
         LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
 
+    // JSON serializer options for CA1869 compliance
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+
 
 
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
@@ -230,7 +233,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     {
         try
         {
-            var json = JsonSerializer.Serialize(lockData, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(lockData, SerializerOptions);
             
             // Use atomic write operation
             var tempPath = _lockPath + ".tmp";

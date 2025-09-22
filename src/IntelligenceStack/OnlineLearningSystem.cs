@@ -63,7 +63,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const int MarketHoursEnd = 16;
     private const int OvernightStart = 18;
     private const int OvernightEnd = 23;
-    private const int PauseMinutesForBreach = 5;
+
     private const double DefaultF1Score = 0.6;
     private const double EpsilonForDivisionCheck = 1e-10;
     
