@@ -425,8 +425,7 @@ public class RLAdvisorSystem
                 var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken).ConfigureAwait(false);
                 result.AgentResults[agentType] = agentResult;
                 
-                _logger.LogInformation("[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}", 
-                    agentType, agentResult.EpisodesProcessed, agentResult.FinalAverageReward);
+                AgentTrainingCompleted(_logger, agentType.ToString(), agentResult.EpisodesProcessed, agentResult.FinalAverageReward, null);
             }
 
             result.Success = true;
@@ -438,7 +437,7 @@ public class RLAdvisorSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Historical training failed for {Symbol}", symbol);
+            HistoricalTrainingFailed(_logger, symbol, ex);
             return new RLTrainingResult 
             { 
                 Symbol = symbol, 
@@ -597,8 +596,7 @@ public class RLAdvisorSystem
         
         if (decisions.Count >= _config.ShadowMinDecisions && !_orderInfluenceEnabled)
         {
-            _logger.LogInformation("[RL_ADVISOR] Agent {Agent} has reached minimum shadow decisions: {Count}", 
-                agentKey, decisions.Count);
+            MinimumShadowDecisionsReached(_logger, agentKey, decisions.Count, null);
         }
     }
 
