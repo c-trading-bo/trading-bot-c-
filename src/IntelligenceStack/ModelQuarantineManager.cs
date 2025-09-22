@@ -16,6 +16,14 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ModelQuarantineManager : IQuarantineManager
 {
+    // Constants for magic number violations (S109)
+    private const int HealthCheckDelayMs = 15;
+    private const int DefaultHistoryLimit = 100;
+    private const double HighPerformanceThreshold = 0.1;
+    private const double MediumPerformanceThreshold = 0.05;
+    private const double LowPerformanceThreshold = 0.02;
+    private const double ConfidenceThreshold = 0.8;
+    
     private readonly ILogger<ModelQuarantineManager> _logger;
     private readonly QuarantineConfig _config;
     private readonly string _statePath;
@@ -47,7 +55,7 @@ public class ModelQuarantineManager : IQuarantineManager
             await Task.Run(async () =>
             {
                 // Simulate async health check with external model monitoring API
-                await Task.Delay(15, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(HealthCheckDelayMs, cancellationToken).ConfigureAwait(false);
             }, cancellationToken).ConfigureAwait(false);
             
             lock (_lock)
@@ -221,7 +229,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 history.Add(performance);
 
                 // Keep only recent history (last 100 records)
-                if (history.Count > 100)
+                if (history.Count > DefaultHistoryLimit)
                 {
                     history.RemoveAt(0);
                 }
@@ -376,19 +384,19 @@ public class ModelQuarantineManager : IQuarantineManager
     private static HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue)
     {
         // Check for quarantine conditions (most severe)
-        if (brierDelta > 0.1 || hitRateDelta > 0.1 || latencyIssue) // Brier increase of 0.1 or hit rate drop of 0.1
+        if (brierDelta > HighPerformanceThreshold || hitRateDelta > HighPerformanceThreshold || latencyIssue) // Brier increase or hit rate drop threshold
         {
             return HealthState.Quarantine;
         }
 
         // Check for degrade conditions
-        if (brierDelta > 0.05 || hitRateDelta > 0.05) // Brier increase of 0.05 or hit rate drop of 0.05
+        if (brierDelta > MediumPerformanceThreshold || hitRateDelta > MediumPerformanceThreshold) // Brier increase or hit rate drop threshold
         {
             return HealthState.Degrade;
         }
 
         // Check for watch conditions
-        if (brierDelta > 0.02 || hitRateDelta > 0.02) // Brier increase of 0.02 or hit rate drop of 0.02
+        if (brierDelta > LowPerformanceThreshold || hitRateDelta > LowPerformanceThreshold) // Brier increase or hit rate drop threshold
         {
             return HealthState.Watch;
         }

@@ -27,6 +27,18 @@ public class RLAdvisorSystem
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     
+    // Additional S109 constants for RL advisor operations
+    private const int MaxDecisionHistoryCount = 1000;
+    private const double QuickExitThresholdMinutes = 30;
+    private const double QuickExitBonus = 0.1;
+    private const double LongHoldThresholdHours = 8;
+    private const double LongHoldPenalty = -0.1;
+    private const double SmallLearningRate = 0.02;
+    private const double ModerateLearningRate = 0.1;
+    private const double HighLearningRate = 0.2;
+    private const int MinRequiredSamples = 2;
+    private const int LargeStateSpaceSize = 4000;
+    
     // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
     private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
         LoggerMessage.Define<string, ExitAction, double>(LogLevel.Debug, new EventId(4001, "RecommendationGenerated"),
@@ -47,6 +59,47 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, string, Exception?> OutcomeUpdateFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "OutcomeUpdateFailed"),
             "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}");
+
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> HistoricalTrainingStarted =
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(4006, "HistoricalTrainingStarted"),
+            "[RL_ADVISOR] Starting historical training for {Symbol}: {Start} to {End}");
+
+    private static readonly Action<ILogger, int, Exception?> TrainingEpisodesGenerated =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4007, "TrainingEpisodesGenerated"),
+            "[RL_ADVISOR] Generated {Count} training episodes");
+
+    private static readonly Action<ILogger, string, int, double, Exception?> AgentTrained =
+        LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4008, "AgentTrained"),
+            "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4009, "HistoricalTrainingFailed"),
+            "[RL_ADVISOR] Historical training failed for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelSavingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4010, "ModelSavingStarted"),
+            "[RL_ADVISOR] Saving trained models for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelCheckingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4011, "ModelCheckingStarted"),
+            "[RL_ADVISOR] Checking/loading existing models for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ExistingModelLoaded =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4012, "ExistingModelLoaded"),
+            "[RL_ADVISOR] Loaded existing model for {AgentKey}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelLoadWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4013, "ModelLoadWarning"),
+            "[RL_ADVISOR] Model file exists but loading failed for {AgentKey}, will retrain");
+
+    private static readonly Action<ILogger, Exception?> ModelCheckingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4014, "ModelCheckingFailed"),
+            "[RL_ADVISOR] Failed to check/load existing models");
+
+    private static readonly Action<ILogger, string, Exception?> BacktestingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4015, "BacktestingStarted"),
+            "[RL_ADVISOR] Starting backtesting for {Symbol}");
             
     // Action mapping constants for S109 compliance
     private const int ActionHold = 0;
@@ -272,8 +325,7 @@ public class RLAdvisorSystem
     {
         try
         {
-            _logger.LogInformation("[RL_ADVISOR] Starting historical training for {Symbol}: {Start} to {End}", 
-                symbol, startDate, endDate);
+            HistoricalTrainingStarted(_logger, symbol, startDate, endDate, null);
 
             var result = new RLTrainingResult
             {
@@ -287,7 +339,7 @@ public class RLAdvisorSystem
             var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false);
             
             result.EpisodesGenerated = episodes.Count;
-            _logger.LogInformation("[RL_ADVISOR] Generated {Count} training episodes", episodes.Count);
+            TrainingEpisodesGenerated(_logger, episodes.Count, null);
 
             // Train each agent type
             var agentTypes = Enum.GetValues<RLAgentType>();
@@ -438,7 +490,7 @@ public class RLAdvisorSystem
             decisions.Add(decision);
             
             // Keep only recent decisions
-            if (_decisionHistory[agentKey].Count > 1000)
+            if (_decisionHistory[agentKey].Count > MaxDecisionHistoryCount)
             {
                 _decisionHistory[agentKey].RemoveAt(0);
             }
@@ -484,13 +536,13 @@ public class RLAdvisorSystem
         
         // Add timing bonus/penalty
         var timingBonus = 0.0;
-        if (outcome.TimeToExit.TotalMinutes < 30)
+        if (outcome.TimeToExit.TotalMinutes < QuickExitThresholdMinutes)
         {
-            timingBonus = 0.1; // Bonus for quick profitable exits
+            timingBonus = QuickExitBonus; // Bonus for quick profitable exits
         }
-        else if (outcome.TimeToExit.TotalHours > 8)
+        else if (outcome.TimeToExit.TotalHours > LongHoldThresholdHours)
         {
-            timingBonus = -0.1; // Penalty for very long holds
+            timingBonus = LongHoldPenalty; // Penalty for very long holds
         }
         
         // Add volatility adjustment
@@ -498,9 +550,9 @@ public class RLAdvisorSystem
         
         // CVaR penalty for high-risk scenarios
         var cvarPenalty = 0.0;
-        if (decision.Context.UsesCVaR && outcome.MaxDrawdownDuringExit > 0.02)
+        if (decision.Context.UsesCVaR && outcome.MaxDrawdownDuringExit > SmallLearningRate)
         {
-            cvarPenalty = -0.2; // CVaR agents should avoid high drawdown scenarios
+            cvarPenalty = -HighLearningRate; // CVaR agents should avoid high drawdown scenarios
         }
         
         return baseReward + timingBonus - volAdjustment + cvarPenalty;
@@ -513,7 +565,7 @@ public class RLAdvisorSystem
         return action.ActionType switch
         {
             1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
-            2 => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
+            ActionFullExit => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
             _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
         };
     }
@@ -749,7 +801,7 @@ public class RLAdvisorSystem
             {
                 Timestamp = current,
                 Symbol = symbol,
-                Price = 4000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
+                Price = LargeStateSpaceSize + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
                 Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100, 1000),
                 Volatility = 0.01 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 20) / 1000.0)
             });
@@ -820,7 +872,7 @@ public class RLAdvisorSystem
     {
         return new double[]
         {
-            dataPoint.Price / 4000.0 - 1.0, // Normalized price
+            dataPoint.Price / LargeStateSpaceSize - 1.0, // Normalized price
             dataPoint.Volume / 500.0 - 1.0, // Normalized volume
             dataPoint.Volatility * 100, // Volatility in basis points
             Math.Sin(dataPoint.Timestamp.Hour * Math.PI / 12), // Time of day feature

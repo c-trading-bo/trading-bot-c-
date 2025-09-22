@@ -101,6 +101,55 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private static readonly Action<ILogger, string, Exception?> WeightUpdateSkipped =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6019, "WeightUpdateSkipped"),
             "[ONLINE] Skipping weight update - too frequent: {Regime}");
+
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, double, Exception?> FeatureDriftDetected =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(6020, "FeatureDriftDetected"),
+            "[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> DriftDetectionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6021, "DriftDetectionFailed"),
+            "[ONLINE] Failed to detect drift for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, string, string, int, decimal, Exception?> ProcessingTradeRecord =
+        LoggerMessage.Define<string, string, string, int, decimal>(LogLevel.Debug, new EventId(6022, "ProcessingTradeRecord"),
+            "[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}");
+
+    private static readonly Action<ILogger, string, string, string, double, Exception?> ModelUpdateCompleted =
+        LoggerMessage.Define<string, string, string, double>(LogLevel.Information, new EventId(6023, "ModelUpdateCompleted"),
+            "[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6024, "ModelUpdateFailed"),
+            "[ONLINE] Failed to update model with trade record: {TradeId}");
+
+    private static readonly Action<ILogger, string, Exception?> WeightsRolledBack =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(6025, "WeightsRolledBack"),
+            "[ONLINE] Rolled back weights for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> RollbackFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6026, "RollbackFailed"),
+            "[ONLINE] Failed to rollback weights for model: {ModelId}");
+
+    private static readonly Action<ILogger, int, Exception?> StateLoaded =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(6027, "StateLoaded"),
+            "[ONLINE] Loaded online learning state with {Regimes} regimes");
+
+    private static readonly Action<ILogger, Exception?> StateLoadFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6028, "StateLoadFailed"),
+            "[ONLINE] Failed to load online learning state");
+
+    private static readonly Action<ILogger, Exception?> StateSaveFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6029, "StateSaveFailed"),
+            "[ONLINE] Failed to save online learning state");
+
+    private static readonly Action<ILogger, string, Exception?> ConfidenceExtractionFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(6030, "ConfidenceExtractionFailed"),
+            "Failed to extract confidence for trade {TradeId}, using calculated value");
+
+    private static readonly Action<ILogger, Exception?> ConfidenceCalculationFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6031, "ConfidenceCalculationFailed"),
+            "Failed to calculate confidence from trade data, using conservative estimate");
     
     private readonly ILogger<OnlineLearningSystem> _logger;
     private readonly MetaLearningConfig _config;
@@ -335,8 +384,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 
                 if (driftScore > DriftDetectionThreshold) // Threshold for drift detection
                 {
-                    _logger.LogWarning("[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}", 
-                        modelId, driftScore);
+                    FeatureDriftDetected(_logger, modelId, driftScore, null);
                     
                     // Reset baseline to new distribution
                     driftState.BaselineFeatures.Clear();
@@ -355,7 +403,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to detect drift for model: {ModelId}", modelId);
+            DriftDetectionFailed(_logger, modelId, ex);
         }
     }
 
@@ -780,6 +828,39 @@ public class SloMonitor
     private const double DefaultRetryCount3 = 3.0;
     private const double PercentageDivisor = 100.0;
     
+    // LoggerMessage delegates for CA1848 compliance - SloMonitor
+    private static readonly Action<ILogger, string, Exception?> SloObjectDisposedError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8001, "SloObjectDisposedError"),
+            "[SLO] Object disposed while recording error: {ErrorType}");
+
+    private static readonly Action<ILogger, string, Exception?> SloInvalidOperationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8002, "SloInvalidOperationError"),
+            "[SLO] Invalid operation recording error: {ErrorType}");
+
+    private static readonly Action<ILogger, string, Exception?> SloArgumentError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(8003, "SloArgumentError"),
+            "[SLO] Invalid argument recording error: {ErrorType}");
+
+    private static readonly Action<ILogger, string, double, Exception?> SloLatencyObjectDisposedError =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(8004, "SloLatencyObjectDisposedError"),
+            "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms");
+
+    private static readonly Action<ILogger, string, double, Exception?> SloLatencyInvalidOperationError =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(8005, "SloLatencyInvalidOperationError"),
+            "[SLO] Invalid operation recording latency for {MetricType}: {Latency}ms");
+
+    private static readonly Action<ILogger, string, double, Exception?> SloLatencyArgumentError =
+        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(8006, "SloLatencyArgumentError"),
+            "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms");
+
+    private static readonly Action<ILogger, Exception?> SloErrorBudgetInvalidOperationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(8007, "SloErrorBudgetInvalidOperationError"),
+            "[SLO] Invalid operation checking error budget");
+
+    private static readonly Action<ILogger, Exception?> SloErrorBudgetArgumentError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(8008, "SloErrorBudgetArgumentError"),
+            "[SLO] Invalid argument checking error budget");
+    
     private readonly ILogger<SloMonitor> _logger;
     private readonly SloConfig _config;
     private readonly Dictionary<string, List<double>> _latencyHistory = new();
@@ -818,15 +899,15 @@ public class SloMonitor
         }
         catch (ObjectDisposedException ex)
         {
-            _logger.LogError(ex, "[SLO] Object disposed while recording error: {ErrorType}", errorType);
+            SloObjectDisposedError(_logger, errorType, ex);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[SLO] Invalid operation recording error: {ErrorType}", errorType);
+            SloInvalidOperationError(_logger, errorType, ex);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[SLO] Invalid argument recording error: {ErrorType}", errorType);
+            SloArgumentError(_logger, errorType, ex);
         }
     }
 

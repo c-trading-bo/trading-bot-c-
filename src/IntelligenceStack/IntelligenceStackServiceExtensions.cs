@@ -174,6 +174,110 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(7002, "VerificationWarning"),
             "⚠️ [PRODUCTION-VERIFICATION] {Warning}");
 
+    private static readonly Action<ILogger, string, Exception?> ProductionVerificationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7003, "ProductionVerificationError"),
+            "❌ [PRODUCTION-VERIFICATION] {Error}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> ProductionServiceVerified =
+        LoggerMessage.Define<string, string, string>(LogLevel.Information, new EventId(7004, "ProductionServiceVerified"),
+            "✅ [PRODUCTION-VERIFICATION] {ServiceName} -> {ImplementationType} from {AssemblyName} (PRODUCTION)");
+
+    private static readonly Action<ILogger, string, Exception?> ProductionVerificationErrorWithException =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7005, "ProductionVerificationErrorWithException"),
+            "❌ [PRODUCTION-VERIFICATION] {Error}");
+
+    private static readonly Action<ILogger, Exception?> AllServicesProductionReady =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7006, "AllServicesProductionReady"),
+            "✅ [PRODUCTION-VERIFICATION] All intelligence services are PRODUCTION-READY with ZERO mock implementations");
+
+    private static readonly Action<ILogger, int, int, int, Exception?> SystemVerificationSummary =
+        LoggerMessage.Define<int, int, int>(LogLevel.Information, new EventId(7007, "SystemVerificationSummary"),
+            "🎯 [PRODUCTION-PROOF] System verified: {ServiceCount} production services, {ErrorCount} errors, {WarningCount} warnings");
+
+    private static readonly Action<ILogger, Exception?> ProductionVerificationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(7008, "ProductionVerificationFailed"),
+            "❌ [PRODUCTION-VERIFICATION] FAILED - System contains mock implementations and is NOT production-ready");
+
+    private static readonly Action<ILogger, string, Exception?> ProductionVerificationErrorDetail =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(7009, "ProductionVerificationErrorDetail"),
+            "   - {Error}");
+
+    private static readonly Action<ILogger, Exception?> ServiceRegistryHeader =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7010, "ServiceRegistryHeader"),
+            "📋 [SERVICE-REGISTRY] Intelligence Stack Service Registrations - ALL PRODUCTION:");
+
+    private static readonly Action<ILogger, Exception?> RegimeDetectorRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7011, "RegimeDetectorRegistration"),
+            "  ✅ RegimeDetector: RegimeDetectorWithHysteresis (PRODUCTION - Real ML regime detection)");
+
+    private static readonly Action<ILogger, Exception?> FeatureStoreRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7012, "FeatureStoreRegistration"),
+            "  ✅ FeatureStore: FeatureStore (PRODUCTION - Persistent feature storage)");
+
+    private static readonly Action<ILogger, Exception?> ModelRegistryRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7013, "ModelRegistryRegistration"),
+            "  ✅ ModelRegistry: ModelRegistry (PRODUCTION - Real model versioning)");
+
+    private static readonly Action<ILogger, Exception?> CalibrationManagerRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7014, "CalibrationManagerRegistration"),
+            "  ✅ CalibrationManager: CalibrationManager (PRODUCTION - Statistical calibration)");
+
+    private static readonly Action<ILogger, Exception?> OnlineLearningSystemRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7015, "OnlineLearningSystemRegistration"),
+            "  ✅ OnlineLearningSystem: OnlineLearningSystem (PRODUCTION - Real adaptation algorithms)");
+
+    private static readonly Action<ILogger, Exception?> QuarantineManagerRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7016, "QuarantineManagerRegistration"),
+            "  ✅ QuarantineManager: ModelQuarantineManager (PRODUCTION - Risk-based quarantine)");
+
+    private static readonly Action<ILogger, Exception?> DecisionLoggerRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7017, "DecisionLoggerRegistration"),
+            "  ✅ DecisionLogger: DecisionLogger (PRODUCTION - Persistent decision logging)");
+
+    private static readonly Action<ILogger, Exception?> IdempotentOrderServiceRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7018, "IdempotentOrderServiceRegistration"),
+            "  ✅ IdempotentOrderService: IdempotentOrderService (PRODUCTION - Real deduplication)");
+
+    private static readonly Action<ILogger, Exception?> LeaderElectionServiceRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7019, "LeaderElectionServiceRegistration"),
+            "  ✅ LeaderElectionService: LeaderElectionService (PRODUCTION - Distributed consensus)");
+
+    private static readonly Action<ILogger, Exception?> StartupValidatorRegistration =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7020, "StartupValidatorRegistration"),
+            "  ✅ StartupValidator: StartupValidator (PRODUCTION - Comprehensive validation)");
+
+    private static readonly Action<ILogger, Exception?> ZeroMockServicesConfirmed =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7021, "ZeroMockServicesConfirmed"),
+            "🚀 [VERIFICATION] ZERO mock services registered - System is 100% PRODUCTION-READY");
+
+    private static readonly Action<ILogger, Exception?> RuntimeProofStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7022, "RuntimeProofStarted"),
+            "🔬 [RUNTIME-PROOF] Providing concrete runtime evidence of production services...");
+
+    private static readonly Action<ILogger, string, double, Exception?> RegimeDetectorProof =
+        LoggerMessage.Define<string, double>(LogLevel.Information, new EventId(7023, "RegimeDetectorProof"),
+            "🔬 [RUNTIME-PROOF] RegimeDetector.DetectCurrentRegimeAsync() -> Type: {RegimeType}, Confidence: {Confidence:F2}");
+
+    private static readonly Action<ILogger, string, int, Exception?> FeatureStoreProof =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(7024, "FeatureStoreProof"),
+            "🔬 [RUNTIME-PROOF] FeatureStore.GetFeaturesAsync() -> Features for {Symbol}: {FeatureCount} features");
+
+    private static readonly Action<ILogger, string, string, Exception?> ModelRegistryProof =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(7025, "ModelRegistryProof"),
+            "🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> Model ID: {ModelId}, Version: {Version}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelRegistryNoModelInfo =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(7026, "ModelRegistryNoModelInfo"),
+            "🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> No test model found (expected): {Message}");
+
+    private static readonly Action<ILogger, Exception?> AllServicesRuntimeVerified =
+        LoggerMessage.Define(LogLevel.Information, new EventId(7027, "AllServicesRuntimeVerified"),
+            "✅ [RUNTIME-PROOF] All services responded with real implementations - NO mock behavior detected");
+
+    private static readonly Action<ILogger, Exception?> RuntimeVerificationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(7028, "RuntimeVerificationError"),
+            "❌ [RUNTIME-PROOF] Error during runtime verification");
+
     
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<IntelligenceStackVerificationService> _logger;
@@ -225,14 +329,13 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                     if (isMock)
                     {
                         var error = $"CRITICAL ERROR: Service {serviceName} uses SIMULATION implementation: {typeName} from {assemblyName}";
-                        _logger.LogError("❌ [PRODUCTION-VERIFICATION] {Error}", error);
+                        ProductionVerificationError(_logger, error, null);
                         result.Errors.Add(error);
                         result.IsProductionReady = false;
                     }
                     else
                     {
-                        _logger.LogInformation("✅ [PRODUCTION-VERIFICATION] {ServiceName} -> {ImplementationType} from {AssemblyName} (PRODUCTION)", 
-                            serviceName, typeName, assemblyName);
+                        ProductionServiceVerified(_logger, serviceName, typeName, assemblyName, null);
                         result.ProductionServices.Add(serviceName, $"{typeName} ({assemblyName})");
                     }
                 }
@@ -246,7 +349,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             catch (Exception ex)
             {
                 var error = $"Failed to verify service {serviceName}: {ex.Message}";
-                _logger.LogError(ex, "❌ [PRODUCTION-VERIFICATION] {Error}", error);
+                ProductionVerificationErrorWithException(_logger, error, ex);
                 result.Errors.Add(error);
             }
         }
@@ -254,16 +357,15 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         // Log final verification result
         if (result.IsProductionReady)
         {
-            _logger.LogInformation("✅ [PRODUCTION-VERIFICATION] All intelligence services are PRODUCTION-READY with ZERO mock implementations");
-            _logger.LogInformation("🎯 [PRODUCTION-PROOF] System verified: {ServiceCount} production services, {ErrorCount} errors, {WarningCount} warnings", 
-                result.ProductionServices.Count, result.Errors.Count, result.Warnings.Count);
+            AllServicesProductionReady(_logger, null);
+            SystemVerificationSummary(_logger, result.ProductionServices.Count, result.Errors.Count, result.Warnings.Count, null);
         }
         else
         {
-            _logger.LogError("❌ [PRODUCTION-VERIFICATION] FAILED - System contains mock implementations and is NOT production-ready");
+            ProductionVerificationFailed(_logger, null);
             foreach (var error in result.Errors)
             {
-                _logger.LogError("   - {Error}", error);
+                ProductionVerificationErrorDetail(_logger, error, null);
             }
         }
 
@@ -273,23 +375,23 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
 
     public void LogServiceRegistrations()
     {
-        _logger.LogInformation("📋 [SERVICE-REGISTRY] Intelligence Stack Service Registrations - ALL PRODUCTION:");
-        _logger.LogInformation("  ✅ RegimeDetector: RegimeDetectorWithHysteresis (PRODUCTION - Real ML regime detection)");
-        _logger.LogInformation("  ✅ FeatureStore: FeatureStore (PRODUCTION - Persistent feature storage)");
-        _logger.LogInformation("  ✅ ModelRegistry: ModelRegistry (PRODUCTION - Real model versioning)");
-        _logger.LogInformation("  ✅ CalibrationManager: CalibrationManager (PRODUCTION - Statistical calibration)");
-        _logger.LogInformation("  ✅ OnlineLearningSystem: OnlineLearningSystem (PRODUCTION - Real adaptation algorithms)");
-        _logger.LogInformation("  ✅ QuarantineManager: ModelQuarantineManager (PRODUCTION - Risk-based quarantine)");
-        _logger.LogInformation("  ✅ DecisionLogger: DecisionLogger (PRODUCTION - Persistent decision logging)");
-        _logger.LogInformation("  ✅ IdempotentOrderService: IdempotentOrderService (PRODUCTION - Real deduplication)");
-        _logger.LogInformation("  ✅ LeaderElectionService: LeaderElectionService (PRODUCTION - Distributed consensus)");
-        _logger.LogInformation("  ✅ StartupValidator: StartupValidator (PRODUCTION - Comprehensive validation)");
-        _logger.LogInformation("🚀 [VERIFICATION] ZERO mock services registered - System is 100% PRODUCTION-READY");
+        ServiceRegistryHeader(_logger, null);
+        RegimeDetectorRegistration(_logger, null);
+        FeatureStoreRegistration(_logger, null);
+        ModelRegistryRegistration(_logger, null);
+        CalibrationManagerRegistration(_logger, null);
+        OnlineLearningSystemRegistration(_logger, null);
+        QuarantineManagerRegistration(_logger, null);
+        DecisionLoggerRegistration(_logger, null);
+        IdempotentOrderServiceRegistration(_logger, null);
+        LeaderElectionServiceRegistration(_logger, null);
+        StartupValidatorRegistration(_logger, null);
+        ZeroMockServicesConfirmed(_logger, null);
     }
 
     public async Task LogRuntimeProofAsync()
     {
-        _logger.LogInformation("🔬 [RUNTIME-PROOF] Providing concrete runtime evidence of production services...");
+        RuntimeProofStarted(_logger, null);
         
         // Get actual service instances and call real methods to prove they're not mocks
         try
@@ -298,8 +400,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             if (regimeDetector != null)
             {
                 var regime = await regimeDetector.DetectCurrentRegimeAsync().ConfigureAwait(false);
-                _logger.LogInformation("🔬 [RUNTIME-PROOF] RegimeDetector.DetectCurrentRegimeAsync() -> Type: {RegimeType}, Confidence: {Confidence:F2}", 
-                    regime.Type, regime.Confidence);
+                RegimeDetectorProof(_logger, regime.Type.ToString(), regime.Confidence, null);
             }
 
             var featureStore = _serviceProvider.GetService<IFeatureStore>();
@@ -307,8 +408,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             {
                 // Get features for a test symbol to prove it's working
                 var features = await featureStore.GetFeaturesAsync("ES", DateTime.UtcNow.AddHours(-1), DateTime.UtcNow).ConfigureAwait(false);
-                _logger.LogInformation("🔬 [RUNTIME-PROOF] FeatureStore.GetFeaturesAsync() -> Features for {Symbol}: {FeatureCount} features", 
-                    features.Symbol, features.Features.Count);
+                FeatureStoreProof(_logger, features.Symbol, features.Features.Count, null);
             }
 
             var modelRegistry = _serviceProvider.GetService<IModelRegistry>();
@@ -318,20 +418,19 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                 try
                 {
                     var model = await modelRegistry.GetModelAsync("test").ConfigureAwait(false);
-                    _logger.LogInformation("🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> Model ID: {ModelId}, Version: {Version}", 
-                        model.Id, model.Version);
+                    ModelRegistryProof(_logger, model.Id, model.Version, null);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogInformation(ex, "🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> No test model found (expected): {Message}", ex.Message);
+                    ModelRegistryNoModelInfo(_logger, ex.Message, ex);
                 }
             }
 
-            _logger.LogInformation("✅ [RUNTIME-PROOF] All services responded with real implementations - NO mock behavior detected");
+            AllServicesRuntimeVerified(_logger, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [RUNTIME-PROOF] Error during runtime verification");
+            RuntimeVerificationError(_logger, ex);
         }
     }
 }
