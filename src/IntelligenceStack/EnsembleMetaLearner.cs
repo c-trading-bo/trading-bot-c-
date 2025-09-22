@@ -49,6 +49,18 @@ public class EnsembleMetaLearner
         LoggerMessage.Define<RegimeType, int>(LogLevel.Information, new EventId(5003, "TrainingBlendHead"),
             "[ENSEMBLE] Training blend head for regime: {Regime} with {Count} examples");
             
+    private static readonly Action<ILogger, Exception?> SaveStateFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5005, "SaveStateFailed"),
+            "[ENSEMBLE] Failed to save state");
+            
+    private static readonly Action<ILogger, RegimeType, Exception?> StateLoaded =
+        LoggerMessage.Define<RegimeType>(LogLevel.Information, new EventId(5006, "StateLoaded"),
+            "[ENSEMBLE] Loaded ensemble state - current regime: {Regime}");
+            
+    private static readonly Action<ILogger, Exception?> LoadStateFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5007, "LoadStateFailed"),
+            "[ENSEMBLE] Failed to load state");
+            
     private static readonly Action<ILogger, RegimeType, Exception?> TrainingCompleted =
         LoggerMessage.Define<RegimeType>(LogLevel.Information, new EventId(5004, "TrainingCompleted"),
             "[ENSEMBLE] Completed training for regime: {Regime}");
@@ -661,7 +673,7 @@ public class EnsembleMetaLearner
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[ENSEMBLE] Failed to save state");
+            SaveStateFailed(_logger, ex);
         }
     }
 
@@ -693,12 +705,12 @@ public class EnsembleMetaLearner
                     }
                 }
 
-                _logger.LogInformation("[ENSEMBLE] Loaded ensemble state - current regime: {Regime}", _currentRegime);
+                StateLoaded(_logger, _currentRegime, null);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[ENSEMBLE] Failed to load state");
+            LoadStateFailed(_logger, ex);
         }
     }
 }
@@ -708,6 +720,11 @@ public class EnsembleMetaLearner
 /// </summary>
 public class RegimeBlendHead
 {
+    // LoggerMessage delegate for CA1848 compliance - RegimeBlendHead
+    private static readonly Action<ILogger, RegimeType, int, double, Exception?> RegimeHeadTrained =
+        LoggerMessage.Define<RegimeType, int, double>(LogLevel.Debug, new EventId(5014, "RegimeHeadTrained"),
+            "[REGIME_HEAD] Trained {Regime} head with {Count} examples (validation: {Score:F3})");
+    
     private const int MinimumValidationSamples = 5;
     private const int DefaultDelayMs = 10;
     
@@ -745,8 +762,7 @@ public class RegimeBlendHead
             
         }, cancellationToken).ConfigureAwait(false);
         
-        _logger.LogDebug("[REGIME_HEAD] Trained {Regime} head with {Count} examples (validation: {Score:F3})", 
-            _regime, TrainingExampleCount, LastValidationScore);
+        RegimeHeadTrained(_logger, _regime, TrainingExampleCount, LastValidationScore, null);
     }
 
     public RegimeHeadState GetState()

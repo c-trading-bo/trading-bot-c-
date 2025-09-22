@@ -37,66 +37,6 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(1003, "OrderRegistered"),
             "[IDEMPOTENT] Registered order: {OrderKey} -> {OrderId}");
 
-    private static readonly Action<ILogger, Exception?> DeduplicationProcessingFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(1004, "DeduplicationProcessingFailed"),
-            "[IDEMPOTENT] Deduplication failed during order processing");
-
-    private static readonly Action<ILogger, string, Exception?> ExpiredOrderFileDeletionFailed =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1005, "ExpiredOrderFileDeletionFailed"),
-            "[IDEMPOTENT] Failed to delete expired order file: {OrderKey}");
-
-    private static readonly Action<ILogger, string, Exception?> DuplicateOrderCheckFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(1006, "DuplicateOrderCheckFailed"),
-            "[IDEMPOTENT] Failed to check duplicate order: {OrderKey}");
-
-    private static readonly Action<ILogger, string, DateTime, Exception?> DuplicateOrderDetected =
-        LoggerMessage.Define<string, DateTime>(LogLevel.Warning, new EventId(1007, "DuplicateOrderDetected"),
-            "[IDEMPOTENT] Duplicate order detected: {OrderKey} (first seen: {FirstSeen})");
-
-    private static readonly Action<ILogger, Exception?> DeduplicationCheckFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(1008, "DeduplicationCheckFailed"),
-            "[IDEMPOTENT] Failed to check deduplication for order");
-
-    private static readonly Action<ILogger, string, Exception?> MaxRetryAttemptsExceeded =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1009, "MaxRetryAttemptsExceeded"),
-            "[IDEMPOTENT] Max retry attempts exceeded for order: {OrderKey}");
-
-    private static readonly Action<ILogger, string, int, int, int, Exception?> RetryingOrder =
-        LoggerMessage.Define<string, int, int, int>(LogLevel.Information, new EventId(1010, "RetryingOrder"),
-            "[IDEMPOTENT] Retrying order {OrderKey} (attempt {Attempt}/{Max}) after {Delay}ms");
-
-    private static readonly Action<ILogger, string, Exception?> OrderRetryFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(1011, "OrderRetryFailed"),
-            "[IDEMPOTENT] Failed to retry order: {OrderKey}");
-
-    private static readonly Action<ILogger, string, Exception?> OrderFileLoadFailed =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1012, "OrderFileLoadFailed"),
-            "[IDEMPOTENT] Failed to load order file: {File}");
-
-    private static readonly Action<ILogger, int, Exception?> ExistingOrdersLoaded =
-        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1013, "ExistingOrdersLoaded"),
-            "[IDEMPOTENT] Loaded {Count} existing orders into cache");
-
-    private static readonly Action<ILogger, Exception?> ExistingOrdersLoadFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(1014, "ExistingOrdersLoadFailed"),
-            "[IDEMPOTENT] Failed to load existing orders");
-
-    private static readonly Action<ILogger, string, Exception?> ExpiredFileDeletionFailed =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1015, "ExpiredFileDeletionFailed"),
-            "[IDEMPOTENT] Failed to delete expired file: {File}");
-
-    private static readonly Action<ILogger, int, int, Exception?> CleanupCompleted =
-        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(1016, "CleanupCompleted"),
-            "[IDEMPOTENT] Cleanup completed: {CacheRemoved} cache entries, {FilesDeleted} files deleted");
-
-    private static readonly Action<ILogger, Exception?> CleanupFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(1017, "CleanupFailed"),
-            "[IDEMPOTENT] Cleanup failed");
-
-    private static readonly Action<ILogger, string, string, string, double, Exception?> OrderKeyGenerated =
-        LoggerMessage.Define<string, string, string, double>(LogLevel.Debug, new EventId(1018, "OrderKeyGenerated"),
-            "[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})");
-
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     public IdempotentOrderService(
