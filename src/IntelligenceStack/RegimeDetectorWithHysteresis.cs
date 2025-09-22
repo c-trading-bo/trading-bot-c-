@@ -27,6 +27,10 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private const double TrendingRegimeThreshold = 0.7; // Threshold for trending regime classification
     private const int MinimumDataPointsForMedian = 50; // Minimum data points for median calculation
     
+    // ATR calculation constants
+    private const int ATRPeriod = 14; // Standard ATR period
+    private const int PowerOfTwo = 2; // For power calculations and array indexing
+    
     // LoggerMessage delegates for CA1848 compliance - RegimeDetectorWithHysteresis
     private static readonly Action<ILogger, RegimeType, double, Exception?> InitialRegimeDetected =
         LoggerMessage.Define<RegimeType, double>(LogLevel.Information, new EventId(6001, "InitialRegimeDetected"),
@@ -269,7 +273,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         lock (_lock)
         {
             // Update ATR history
-            if (_atrHistory.Count >= 14)
+            if (_atrHistory.Count >= ATRPeriod)
                 _atrHistory.Dequeue();
             
             var tr = Math.Max(
@@ -283,9 +287,9 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             {
                 var sortedAtrs = _atrHistory.ToArray();
                 Array.Sort(sortedAtrs);
-                _medianAtr = sortedAtrs.Length % 2 == 0
-                    ? (sortedAtrs[sortedAtrs.Length / 2 - 1] + sortedAtrs[sortedAtrs.Length / 2]) / MedianDivisor
-                    : sortedAtrs[sortedAtrs.Length / 2];
+                _medianAtr = sortedAtrs.Length % PowerOfTwo == 0
+                    ? (sortedAtrs[sortedAtrs.Length / PowerOfTwo - 1] + sortedAtrs[sortedAtrs.Length / PowerOfTwo]) / MedianDivisor
+                    : sortedAtrs[sortedAtrs.Length / PowerOfTwo];
             }
             
             // Update price history

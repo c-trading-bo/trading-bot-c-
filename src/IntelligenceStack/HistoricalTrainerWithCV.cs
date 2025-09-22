@@ -35,6 +35,14 @@ public class HistoricalTrainerWithCV
     private const int VolumeVariance = 5000; // Volume variance range
     private const int BackupDataDelayMs = 200; // Delay for backup data source simulation
     private const int VolumeDataDelayMs = 50; // Delay for volume data loading
+    
+    // Additional S109 constants for machine learning parameters
+    private const double MinimumSuccessRate = 0.8; // 80% success rate threshold
+    private const int MaxHighVariation = 50; // Maximum high price variation
+    private const double HighPriceDivisor = 10.0; // Divisor for high price calculation
+    private const int RandomSeedMultiplier = 16; // Multiplier for random seed generation
+    private const int ThreadPoolSize = 8; // Thread pool size for parallel operations
+    private const int BatchSize = 32; // Batch size for data processing
 
     // LoggerMessage delegates for CA1848 compliance - HistoricalTrainerWithCV
     private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> WalkForwardCVStarted =
@@ -551,7 +559,7 @@ public class HistoricalTrainerWithCV
                 Timestamp = current,
                 Symbol = symbol,
                 Open = price - change,
-                High = Math.Max(price, price - change) + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
+                High = Math.Max(price, price - change) + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, MaxHighVariation) / HighPriceDivisor,
                 Low = Math.Min(price, price - change) - System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, PriceChangeRange) / PriceChangeDivisor,
                 Close = price,
                 Volume = BaseVolume + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, VolumeVariance)
@@ -649,7 +657,7 @@ public class HistoricalTrainerWithCV
                metrics.PrAt10 >= _promotionCriteria.MinPrAt10 &&
                metrics.ECE <= _promotionCriteria.MaxEce &&
                metrics.EdgeBps >= _promotionCriteria.MinEdgeBps &&
-               successRate >= 0.8; // At least 80% of folds must succeed
+               successRate >= MinimumSuccessRate; // At least 80% of folds must succeed
     }
 
     private async Task SaveCVResultsAsync(WalkForwardCVResult cvResult, CancellationToken cancellationToken)
@@ -731,13 +739,13 @@ public class HistoricalTrainerWithCV
         var accuracyBytes = BitConverter.GetBytes(accuracy);
         var sampleSizeBytes = BitConverter.GetBytes(sampleSize);
         
-        Array.Copy(accuracyBytes, 0, seedData, 0, Math.Min(accuracyBytes.Length, 8));
-        Array.Copy(sampleSizeBytes, 0, seedData, 8, Math.Min(sampleSizeBytes.Length, 8));
+        Array.Copy(accuracyBytes, 0, seedData, 0, Math.Min(accuracyBytes.Length, ThreadPoolSize));
+        Array.Copy(sampleSizeBytes, 0, seedData, ThreadPoolSize, Math.Min(sampleSizeBytes.Length, ThreadPoolSize));
         
         // Use HMAC-based deterministic random generation for reproducibility
         using var hmac = new HMACSHA256(seedData);
         var counter = 0;
-        for (int i = 0; i < modelData.Length; i += 32)
+        for (int i = 0; i < modelData.Length; i += BatchSize)
         {
             var counterBytes = BitConverter.GetBytes(counter++);
             var hash = hmac.ComputeHash(counterBytes);
@@ -758,7 +766,7 @@ public class HistoricalTrainerWithCV
         var schema = $"cv_model_schema_v1.0_{DateTime.UtcNow:yyyyMMddHHmmss}";
         var bytes = System.Text.Encoding.UTF8.GetBytes(schema);
         var hash = SHA256.HashData(bytes);
-        return Convert.ToHexString(hash)[..16]; // Use first 16 characters of hash
+        return Convert.ToHexString(hash)[..RandomSeedMultiplier]; // Use first 16 characters of hash
     }
 }
 

@@ -38,6 +38,22 @@ public class RLAdvisorSystem
     private const double HighLearningRate = 0.2;
     private const int LargeStateSpaceSize = 4000;
     
+    // Market data simulation constants  
+    private const int ESPriceRange = 200; // Price range for ES futures simulation
+    private const int MinVolumeRange = 100; // Minimum volume for simulation
+    private const int MaxVolumeRange = 1000; // Maximum volume for simulation
+    private const int VolatilityRange = 20; // Volatility range for simulation
+    private const double VolatilityDivisor = 1000.0; // Divisor for volatility calculation
+    private const double BaseVolatility = 0.01; // Base volatility level
+    
+    // Episode window and feature extraction constants
+    private const int EpisodeWindowSize = 240; // 4 hours of 1-minute data
+    private const int EpisodeStepSize = 120; // 2-hour overlap between episodes
+    private const double VolumeNormalizationFactor = 500.0; // Volume normalization divisor
+    private const double VolatilityBasisPointMultiplier = 100.0; // Convert to basis points
+    private const double HourToDegreeConversion = 12.0; // Hours to convert for sine/cosine features
+    private const int PowerOfTwo = 2; // Power of 2 for calculations
+    
     // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
     private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
         LoggerMessage.Define<string, ExitAction, double>(LogLevel.Debug, new EventId(4001, "RecommendationGenerated"),
@@ -841,9 +857,9 @@ public class RLAdvisorSystem
             {
                 Timestamp = current,
                 Symbol = symbol,
-                Price = LargeStateSpaceSize + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
-                Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100, 1000),
-                Volatility = 0.01 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 20) / 1000.0)
+                Price = LargeStateSpaceSize + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, ESPriceRange), // ES price range
+                Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(MinVolumeRange, MaxVolumeRange),
+                Volatility = BaseVolatility + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, VolatilityRange) / VolatilityDivisor)
             });
             current = current.AddMinutes(1); // 1-minute bars
         }
@@ -857,10 +873,10 @@ public class RLAdvisorSystem
         {
             var windows = new List<EpisodeWindow>();
             
-            for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
+            for (int i = 0; i < marketData.Count - EpisodeWindowSize; i += EpisodeStepSize) // 2-hour overlap
             {
                 var startIndex = i;
-                var endIndex = Math.Min(i + 240, marketData.Count - 1); // 4 hours of 1-min data
+                var endIndex = Math.Min(i + EpisodeWindowSize, marketData.Count - 1); // 4 hours of 1-min data
                 
                 windows.Add(new EpisodeWindow
                 {
@@ -913,10 +929,10 @@ public class RLAdvisorSystem
         return new double[]
         {
             dataPoint.Price / LargeStateSpaceSize - 1.0, // Normalized price
-            dataPoint.Volume / 500.0 - 1.0, // Normalized volume
-            dataPoint.Volatility * 100, // Volatility in basis points
-            Math.Sin(dataPoint.Timestamp.Hour * Math.PI / 12), // Time of day feature
-            Math.Cos(dataPoint.Timestamp.Hour * Math.PI / 12),
+            dataPoint.Volume / VolumeNormalizationFactor - 1.0, // Normalized volume
+            dataPoint.Volatility * VolatilityBasisPointMultiplier, // Volatility in basis points
+            Math.Sin(dataPoint.Timestamp.Hour * Math.PI / HourToDegreeConversion), // Time of day feature
+            Math.Cos(dataPoint.Timestamp.Hour * Math.PI / HourToDegreeConversion),
             dataPoint.Timestamp.DayOfWeek == DayOfWeek.Friday ? 1.0 : 0.0, // Friday effect
             0.0, // Momentum (would be calculated from price history)
             0.0, // RSI (would be calculated from price history)
