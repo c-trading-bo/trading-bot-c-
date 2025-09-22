@@ -1,60 +1,30 @@
 {
-  "timestamp": "2025-09-22T12:49:39.754319",
+  "timestamp": "2025-09-22T18:34:32.034302",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "workflow_run": "83",
+  "market_session": "regular",
+  "workflow_run": "85",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-22T12:44:38.766237",
+    "timestamp": "2025-09-22T18:29:46.577693",
     "analysis_mode": "comprehensive",
-    "market_session": "extended",
-    "total_articles_processed": 10,
+    "market_session": "regular",
+    "total_articles_processed": 13,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.10733333333333332,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Dow, S&P 500, Nasdaq futures pull back from records as gold powers to fresh high",
-            "sentiment": 0.10733333333333332,
-            "textblob_score": 0.15333333333333332,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-pull-back-from-records-as-gold-powers-to-fresh-high-234423457.html",
-            "published": "2025-09-21T23:44:23Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "NQ": {
-        "sentiment_score": 0.10733333333333332,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Dow, S&P 500, Nasdaq futures pull back from records as gold powers to fresh high",
-            "sentiment": 0.10733333333333332,
-            "textblob_score": 0.15333333333333332,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-pull-back-from-records-as-gold-powers-to-fresh-high-234423457.html",
-            "published": "2025-09-21T23:44:23Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -73,139 +43,209 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "TSLA": {
-        "sentiment_score": 0.14211125541125538,
-        "article_count": 7,
-        "articles": [
-          {
-            "title": "Stock Market Today: Dow Falls Ahead Of Inflation Data; Tesla Up On Target Hike (Live Coverage)",
-            "sentiment": 0.09545454545454544,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 0.0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-tesla-stock-tsla/?src=A00220&yptr=yahoo",
-            "published": "2025-09-22T12:16:34Z",
-            "relevance_keywords": [
-              "Tesla"
-            ]
-          },
-          {
-            "title": "Tesla Stock Has Soared 28% This Month. Here's Why This Analyst Sees Shares Hitting Record Highs",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/news/tesla-stock-has-soared-month-analyst-sees-shares-hitting-new-all-time-highs/?src=A00220&yptr=yahoo",
-            "published": "2025-09-22T12:16:12Z",
-            "relevance_keywords": [
-              "Tesla"
-            ]
-          },
-          {
-            "title": "Stocks Slip From Post-Fed High as Gold Hits Record: Markets Wrap",
-            "sentiment": 0.08349090909090909,
-            "textblob_score": 0.11927272727272728,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-21/us-futures-slip-as-traders-gauge-h-1b-visa-fallout-markets-wrap",
-            "published": "Sun, 21 Sep 2025 22:39:02 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Kazakhstan Plans Yuan Bonds Sales to Grow China Ties",
-            "sentiment": 0.09333333333333332,
-            "textblob_score": 0.13333333333333333,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/kazakhstan-plans-up-to-2-billion-yuan-bonds-to-grow-china-ties",
-            "published": "Mon, 22 Sep 2025 08:11:18 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "India\u2019s Largest REIT\u00a0Plans $181 Million Debut Rupee Bond Sale",
-            "sentiment": 0.49249999999999994,
-            "textblob_score": 0.27499999999999997,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/india-s-largest-reit-plans-181-million-debut-rupee-bond-sale",
-            "published": "Mon, 22 Sep 2025 11:47:41 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Anheuser-Busch InBev: Reasonably Priced But Nothing To Justify A Breakout",
-            "sentiment": 0.13999999999999999,
-            "textblob_score": 0.2,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824767-anheuser-busch-inbev-reasonably-priced-but-nothing-to-justify-a-breakout?source=feed_all_articles",
-            "published": "Mon, 22 Sep 2025 08:43:43 -0400",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Solvay: A Complex Macro Environment Is Buffered By Elevated Cash Conversion",
-            "sentiment": -0.21,
-            "textblob_score": -0.3,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824764-solvay-a-complex-macro-environment-is-buffered-by-elevated-cash-conversion?source=feed_all_articles",
-            "published": "Mon, 22 Sep 2025 08:25:58 -0400",
-            "relevance_keywords": [
-              "EV"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.7,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg",
-          "seeking_alpha"
-        ]
-      },
-      "NVDA": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "AAPL": {
-        "sentiment_score": -0.21,
+        "sentiment_score": 0.3,
         "article_count": 1,
         "articles": [
           {
-            "title": "Solvay: A Complex Macro Environment Is Buffered By Elevated Cash Conversion",
-            "sentiment": -0.21,
-            "textblob_score": -0.3,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824764-solvay-a-complex-macro-environment-is-buffered-by-elevated-cash-conversion?source=feed_all_articles",
-            "published": "Mon, 22 Sep 2025 08:25:58 -0400",
+            "title": "When the world\u2019s largest asset manager and the \u2018bond king\u2019 both agree \u2014 run to gold, silver and bitcoin",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/when-the-worlds-largest-asset-manager-and-the-bond-king-both-agree-run-to-gold-silver-and-bitcoin-07affec3?mod=mw_rss_topstories",
+            "published": "Mon, 22 Sep 2025 18:27:00 GMT",
             "relevance_keywords": [
-              "Mac"
+              "Bitcoin"
             ]
           }
         ],
         "signal": "NEUTRAL",
         "confidence": 0.1,
         "sources": [
-          "seeking_alpha"
+          "marketwatch"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.03300420875420875,
+        "article_count": 6,
+        "articles": [
+          {
+            "title": "Anti-Americanism Is Coming for US Brands",
+            "sentiment": 0.0875,
+            "textblob_score": 0.125,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-19/opinion-anti-americanism-is-coming-for-us-brands-video",
+            "published": "Fri, 19 Sep 2025 14:20:31 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Hammack Says Fed Should Be \u2018Very Cautious\u2019 Easing Policy",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.2,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-22/hammack-says-fed-should-be-very-cautious-easing-policy-video",
+            "published": "Mon, 22 Sep 2025 17:49:08 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Series of 50 BPS Cuts Will 'Recalibrate' Policy, Says Fed's Miran (Q&A)",
+            "sentiment": -0.24583838383838383,
+            "textblob_score": 0.07737373737373737,
+            "keyword_score": -1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-22/series-of-cuts-will-recalibrate-policy-miran-q-a-video",
+            "published": "Mon, 22 Sep 2025 17:46:37 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Royal Caribbean Is Selling $1.5 Billion of High-Grade Bonds",
+            "sentiment": 0.06999999999999999,
+            "textblob_score": 0.1,
+            "keyword_score": 0.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/royal-caribbean-selling-bonds-as-fitch-upgrades-cruise-operator",
+            "published": "Mon, 22 Sep 2025 14:08:11 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Miran Says Trump Never Asked to Pursue a Specific Policy",
+            "sentiment": 0.05886363636363636,
+            "textblob_score": 0.08409090909090909,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-22/miran-says-trump-never-asked-to-pursue-a-specific-policy-video",
+            "published": "Mon, 22 Sep 2025 17:07:11 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Whatever your views on Charlie Kirk and Jimmy Kimmel, your employer can fire you for expressing them",
+            "sentiment": 0.0875,
+            "textblob_score": 0.125,
+            "keyword_score": 0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/whatever-your-views-on-charlie-kirk-and-jimmy-kimmel-your-employer-can-fire-you-for-expressing-them-c95a0e0d?mod=mw_rss_topstories",
+            "published": "Mon, 22 Sep 2025 16:07:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.6,
+        "sources": [
+          "bloomberg",
+          "marketwatch"
+        ]
+      },
+      "NVDA": {
+        "sentiment_score": 0.04332070707070707,
+        "article_count": 2,
+        "articles": [
+          {
+            "title": "Stocks Get Tech Lift as Nvidia Rekindles AI Hopes: Markets Wrap",
+            "sentiment": 0.16,
+            "textblob_score": -0.19999999999999998,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-21/us-futures-slip-as-traders-gauge-h-1b-visa-fallout-markets-wrap",
+            "published": "Sun, 21 Sep 2025 22:39:02 GMT",
+            "relevance_keywords": [
+              "Nvidia",
+              "artificial intelligence"
+            ]
+          },
+          {
+            "title": "Nvidia Investing $100 Billion in OpenAI",
+            "sentiment": -0.07335858585858586,
+            "textblob_score": -0.1047979797979798,
+            "keyword_score": 0.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-22/nvidia-investing-100-billion-in-openai-video",
+            "published": "Mon, 22 Sep 2025 17:57:56 GMT",
+            "relevance_keywords": [
+              "Nvidia",
+              "artificial intelligence"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.2,
+        "sources": [
+          "bloomberg"
+        ]
+      },
+      "AAPL": {
+        "sentiment_score": 0.2539911616161616,
+        "article_count": 4,
+        "articles": [
+          {
+            "title": "Oppenheimer Reiterates Apple (AAPL) as \u201cPerform\u201d Despite Meta\u2019s Smart Glasses Launch",
+            "sentiment": 0.15,
+            "textblob_score": 0.21428571428571427,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/oppenheimer-reiterates-apple-aapl-perform-090044750.html",
+            "published": "2025-09-21T09:00:44Z",
+            "relevance_keywords": [
+              "Apple"
+            ]
+          },
+          {
+            "title": "Hammack Says Fed Should Be \u2018Very Cautious\u2019 Easing Policy",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.2,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-22/hammack-says-fed-should-be-very-cautious-easing-policy-video",
+            "published": "Mon, 22 Sep 2025 17:49:08 GMT",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          },
+          {
+            "title": "CVS\u2019s Omnicare Files for Bankruptcy After $949 Million Judgment",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/cvs-unit-omnicare-files-bankruptcy-after-949-million-judgment",
+            "published": "Mon, 22 Sep 2025 17:45:46 GMT",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          },
+          {
+            "title": "Apple\u2019s stock surges to a 2025 high on hot iPhone 17 demand. Can the rally continue?",
+            "sentiment": 0.42596464646464643,
+            "textblob_score": 0.17994949494949494,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/apples-stock-surges-to-a-2025-high-on-hot-iphone-17-demand-can-the-rally-continue-56afe428?mod=mw_rss_topstories",
+            "published": "Mon, 22 Sep 2025 17:52:00 GMT",
+            "relevance_keywords": [
+              "Apple",
+              "iPhone"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.4,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg",
+          "marketwatch"
         ]
       }
     },
@@ -219,8 +259,8 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-22T12:49:39.621655",
-    "market_session": "extended",
+    "timestamp": "2025-09-22T18:34:31.904683",
+    "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
       "sentiment": 0.0,
@@ -241,7 +281,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-22T12:44:36.600250",
+    "timestamp": "2025-09-22T18:29:44.516401",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -285,6 +325,27 @@
         "keyword": "stock market"
       },
       {
+        "title": "CoinW Unveils Spot Trading Upgrade on Its 8th Anniversary",
+        "url": "https://www.prnewswire.com/news-releases/coinw-unveils-spot-trading-upgrade-on-its-8th-anniversary-302562765.html",
+        "source": "prnewswire.com",
+        "date": "20250922T154500Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Diwali Muhurat Trading on October 21 : Check why it is at an unusual\u00a0time this\u00a0year",
+        "url": "https://www.financialexpress.com/market/diwali-muhurat-trading-on-october-21-check-why-it-is-at-an-unusualnbsptime-thisnbspyear-3985764/",
+        "source": "financialexpress.com",
+        "date": "20250922T131500Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "NSE to conduct one - hour Diwali Muhurat Trading on Oct 21 from 1 : 45 pm - 2 : 45 pm | \u0926\u093f\u0935\u093e\u0932\u0940 \u092a\u0930 \u092c\u093e\u091c\u093e\u0930 \u092e\u0947\u0902 \u092e\u0941\u0939\u0942\u0930\u094d\u0924 \u091f\u094d\u0930\u0947\u0921\u093f\u0902\u0917 21 \u0905\u0915\u094d\u091f\u0942\u092c\u0930 \u0915\u094b \u0939\u094b\u0917\u0940 : \u0907\u0938 \u092c\u093e\u0930 \u0926\u094b\u092a\u0939\u0930 \u092e\u0947\u0902 1 : 45 \u0938\u0947 2 : 45 \u092c\u091c\u0947 \u0924\u0915 \u0915\u093e\u0930\u094b\u092c\u093e\u0930 \u0939\u094b\u0917\u093e , ",
+        "url": "https://www.bhaskar.com/business/news/nse-to-conduct-one-hour-diwali-muhurat-trading-on-oct-21-from-145-pm-245-pm-135986431.html",
+        "source": "bhaskar.com",
+        "date": "20250922T154500Z",
+        "keyword": "trading"
+      },
+      {
         "title": "24 / 7 Trading Is Coming . But Is It a Good Thing ? ",
         "url": "https://finance.yahoo.com/news/24-7-trading-coming-good-104500167.html",
         "source": "finance.yahoo.com",
@@ -292,31 +353,10 @@
         "keyword": "trading"
       },
       {
-        "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
-        "url": "https://www.koreastardaily.com/tc/news/159375",
-        "source": "koreastardaily.com",
-        "date": "20250822T063000Z",
-        "keyword": "trading"
-      },
-      {
-        "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
-        "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
-        "source": "benzinga.com",
-        "date": "20250908T100000Z",
-        "keyword": "trading"
-      },
-      {
-        "title": " \u300a \u57fa\u91d1 \u300b \u5df4\u83f2\u7279\u6e05\u7a7a\u6bd4\u4e9e\u8fea\u7e8c\u8cb7\u65e5\u672c\u4e94\u5927\u5546\u793e \u570b\u5167\u65e5\u80a1ETF\u64c1\u5229\u591a - \u8ca1\u7d93",
-        "url": "https://www.chinatimes.com/realtimenews/20250922003697-260410",
-        "source": "chinatimes.com",
-        "date": "20250922T101500Z",
-        "keyword": "trading"
-      },
-      {
-        "title": "Paysafe Partners With CMC Markets to Expand Presence in Online Trading",
-        "url": "https://www.finanznachrichten.de/nachrichten-2025-09/66494438-paysafe-partners-with-cmc-markets-to-expand-presence-in-online-trading-004.htm",
-        "source": "finanznachrichten.de",
-        "date": "20250922T091500Z",
+        "title": "Muhurat Trading 2025 : \u0928\u094b\u091f \u0915\u0930 \u0932\u0947\u0902 \u0926\u093f\u0935\u093e\u0932\u0940 \u092e\u0941\u0939\u0942\u0930\u094d\u0924 \u091f\u093e\u0907\u092e , \u091f\u094d\u0930\u0947\u0921\u093f\u0902\u0917 \u0915\u0947 \u0926\u094c\u0930\u093e\u0928 1 \u0918\u0902\u091f\u093e \u0939\u094b\u0917\u093e \u0915\u093e\u0930\u094b\u092c\u093e\u0930 - learn when the stock markets will open for diwali trading",
+        "url": "https://www.punjabkesari.in/business/news/learn-when-the-stock-markets-will-open-for-diwali-trading-2216913",
+        "source": "punjabkesari.in",
+        "date": "20250922T151500Z",
         "keyword": "trading"
       },
       {
