@@ -291,7 +291,7 @@ public class MamlLiveIntegration
         return timeSinceLastUpdate >= TimeSpan.FromMinutes(5); // Minimum 5-minute interval
     }
 
-    private async Task<AdaptationStep> PerformInnerLoopAdaptationAsync(
+    private static async Task<AdaptationStep> PerformInnerLoopAdaptationAsync(
         MamlModelState modelState,
         List<TrainingExample> examples,
         CancellationToken cancellationToken)

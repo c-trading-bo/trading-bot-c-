@@ -19,6 +19,15 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private const double MedianDivisor = 2.0; // For even-length median calculation
     private const double NeutralRegimeScore = 0.5; // Default score when no regime detected
     
+    // LoggerMessage delegates for CA1848 compliance - RegimeDetectorWithHysteresis
+    private static readonly Action<ILogger, RegimeType, double, Exception?> InitialRegimeDetected =
+        LoggerMessage.Define<RegimeType, double>(LogLevel.Information, new EventId(6001, "InitialRegimeDetected"),
+            "[REGIME] Initial regime detected: {Regime} (confidence: {Confidence:F3})");
+            
+    private static readonly Action<ILogger, RegimeType, RegimeType, double, Exception?> RegimeTransition =
+        LoggerMessage.Define<RegimeType, RegimeType, double>(LogLevel.Information, new EventId(6002, "RegimeTransition"),
+            "[REGIME] Transitioning from {From} to {To} (confidence: {Confidence:F3})");
+    
     private readonly ILogger<RegimeDetectorWithHysteresis> _logger;
     private readonly HysteresisConfig _config;
     private readonly object _lock = new();
@@ -58,13 +67,11 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             {
                 _currentState = newRegime;
                 _lastTransitionTime = DateTime.UtcNow;
-                _logger.LogInformation("[REGIME] Initial regime detected: {Regime} (confidence: {Confidence:F3})", 
-                    newRegime.Type, newRegime.Confidence);
+                InitialRegimeDetected(_logger, newRegime.Type, newRegime.Confidence, null);
             }
             else if (ShouldTransition(_currentState, newRegime))
             {
-                _logger.LogInformation("[REGIME] Transitioning from {From} to {To} (confidence: {Confidence:F3})", 
-                    _currentState.Type, newRegime.Type, newRegime.Confidence);
+                RegimeTransition(_logger, _currentState.Type, newRegime.Type, newRegime.Confidence, null);
                 
                 _currentState = newRegime;
                 _lastTransitionTime = DateTime.UtcNow;

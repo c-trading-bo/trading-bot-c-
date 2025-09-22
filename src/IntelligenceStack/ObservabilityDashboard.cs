@@ -732,7 +732,7 @@ public class ObservabilityDashboard : IDisposable
         };
     }
 
-    private Dictionary<string, double> CreateVolatilityProfile(string metricName)
+    private static Dictionary<string, double> CreateVolatilityProfile(string metricName)
     {
         // Simplified volatility profile
         return new Dictionary<string, double>

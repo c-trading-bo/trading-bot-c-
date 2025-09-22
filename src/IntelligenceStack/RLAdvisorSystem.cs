@@ -729,7 +729,7 @@ public class RLAdvisorSystem
         }, cancellationToken).ConfigureAwait(false);
     }
     
-    private async Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
+    private static async Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
         EpisodeWindow window, 
         List<RLMarketDataPoint> marketData, 
         CancellationToken cancellationToken)
