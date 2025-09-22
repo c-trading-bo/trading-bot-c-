@@ -67,6 +67,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double DefaultF1Score = 0.6;
     private const double EpsilonForDivisionCheck = 1e-10;
     
+    // Additional S109 constants for SLO breach thresholds and timing
+    private const double SevereBreachThreshold = 2.0;
+    private const double PercentileP99 = 0.99;
+    private const int ModelPersistenceDelayMs = 10;
+    private const int AuditTrailDelayMs = 5;
+    
     // LoggerMessage delegates for CA1848 compliance - OnlineLearningSystem
     private static readonly Action<ILogger, string, double, Exception?> WeightUpdateCompleted =
         LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(6001, "WeightUpdateCompleted"),
@@ -512,7 +518,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             await Task.Run(async () =>
             {
                 // Simulate async model state persistence
-                await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(ModelPersistenceDelayMs, cancellationToken).ConfigureAwait(false);
                 
                 // Rollback to previous stable weights - simulate database/file operations
                 lock (_lock)
@@ -531,7 +537,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 }
                 
                 // Simulate async logging to audit trail
-                await Task.Delay(5, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(AuditTrailDelayMs, cancellationToken).ConfigureAwait(false);
                 
             }, cancellationToken).ConfigureAwait(false);
 
@@ -1055,7 +1061,7 @@ public class SloMonitor
             SevereSloBreach(_logger, metricType, null);
             // Implementation would trigger trading pause
         }
-        else if (breachSeverity >= 2.0)
+        else if (breachSeverity >= SevereBreachThreshold)
         {
             // Moderate breach: downsize by 50%
             ModerateSloBreach(_logger, metricType, null);
@@ -1089,12 +1095,12 @@ public class SloMonitor
             // Calculate current P99 latencies
             if (_latencyHistory.TryGetValue("decision", out var decisionLatencies) && decisionLatencies.Count > 0)
             {
-                status.DecisionLatencyP99Ms = CalculatePercentile(decisionLatencies, 0.99);
+                status.DecisionLatencyP99Ms = CalculatePercentile(decisionLatencies, PercentileP99);
             }
             
             if (_latencyHistory.TryGetValue("order", out var orderLatencies) && orderLatencies.Count > 0)
             {
-                status.OrderLatencyP99Ms = CalculatePercentile(orderLatencies, 0.99);
+                status.OrderLatencyP99Ms = CalculatePercentile(orderLatencies, PercentileP99);
             }
             
             // Calculate error rate
