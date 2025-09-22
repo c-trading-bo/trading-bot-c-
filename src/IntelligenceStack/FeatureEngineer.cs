@@ -73,6 +73,18 @@ public class FeatureEngineer : IDisposable
     private static readonly Action<ILogger, Exception?> MarketDataProcessingFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(4009, "MarketDataProcessingFailed"),
             "[FEATURE_ENGINEER] Failed to process market data for feature adaptation");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLogged =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4010, "FeatureWeightsLogged"),
+            "[FEATURE_ENGINEER] Logged feature weights to: {FilePath}");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureWeightsLogFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4011, "FeatureWeightsLogFailed"),
+            "[FEATURE_ENGINEER] Failed to log feature weights for strategy: {Strategy}");
+            
+    private static readonly Action<ILogger, Exception?> ScheduledUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4012, "ScheduledUpdateFailed"),
+            "[FEATURE_ENGINEER] Error during scheduled feature weight update");
     
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -455,11 +467,11 @@ public class FeatureEngineer : IDisposable
             var json = JsonSerializer.Serialize(logEntry, SerializerOptions);
             await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[FEATURE_ENGINEER] Logged feature weights to: {FilePath}", filePath);
+            FeatureWeightsLogged(_logger, filePath, null);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[FEATURE_ENGINEER] Failed to log feature weights for strategy: {Strategy}", strategyId);
+            FeatureWeightsLogFailed(_logger, strategyId, ex);
         }
     }
 
@@ -631,7 +643,7 @@ public class FeatureEngineer : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[FEATURE_ENGINEER] Error during scheduled feature weight update");
+                ScheduledUpdateFailed(_logger, ex);
             }
         });
     }
