@@ -25,9 +25,26 @@ using System.Globalization;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null, BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
+        
+        // Position epoch tracking for bracket mode locking
+        private readonly Dictionary<string, PositionEpoch> _positionEpochs = new();
+        private readonly object _positionLock = new();
+        
+        /// <summary>
+        /// Position epoch tracks bracket mode selection for the lifetime of a position
+        /// Prevents mid-position bracket changes that could cause confusion
+        /// </summary>
+        private sealed record PositionEpoch(
+            string Symbol,
+            string SelectedBundleId,
+            BotCore.Bandits.BracketMode BracketMode,
+            DateTime CreatedAt,
+            decimal EntryPrice,
+            int Quantity
+        );
         public sealed class Config
         {
             public bool LiveTrading { get; set; }
@@ -43,6 +60,46 @@ namespace OrchestratorAgent
             public int TargetTicks { get; set; } = 18;
             public int BreakevenAfterTicks { get; set; } = 8;
             public int TrailTicks { get; set; } = 6;
+            
+            /// <summary>
+            /// Enable dynamic bracket selection via Neural UCB learning
+            /// When enabled, bracket parameters are learned rather than using fixed values
+            /// </summary>
+            public bool EnableDynamicBrackets { get; set; } = true;
+            
+            /// <summary>
+            /// Fallback bracket mode when learning system is unavailable
+            /// </summary>
+            public string FallbackBracketMode { get; set; } = "Conservative";
+            
+            /// <summary>
+            /// Override bracket settings from learned bundle selection
+            /// This method integrates with the Neural UCB bracket selection system
+            /// </summary>
+            public void ApplyLearnedBracket(BotCore.Bandits.BracketMode learnedMode)
+            {
+                if (!EnableDynamicBrackets) return;
+                
+                StopTicks = learnedMode.StopTicks;
+                TargetTicks = learnedMode.TargetTicks;
+                BreakevenAfterTicks = learnedMode.BreakevenAfterTicks;
+                TrailTicks = learnedMode.TrailTicks;
+            }
+            
+            /// <summary>
+            /// Create bracket config from Neural UCB bundle selection
+            /// </summary>
+            public static BracketConfig FromNeuralUcbBundle(BotCore.Bandits.ParameterBundle bundle)
+            {
+                return new BracketConfig
+                {
+                    StopTicks = bundle.BracketMode.StopTicks,
+                    TargetTicks = bundle.BracketMode.TargetTicks,
+                    BreakevenAfterTicks = bundle.BracketMode.BreakevenAfterTicks,
+                    TrailTicks = bundle.BracketMode.TrailTicks,
+                    EnableDynamicBrackets = true
+                };
+            }
         }
 
         private readonly ILogger<BotSupervisor> _log = log;
@@ -61,6 +118,7 @@ namespace OrchestratorAgent
         private readonly BotCore.Services.IContractService? _contractService = contractService;
         private readonly BotCore.Services.ISecurityService? _securityService = securityService;
         private readonly TradingBot.Abstractions.IOnlineLearningSystem? _onlineLearningSystem = onlineLearningSystem;
+        private readonly BotCore.Bandits.NeuralUcbExtended? _neuralUcbExtended = neuralUcbExtended;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -730,6 +788,74 @@ namespace OrchestratorAgent
                             }
                         }
 
+                        // 3️⃣ Neural UCB Bracket Selection Integration
+                        // Select optimal bracket mode for this trading decision
+                        var selectedBracket = _cfg.DefaultBracket;
+                        var selectedBundleId = "default";
+                        
+                        if (_neuralUcbExtended != null && _cfg.DefaultBracket.EnableDynamicBrackets)
+                        {
+                            try
+                            {
+                                // Check if we have an existing position epoch for this symbol
+                                var existingEpoch = GetExistingPositionEpoch(s.Symbol);
+                                if (existingEpoch != null)
+                                {
+                                    // Use locked bracket mode for existing position
+                                    selectedBracket = BracketConfig.FromNeuralUcbBundle(
+                                        new BotCore.Bandits.ParameterBundle 
+                                        { 
+                                            BracketMode = existingEpoch.BracketMode,
+                                            Strategy = s.StrategyId,
+                                            Mult = 1.0m,
+                                            Thr = 0.65m
+                                        });
+                                    selectedBundleId = existingEpoch.SelectedBundleId;
+                                    
+                                    _log.LogDebug("[UCB_BRACKET] Using locked bracket for existing position {Symbol}: {BracketMode}",
+                                        s.Symbol, existingEpoch.BracketMode.ModeType);
+                                }
+                                else
+                                {
+                                    // Create market context for Neural UCB bracket selection
+                                    var marketContext = CreateMarketContext(s, bar, P_final);
+                                    
+                                    // Get optimal bundle selection including bracket mode
+                                    var bundleSelection = await _neuralUcbExtended.SelectBundleAsync(marketContext, ct).ConfigureAwait(false);
+                                    
+                                    // Apply selected bracket configuration
+                                    selectedBracket = BracketConfig.FromNeuralUcbBundle(bundleSelection.Bundle);
+                                    selectedBundleId = bundleSelection.Bundle.BundleId;
+                                    
+                                    // Create new position epoch to lock bracket mode
+                                    var positionEpoch = new PositionEpoch(
+                                        s.Symbol,
+                                        selectedBundleId,
+                                        bundleSelection.Bundle.BracketMode,
+                                        DateTime.UtcNow,
+                                        s.Entry,
+                                        s.Size
+                                    );
+                                    
+                                    SetPositionEpoch(s.Symbol, positionEpoch);
+                                    
+                                    _log.LogInformation("[UCB_BRACKET] Selected bracket for {Symbol}: {BundleId} " +
+                                                       "mode={Mode} stop={Stop}t target={Target}t ucb={Ucb:F3}",
+                                        s.Symbol, bundleSelection.Bundle.BundleId,
+                                        bundleSelection.Bundle.BracketMode.ModeType,
+                                        bundleSelection.Bundle.BracketMode.StopTicks,
+                                        bundleSelection.Bundle.BracketMode.TargetTicks,
+                                        bundleSelection.UcbValue);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.LogError(ex, "[UCB_BRACKET] Error in Neural UCB bracket selection for {Sym}, using default", s.Symbol);
+                                selectedBracket = _cfg.DefaultBracket;
+                                selectedBundleId = "default";
+                            }
+                        }
+
                         var sig = new BotCore.StrategySignal
                         {
                             Strategy = s.StrategyId,
@@ -738,7 +864,17 @@ namespace OrchestratorAgent
                             Size = s.Size,
                             LimitPrice = s.Entry,
                             Note = s.Tag,
-                            ClientOrderId = cid
+                            ClientOrderId = cid,
+                            // Add bracket information to signal metadata
+                            Metadata = new Dictionary<string, object>
+                            {
+                                ["bracketMode"] = selectedBracket,
+                                ["bundleId"] = selectedBundleId,
+                                ["stopTicks"] = selectedBracket.StopTicks,
+                                ["targetTicks"] = selectedBracket.TargetTicks,
+                                ["breakevenAfterTicks"] = selectedBracket.BreakevenAfterTicks,
+                                ["trailTicks"] = selectedBracket.TrailTicks
+                            }
                         };
                         batch.Add((sig, s.ContractId));
                         journal.Append(s, "routed", cid);
@@ -1000,6 +1136,81 @@ namespace OrchestratorAgent
             {
                 _log.LogError(ex, "Failed to send operator notification: {Message}", message);
             }
+        }
+        
+        /// <summary>
+        /// Get existing position epoch for bracket mode locking
+        /// </summary>
+        private PositionEpoch? GetExistingPositionEpoch(string symbol)
+        {
+            lock (_positionLock)
+            {
+                return _positionEpochs.TryGetValue(symbol, out var epoch) ? epoch : null;
+            }
+        }
+        
+        /// <summary>
+        /// Set position epoch to lock bracket mode for position lifetime
+        /// </summary>
+        private void SetPositionEpoch(string symbol, PositionEpoch epoch)
+        {
+            lock (_positionLock)
+            {
+                _positionEpochs[symbol] = epoch;
+            }
+        }
+        
+        /// <summary>
+        /// Clear position epoch when position is closed
+        /// Should be called from order fill events or position reconciliation
+        /// </summary>
+        private void ClearPositionEpoch(string symbol)
+        {
+            lock (_positionLock)
+            {
+                if (_positionEpochs.Remove(symbol))
+                {
+                    _log.LogDebug("[UCB_BRACKET] Cleared position epoch for {Symbol}", symbol);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Create market context from current trading signal and bar data for Neural UCB
+        /// </summary>
+        private static BotCore.ML.MarketContext CreateMarketContext(
+            BotCore.Models.StrategySignal signal,
+            BotCore.Models.Bar bar,
+            double mlConfidence)
+        {
+            return new BotCore.ML.MarketContext
+            {
+                Symbol = signal.Symbol,
+                Price = (double)signal.Entry,
+                Volume = bar.Volume,
+                Bid = (double)bar.Low,  // Approximate bid from bar data
+                Ask = (double)bar.High, // Approximate ask from bar data
+                SignalStrength = Math.Abs((double)(signal.Target - signal.Entry) / (double)(signal.Entry - signal.Stop)), // R-multiple as signal strength
+                ConfidenceLevel = mlConfidence,
+                ModelConfidence = mlConfidence,
+                NewsIntensity = 0.0, // Default - could be enhanced with news feed integration
+                TechnicalIndicators = new Dictionary<string, double>
+                {
+                    ["atr"] = (double)(bar.High - bar.Low), // Simple ATR approximation
+                    ["volume"] = bar.Volume,
+                    ["range"] = (double)(bar.High - bar.Low),
+                    ["close_position"] = (double)((bar.Close - bar.Low) / (bar.High - bar.Low)) // Position within bar range
+                },
+                Features = new Dictionary<string, decimal>
+                {
+                    ["volatility"] = (bar.High - bar.Low) / bar.Close, // Simple volatility measure
+                    ["volume"] = (decimal)bar.Volume / 1000000m, // Normalized volume
+                    ["trend"] = (bar.Close - bar.Open) / bar.Open, // Simple trend measure
+                    ["signal_confidence"] = (decimal)mlConfidence
+                },
+                IsFomcDay = false, // Default - could be enhanced with economic calendar
+                IsCpiDay = false   // Default - could be enhanced with economic calendar
+            };
         }
     }
 }
