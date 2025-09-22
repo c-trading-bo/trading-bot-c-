@@ -111,8 +111,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(6021, "DriftDetectionFailed"),
             "[ONLINE] Failed to detect drift for model: {ModelId}");
 
-    private static readonly Action<ILogger, string, string, string, int, decimal, Exception?> ProcessingTradeRecord =
-        LoggerMessage.Define<string, string, string, int, decimal>(LogLevel.Debug, new EventId(6022, "ProcessingTradeRecord"),
+    private static readonly Action<ILogger, string, string, string, double, double, Exception?> ProcessingTradeRecord =
+        LoggerMessage.Define<string, string, string, double, double>(LogLevel.Debug, new EventId(6022, "ProcessingTradeRecord"),
             "[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}");
 
     private static readonly Action<ILogger, string, string, string, double, Exception?> ModelUpdateCompleted =
@@ -150,6 +150,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private static readonly Action<ILogger, Exception?> ConfidenceCalculationFailed =
         LoggerMessage.Define(LogLevel.Warning, new EventId(6031, "ConfidenceCalculationFailed"),
             "Failed to calculate confidence from trade data, using conservative estimate");
+
     
     private readonly ILogger<OnlineLearningSystem> _logger;
     private readonly MetaLearningConfig _config;
@@ -416,8 +417,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
         try
         {
-            _logger.LogDebug("[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
-                tradeRecord.TradeId, tradeRecord.Symbol, tradeRecord.Side, tradeRecord.Quantity, tradeRecord.FillPrice);
+            ProcessingTradeRecord(_logger, tradeRecord.TradeId, tradeRecord.Symbol, tradeRecord.Side.ToString(), 
+                tradeRecord.Quantity, tradeRecord.FillPrice, null);
 
             // Extract strategy and regime info from trade record
             var strategyId = tradeRecord.StrategyId;
@@ -453,12 +454,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Adapt to performance for long-term model health
             await AdaptToPerformanceAsync(strategyId, modelPerformance, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}", 
-                tradeRecord.TradeId, strategyId, regimeType, hitRate);
+            ModelUpdateCompleted(_logger, tradeRecord.TradeId, strategyId, regimeType, hitRate, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to update model with trade record: {TradeId}", tradeRecord.TradeId);
+            ModelUpdateFailed(_logger, tradeRecord.TradeId, ex);
         }
     }
 
@@ -535,11 +535,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 
             }, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[ONLINE] Rolled back weights for model: {ModelId}", modelId);
+            WeightsRolledBack(_logger, modelId, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONLINE] Failed to rollback weights for model: {ModelId}", modelId);
+            RollbackFailed(_logger, modelId, ex);
         }
     }
 
@@ -573,13 +573,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                     }
                 }
 
-                _logger.LogInformation("[ONLINE] Loaded online learning state with {Regimes} regimes", 
-                    state.RegimeWeights.Count);
+                StateLoaded(_logger, state.RegimeWeights.Count, null);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[ONLINE] Failed to load online learning state");
+            StateLoadFailed(_logger, ex);
         }
     }
 
@@ -613,7 +612,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[ONLINE] Failed to save online learning state");
+            StateSaveFailed(_logger, ex);
         }
     }
 
@@ -679,7 +678,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to extract confidence for trade {TradeId}, using calculated value", tradeRecord.TradeId);
+            ConfidenceExtractionFailed(_logger, tradeRecord.TradeId, ex);
             return CalculateConfidenceFromTradeData(tradeRecord);
         }
     }
@@ -730,7 +729,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to calculate confidence from trade data, using conservative estimate");
+            ConfidenceCalculationFailed(_logger, ex);
             return DefaultFallbackScore; // Conservative fallback
         }
     }
@@ -860,6 +859,27 @@ public class SloMonitor
     private static readonly Action<ILogger, Exception?> SloErrorBudgetArgumentError =
         LoggerMessage.Define(LogLevel.Error, new EventId(8008, "SloErrorBudgetArgumentError"),
             "[SLO] Invalid argument checking error budget");
+
+    // Additional LoggerMessage delegates for SLO monitoring
+    private static readonly Action<ILogger, Exception?> SloDivisionByZeroError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(8009, "SloDivisionByZeroError"),
+            "[SLO] Division by zero checking error budget");
+
+    private static readonly Action<ILogger, string, double, double, Exception?> SloBreachDetected =
+        LoggerMessage.Define<string, double, double>(LogLevel.Warning, new EventId(8010, "SloBreachDetected"),
+            "[SLO] 🚨 SLO breach detected: {MetricType} = {Actual:F1} > {Threshold:F1}");
+
+    private static readonly Action<ILogger, string, Exception?> SevereSloBreach =
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(8011, "SevereSloBreach"),
+            "[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}");
+
+    private static readonly Action<ILogger, string, Exception?> ModerateSloBreach =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(8012, "ModerateSloBreach"),
+            "[SLO] ⚠️ Moderate SLO breach - downsizing positions: {MetricType}");
+
+    private static readonly Action<ILogger, string, Exception?> MinorSloBreach =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(8013, "MinorSloBreach"),
+            "[SLO] ℹ️ Minor SLO breach - adding extra verification: {MetricType}");
     
     private readonly ILogger<SloMonitor> _logger;
     private readonly SloConfig _config;
@@ -948,15 +968,15 @@ public class SloMonitor
             }
             catch (ObjectDisposedException ex)
             {
-                _logger.LogError(ex, "[SLO] Object disposed while recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+                SloLatencyObjectDisposedError(_logger, metricType, latencyMs, ex);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Invalid operation recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+                SloLatencyInvalidOperationError(_logger, metricType, latencyMs, ex);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "[SLO] Invalid argument recording latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+                SloLatencyArgumentError(_logger, metricType, latencyMs, ex);
             }
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -987,15 +1007,15 @@ public class SloMonitor
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[SLO] Invalid operation checking error budget");
+                SloErrorBudgetInvalidOperationError(_logger, ex);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "[SLO] Invalid argument checking error budget");
+                SloErrorBudgetArgumentError(_logger, ex);
             }
             catch (DivideByZeroException ex)
             {
-                _logger.LogError(ex, "[SLO] Division by zero checking error budget");
+                SloDivisionByZeroError(_logger, ex);
             }
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -1019,8 +1039,7 @@ public class SloMonitor
             _lastBreach[key] = now;
         }
 
-        _logger.LogWarning("[SLO] 🚨 SLO breach detected: {MetricType} = {Actual:F1} > {Threshold:F1}", 
-            metricType, actualValue, threshold);
+        SloBreachDetected(_logger, metricType, actualValue, threshold, null);
 
         // Apply tripwire actions
         ApplyTripwireActions(metricType, actualValue, threshold);
@@ -1033,19 +1052,19 @@ public class SloMonitor
         if (breachSeverity >= DefaultRetryCount3)
         {
             // Severe breach: pause trading for configured minutes
-            _logger.LogCritical("[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}", metricType);
+            SevereSloBreach(_logger, metricType, null);
             // Implementation would trigger trading pause
         }
         else if (breachSeverity >= 2.0)
         {
             // Moderate breach: downsize by 50%
-            _logger.LogWarning("[SLO] ⚠️ Moderate SLO breach - downsizing positions: {MetricType}", metricType);
+            ModerateSloBreach(_logger, metricType, null);
             // Implementation would trigger position downsizing
         }
         else
         {
             // Minor breach: add extra verification
-            _logger.LogInformation("[SLO] ℹ️ Minor SLO breach - adding extra verification: {MetricType}", metricType);
+            MinorSloBreach(_logger, metricType, null);
             // Implementation would add extra verification steps
         }
     }
