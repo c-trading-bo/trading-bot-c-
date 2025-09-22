@@ -27,6 +27,21 @@ public class HistoricalTrainerWithCV
     private readonly TimeSpan _purgeWindow = TimeSpan.FromHours(2); // Purge 2 hours around training data
     private readonly TimeSpan _embargoWindow = TimeSpan.FromHours(1); // Embargo 1 hour after training end
 
+    // Constants for S109 compliance - simulation and training parameters  
+    private const int SimulatedNetworkDelayMs = 100;
+    private const int DefaultMaxEpochs = 50;
+    private const int DefaultEarlyStoppingPatience = 10;
+    private const int PrimaryDataMaxPoints = 1000;
+    private const int FallbackDataMaxPoints = 5000;
+    private const int SafeFallbackMaxPoints = 200;
+    private const int MinimumValidationDataPoints = 50;
+    private const int PriceChangeRange = 50; // -50 to +50 range for price changes
+    private const double PriceChangeDivisor = 10.0; // Divisor for price change normalization
+    private const int BaseVolume = 1000; // Base volume for market data simulation
+    private const int VolumeVariance = 5000; // Volume variance range
+    private const int BackupDataDelayMs = 200; // Delay for backup data source simulation
+    private const int VolumeDataDelayMs = 50; // Delay for volume data loading
+
     // LoggerMessage delegates for CA1848 compliance - HistoricalTrainerWithCV
     private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> WalkForwardCVStarted =
         LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2001, "WalkForwardCVStarted"),
@@ -531,7 +546,7 @@ public class HistoricalTrainerWithCV
     private static async Task<List<MarketDataPoint>> LoadPrimaryMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         // Simulate loading from primary data source (e.g., database, data vendor API)
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate network I/O
+        await Task.Delay(SimulatedNetworkDelayMs, cancellationToken).ConfigureAwait(false); // Simulate network I/O
         
         var dataPoints = new List<MarketDataPoint>();
         var current = startTime;
@@ -539,7 +554,7 @@ public class HistoricalTrainerWithCV
         
         while (current <= endTime)
         {
-            var change = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 10.0); // Secure random price change
+            var change = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-PriceChangeRange, PriceChangeRange) / PriceChangeDivisor); // Secure random price change
             price += change;
             
             dataPoints.Add(new MarketDataPoint
@@ -548,9 +563,9 @@ public class HistoricalTrainerWithCV
                 Symbol = symbol,
                 Open = price - change,
                 High = Math.Max(price, price - change) + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
-                Low = Math.Min(price, price - change) - System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
+                Low = Math.Min(price, price - change) - System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, PriceChangeRange) / PriceChangeDivisor,
                 Close = price,
-                Volume = 1000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 5000)
+                Volume = BaseVolume + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, VolumeVariance)
             });
 
             current = current.AddMinutes(1); // 1-minute bars
@@ -562,14 +577,14 @@ public class HistoricalTrainerWithCV
     private static async Task<List<MarketDataPoint>> LoadBackupMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         // Simulate loading from backup data source
-        await Task.Delay(200, cancellationToken).ConfigureAwait(false); // Simulate slower backup source
+        await Task.Delay(BackupDataDelayMs, cancellationToken).ConfigureAwait(false); // Simulate slower backup source
         return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
     }
     
     private static async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
     {
         // Simulate loading enhanced volume data
-        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(VolumeDataDelayMs, cancellationToken).ConfigureAwait(false);
         return new Dictionary<DateTime, long>(); // Simplified
     }
     

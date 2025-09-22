@@ -33,6 +33,7 @@ public class RLAdvisorSystem
     private const double QuickExitBonus = 0.1;
     private const double LongHoldThresholdHours = 8;
     private const double LongHoldPenalty = -0.1;
+    private const double HoldInactionPenalty = 0.1;
     private const double SmallLearningRate = 0.02;
     private const double ModerateLearningRate = 0.1;
     private const double HighLearningRate = 0.2;
@@ -637,7 +638,7 @@ public class RLAdvisorSystem
         {
             1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
             ActionFullExit => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
-            _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
+            _ => -Math.Abs(priceChange) * HoldInactionPenalty // Hold - small penalty for inaction during significant moves
         };
     }
 
@@ -684,7 +685,7 @@ public class RLAdvisorSystem
         {
             try
             {
-                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence");
+                CheckingProvenUplift(_logger, null);
                 
                 var totalEdgeBps = 0.0;
                 var validAgents = 0;
@@ -707,20 +708,18 @@ public class RLAdvisorSystem
                     if (averageEdgeBps >= _config.MinEdgeBps && !_orderInfluenceEnabled)
                     {
                         _orderInfluenceEnabled = true;
-                        _logger.LogInformation("[RL_ADVISOR] ✅ Enabled order influence - proven uplift: {EdgeBps:F1} bps", 
-                            averageEdgeBps);
+                        OrderInfluenceEnabled(_logger, averageEdgeBps, null);
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
                         _orderInfluenceEnabled = false;
-                        _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
-                            averageEdgeBps);
+                        OrderInfluenceDisabled(_logger, averageEdgeBps, null);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RL_ADVISOR] Failed to check for proven uplift");
+                ProvenUpliftCheckFailed(_logger, ex);
             }
         }, cancellationToken).ConfigureAwait(false);
     }
