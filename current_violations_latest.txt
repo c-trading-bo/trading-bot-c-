@@ -1,0 +1,1 @@
+   1732 [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
