@@ -180,7 +180,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             FailedToAcquireLeadershipDebug(_logger, null);
             return false;
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToAcquireLeadershipError(_logger, ex);
+            return false;
+        }
+        catch (System.IO.IOException ex)
+        {
+            FailedToAcquireLeadershipError(_logger, ex);
+            return false;
+        }
+        catch (DirectoryNotFoundException ex)
         {
             FailedToAcquireLeadershipError(_logger, ex);
             return false;

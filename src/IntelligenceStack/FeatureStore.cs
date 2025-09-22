@@ -207,7 +207,17 @@ public class FeatureStore : IFeatureStore
 
             return true;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            SchemaValidationError(_logger, features.Symbol, ex);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            SchemaValidationError(_logger, features.Symbol, ex);
+            return false;
+        }
+        catch (System.IO.IOException ex)
         {
             SchemaValidationError(_logger, features.Symbol, ex);
             return false;
@@ -248,7 +258,17 @@ public class FeatureStore : IFeatureStore
 
             return schema ?? CreateDefaultSchema(version);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            SchemaRetrievalFailed(_logger, version, ex);
+            return CreateDefaultSchema(version);
+        }
+        catch (InvalidOperationException ex)
+        {
+            SchemaRetrievalFailed(_logger, version, ex);
+            return CreateDefaultSchema(version);
+        }
+        catch (System.IO.IOException ex)
         {
             SchemaRetrievalFailed(_logger, version, ex);
             return CreateDefaultSchema(version);

@@ -141,7 +141,17 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             
             return orderKey;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderKeyGenerationFailed(_logger, request.ModelId, request.Symbol, ex);
+            throw new InvalidOperationException($"Order key generation failed for {request.ModelId}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            OrderKeyGenerationFailed(_logger, request.ModelId, request.Symbol, ex);
+            throw;
+        }
+        catch (System.IO.IOException ex)
         {
             OrderKeyGenerationFailed(_logger, request.ModelId, request.Symbol, ex);
             throw new InvalidOperationException($"Order key generation failed for {request.ModelId}", ex);
@@ -186,7 +196,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                     {
                         File.Delete(orderPath);
                     }
-                    catch (Exception ex)
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        OrderPersistenceWarning(_logger, orderKey, ex);
+                    }
+                    catch (System.IO.IOException ex)
+                    {
+                        OrderPersistenceWarning(_logger, orderKey, ex);
+                    }
+                    catch (DirectoryNotFoundException ex)
                     {
                         OrderPersistenceWarning(_logger, orderKey, ex);
                     }
@@ -195,7 +213,19 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             return false;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderExecutionFailed(_logger, orderKey, ex);
+            // Conservative approach - assume not duplicate to avoid blocking legitimate orders
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            OrderExecutionFailed(_logger, orderKey, ex);
+            // Conservative approach - assume not duplicate to avoid blocking legitimate orders
+            return false;
+        }
+        catch (System.IO.IOException ex)
         {
             OrderExecutionFailed(_logger, orderKey, ex);
             // Conservative approach - assume not duplicate to avoid blocking legitimate orders
@@ -230,7 +260,17 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             OrderRegistered(_logger, orderKey[..OrderKeyTruncationLength], orderId, null);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderRegistrationFailed(_logger, orderKey, orderId, ex);
+            throw new InvalidOperationException($"Order registration failed for key {orderKey[..OrderKeyTruncationLength]}...", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            OrderRegistrationFailed(_logger, orderKey, orderId, ex);
+            throw new InvalidOperationException($"Order registration failed for key {orderKey[..OrderKeyTruncationLength]}...", ex);
+        }
+        catch (System.IO.IOException ex)
         {
             OrderRegistrationFailed(_logger, orderKey, orderId, ex);
             throw new InvalidOperationException($"Order registration failed for key {orderKey[..OrderKeyTruncationLength]}...", ex);
@@ -260,7 +300,29 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             return result;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderExecutionFailed(_logger, "deduplication check", ex);
+            
+            // Return safe default
+            return new OrderDeduplicationResult
+            {
+                IsDuplicate = false,
+                OrderKey = Guid.NewGuid().ToString("N")
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            OrderExecutionFailed(_logger, "deduplication check", ex);
+            
+            // Return safe default
+            return new OrderDeduplicationResult
+            {
+                IsDuplicate = false,
+                OrderKey = Guid.NewGuid().ToString("N")
+            };
+        }
+        catch (System.IO.IOException ex)
         {
             OrderExecutionFailed(_logger, "deduplication check", ex);
             
@@ -307,7 +369,17 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             return true;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderExecutionFailed(_logger, orderKey, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            OrderExecutionFailed(_logger, orderKey, ex);
+            return false;
+        }
+        catch (System.IO.IOException ex)
         {
             OrderExecutionFailed(_logger, orderKey, ex);
             return false;
@@ -347,7 +419,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                         File.Delete(file);
                     }
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
+                {
+                    OrderFileLoadWarning(_logger, file, ex);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    OrderFileLoadWarning(_logger, file, ex);
+                }
+                catch (JsonException ex)
                 {
                     OrderFileLoadWarning(_logger, file, ex);
                 }
@@ -355,7 +435,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
             OrdersLoadedInfo(_logger, loadedCount, null);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderStateLoadFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            OrderStateLoadFailed(_logger, ex);
+        }
+        catch (System.IO.IOException ex)
         {
             OrderStateLoadFailed(_logger, ex);
         }
@@ -399,7 +487,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                             deletedCount++;
                         }
                     }
-                    catch (Exception ex)
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        ExpiredFileDeleteWarning(_logger, file, ex);
+                    }
+                    catch (System.IO.IOException ex)
+                    {
+                        ExpiredFileDeleteWarning(_logger, file, ex);
+                    }
+                    catch (DirectoryNotFoundException ex)
                     {
                         ExpiredFileDeleteWarning(_logger, file, ex);
                     }
@@ -411,7 +507,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 }
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            OrderCleanupFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            OrderCleanupFailed(_logger, ex);
+        }
+        catch (System.IO.IOException ex)
         {
             OrderCleanupFailed(_logger, ex);
         }
