@@ -526,22 +526,22 @@ public class StartupValidator : IStartupValidator
                 
                 if (stopwatch.ElapsedMilliseconds >= KillSwitchTimeoutMs)
                 {
-                    _logger.LogError("[KILL_SWITCH] Kill switch response too slow: {Ms}ms", stopwatch.ElapsedMilliseconds);
+                    KillSwitchTooSlow(_logger, stopwatch.ElapsedMilliseconds, null);
                     return false;
                 }
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "[KILL_SWITCH] Kill switch test timed out");
+                KillSwitchTimedOut(_logger, ex);
                 return false;
             }
 
-            _logger.LogDebug("[KILL_SWITCH] Kill switch responsive ({Ms}ms)", stopwatch.ElapsedMilliseconds);
+            KillSwitchResponsive(_logger, stopwatch.ElapsedMilliseconds, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[KILL_SWITCH] Kill switch validation failed");
+            KillSwitchValidationFailed(_logger, ex);
             return false;
         }
     }
@@ -554,7 +554,7 @@ public class StartupValidator : IStartupValidator
             var acquired = await _leaderElectionService.TryAcquireLeadershipAsync(cancellationToken).ConfigureAwait(false);
             if (!acquired)
             {
-                _logger.LogWarning("[LEADER] Could not acquire leadership (may be expected if another instance is running)");
+                LeaderElectionNoAcquisition(_logger, null);
                 // This is not necessarily a failure in a distributed environment
             }
 
@@ -569,17 +569,17 @@ public class StartupValidator : IStartupValidator
                 
                 if (stillLeader)
                 {
-                    _logger.LogError("[LEADER] Failed to release leadership");
+                    LeaderElectionReleaseFailed(_logger, null);
                     return false;
                 }
             }
 
-            _logger.LogDebug("[LEADER] Leader election system functional");
+            LeaderElectionPassed(_logger, null);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Leader election validation failed");
+            LeaderElectionValidationFailed(_logger, ex);
             return false;
         }
     }

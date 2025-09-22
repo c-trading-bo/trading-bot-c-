@@ -13,6 +13,12 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class RegimeDetectorWithHysteresis : IRegimeDetector
 {
+    // Constants to eliminate magic numbers (S109)
+    private const double DefaultTickSize = 0.25; // ES/NQ default tick size
+    private const double TrendThresholdOffset = 0.5; // Trend Z-score offset
+    private const double MedianDivisor = 2.0; // For even-length median calculation
+    private const double NeutralRegimeScore = 0.5; // Default score when no regime detected
+    
     private readonly ILogger<RegimeDetectorWithHysteresis> _logger;
     private readonly HysteresisConfig _config;
     private readonly object _lock = new();
@@ -31,7 +37,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     {
         _logger = logger;
         _config = config;
-        _spreadMedian = 0.25; // Initialize with default ES/NQ tick size
+        _spreadMedian = DefaultTickSize; // Initialize with default ES/NQ tick size
     }
 
     public async Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default)
@@ -180,7 +186,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         // Default to range/chop regime
         var rangeConfidence = 1.0 - Math.Max(
             Math.Max(volRatio - 1.0, 0.0),
-            Math.Max(trendZScore - 0.5, 0.0)
+            Math.Max(trendZScore - TrendThresholdOffset, 0.0)
         );
         
         return (RegimeType.Range, Math.Max(rangeConfidence, 0.1));
@@ -263,7 +269,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
                 var sortedAtrs = _atrHistory.ToArray();
                 Array.Sort(sortedAtrs);
                 _medianAtr = sortedAtrs.Length % 2 == 0
-                    ? (sortedAtrs[sortedAtrs.Length / 2 - 1] + sortedAtrs[sortedAtrs.Length / 2]) / 2.0
+                    ? (sortedAtrs[sortedAtrs.Length / 2 - 1] + sortedAtrs[sortedAtrs.Length / 2]) / MedianDivisor
                     : sortedAtrs[sortedAtrs.Length / 2];
             }
             
@@ -297,7 +303,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             // If no regime has been detected yet, return a neutral score
             if (_currentState == null)
             {
-                return 0.5; // Neutral score when no regime detected
+                return NeutralRegimeScore; // Neutral score when no regime detected
             }
             
             return _currentState.Confidence;
