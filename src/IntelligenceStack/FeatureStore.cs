@@ -25,6 +25,7 @@ public class FeatureStore : IFeatureStore
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
+    private const int ChecksumLength = 16;
 
     // LoggerMessage delegates for CA1848 compliance - FeatureStore  
     private static readonly Action<ILogger, string, Exception?> NoFeatureDataFound =
@@ -46,6 +47,30 @@ public class FeatureStore : IFeatureStore
     private static readonly Action<ILogger, string, DateTime, Exception?> FeatureSavingFailed =
         LoggerMessage.Define<string, DateTime>(LogLevel.Error, new EventId(3005, "FeatureSavingFailed"),
             "[FEATURES] Failed to save features for {Symbol} at {Timestamp}");
+            
+    private static readonly Action<ILogger, string, Exception?> SchemaNotFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3006, "SchemaNotFound"),
+            "[FEATURES] Schema not found for version: {Version}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> ValidationFailed =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(3007, "ValidationFailed"),
+            "[FEATURES] Validation failed for {Symbol}: {Reason}");
+            
+    private static readonly Action<ILogger, string, Exception?> SchemaValidationError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3008, "SchemaValidationError"),
+            "[FEATURES] Schema validation error for {Symbol}");
+            
+    private static readonly Action<ILogger, string, int, Exception?> SchemaSaved =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(3009, "SchemaSaved"),
+            "[FEATURES] Saved schema version: {Version} with {Count} features");
+            
+    private static readonly Action<ILogger, string, Exception?> SchemaSaveFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3010, "SchemaSaveFailed"),
+            "[FEATURES] Failed to save schema: {Version}");
+            
+    private static readonly Action<ILogger, string, Exception?> SchemaRetrievalFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3011, "SchemaRetrievalFailed"),
+            "[FEATURES] Failed to get schema for version: {Version}");
 
     public FeatureStore(ILogger<FeatureStore> logger, string basePath = "data/features")
     {
@@ -168,7 +193,7 @@ public class FeatureStore : IFeatureStore
             var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false);
             if (schema == null)
             {
-                _logger.LogWarning("[FEATURES] Schema not found for version: {Version}", features.Version);
+                SchemaNotFound(_logger, features.Version, null);
                 return false;
             }
 
@@ -176,8 +201,7 @@ public class FeatureStore : IFeatureStore
             
             if (!validationResult.IsValid)
             {
-                _logger.LogWarning("[FEATURES] Validation failed for {Symbol}: {Reason}", 
-                    features.Symbol, validationResult.FailureReason);
+                ValidationFailed(_logger, features.Symbol, validationResult.FailureReason, null);
                 return false;
             }
 
@@ -185,7 +209,7 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Schema validation error for {Symbol}", features.Symbol);
+            SchemaValidationError(_logger, features.Symbol, ex);
             return false;
         }
     }
@@ -226,7 +250,7 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to get schema for version: {Version}", version);
+            SchemaRetrievalFailed(_logger, version, ex);
             return CreateDefaultSchema(version);
         }
     }
@@ -250,12 +274,11 @@ public class FeatureStore : IFeatureStore
                 _schemaCache[schema.Version] = schema;
             }
 
-            _logger.LogInformation("[FEATURES] Saved schema version: {Version} with {Count} features", 
-                schema.Version, schema.Features.Count);
+            SchemaSaved(_logger, schema.Version, schema.Features.Count, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to save schema: {Version}", schema.Version);
+            SchemaSaveFailed(_logger, schema.Version, ex);
             throw new InvalidOperationException($"Schema save failed for version {schema.Version}", ex);
         }
     }
@@ -342,7 +365,7 @@ public class FeatureStore : IFeatureStore
         var content = JsonSerializer.Serialize(features.Features);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
-        return Convert.ToHexString(hash)[..16]; // First 16 chars
+        return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static string CalculateSchemaChecksum(FeatureSchema schema)
@@ -350,7 +373,7 @@ public class FeatureStore : IFeatureStore
         var content = JsonSerializer.Serialize(schema.Features);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
-        return Convert.ToHexString(hash)[..16]; // First 16 chars
+        return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static bool IsFileInTimeRange(string filePath, DateTime fromTime, DateTime toTime)

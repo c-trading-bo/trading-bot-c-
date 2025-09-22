@@ -113,6 +113,88 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         LoggerMessage.Define(LogLevel.Error, new EventId(4020, "LoadActiveModelsFailed"),
             "[INTELLIGENCE] Failed to load active models");
             
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> NoFallbackModelWarning =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(4021, "NoFallbackModelWarning"),
+            "[INTELLIGENCE] No fallback model available");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> PredictionGenerated =
+        LoggerMessage.Define<string, string, double>(LogLevel.Debug, new EventId(4022, "PredictionGenerated"),
+            "[INTELLIGENCE] Generated prediction for {Symbol}: {Direction} (confidence: {Confidence:F3})");
+            
+    private static readonly Action<ILogger, string, Exception?> LatestPredictionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4023, "LatestPredictionFailed"),
+            "[INTELLIGENCE] Failed to get latest prediction for {Symbol}");
+            
+    private static readonly Action<ILogger, Exception?> SystemNotInitializedDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4024, "SystemNotInitializedDebug"),
+            "[ONLINE_PREDICTION] System not initialized or trading disabled");
+            
+    private static readonly Action<ILogger, string, string, double, double, Exception?> ONNXPredictionDebug =
+        LoggerMessage.Define<string, string, double, double>(LogLevel.Debug, new EventId(4025, "ONNXPredictionDebug"),
+            "[ONLINE_PREDICTION] ONNX prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}, result={Result:F3}");
+            
+    private static readonly Action<ILogger, int, string, string, Exception?> InvalidFeatureVectorWarning =
+        LoggerMessage.Define<int, string, string>(LogLevel.Warning, new EventId(4026, "InvalidFeatureVectorWarning"),
+            "[ONLINE_PREDICTION] Invalid feature vector shape: {FeatureCount} for {Symbol}/{Strategy}");
+            
+    private static readonly Action<ILogger, Exception?> ONNXWrapperNotAvailableDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4027, "ONNXWrapperNotAvailableDebug"),
+            "[ONLINE_PREDICTION] OnnxEnsembleWrapper not available in DI container");
+            
+    private static readonly Action<ILogger, string, string, double, Exception?> FallbackPredictionDebug =
+        LoggerMessage.Define<string, string, double>(LogLevel.Debug, new EventId(4028, "FallbackPredictionDebug"),
+            "[ONLINE_PREDICTION] Using fallback prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> OnlinePredictionFailed =
+        LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(4029, "OnlinePredictionFailed"),
+            "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}");
+            
+    // Cloud flow LoggerMessage delegates
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabledDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4030, "CloudFlowDisabledDebug"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushedInfo =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4031, "TradeRecordPushedInfo"),
+            "[INTELLIGENCE] Trade record pushed to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "TradeRecordPushFailed"),
+            "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabledMetricsDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4033, "CloudFlowDisabledMetricsDebug"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
+            
+    private static readonly Action<ILogger, Exception?> MetricsPushedDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4034, "MetricsPushedDebug"),
+            "[INTELLIGENCE] Service metrics pushed to cloud");
+            
+    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4035, "MetricsPushFailed"),
+            "[INTELLIGENCE] Failed to push service metrics to cloud");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushedDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "DecisionIntelligencePushedDebug"),
+            "[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "DecisionIntelligencePushFailed"),
+            "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, int, string, Exception?> CloudPushFailedWarning =
+        LoggerMessage.Define<int, string>(LogLevel.Warning, new EventId(4038, "CloudPushFailedWarning"),
+            "[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}");
+            
+    private static readonly Action<ILogger, int, Exception?> CloudPushTimeoutWarning =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4039, "CloudPushTimeoutWarning"),
+            "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}");
+            
+    private static readonly Action<ILogger, int, Exception?> CloudPushNetworkErrorWarning =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4040, "CloudPushNetworkErrorWarning"),
+            "[INTELLIGENCE] Network error on cloud push attempt {Attempt}");
+            
 
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
@@ -486,7 +568,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (FileNotFoundException ex)
         {
-            _logger.LogWarning(ex, "[INTELLIGENCE] No fallback model available");
+            NoFallbackModelWarning(_logger, ex);
             return null;
         }
     }
@@ -633,14 +715,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 return "HOLD";
             }
 
-            _logger.LogDebug("[INTELLIGENCE] Generated prediction for {Symbol}: {Direction} (confidence: {Confidence:F3})", 
-                symbol, prediction.Direction, confidence);
+            PredictionGenerated(_logger, symbol, prediction.Direction.ToString(), confidence, null);
 
             return prediction;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to get latest prediction for {Symbol}", symbol);
+            LatestPredictionFailed(_logger, symbol, ex);
             return new MLPrediction
             {
                 Symbol = symbol,
@@ -663,7 +744,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             if (!_isInitialized || !_isTradingEnabled)
             {
-                _logger.LogDebug("[ONLINE_PREDICTION] System not initialized or trading disabled");
+                SystemNotInitializedDebug(_logger, null);
                 return null;
             }
 
@@ -725,32 +806,29 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     prediction.Metadata["strategy_id"] = strategyId;
                     prediction.Metadata["model_count"] = ensemblePrediction.Predictions.Count;
 
-                    _logger.LogDebug("[ONLINE_PREDICTION] ONNX prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}, result={Result:F3}", 
-                        symbol, strategyId, prediction.Confidence, ensemblePrediction.EnsembleResult);
+                    ONNXPredictionDebug(_logger, symbol, strategyId, prediction.Confidence, ensemblePrediction.EnsembleResult, null);
                     
                     return prediction;
                 }
                 else
                 {
-                    _logger.LogWarning("[ONLINE_PREDICTION] Invalid feature vector shape: {FeatureCount} for {Symbol}/{Strategy}", 
-                        featureArray.Length, symbol, strategyId);
+                    InvalidFeatureVectorWarning(_logger, featureArray.Length, symbol, strategyId, null);
                 }
             }
             else
             {
-                _logger.LogDebug("[ONLINE_PREDICTION] OnnxEnsembleWrapper not available in DI container");
+                ONNXWrapperNotAvailableDebug(_logger, null);
             }
 
             // Fallback to simplified prediction logic if ONNX not available
             var fallbackPrediction = await GetLatestPredictionAsync(symbol, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("[ONLINE_PREDICTION] Using fallback prediction for {Symbol}/{Strategy}: confidence={Confidence:F3}", 
-                symbol, strategyId, fallbackPrediction.Confidence);
+            FallbackPredictionDebug(_logger, symbol, strategyId, fallbackPrediction.Confidence, null);
             
             return fallbackPrediction;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}", symbol, strategyId);
+            OnlinePredictionFailed(_logger, symbol, strategyId, ex);
             return null;
         }
     }
@@ -1051,7 +1129,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         if (!_cloudFlowOptions.Enabled)
         {
-            _logger.LogDebug("[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
+            CloudFlowDisabledDebug(_logger, null);
             return;
         }
 
@@ -1066,11 +1144,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             };
 
             await PushToCloudWithRetryAsync("trades", payload, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("[INTELLIGENCE] Trade record pushed to cloud: {TradeId}", tradeRecord.TradeId);
+            TradeRecordPushedInfo(_logger, tradeRecord.TradeId, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}", tradeRecord.TradeId);
+            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
             // Don't throw - cloud push failures shouldn't stop trading
         }
     }
@@ -1082,7 +1160,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         if (!_cloudFlowOptions.Enabled)
         {
-            _logger.LogDebug("[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
+            CloudFlowDisabledMetricsDebug(_logger, null);
             return;
         }
 
@@ -1097,11 +1175,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             };
 
             await PushToCloudWithRetryAsync("metrics", payload, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("[INTELLIGENCE] Service metrics pushed to cloud");
+            MetricsPushedDebug(_logger, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to push service metrics to cloud");
+            MetricsPushFailed(_logger, ex);
             // Don't throw - metrics push failures shouldn't stop trading
         }
     }
@@ -1133,11 +1211,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             };
 
             await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}", decision.DecisionId);
+            DecisionIntelligencePushedDebug(_logger, decision.DecisionId, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}", decision.DecisionId);
+            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
         }
     }
 
@@ -1166,8 +1244,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
                 // Log non-success response
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}", 
-                    response.StatusCode, responseContent);
+                CloudPushFailedWarning(_logger, (int)response.StatusCode, responseContent, null);
 
                 // Don't retry on client errors (4xx)
                 if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
@@ -1177,11 +1254,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogWarning(ex, "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}", attempt + 1);
+                CloudPushTimeoutWarning(_logger, attempt + 1, ex);
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning(ex, "[INTELLIGENCE] Network error on cloud push attempt {Attempt}", attempt + 1);
+                CloudPushNetworkErrorWarning(_logger, attempt + 1, ex);
             }
 
             // Wait before retry (exponential backoff)

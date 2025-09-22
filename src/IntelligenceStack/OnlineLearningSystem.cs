@@ -966,7 +966,7 @@ public class SloMonitor
         }
     }
 
-    internal class SloStatus
+    internal sealed class SloStatus
     {
         public double DecisionLatencyP99Ms { get; set; }
         public double OrderLatencyP99Ms { get; set; }

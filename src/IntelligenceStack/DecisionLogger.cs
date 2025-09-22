@@ -204,7 +204,7 @@ public class DecisionLogger : IDecisionLogger
             {
                 MachineName = Environment.MachineName,
                 ProcessId = Environment.ProcessId,
-                ThreadId = Thread.CurrentThread.ManagedThreadId,
+                ThreadId = Environment.CurrentManagedThreadId,
                 MemoryUsage = GC.GetTotalMemory(false)
             },
             Performance = new PerformanceMetrics

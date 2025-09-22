@@ -36,6 +36,75 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     private static readonly Action<ILogger, string, string, Exception?> OrderRegistered =
         LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(1003, "OrderRegistered"),
             "[IDEMPOTENT] Registered order: {OrderKey} -> {OrderId}");
+            
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> DuplicateOrderWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1004, "DuplicateOrderWarning"),
+            "[IDEMPOTENT] Duplicate order detected for key: {OrderKey}");
+            
+    private static readonly Action<ILogger, string, DateTime, Exception?> DuplicateOrderWithTimestamp =
+        LoggerMessage.Define<string, DateTime>(LogLevel.Warning, new EventId(1013, "DuplicateOrderWithTimestamp"),
+            "[IDEMPOTENT] Duplicate order detected: {OrderKey} (first seen: {FirstSeen})");
+            
+    private static readonly Action<ILogger, string, Exception?> OrderExecutionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(1005, "OrderExecutionFailed"),
+            "[IDEMPOTENT] Failed to execute order for key: {OrderKey}");
+            
+    private static readonly Action<ILogger, string, Exception?> OrderLookupWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1006, "OrderLookupWarning"),
+            "[IDEMPOTENT] Order lookup failed for key: {OrderKey}");
+            
+    private static readonly Action<ILogger, int, Exception?> OrderCleanupInfo =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1007, "OrderCleanupInfo"),
+            "[IDEMPOTENT] Cleaned up {Count} expired orders");
+            
+    private static readonly Action<ILogger, Exception?> OrderCleanupFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(1008, "OrderCleanupFailed"),
+            "[IDEMPOTENT] Failed to cleanup expired orders");
+            
+    private static readonly Action<ILogger, string, Exception?> OrderPersistenceWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1009, "OrderPersistenceWarning"),
+            "[IDEMPOTENT] Failed to persist order state for key: {OrderKey}");
+            
+    private static readonly Action<ILogger, int, Exception?> OrderStatePersisted =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1010, "OrderStatePersisted"),
+            "[IDEMPOTENT] Persisted {Count} order records to disk");
+            
+    private static readonly Action<ILogger, Exception?> OrderStateLoadFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(1011, "OrderStateLoadFailed"),
+            "[IDEMPOTENT] Failed to load order state from disk");
+            
+    private static readonly Action<ILogger, int, Exception?> OrdersCleanedFromMemory =
+        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(1012, "OrdersCleanedFromMemory"),
+            "[IDEMPOTENT] Cleaned {Count} expired orders from memory");
+            
+    private static readonly Action<ILogger, string, Exception?> MaxRetryAttemptsExceeded =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1014, "MaxRetryAttemptsExceeded"),
+            "[IDEMPOTENT] Max retry attempts exceeded for order: {OrderKey}");
+            
+    private static readonly Action<ILogger, string, int, int, int, Exception?> RetryingOrder =
+        LoggerMessage.Define<string, int, int, int>(LogLevel.Information, new EventId(1015, "RetryingOrder"),
+            "[IDEMPOTENT] Retrying order {OrderKey} (attempt {Attempt}/{Max}) after {Delay}ms");
+            
+    private static readonly Action<ILogger, string, Exception?> OrderFileLoadWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1016, "OrderFileLoadWarning"),
+            "[IDEMPOTENT] Failed to load order file: {File}");
+            
+    private static readonly Action<ILogger, int, Exception?> OrdersLoadedInfo =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(1017, "OrdersLoadedInfo"),
+            "[IDEMPOTENT] Loaded {Count} existing orders into cache");
+            
+    private static readonly Action<ILogger, string, Exception?> ExpiredFileDeleteWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1018, "ExpiredFileDeleteWarning"),
+            "[IDEMPOTENT] Failed to delete expired file: {File}");
+            
+    private static readonly Action<ILogger, int, int, Exception?> CleanupCompletedInfo =
+        LoggerMessage.Define<int, int>(LogLevel.Information, new EventId(1019, "CleanupCompletedInfo"),
+            "[IDEMPOTENT] Cleanup completed: {CacheRemoved} cache entries, {FilesDeleted} files deleted");
+            
+    private static readonly Action<ILogger, string, string, string, double, Exception?> OrderKeyGenerated =
+        LoggerMessage.Define<string, string, string, double>(LogLevel.Debug, new EventId(1020, "OrderKeyGenerated"),
+            "[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -129,7 +198,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "[IDEMPOTENT] Failed to delete expired order file: {OrderKey}", orderKey);
+                        OrderPersistenceWarning(_logger, orderKey, ex);
                     }
                 }
             }
@@ -138,7 +207,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Failed to check duplicate order: {OrderKey}", orderKey);
+            OrderExecutionFailed(_logger, orderKey, ex);
             // Conservative approach - assume not duplicate to avoid blocking legitimate orders
             return false;
         }
@@ -196,15 +265,14 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 result.ExistingOrderId = existingRecord.OrderId;
                 result.FirstSeenAt = existingRecord.CreatedAt;
                 
-                _logger.LogWarning("[IDEMPOTENT] Duplicate order detected: {OrderKey} (first seen: {FirstSeen})", 
-                    orderKey[..8], existingRecord.CreatedAt);
+                DuplicateOrderWithTimestamp(_logger, orderKey[..8], existingRecord.CreatedAt, null);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Failed to check deduplication for order");
+            OrderExecutionFailed(_logger, "deduplication check", ex);
             
             // Return safe default
             return new OrderDeduplicationResult
@@ -221,7 +289,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         {
             if (attemptNumber > _config.Retry.MaxAttempts)
             {
-                _logger.LogWarning("[IDEMPOTENT] Max retry attempts exceeded for order: {OrderKey}", orderKey[..8]);
+                MaxRetryAttemptsExceeded(_logger, orderKey[..8], null);
                 return false;
             }
 
@@ -231,8 +299,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 _config.Retry.MaxMs
             );
 
-            _logger.LogInformation("[IDEMPOTENT] Retrying order {OrderKey} (attempt {Attempt}/{Max}) after {Delay}ms", 
-                orderKey[..8], attemptNumber, _config.Retry.MaxAttempts, delayMs);
+            RetryingOrder(_logger, orderKey[..8], attemptNumber, _config.Retry.MaxAttempts, (int)delayMs, null);
 
             await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken).ConfigureAwait(false);
 
@@ -252,7 +319,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Failed to retry order: {OrderKey}", orderKey);
+            OrderExecutionFailed(_logger, orderKey, ex);
             return false;
         }
     }
@@ -292,15 +359,15 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[IDEMPOTENT] Failed to load order file: {File}", file);
+                    OrderFileLoadWarning(_logger, file, ex);
                 }
             }
 
-            _logger.LogInformation("[IDEMPOTENT] Loaded {Count} existing orders into cache", loadedCount);
+            OrdersLoadedInfo(_logger, loadedCount, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Failed to load existing orders");
+            OrderStateLoadFailed(_logger, ex);
         }
     }
 
@@ -344,20 +411,19 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "[IDEMPOTENT] Failed to delete expired file: {File}", file);
+                        ExpiredFileDeleteWarning(_logger, file, ex);
                     }
                 }
 
                 if (expiredKeys.Count > 0 || deletedCount > 0)
                 {
-                    _logger.LogInformation("[IDEMPOTENT] Cleanup completed: {CacheRemoved} cache entries, {FilesDeleted} files deleted", 
-                        expiredKeys.Count, deletedCount);
+                    CleanupCompletedInfo(_logger, expiredKeys.Count, deletedCount, null);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Cleanup failed");
+            OrderCleanupFailed(_logger, ex);
         }
     }
 
@@ -410,8 +476,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         // Simulate async audit logging to external system
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        _logger.LogDebug("[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})", 
-            orderKey[..8], request.Symbol, request.Side, priceBucket);
+        OrderKeyGenerated(_logger, orderKey[..8], request.Symbol, request.Side.ToString(), priceBucket, null);
     }
 
     private sealed class OrderRecord

@@ -27,6 +27,61 @@ public class RLAdvisorSystem
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     
+    // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
+    private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
+        LoggerMessage.Define<string, ExitAction, double>(LogLevel.Debug, new EventId(4001, "RecommendationGenerated"),
+            "[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})");
+            
+    private static readonly Action<ILogger, string, Exception?> RecommendationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4002, "RecommendationFailed"),
+            "[RL_ADVISOR] Failed to generate exit recommendation for {Symbol}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionNotFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4003, "DecisionNotFound"),
+            "[RL_ADVISOR] Decision not found for outcome update: {DecisionId}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> AgentUpdated =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4004, "AgentUpdated"),
+            "[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}");
+            
+    private static readonly Action<ILogger, string, Exception?> OutcomeUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "OutcomeUpdateFailed"),
+            "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}");
+            
+    // Action mapping constants for S109 compliance
+    private const int ActionHold = 0;
+    private const int ActionPartialExit = 1;
+    private const int ActionFullExit = 2;
+    private const int ActionTrailingStop = 3;
+    
+    // Confidence thresholds
+    private const double HighConfidenceThreshold = 0.8;
+    private const double LowConfidenceThreshold = 0.3;
+    private const double LongTimeInPositionHours = 4.0;
+    
+    // Additional S109 constants for RL system
+    private const int MaxStateDimensions = 1000; // Maximum state vector dimensions
+    private const int DefaultTimestepsPerEpoch = 30; // Default timesteps per training epoch
+    private const double MinimumActionThreshold = 0.1; // Minimum action value threshold
+    private const int DefaultActionSpace = 8; // Default action space size
+    private const double ExplorationNoiseScale = 0.02; // Scale for exploration noise
+    private const double BaselineDiscount = 0.2; // Baseline discount factor
+    private const double DivergenceThreshold = 2.0; // Divergence threshold for policy update
+    private const double LearningRateDecay = 0.1; // Learning rate decay factor
+    private const int DefaultStateBufferSize = 4000; // Default state buffer size
+    private const int DefaultActionBufferSize = 200; // Default action buffer size
+    private const int DefaultRewardBufferSize = 100; // Default reward buffer size
+    private const int MaxRewardBufferSize = 1000; // Maximum reward buffer size
+    private const double DefaultLearningRate = 0.01; // Default learning rate
+    private const int DefaultEpisodeLength = 20; // Default episode length
+    private const int MaxEpisodeLength = 1000; // Maximum episode length
+    private const double PolicyUpdateInterval = 240.0; // Policy update interval in minutes
+    private const double ValueUpdateInterval = 120.0; // Value update interval in minutes
+    private const int MaxMemorySize = 500; // Maximum memory size
+    private const int DefaultBatchSize = 100; // Default batch size for training
+    private const int ObservationWindowHours = 12; // Observation window in hours
+    private const double RewardScalingFactor = 2.0; // Reward scaling factor
+    
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
     private readonly IDecisionLogger _decisionLogger;
@@ -107,14 +162,13 @@ public class RLAdvisorSystem
             // Increment shadow decision count
             await IncrementShadowDecisionCountAsync(agentKey).ConfigureAwait(false);
 
-            _logger.LogDebug("[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})", 
-                context.Symbol, recommendation.Action, recommendation.Confidence);
+            RecommendationGenerated(_logger, context.Symbol, recommendation.Action, recommendation.Confidence, null);
 
             return recommendation;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Failed to generate exit recommendation for {Symbol}", context.Symbol);
+            RecommendationFailed(_logger, context.Symbol, ex);
             return new RLAdvisorRecommendation
             {
                 Action = ExitAction.Hold,
@@ -139,7 +193,7 @@ public class RLAdvisorSystem
             var decision = FindDecisionById(decisionId);
             if (decision == null)
             {
-                _logger.LogWarning("[RL_ADVISOR] Decision not found for outcome update: {DecisionId}", decisionId);
+                DecisionNotFound(_logger, decisionId, null);
                 return;
             }
 
@@ -155,8 +209,7 @@ public class RLAdvisorSystem
             // Update performance tracking
             await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}", 
-                agentKey, reward);
+            AgentUpdated(_logger, agentKey, reward, null);
 
             // Check for uplift periodically
             if (DateTime.UtcNow - _lastUpliftCheck > TimeSpan.FromHours(UpliftCheckHours))
@@ -167,7 +220,7 @@ public class RLAdvisorSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}", decisionId);
+            OutcomeUpdateFailed(_logger, decisionId, ex);
         }
     }
 
@@ -329,10 +382,10 @@ public class RLAdvisorSystem
     {
         return rlAction.ActionType switch
         {
-            0 => ExitAction.Hold,
-            1 => ExitAction.PartialExit,
-            2 => ExitAction.FullExit,
-            3 => ExitAction.TrailingStop,
+            ActionHold => ExitAction.Hold,
+            ActionPartialExit => ExitAction.PartialExit,
+            ActionFullExit => ExitAction.FullExit,
+            ActionTrailingStop => ExitAction.TrailingStop,
             _ => ExitAction.Hold
         };
     }
@@ -341,9 +394,9 @@ public class RLAdvisorSystem
     {
         var reasons = new List<string>();
         
-        if (rlAction.Confidence > 0.8)
+        if (rlAction.Confidence > HighConfidenceThreshold)
             reasons.Add("High confidence");
-        else if (rlAction.Confidence < 0.3)
+        else if (rlAction.Confidence < LowConfidenceThreshold)
             reasons.Add("Low confidence");
             
         if (context.UnrealizedPnL > 0)
@@ -351,7 +404,7 @@ public class RLAdvisorSystem
         else
             reasons.Add("Position at loss");
             
-        if (context.TimeInPosition.TotalHours > 4)
+        if (context.TimeInPosition.TotalHours > LongTimeInPositionHours)
             reasons.Add("Long time in position");
             
         return string.Join(", ", reasons);
@@ -376,12 +429,13 @@ public class RLAdvisorSystem
 
         lock (_lock)
         {
-            if (!_decisionHistory.ContainsKey(agentKey))
+            if (!_decisionHistory.TryGetValue(agentKey, out var decisions))
             {
-                _decisionHistory[agentKey] = new List<RLDecision>();
+                decisions = new List<RLDecision>();
+                _decisionHistory[agentKey] = decisions;
             }
             
-            _decisionHistory[agentKey].Add(decision);
+            decisions.Add(decision);
             
             // Keep only recent decisions
             if (_decisionHistory[agentKey].Count > 1000)
@@ -474,12 +528,12 @@ public class RLAdvisorSystem
         
         lock (_lock)
         {
-            if (!_performanceTrackers.ContainsKey(agentKey))
+            if (!_performanceTrackers.TryGetValue(agentKey, out var tracker))
             {
-                _performanceTrackers[agentKey] = new PerformanceTracker();
+                tracker = new PerformanceTracker();
+                _performanceTrackers[agentKey] = tracker;
             }
             
-            var tracker = _performanceTrackers[agentKey];
             tracker.AddOutcome(outcome.RealizedPnL, outcome.TimeToExit);
         }
     }

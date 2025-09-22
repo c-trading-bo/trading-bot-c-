@@ -29,6 +29,11 @@ public class FeatureEngineer : IDisposable
     private const int MaxFeatureCount = 10;
     private const int VarianceSquared = 2;
     
+    // Additional S109 constants
+    private const int AsyncProcessingDelayMs = 2;
+    private const double MidPriceDivisor = 2.0;
+    private const double CorrelationTolerance = 1e-10;
+    
     // LoggerMessage delegates for CA1848 compliance - FeatureEngineer
     private static readonly Action<ILogger, string, Exception?> LogsDirectoryWarning =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4001, "LogsDirectoryWarning"),
@@ -314,12 +319,12 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Get current feature weights for a strategy
     /// </summary>
-    public async Task<Dictionary<string, double>> GetCurrentWeightsAsync(
+    public Task<Dictionary<string, double>> GetCurrentWeightsAsync(
         string strategyId,
         CancellationToken cancellationToken = default)
     {
-        // Perform async weight retrieval with persistence layer
-        return await LoadWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false);
+        // Perform weight retrieval from memory cache
+        return Task.FromResult(LoadWeights(strategyId));
     }
 
     /// <summary>
@@ -480,11 +485,11 @@ public class FeatureEngineer : IDisposable
         try
         {
             // Perform async feature extraction with external data enrichment
-            await Task.Delay(2, cancellationToken).ConfigureAwait(false); // Simulate async processing
+            await Task.Delay(AsyncProcessingDelayMs, cancellationToken).ConfigureAwait(false); // Simulate async processing
             
             // Basic feature extraction using available MarketData properties
             var spread = marketData.Ask - marketData.Bid;
-            var midPrice = (marketData.Bid + marketData.Ask) / 2.0;
+            var midPrice = (marketData.Bid + marketData.Ask) / MidPriceDivisor;
             var priceChange = marketData.Close - marketData.Open;
             var priceChangeRatio = marketData.Open > 0 ? priceChange / marketData.Open : 0.0;
             
@@ -544,7 +549,7 @@ public class FeatureEngineer : IDisposable
         var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, VarianceSquared)));
         var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, VarianceSquared)));
         
-        if (Math.Abs(denomX) < 1e-10 || Math.Abs(denomY) < 1e-10)
+        if (Math.Abs(denomX) < CorrelationTolerance || Math.Abs(denomY) < CorrelationTolerance)
         {
             return 0.0;
         }
@@ -605,11 +610,8 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Async load weights from persistent storage
     /// </summary>
-    private async Task<Dictionary<string, double>> LoadWeightsAsync(string strategyId, CancellationToken cancellationToken)
+    private Dictionary<string, double> LoadWeights(string strategyId)
     {
-        // Simulate async loading from database/cache
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-        
         if (_currentWeights.TryGetValue(strategyId, out var weights))
         {
             return new Dictionary<string, double>(weights);
@@ -641,50 +643,49 @@ public class FeatureImportanceTracker
         _maxWindowSize = maxWindowSize;
     }
 
-    public async Task UpdateAsync(FeatureSet features, double prediction, double outcome, CancellationToken cancellationToken)
+    public Task UpdateAsync(FeatureSet features, double prediction, double outcome, CancellationToken cancellationToken)
     {
-        await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            // Update feature history
+            _featureHistory.Enqueue(features);
+            if (_featureHistory.Count > _maxWindowSize)
             {
-                // Update feature history
-                _featureHistory.Enqueue(features);
-                if (_featureHistory.Count > _maxWindowSize)
+                _featureHistory.Dequeue();
+            }
+
+            // Update prediction history
+            _predictionHistory.Enqueue(prediction);
+            if (_predictionHistory.Count > _maxWindowSize)
+            {
+                _predictionHistory.Dequeue();
+            }
+
+            // Update outcome history
+            _outcomeHistory.Enqueue(outcome);
+            if (_outcomeHistory.Count > _maxWindowSize)
+            {
+                _outcomeHistory.Dequeue();
+            }
+
+            // Update individual feature value histories
+            foreach (var (featureName, featureValue) in features.Features)
+            {
+                if (!_featureValueHistory.TryGetValue(featureName, out var history))
                 {
-                    _featureHistory.Dequeue();
+                    history = new Queue<double>();
+                    _featureValueHistory[featureName] = history;
                 }
 
-                // Update prediction history
-                _predictionHistory.Enqueue(prediction);
-                if (_predictionHistory.Count > _maxWindowSize)
+                history.Enqueue(featureValue);
+                if (history.Count > _maxWindowSize)
                 {
-                    _predictionHistory.Dequeue();
-                }
-
-                // Update outcome history
-                _outcomeHistory.Enqueue(outcome);
-                if (_outcomeHistory.Count > _maxWindowSize)
-                {
-                    _outcomeHistory.Dequeue();
-                }
-
-                // Update individual feature value histories
-                foreach (var (featureName, featureValue) in features.Features)
-                {
-                    if (!_featureValueHistory.TryGetValue(featureName, out var history))
-                    {
-                        history = new Queue<double>();
-                        _featureValueHistory[featureName] = history;
-                    }
-
-                    history.Enqueue(featureValue);
-                    if (history.Count > _maxWindowSize)
-                    {
-                        history.Dequeue();
-                    }
+                    history.Dequeue();
                 }
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }
+        
+        return Task.CompletedTask;
     }
 
     public List<double> GetRecentPredictions()

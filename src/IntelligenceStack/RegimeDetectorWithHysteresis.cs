@@ -19,6 +19,14 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private const double MedianDivisor = 2.0; // For even-length median calculation
     private const double NeutralRegimeScore = 0.5; // Default score when no regime detected
     
+    // Additional S109 constants for algorithm thresholds
+    private const int ProfitableTradesThreshold = 5; // Threshold for momentum bias
+    private const double SpreadWideInMultiplier = 1.5; // 1.5x recent median for wide spread detection
+    private const double SpreadWideOutMultiplier = 1.2; // 1.2x recent median for spread exit
+    private const double MinimumVolatilityThreshold = 0.1; // Minimum volatility for regime detection
+    private const double TrendingRegimeThreshold = 0.7; // Threshold for trending regime classification
+    private const int MinimumDataPointsForMedian = 50; // Minimum data points for median calculation
+    
     // LoggerMessage delegates for CA1848 compliance - RegimeDetectorWithHysteresis
     private static readonly Action<ILogger, RegimeType, double, Exception?> InitialRegimeDetected =
         LoggerMessage.Define<RegimeType, double>(LogLevel.Information, new EventId(6001, "InitialRegimeDetected"),
@@ -101,7 +109,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         var requiredDwell = TimeSpan.FromSeconds(_config.DwellSeconds);
         
         // Apply momentum bias - extend dwell time after profitable trades
-        if (_profitableTradesCount >= 5)
+        if (_profitableTradesCount >= ProfitableTradesThreshold)
         {
             var biasMultiplier = 1.0 + _config.MomentumBiasPct;
             requiredDwell = TimeSpan.FromSeconds(requiredDwell.TotalSeconds * biasMultiplier);
@@ -155,13 +163,13 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         // Liquidity/spread analysis
         var spreadRatio = CalculateSpreadRatio();
         indicators["spread_ratio"] = spreadRatio;
-        indicators["spread_wide_in"] = 1.5; // 1.5x recent median
-        indicators["spread_wide_out"] = 1.2; // 1.2x recent median
+        indicators["spread_wide_in"] = SpreadWideInMultiplier; // 1.5x recent median
+        indicators["spread_wide_out"] = SpreadWideOutMultiplier; // 1.2x recent median
         
         // Additional regime indicators
         indicators["atr_current"] = currentAtr;
         indicators["atr_median"] = _medianAtr;
-        indicators["momentum_bias"] = _profitableTradesCount >= 5 ? _config.MomentumBiasPct : 0.0;
+        indicators["momentum_bias"] = _profitableTradesCount >= ProfitableTradesThreshold ? _config.MomentumBiasPct : 0.0;
         
         return indicators;
     }
@@ -196,7 +204,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             Math.Max(trendZScore - TrendThresholdOffset, 0.0)
         );
         
-        return (RegimeType.Range, Math.Max(rangeConfidence, 0.1));
+        return (RegimeType.Range, Math.Max(rangeConfidence, MinimumVolatilityThreshold));
     }
 
     private bool ShouldTransition(RegimeState current, RegimeState proposed)
@@ -208,7 +216,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             return false;
             
         // High confidence required for transition 
-        return proposed.Confidence > 0.7; // High confidence required for transition
+        return proposed.Confidence > TrendingRegimeThreshold; // High confidence required for transition
     }
 
     private (double VolLow, double VolHigh, double Trend) GetInThresholds()
@@ -230,13 +238,13 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
 
     private double CalculateTrendZScore()
     {
-        if (_priceHistory.Count < 50) return 0.0;
+        if (_priceHistory.Count < MinimumDataPointsForMedian) return 0.0;
         
         var prices = _priceHistory.ToArray();
         var slopes = new List<double>();
         
         // Calculate 50-bar slope
-        for (int i = 1; i < Math.Min(50, prices.Length); i++)
+        for (int i = 1; i < Math.Min(MinimumDataPointsForMedian, prices.Length); i++)
         {
             slopes.Add(prices[i] - prices[i - 1]);
         }
@@ -281,7 +289,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
             }
             
             // Update price history
-            if (_priceHistory.Count >= 50)
+            if (_priceHistory.Count >= MinimumDataPointsForMedian)
                 _priceHistory.Dequeue();
             _priceHistory.Enqueue(data.Close);
         }

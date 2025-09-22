@@ -235,9 +235,8 @@ public class EnsembleMetaLearner
             
             // Adjust model weight based on performance
             var performanceScore = CalculatePerformanceScore(performance);
-            if (currentWeights.ContainsKey(modelId))
+            if (currentWeights.TryGetValue(modelId, out var currentWeight))
             {
-                var currentWeight = currentWeights[modelId];
                 var adjustment = (performanceScore - BaselinePerformance) * DefaultLearningRate; // ±10% adjustment
                 currentWeights[modelId] = Math.Max(MinWeight, Math.Min(MaxWeight, currentWeight + adjustment));
             }
