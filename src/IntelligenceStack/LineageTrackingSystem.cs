@@ -301,8 +301,7 @@ public class LineageTrackingSystem
         
         await RecordLineageEventAsync(featureUpdateEvent, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("[LINEAGE] Tracked feature store update: {FromVersion} -> {ToVersion} ({ChangeCount} features)", 
-            fromVersion, toVersion, changedFeatures.Count);
+        TrackedFeatureStoreUpdate(_logger, fromVersion, toVersion, changedFeatures.Count, null);
     }
 
     /// <summary>
@@ -331,8 +330,7 @@ public class LineageTrackingSystem
         
         await RecordLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})", 
-            calibrationMapId, modelId, brierScore);
+        TrackedCalibrationUpdate(_logger, calibrationMapId, modelId, brierScore, null);
     }
 
     /// <summary>
@@ -379,7 +377,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LINEAGE] Failed to get decision lineage: {DecisionId}", decisionId);
+            FailedToGetDecisionLineage(_logger, decisionId, ex);
             throw new InvalidOperationException($"Decision lineage retrieval failed for {decisionId}", ex);
         }
     }
@@ -448,7 +446,7 @@ public class LineageTrackingSystem
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[LINEAGE] Failed to get version for model family: {Family}", family);
+                FailedToGetModelVersion(_logger, family, ex);
                 modelVersions[family] = "unknown";
             }
         }
