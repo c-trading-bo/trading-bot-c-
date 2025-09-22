@@ -448,14 +448,14 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     /// <summary>
     /// Async hash computation for production systems
     /// </summary>
-    private static async Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
+    private static Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             using var sha256 = SHA256.Create();
             var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(hash).ToLowerInvariant();
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     /// <summary>
