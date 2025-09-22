@@ -34,6 +34,9 @@ public class FeatureEngineer : IDisposable
     private const double MidPriceDivisor = 2.0;
     private const double CorrelationTolerance = 1e-10;
     
+    // JSON serializer options for CA1869 compliance
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 compliance - FeatureEngineer
     private static readonly Action<ILogger, string, Exception?> LogsDirectoryWarning =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4001, "LogsDirectoryWarning"),
@@ -441,7 +444,7 @@ public class FeatureEngineer : IDisposable
             var fileName = $"feature_weights_{strategyId}_{timestamp:yyyyMMdd_HHmmss}.json";
             var filePath = Path.Combine(_logsPath, fileName);
             
-            var json = JsonSerializer.Serialize(logEntry, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(logEntry, SerializerOptions);
             await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[FEATURE_ENGINEER] Logged feature weights to: {FilePath}", filePath);

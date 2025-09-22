@@ -29,6 +29,9 @@ public class EnsembleMetaLearner
     private const double HighConfidenceThreshold = 0.7;
     private const double ConfidenceBoostFactor = 1.01;
     
+    // JSON serializer options for CA1869 compliance
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+    
     // Performance scoring constants
     private const double MaxBrierScore = 0.25;
     private const double MaxLatency = 1000.0;
@@ -667,7 +670,7 @@ public class EnsembleMetaLearner
             }
 
             var stateFile = Path.Combine(_statePath, "ensemble_state.json");
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(state, SerializerOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
