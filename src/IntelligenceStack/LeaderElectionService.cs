@@ -41,6 +41,43 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
         LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
 
+    // Additional LoggerMessage delegates for remaining CA1848 violations
+    private static readonly Action<ILogger, Exception?> NotTheLeaderNothingToRelease =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3007, "NotTheLeaderNothingToRelease"), "[LEADER] Not the leader - nothing to release");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipReleased =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3008, "LeadershipReleased"), "[LEADER] 📤 Leadership released by node: {NodeId}");
+
+    private static readonly Action<ILogger, Exception?> FailedToReleaseLeadership =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3009, "FailedToReleaseLeadership"), "[LEADER] Failed to release leadership");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipRenewed =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3010, "LeadershipRenewed"), "[LEADER] Leadership renewed by node: {NodeId}");
+
+    private static readonly Action<ILogger, string, Exception?> LostLeadershipDuringRenewal =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3011, "LostLeadershipDuringRenewal"), "[LEADER] 📤 Lost leadership during renewal: {NodeId}");
+
+    private static readonly Action<ILogger, Exception?> FailedToRenewLeadership =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3012, "FailedToRenewLeadership"), "[LEADER] Failed to renew leadership");
+
+    private static readonly Action<ILogger, Exception?> FailedToCreateLockFile =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3013, "FailedToCreateLockFile"), "[LEADER] Failed to create lock file");
+
+    private static readonly Action<ILogger, double, int, Exception?> ExistingLockExpired =
+        LoggerMessage.Define<double, int>(LogLevel.Information, new EventId(3014, "ExistingLockExpired"), "[LEADER] Existing lock expired (age: {Age:F1}s > TTL: {TTL}s)");
+
+    private static readonly Action<ILogger, Exception?> ErrorCheckingExistingLock =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3015, "ErrorCheckingExistingLock"), "[LEADER] Error checking existing lock - assuming can takeover");
+
+    private static readonly Action<ILogger, Exception?> FailedToRenewLeadershipInTimer =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3016, "FailedToRenewLeadershipInTimer"), "[LEADER] Failed to renew leadership");
+
+    private static readonly Action<ILogger, int, Exception?> StartedRenewalTimer =
+        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(3017, "StartedRenewalTimer"), "[LEADER] Started renewal timer (interval: {Interval}s)");
+
+    private static readonly Action<ILogger, Exception?> ErrorDuringDispose =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3018, "ErrorDuringDispose"), "[LEADER] Error during dispose");
+
     // JSON serializer options for CA1869 compliance
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
 
@@ -136,7 +173,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 if (!_isLeader)
                 {
-                    _logger.LogDebug("[LEADER] Not the leader - nothing to release");
+                    NotTheLeaderNothingToRelease(_logger, null);
                     return;
                 }
             }
@@ -155,11 +192,11 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
 
             OnLeadershipChanged(false, "Released leadership");
-            _logger.LogInformation("[LEADER] 📤 Leadership released by node: {NodeId}", _nodeId);
+            LeadershipReleased(_logger, _nodeId, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Failed to release leadership");
+            FailedToReleaseLeadership(_logger, ex);
         }
     }
 
@@ -195,7 +232,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             // Update the lock file with new timestamp
             if (await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
             {
-                _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId);
+                LeadershipRenewed(_logger, _nodeId, null);
                 return true;
             }
             else
@@ -209,13 +246,13 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 StopRenewalTimer();
                 OnLeadershipChanged(false, "Lost leadership during renewal");
                 
-                _logger.LogWarning("[LEADER] 📤 Lost leadership during renewal: {NodeId}", _nodeId);
+                LostLeadershipDuringRenewal(_logger, _nodeId, null);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Failed to renew leadership");
+            FailedToRenewLeadership(_logger, ex);
             
             // Assume lost leadership on error
             lock (_lock)
@@ -246,7 +283,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[LEADER] Failed to create lock file");
+            FailedToCreateLockFile(_logger, ex);
             return false;
         }
     }
@@ -273,8 +310,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             
             if (isExpired)
             {
-                _logger.LogInformation("[LEADER] Existing lock expired (age: {Age:F1}s > TTL: {TTL}s)", 
-                    age.TotalSeconds, _config.TtlSeconds);
+                ExistingLockExpired(_logger, age.TotalSeconds, _config.TtlSeconds, null);
                 return true;
             }
 
@@ -282,7 +318,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LEADER] Error checking existing lock - assuming can takeover");
+            ErrorCheckingExistingLock(_logger, ex);
             return true;
         }
     }
@@ -315,12 +351,12 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LEADER] Failed to renew leadership");
+                FailedToRenewLeadershipInTimer(_logger, ex);
             }
             });
         }, null, renewalInterval, renewalInterval);
         
-        _logger.LogDebug("[LEADER] Started renewal timer (interval: {Interval}s)", _config.RenewSeconds);
+        StartedRenewalTimer(_logger, _config.RenewSeconds, null);
     }
 
     private void StopRenewalTimer()
@@ -366,7 +402,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[LEADER] Error during dispose");
+                ErrorDuringDispose(_logger, ex);
             }
             finally
             {

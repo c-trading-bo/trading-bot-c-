@@ -91,6 +91,47 @@ public class NightlyParameterTuner
     private const double MetricsValidityThreshold = 0.0;
     private const int MaxTuningHistoryCount = 30;
     
+    // LoggerMessage delegates for CA1848 compliance - NightlyParameterTuner
+    private static readonly Action<ILogger, string, Exception?> StartingNightlyTuning =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "StartingNightlyTuning"), 
+            "[NIGHTLY_TUNING] Starting nightly tuning for {ModelFamily}");
+
+    private static readonly Action<ILogger, Exception?> BayesianDidntImproveBaseline =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4002, "BayesianDidntImproveBaseline"), 
+            "[NIGHTLY_TUNING] Bayesian optimization didn't improve baseline, trying evolutionary search");
+
+    private static readonly Action<ILogger, string, bool, int, double, Exception?> CompletedNightlyTuning =
+        LoggerMessage.Define<string, bool, int, double>(LogLevel.Information, new EventId(4003, "CompletedNightlyTuning"), 
+            "[NIGHTLY_TUNING] Completed nightly tuning for {ModelFamily}: Improved={Improved}, Trials={Trials}, Duration={Duration:F1}min");
+
+    private static readonly Action<ILogger, string, Exception?> NightlyTuningFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4004, "NightlyTuningFailed"), 
+            "[NIGHTLY_TUNING] Nightly tuning failed for {ModelFamily}");
+
+    private static readonly Action<ILogger, string, Exception?> StartingBayesianOptimization =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4005, "StartingBayesianOptimization"), 
+            "[BAYESIAN_OPT] Starting Bayesian optimization for {ModelFamily}");
+
+    private static readonly Action<ILogger, int, double, double, Exception?> NewBestFoundBayesian =
+        LoggerMessage.Define<int, double, double>(LogLevel.Information, new EventId(4006, "NewBestFoundBayesian"), 
+            "[BAYESIAN_OPT] New best found at trial {Trial}: AUC={AUC:F3}, EdgeBps={Edge:F1}");
+
+    private static readonly Action<ILogger, int, double, bool, Exception?> CompletedBayesianOptimization =
+        LoggerMessage.Define<int, double, bool>(LogLevel.Information, new EventId(4007, "CompletedBayesianOptimization"), 
+            "[BAYESIAN_OPT] Completed: {Trials} trials, Best AUC: {AUC:F3}, Improved: {Improved}");
+
+    private static readonly Action<ILogger, string, Exception?> StartingEvolutionarySearch =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4008, "StartingEvolutionarySearch"), 
+            "[EVOLUTIONARY] Starting evolutionary search for {ModelFamily}");
+
+    private static readonly Action<ILogger, int, double, double, Exception?> NewBestFoundEvolutionary =
+        LoggerMessage.Define<int, double, double>(LogLevel.Information, new EventId(4009, "NewBestFoundEvolutionary"), 
+            "[EVOLUTIONARY] New best found at generation {Gen}: AUC={AUC:F3}, EdgeBps={Edge:F1}");
+
+    private static readonly Action<ILogger, int, double, bool, Exception?> CompletedEvolutionarySearch =
+        LoggerMessage.Define<int, double, bool>(LogLevel.Information, new EventId(4010, "CompletedEvolutionarySearch"), 
+            "[EVOLUTIONARY] Completed: {Trials} evaluations, Best AUC: {AUC:F3}, Improved: {Improved}");
+    
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
     private readonly NetworkConfig _networkConfig;
@@ -130,7 +171,7 @@ public class NightlyParameterTuner
     {
         try
         {
-            _logger.LogInformation("[NIGHTLY_TUNING] Starting nightly tuning for {ModelFamily}", modelFamily);
+            StartingNightlyTuning(_logger, modelFamily, null);
 
             var result = new NightlyTuningResult
             {
@@ -155,7 +196,7 @@ public class NightlyParameterTuner
             // If Bayesian optimization doesn't find good parameters, try evolutionary search
             if (!bayesianResult.ImprovedBaseline)
             {
-                _logger.LogInformation("[NIGHTLY_TUNING] Bayesian optimization didn't improve baseline, trying evolutionary search");
+                BayesianDidntImproveBaseline(_logger, null);
                 var evolutionaryResult = await RunEvolutionarySearchAsync(session, cancellationToken).ConfigureAwait(false);
                 
                 if (evolutionaryResult.ImprovedBaseline)
@@ -198,16 +239,14 @@ public class NightlyParameterTuner
             // Save results
             await SaveTuningResultAsync(result, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[NIGHTLY_TUNING] Completed nightly tuning for {ModelFamily}: " +
-                "Improved={Improved}, Trials={Trials}, Duration={Duration:F1}min", 
-                modelFamily, result.ImprovedBaseline, result.TrialsCompleted, 
-                result.Duration.TotalMinutes);
+            CompletedNightlyTuning(_logger, modelFamily, result.ImprovedBaseline, result.TrialsCompleted, 
+                result.Duration.TotalMinutes, null);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[NIGHTLY_TUNING] Nightly tuning failed for {ModelFamily}", modelFamily);
+            NightlyTuningFailed(_logger, modelFamily, ex);
             return new NightlyTuningResult 
             { 
                 ModelFamily = modelFamily, 
@@ -224,7 +263,7 @@ public class NightlyParameterTuner
         TuningSession session,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[BAYESIAN_OPT] Starting Bayesian optimization for {ModelFamily}", session.ModelFamily);
+        StartingBayesianOptimization(_logger, session.ModelFamily, null);
 
         var result = new OptimizationResult
         {
@@ -275,8 +314,7 @@ public class NightlyParameterTuner
                 bestMetrics = candidateMetrics;
                 noImprovementCount = InitialNoImprovementCount;
                 
-                _logger.LogInformation("[BAYESIAN_OPT] New best found at trial {Trial}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
-                    trial + TrialNumberOffset, candidateMetrics.AUC, candidateMetrics.EdgeBps);
+                NewBestFoundBayesian(_logger, trial + TrialNumberOffset, candidateMetrics.AUC, candidateMetrics.EdgeBps, null);
             }
             else
             {
