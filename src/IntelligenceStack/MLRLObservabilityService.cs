@@ -61,25 +61,14 @@ public class MlrlObservabilityService : IDisposable
         LoggerMessage.Define<string, int, double>(LogLevel.Debug, new EventId(5005, "RecordedRLReward"), 
             "Recorded RL reward for {AgentId}: episode={Episode}, reward={Reward:F3}");
 
-    private static readonly Action<ILogger, string, double, Exception?> HighPolicyNormDetected =
-        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(5006, "HighPolicyNormDetected"), 
-            "High policy norm detected for {AgentId}: {PolicyNorm:F3}");
 
-    private static readonly Action<ILogger, double, int, Exception?> HighEnsembleVarianceDetected =
-        LoggerMessage.Define<double, int>(LogLevel.Warning, new EventId(5007, "HighEnsembleVarianceDetected"), 
-            "High ensemble variance detected: {Variance:F3} with {ModelCount} models");
 
-    private static readonly Action<ILogger, Exception?> FailedToExportMetrics =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5008, "FailedToExportMetrics"), 
-            "Failed to export metrics");
 
-    private static readonly Action<ILogger, Exception?> SuccessfullyExportedMetrics =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "SuccessfullyExportedMetrics"), 
-            "Successfully exported metrics to Prometheus gateway");
 
-    private static readonly Action<ILogger, int, Exception?> FailedToExportMetricsToPrometheus =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(5010, "FailedToExportMetricsToPrometheus"), 
-            "Failed to export metrics to Prometheus: {StatusCode}");
+
+
+
+
 
     public MlrlObservabilityService(
         ILogger<MlrlObservabilityService> logger,

@@ -73,18 +73,18 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
 
 
-    private const double DefaultAsk = 4500.25;
-    private const double DefaultOpen = 4500.0;
-    private const double DefaultHigh = 4502.0;
-    private const double DefaultLow = 4498.0;
-    private const double DefaultClose = 4501.0;
-    private const double DefaultBidExtended = 4500.75;
-    private const double DefaultAskExtended = 4501.25;
-    private const int HttpClientErrorMin = 400;
-    private const int HttpClientErrorMax = 500;
-    private const int RetryCountOffset = 1;
-    private const int MaxRetriesOffset = 1;
-    private const int DefaultTimeoutSeconds = 30;
+
+
+
+
+
+
+
+
+
+
+
+
     
     // LoggerMessage delegates for CA1848 compliance - IntelligenceOrchestrator
     private static readonly Action<ILogger, string, Exception?> OrchestratorInitialized =
