@@ -2,8 +2,8 @@ name: "🧠 Model Training Pipeline"
 
 on:
   schedule:
-    - cron: '0 6,14,22 * * 1-5'  # 3 times daily weekdays
-    - cron: '0 8 * * 6'          # Saturday morning
+    - cron: '0 8,12,18 * * 1-5'  # 3 times daily weekdays: 8 AM, noon, 6 PM ET
+    - cron: '0 2 * * 6'          # Saturday morning: 2 AM ET
   workflow_dispatch:
     inputs:
       training_mode:

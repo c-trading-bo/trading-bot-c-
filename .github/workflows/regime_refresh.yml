@@ -2,7 +2,7 @@ name: "🔄 Regime Refresh Pipeline"
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
+    - cron: '0 0,6,12,18 * * *'  # Four times daily: midnight, 6 AM, noon, 6 PM ET
   workflow_dispatch:
     inputs:
       refresh_mode:
