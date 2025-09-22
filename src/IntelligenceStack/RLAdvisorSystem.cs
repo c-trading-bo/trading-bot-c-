@@ -279,7 +279,29 @@ public class RLAdvisorSystem
 
             return recommendation;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            RecommendationFailed(_logger, context.Symbol, ex);
+            return new RLAdvisorRecommendation
+            {
+                Action = ExitAction.Hold,
+                Confidence = 0.0,
+                Reasoning = $"Error: {ex.Message}",
+                IsAdviseOnly = true
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            RecommendationFailed(_logger, context.Symbol, ex);
+            return new RLAdvisorRecommendation
+            {
+                Action = ExitAction.Hold,
+                Confidence = 0.0,
+                Reasoning = $"Error: {ex.Message}",
+                IsAdviseOnly = true
+            };
+        }
+        catch (OperationCanceledException ex)
         {
             RecommendationFailed(_logger, context.Symbol, ex);
             return new RLAdvisorRecommendation
