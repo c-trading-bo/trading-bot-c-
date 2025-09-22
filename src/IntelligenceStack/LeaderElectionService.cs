@@ -78,6 +78,31 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> ErrorDuringDispose =
         LoggerMessage.Define(LogLevel.Warning, new EventId(3018, "ErrorDuringDispose"), "[LEADER] Error during dispose");
 
+    // Quarantine-related LoggerMessage delegates (seems to be mixed functionality)
+    private static readonly Action<ILogger, string, string, Exception?> ModelQuarantined =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(3019, "ModelQuarantined"), 
+            "[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToQuarantineModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3020, "FailedToQuarantineModel"), 
+            "[QUARANTINE] Failed to quarantine model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelRestoredFromQuarantine =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3021, "ModelRestoredFromQuarantine"), 
+            "[QUARANTINE] Model restored from quarantine: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToRestoreModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3022, "FailedToRestoreModel"), 
+            "[QUARANTINE] Failed to restore model: {ModelId}");
+
+    private static readonly Action<ILogger, string, Exception?> FailedToUpdatePerformance =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3023, "FailedToUpdatePerformance"), 
+            "[QUARANTINE] Failed to update performance for model: {ModelId}");
+
+    private static readonly Action<ILogger, string, string, string, double, double, Exception?> ModelHealthChanged =
+        LoggerMessage.Define<string, string, string, double, double>(LogLevel.Information, new EventId(3024, "ModelHealthChanged"), 
+            "[QUARANTINE] Model health changed: {ModelId} {From} -> {To} (Brier: {Brier:F3}, Latency: {Latency:F1}ms)");
+
     // JSON serializer options for CA1869 compliance
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
 
@@ -497,11 +522,11 @@ public class QuarantineManager : IQuarantineManager
                     status.ShadowDecisionCount = 0;
                 }
 
-                _logger.LogWarning("[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})", modelId, reason);
+                ModelQuarantined(_logger, modelId, reason, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[QUARANTINE] Failed to quarantine model: {ModelId}", modelId);
+                FailedToQuarantineModel(_logger, modelId, ex);
             }
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -534,7 +559,7 @@ public class QuarantineManager : IQuarantineManager
                         status.Reason = null;
                         status.ShadowDecisionCount = 0;
 
-                        _logger.LogInformation("[QUARANTINE] Model restored from quarantine: {ModelId}", modelId);
+                        ModelRestoredFromQuarantine(_logger, modelId, null);
                         return true;
                     }
 
@@ -543,7 +568,7 @@ public class QuarantineManager : IQuarantineManager
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[QUARANTINE] Failed to restore model: {ModelId}", modelId);
+                FailedToRestoreModel(_logger, modelId, ex);
                 return false;
             }
         }, cancellationToken).ConfigureAwait(false);
@@ -595,7 +620,7 @@ public class QuarantineManager : IQuarantineManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUARANTINE] Failed to update performance for model: {ModelId}", modelId);
+            FailedToUpdatePerformance(_logger, modelId, ex);
         }
     }
 
@@ -645,8 +670,7 @@ public class QuarantineManager : IQuarantineManager
 
         if (status.State != previousState)
         {
-            _logger.LogInformation("[QUARANTINE] Model health changed: {ModelId} {From} -> {To} (Brier: {Brier:F3}, Latency: {Latency:F1}ms)", 
-                modelId, previousState, status.State, avgBrierScore, avgLatency);
+            ModelHealthChanged(_logger, modelId, previousState.ToString(), status.State.ToString(), avgBrierScore, avgLatency, null);
         }
     }
 }
