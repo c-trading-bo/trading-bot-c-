@@ -106,9 +106,7 @@ public class RLAdvisorSystem
         LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4016, "AgentTrainingCompleted"),
             "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
 
-    private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4017, "HistoricalTrainingFailed"),
-            "[RL_ADVISOR] Historical training failed for {Symbol}");
+
 
     private static readonly Action<ILogger, string, int, Exception?> MinimumShadowDecisionsReached =
         LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4018, "MinimumShadowDecisionsReached"),
@@ -130,9 +128,7 @@ public class RLAdvisorSystem
         LoggerMessage.Define(LogLevel.Error, new EventId(4022, "ProvenUpliftCheckFailed"),
             "[RL_ADVISOR] Failed to check for proven uplift");
 
-    private static readonly Action<ILogger, int, string, DateTime, DateTime, Exception?> TrainingEpisodesGenerated =
-        LoggerMessage.Define<int, string, DateTime, DateTime>(LogLevel.Information, new EventId(4023, "TrainingEpisodesGenerated"),
-            "[RL_ADVISOR] Generated {EpisodeCount} training episodes for {Symbol} from {Start} to {End}");
+
 
     private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataSDK =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4024, "LoadingHistoricalDataSDK"),
