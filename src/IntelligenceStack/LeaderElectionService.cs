@@ -204,7 +204,15 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             OnLeadershipChanged(false, "Released leadership");
             LeadershipReleased(_logger, _nodeId, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            FailedToReleaseLeadership(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToReleaseLeadership(_logger, ex);
+        }
+        catch (InvalidOperationException ex)
         {
             FailedToReleaseLeadership(_logger, ex);
         }
@@ -260,7 +268,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             FailedToRenewLeadership(_logger, ex);
             
@@ -291,7 +299,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             
             return true;
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            FailedToCreateLockFile(_logger, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToCreateLockFile(_logger, ex);
+            return false;
+        }
+        catch (DirectoryNotFoundException ex)
         {
             FailedToCreateLockFile(_logger, ex);
             return false;
@@ -529,7 +547,15 @@ public class QuarantineManager : IQuarantineManager
 
                 ModelQuarantined(_logger, modelId, reason.ToString(), null);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                FailedToQuarantineModel(_logger, modelId, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                FailedToQuarantineModel(_logger, modelId, ex);
+            }
+            catch (IOException ex)
             {
                 FailedToQuarantineModel(_logger, modelId, ex);
             }

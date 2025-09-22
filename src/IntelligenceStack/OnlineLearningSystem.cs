@@ -406,7 +406,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var json = JsonSerializer.Serialize(driftState, JsonOptions);
             await File.WriteAllTextAsync(driftStatePath, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+        }
+        catch (JsonException ex)
+        {
+            DriftDetectionFailed(_logger, modelId, ex);
+        }
+        catch (ArgumentException ex)
         {
             DriftDetectionFailed(_logger, modelId, ex);
         }
@@ -460,7 +468,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             
             ModelUpdateCompleted(_logger, tradeRecord.TradeId, strategyId, regimeType, hitRate, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            ModelUpdateFailed(_logger, tradeRecord.TradeId, ex);
+        }
+        catch (ArgumentException ex)
         {
             ModelUpdateFailed(_logger, tradeRecord.TradeId, ex);
         }
@@ -541,7 +553,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
             WeightsRolledBack(_logger, modelId, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            RollbackFailed(_logger, modelId, ex);
+        }
+        catch (ArgumentException ex)
         {
             RollbackFailed(_logger, modelId, ex);
         }
@@ -580,7 +596,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 StateLoaded(_logger, state.RegimeWeights.Count, null);
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            StateLoadFailed(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            StateLoadFailed(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             StateLoadFailed(_logger, ex);
         }
@@ -614,7 +638,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var json = JsonSerializer.Serialize(state, JsonOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            StateSaveFailed(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            StateSaveFailed(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             StateSaveFailed(_logger, ex);
         }
@@ -639,7 +671,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             
             return WrongDirectionScore; // Default for uncertain or wrong direction
         }
-        catch
+        catch (FormatException)
+        {
+            return DefaultFallbackScore; // Default fallback
+        }
+        catch (OverflowException)
+        {
+            return DefaultFallbackScore; // Default fallback
+        }
+        catch (ArgumentException)
         {
             return DefaultFallbackScore; // Default fallback
         }
@@ -657,7 +697,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var actualOutcome = hitRate > HitRateThreshold ? PositiveOutcome : NegativeOutcome;
             return Math.Pow(confidence - actualOutcome, SquarePower);
         }
-        catch
+        catch (ArgumentException)
+        {
+            return DefaultBrierScore; // Default Brier score
+        }
+        catch (OverflowException)
         {
             return DefaultBrierScore; // Default Brier score
         }
@@ -680,7 +724,17 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Calculate confidence based on trade characteristics if not stored
             return CalculateConfidenceFromTradeData(tradeRecord);
         }
-        catch (Exception ex)
+        catch (FormatException ex)
+        {
+            ConfidenceExtractionFailed(_logger, tradeRecord.TradeId, ex);
+            return CalculateConfidenceFromTradeData(tradeRecord);
+        }
+        catch (OverflowException ex)
+        {
+            ConfidenceExtractionFailed(_logger, tradeRecord.TradeId, ex);
+            return CalculateConfidenceFromTradeData(tradeRecord);
+        }
+        catch (ArgumentException ex)
         {
             ConfidenceExtractionFailed(_logger, tradeRecord.TradeId, ex);
             return CalculateConfidenceFromTradeData(tradeRecord);
@@ -731,7 +785,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             
             return sessionConfidence;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            ConfidenceCalculationFailed(_logger, ex);
+            return DefaultFallbackScore; // Conservative fallback
+        }
+        catch (ArgumentException ex)
         {
             ConfidenceCalculationFailed(_logger, ex);
             return DefaultFallbackScore; // Conservative fallback
@@ -750,7 +809,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var profitLoss = side == "BUY" ? exitPrice - entryPrice : entryPrice - exitPrice;
             return profitLoss > 0 ? ProfitableAccuracy : UnprofitableAccuracy; // Binary accuracy: profitable = accurate
         }
-        catch
+        catch (FormatException)
+        {
+            return DefaultFallbackScore; // Default accuracy
+        }
+        catch (ArgumentException)
         {
             return DefaultFallbackScore; // Default accuracy
         }
@@ -765,7 +828,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var hitRate = CalculateTradeHitRate(tradeRecord);
             return Math.Max(0.4, Math.Min(0.8, hitRate + 0.1)); // Bound between 0.4-0.8
         }
-        catch
+        catch (ArgumentException)
+        {
+            return 0.6; // Default precision
+        }
+        catch (OverflowException)
         {
             return 0.6; // Default precision
         }
@@ -780,7 +847,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var hitRate = CalculateTradeHitRate(tradeRecord);
             return Math.Max(0.5, Math.Min(0.9, hitRate + 0.15)); // Slightly higher than precision
         }
-        catch
+        catch (ArgumentException)
+        {
+            return 0.65; // Default recall
+        }
+        catch (OverflowException)
         {
             return 0.65; // Default recall
         }
@@ -797,7 +868,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (Math.Abs(precision + recall) < EpsilonForDivisionCheck) return ZeroInitialValue;
             return F1ScoreMultiplier * (precision * recall) / (precision + recall);
         }
-        catch
+        catch (ArgumentException)
+        {
+            return DefaultF1Score; // Default F1 score
+        }
+        catch (DivideByZeroException)
         {
             return DefaultF1Score; // Default F1 score
         }

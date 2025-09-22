@@ -363,7 +363,12 @@ public class StartupValidator : IStartupValidator
                         missingServices.Add(serviceType.Name);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    ServiceResolutionFailed(_logger, serviceType.Name, ex);
+                    missingServices.Add(serviceType.Name);
+                }
+                catch (ArgumentException ex)
                 {
                     ServiceResolutionFailed(_logger, serviceType.Name, ex);
                     missingServices.Add(serviceType.Name);
@@ -379,7 +384,12 @@ public class StartupValidator : IStartupValidator
             AllServicesResolved(_logger, criticalServices.Length, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            DIValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
         {
             DIValidationFailed(_logger, ex);
             return false;
@@ -421,7 +431,12 @@ public class StartupValidator : IStartupValidator
             FeatureValidationPassed(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            FeatureStoreValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
         {
             FeatureStoreValidationFailed(_logger, ex);
             return false;
