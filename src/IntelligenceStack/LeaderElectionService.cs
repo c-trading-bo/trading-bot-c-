@@ -22,6 +22,25 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private bool _isLeader;
     private readonly object _lock = new();
 
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> LeaderElectionDisabledAssumeLeadership =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3001, "LeaderElectionDisabled"), "[LEADER] Leader election disabled - assuming leadership");
+
+    private static readonly Action<ILogger, Exception?> AlreadyLeaderDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3002, "AlreadyLeader"), "[LEADER] Already the leader");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipAcquired =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3003, "LeadershipAcquired"), "[LEADER] 🎯 Leadership acquired by node: {NodeId}");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipTakenOver =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3004, "LeadershipTakenOver"), "[LEADER] 🔄 Leadership taken over by node: {NodeId}");
+
+    private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3005, "FailedToAcquireLeadership"), "[LEADER] Failed to acquire leadership");
+
+    private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
+
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
 
     public LeaderElectionService(
@@ -41,7 +60,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     {
         if (!_config.Enabled)
         {
-            _logger.LogInformation("[LEADER] Leader election disabled - assuming leadership");
+            LeaderElectionDisabledAssumeLeadership(_logger, null);
             return true;
         }
 
@@ -51,7 +70,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 if (_isLeader)
                 {
-                    _logger.LogDebug("[LEADER] Already the leader");
+                    AlreadyLeaderDebug(_logger, null);
                     return true;
                 }
             }
@@ -69,7 +88,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 StartRenewalTimer();
                 OnLeadershipChanged(true, "Acquired leadership");
                 
-                _logger.LogInformation("[LEADER] 🎯 Leadership acquired by node: {NodeId}", _nodeId);
+                LeadershipAcquired(_logger, _nodeId, null);
                 return true;
             }
             
@@ -86,17 +105,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                     StartRenewalTimer();
                     OnLeadershipChanged(true, "Took over expired leadership");
                     
-                    _logger.LogInformation("[LEADER] 🔄 Leadership taken over by node: {NodeId}", _nodeId);
+                    LeadershipTakenOver(_logger, _nodeId, null);
                     return true;
                 }
             }
 
-            _logger.LogDebug("[LEADER] Failed to acquire leadership");
+            FailedToAcquireLeadershipDebug(_logger, null);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Failed to acquire leadership");
+            FailedToAcquireLeadershipError(_logger, ex);
             return false;
         }
     }

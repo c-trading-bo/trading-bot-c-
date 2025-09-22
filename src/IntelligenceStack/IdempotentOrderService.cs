@@ -108,6 +108,11 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    // Constants for magic numbers (S109 compliance)
+    private const int OrderKeyTruncationLength = 8;
+    private const double DefaultTickSize = 0.25;
+    private const int TimeBucketMinutes = 5;
+
     public IdempotentOrderService(
         ILogger<IdempotentOrderService> logger,
         IdempotentConfig config,
@@ -137,9 +142,9 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             
             // Implement deterministic orderKey: hash of modelId|strategyId|signalId|ts|symbol|side|priceBucket
             // Requirement: deterministic orderKey with 24h dedupe
-            var priceBucket = Math.Round(request.Price / 0.25) * 0.25; // Round to ES/MES tick size
+            var priceBucket = Math.Round(request.Price / DefaultTickSize) * DefaultTickSize; // Round to ES/MES tick size
             var timestampBucket = new DateTime(request.Timestamp.Year, request.Timestamp.Month, request.Timestamp.Day, 
-                request.Timestamp.Hour, request.Timestamp.Minute / 5 * 5, 0, DateTimeKind.Utc); // 5-minute buckets for idempotency
+                request.Timestamp.Hour, request.Timestamp.Minute / TimeBucketMinutes * TimeBucketMinutes, 0, DateTimeKind.Utc); // 5-minute buckets for idempotency
             
             var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{timestampBucket:yyyy-MM-dd_HH-mm}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
             
@@ -238,12 +243,12 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             var json = JsonSerializer.Serialize(record, JsonOptions);
             await File.WriteAllTextAsync(orderPath, json, cancellationToken).ConfigureAwait(false);
 
-            OrderRegistered(_logger, orderKey[..8], orderId, null);
+            OrderRegistered(_logger, orderKey[..OrderKeyTruncationLength], orderId, null);
         }
         catch (Exception ex)
         {
             OrderRegistrationFailed(_logger, orderKey, orderId, ex);
-            throw new InvalidOperationException($"Order registration failed for key {orderKey[..8]}...", ex);
+            throw new InvalidOperationException($"Order registration failed for key {orderKey[..OrderKeyTruncationLength]}...", ex);
         }
     }
 
@@ -265,7 +270,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 result.ExistingOrderId = existingRecord.OrderId;
                 result.FirstSeenAt = existingRecord.CreatedAt;
                 
-                DuplicateOrderWithTimestamp(_logger, orderKey[..8], existingRecord.CreatedAt, null);
+                DuplicateOrderWithTimestamp(_logger, orderKey[..OrderKeyTruncationLength], existingRecord.CreatedAt, null);
             }
 
             return result;
@@ -289,7 +294,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         {
             if (attemptNumber > _config.Retry.MaxAttempts)
             {
-                MaxRetryAttemptsExceeded(_logger, orderKey[..8], null);
+                MaxRetryAttemptsExceeded(_logger, orderKey[..OrderKeyTruncationLength], null);
                 return false;
             }
 
@@ -299,7 +304,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 _config.Retry.MaxMs
             );
 
-            RetryingOrder(_logger, orderKey[..8], attemptNumber, _config.Retry.MaxAttempts, (int)delayMs, null);
+            RetryingOrder(_logger, orderKey[..OrderKeyTruncationLength], attemptNumber, _config.Retry.MaxAttempts, (int)delayMs, null);
 
             await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken).ConfigureAwait(false);
 
@@ -476,7 +481,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         // Simulate async audit logging to external system
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
-        OrderKeyGenerated(_logger, orderKey[..8], request.Symbol, request.Side.ToString(), (double)priceBucket, null);
+        OrderKeyGenerated(_logger, orderKey[..OrderKeyTruncationLength], request.Symbol, request.Side.ToString(), (double)priceBucket, null);
     }
 
     private sealed class OrderRecord
