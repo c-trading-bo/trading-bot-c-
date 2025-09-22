@@ -33,11 +33,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BearishThreshold = 0.45;
     
     // S109 Magic Number Constants - Intelligence Orchestrator
-    private const double DefaultSpreadValue = 0.0;
-    private const double DefaultVolumeValue = 0.0;
-    private const double BaseConfidenceValue = 0.5;
-    private const double SpreadFactorMultiplier = 0.1;
-    private const double VolumeFactorDivisor = 10000.0;
+
+
+
+
+
     private const double DefaultRegimeConfidence = 0.5;
     private const double DefaultPriceFeature = 0.0;
     private const double DefaultVolumeFeature = 0.0;
