@@ -515,7 +515,15 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 {
                     await PerformNightlyCalibrationAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (IOException ex)
+                {
+                    NightlyCalibrationFailed(_logger, ex);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    NightlyCalibrationFailed(_logger, ex);
+                }
+                catch (InvalidOperationException ex)
                 {
                     NightlyCalibrationFailed(_logger, ex);
                 }
