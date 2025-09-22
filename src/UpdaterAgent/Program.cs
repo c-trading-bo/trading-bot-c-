@@ -18,7 +18,7 @@ public static class Program
     }
 }
 
-public class UpdaterService
+internal sealed class UpdaterService
 {
     // Configuration constants to eliminate magic numbers
     private const int DefaultShadowPort = 5001;
