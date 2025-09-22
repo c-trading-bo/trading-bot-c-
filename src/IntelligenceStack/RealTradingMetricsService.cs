@@ -28,6 +28,55 @@ public class RealTradingMetricsService : BackgroundService
     
     // Data structures for real metrics calculation
     private readonly List<InferenceRecord> _recentInferences = new();
+    
+    // LoggerMessage delegates for CA1848 compliance - RealTradingMetricsService
+    private static readonly Action<ILogger, TimeSpan, Exception?> ServiceInitialized =
+        LoggerMessage.Define<TimeSpan>(LogLevel.Information, new EventId(6001, "ServiceInitialized"),
+            "[REAL_METRICS] Real Trading Metrics Service initialized - push interval: {Interval}");
+            
+    private static readonly Action<ILogger, Exception?> ServiceStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(6002, "ServiceStarted"),
+            "[REAL_METRICS] Real Trading Metrics Service started");
+            
+    private static readonly Action<ILogger, Exception?> ServiceStopping =
+        LoggerMessage.Define(LogLevel.Information, new EventId(6003, "ServiceStopping"),
+            "[REAL_METRICS] Real Trading Metrics Service stopping");
+            
+    private static readonly Action<ILogger, Exception?> ServiceError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6004, "ServiceError"),
+            "[REAL_METRICS] Error in Real Trading Metrics Service");
+            
+    private static readonly Action<ILogger, string, string, string, int, decimal, decimal, Exception?> FillRecorded =
+        LoggerMessage.Define<string, string, string, int, decimal, decimal>(LogLevel.Information, new EventId(6005, "FillRecorded"),
+            "[REAL_METRICS] Fill recorded: {OrderId} {Symbol} {Side} {Quantity}@{FillPrice}, Estimated P&L: {PnL:F2}");
+            
+    private static readonly Action<ILogger, int, decimal, Exception?> MetricsPushed =
+        LoggerMessage.Define<int, decimal>(LogLevel.Debug, new EventId(6006, "MetricsPushed"),
+            "[REAL_METRICS] Metrics pushed: {Positions} positions, P&L: {PnL}");
+            
+    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(6007, "MetricsPushFailed"),
+            "[REAL_METRICS] Failed to push metrics to cloud");
+            
+    private static readonly Action<ILogger, string, string, int, decimal, Exception?> PositionRecorded =
+        LoggerMessage.Define<string, string, int, decimal>(LogLevel.Information, new EventId(6008, "PositionRecorded"),
+            "[REAL_METRICS] Position recorded: {Symbol} {Side} {Quantity}@{AvgPrice}");
+            
+    private static readonly Action<ILogger, decimal, decimal, decimal, Exception?> PnLUpdated =
+        LoggerMessage.Define<decimal, decimal, decimal>(LogLevel.Debug, new EventId(6009, "PnLUpdated"),
+            "[REAL_METRICS] P&L updated: Realized={Realized:F2}, Unrealized={Unrealized:F2}, Total={Total:F2}");
+            
+    private static readonly Action<ILogger, decimal, int, int, Exception?> MetricsPushedSuccess =
+        LoggerMessage.Define<decimal, int, int>(LogLevel.Information, new EventId(6010, "MetricsPushedSuccess"),
+            "[REAL_METRICS] ✅ Real trading metrics pushed to cloud - P&L: {PnL:F2}, Positions: {Positions}, Fills: {Fills}");
+            
+    private static readonly Action<ILogger, Exception?> MetricsCollectionFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6011, "MetricsCollectionFailed"),
+            "[REAL_METRICS] Failed to collect and push real trading metrics");
+            
+    private static readonly Action<ILogger, Exception?> ServiceDisposed =
+        LoggerMessage.Define(LogLevel.Information, new EventId(6012, "ServiceDisposed"),
+            "[REAL_METRICS] Real Trading Metrics Service disposed");
     private readonly List<MetricsTradeRecord> _recentTrades = new();
     private readonly List<FeatureRecord> _recentFeatures = new();
     
@@ -41,12 +90,12 @@ public class RealTradingMetricsService : BackgroundService
         // Initialize timer for regular metrics collection
         _metricsTimer = new Timer(CollectAndPushMetrics, null, _pushInterval, _pushInterval);
         
-        _logger.LogInformation("[REAL_METRICS] Real Trading Metrics Service initialized - push interval: {Interval}", _pushInterval);
+        ServiceInitialized(_logger, _pushInterval, null);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("[REAL_METRICS] Real Trading Metrics Service started");
+        ServiceStarted(_logger, null);
         
         try
         {
@@ -58,11 +107,11 @@ public class RealTradingMetricsService : BackgroundService
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogInformation(ex, "[REAL_METRICS] Real Trading Metrics Service stopping");
+            ServiceStopping(_logger, ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REAL_METRICS] Error in Real Trading Metrics Service");
+            ServiceError(_logger, ex);
         }
     }
 
@@ -80,8 +129,7 @@ public class RealTradingMetricsService : BackgroundService
             var estimatedPnL = side.ToUpperInvariant() == "BUY" ? quantity * 0.25m : quantity * -0.15m;
             _dailyPnL += estimatedPnL;
             
-            _logger.LogInformation("[REAL_METRICS] Fill recorded: {OrderId} {Symbol} {Side} {Quantity}@{FillPrice}, Estimated P&L: {PnL:F2}", 
-                orderId, symbol, side, quantity, fillPrice, estimatedPnL);
+            FillRecorded(_logger, orderId, symbol, side, quantity, fillPrice, estimatedPnL, null);
         }
     }
 
@@ -94,8 +142,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             _totalPositions++;
             
-            _logger.LogInformation("[REAL_METRICS] Position recorded: {Symbol} {Side} {Quantity}@{AvgPrice}", 
-                symbol, side, quantity, averagePrice);
+            PositionRecorded(_logger, symbol, side, quantity, averagePrice, null);
         }
     }
 
@@ -108,8 +155,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             _dailyPnL = realizedPnL + unrealizedPnL;
             
-            _logger.LogDebug("[REAL_METRICS] P&L updated: Realized={Realized:F2}, Unrealized={Unrealized:F2}, Total={Total:F2}", 
-                realizedPnL, unrealizedPnL, _dailyPnL);
+            PnLUpdated(_logger, realizedPnL, unrealizedPnL, _dailyPnL, null);
         }
     }
 
@@ -156,12 +202,11 @@ public class RealTradingMetricsService : BackgroundService
             
             _lastMetricsPush = DateTime.UtcNow;
             
-            _logger.LogInformation("[REAL_METRICS] ✅ Real trading metrics pushed to cloud - P&L: {PnL:F2}, Positions: {Positions}, Fills: {Fills}", 
-                _dailyPnL, _totalPositions, _totalFills);
+            MetricsPushedSuccess(_logger, _dailyPnL, _totalPositions, _totalFills, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[REAL_METRICS] Failed to collect and push real trading metrics");
+            MetricsCollectionFailed(_logger, ex);
         }
     }
 
@@ -295,7 +340,7 @@ public class RealTradingMetricsService : BackgroundService
     {
         _metricsTimer?.Dispose();
         base.Dispose();
-        _logger.LogInformation("[REAL_METRICS] Real Trading Metrics Service disposed");
+        ServiceDisposed(_logger, null);
     }
 }
 
