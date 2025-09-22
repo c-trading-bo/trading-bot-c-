@@ -87,6 +87,14 @@ public class HistoricalTrainerWithCV
     private const int RandomRange = 50;
     private const int BaseRandomOffset = -50;
     private const int CrossValidationFolds = 5;
+    
+    // Additional S109 constants for ML hyperparameters
+    private const int DefaultIterations = 10;
+    private const int TrainingIterations = 100;
+    private const int HyperparameterTrials = 50;
+    private const int StandardEpochs = 1000;
+    private const int ExtendedEpochs = 5000;
+    private const int EstimatorCount = 200;
             
 
 
@@ -445,7 +453,7 @@ public class HistoricalTrainerWithCV
             var embargoTime = dataPoint.Timestamp.Add(_embargoWindow);
             var futureData = allData.Where(d => d.Timestamp > embargoTime).Take(20).ToList();
         
-        if (futureData.Count < 10)
+        if (futureData.Count < DefaultIterations)
         {
             return null; // Not enough future data for reliable labeling
         }

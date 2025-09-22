@@ -59,6 +59,47 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, string, Exception?> OutcomeUpdateFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "OutcomeUpdateFailed"),
             "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}");
+
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> HistoricalTrainingStarted =
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(4006, "HistoricalTrainingStarted"),
+            "[RL_ADVISOR] Starting historical training for {Symbol}: {Start} to {End}");
+
+    private static readonly Action<ILogger, int, Exception?> TrainingEpisodesGenerated =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4007, "TrainingEpisodesGenerated"),
+            "[RL_ADVISOR] Generated {Count} training episodes");
+
+    private static readonly Action<ILogger, string, int, double, Exception?> AgentTrained =
+        LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4008, "AgentTrained"),
+            "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
+
+    private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4009, "HistoricalTrainingFailed"),
+            "[RL_ADVISOR] Historical training failed for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelSavingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4010, "ModelSavingStarted"),
+            "[RL_ADVISOR] Saving trained models for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelCheckingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4011, "ModelCheckingStarted"),
+            "[RL_ADVISOR] Checking/loading existing models for {Symbol}");
+
+    private static readonly Action<ILogger, string, Exception?> ExistingModelLoaded =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4012, "ExistingModelLoaded"),
+            "[RL_ADVISOR] Loaded existing model for {AgentKey}");
+
+    private static readonly Action<ILogger, string, Exception?> ModelLoadWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4013, "ModelLoadWarning"),
+            "[RL_ADVISOR] Model file exists but loading failed for {AgentKey}, will retrain");
+
+    private static readonly Action<ILogger, Exception?> ModelCheckingFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4014, "ModelCheckingFailed"),
+            "[RL_ADVISOR] Failed to check/load existing models");
+
+    private static readonly Action<ILogger, string, Exception?> BacktestingStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4015, "BacktestingStarted"),
+            "[RL_ADVISOR] Starting backtesting for {Symbol}");
             
     // Action mapping constants for S109 compliance
     private const int ActionHold = 0;
@@ -284,8 +325,7 @@ public class RLAdvisorSystem
     {
         try
         {
-            _logger.LogInformation("[RL_ADVISOR] Starting historical training for {Symbol}: {Start} to {End}", 
-                symbol, startDate, endDate);
+            HistoricalTrainingStarted(_logger, symbol, startDate, endDate, null);
 
             var result = new RLTrainingResult
             {
@@ -299,7 +339,7 @@ public class RLAdvisorSystem
             var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false);
             
             result.EpisodesGenerated = episodes.Count;
-            _logger.LogInformation("[RL_ADVISOR] Generated {Count} training episodes", episodes.Count);
+            TrainingEpisodesGenerated(_logger, episodes.Count, null);
 
             // Train each agent type
             var agentTypes = Enum.GetValues<RLAgentType>();
