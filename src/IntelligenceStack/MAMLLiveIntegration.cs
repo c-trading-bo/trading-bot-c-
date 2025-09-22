@@ -33,6 +33,88 @@ public class MamlLiveIntegration
     private const int MaxExamplesPerAdaptation = 100;
     private const int MinExamplesRequired = 10;
 
+    // LoggerMessage delegates for CA1848 compliance - MamlLiveIntegration
+    private static readonly Action<ILogger, Exception?> PeriodicUpdatesStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3001, "PeriodicUpdatesStarted"),
+            "[MAML_LIVE] Started periodic updates every 5 minutes");
+            
+    private static readonly Action<ILogger, Exception?> PeriodicUpdatesStopped =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3002, "PeriodicUpdatesStopped"),
+            "[MAML_LIVE] Stopped periodic updates");
+            
+    private static readonly Action<ILogger, string, Exception?> MamlAdaptationStarted =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3003, "MamlAdaptationStarted"),
+            "[MAML_LIVE] Starting MAML adaptation for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, string, Exception?> AdaptationValidationFailed =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(3004, "AdaptationValidationFailed"),
+            "[MAML_LIVE] Adaptation validation failed for {Regime}: {Reason}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> MamlAdaptationCompleted =
+        LoggerMessage.Define<string, double>(LogLevel.Information, new EventId(3005, "MamlAdaptationCompleted"),
+            "[MAML_LIVE] MAML adaptation completed for {Regime}: {Improvement:F4} improvement");
+            
+    private static readonly Action<ILogger, string, Exception?> MamlAdaptationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3006, "MamlAdaptationFailed"),
+            "[MAML_LIVE] MAML adaptation failed for regime: {Regime}");
+            
+    private static readonly Action<ILogger, Exception?> PeriodicUpdatePerforming =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3007, "PeriodicUpdatePerforming"),
+            "[MAML_LIVE] Performing periodic MAML update");
+            
+    private static readonly Action<ILogger, string, Exception?> NoTrainingExamplesWarning =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3008, "NoTrainingExamplesWarning"),
+            "[MAML-LIVE] No real training examples available for regime {Regime}. Skipping adaptation.");
+            
+    private static readonly Action<ILogger, Exception?> PeriodicUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3009, "PeriodicUpdateFailed"),
+            "[MAML_LIVE] Periodic update failed");
+            
+    private static readonly Action<ILogger, string, Exception?> RollbackPerformed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3010, "RollbackPerformed"),
+            "[MAML_LIVE] Performed rollback for regime: {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> LoadingTrainingExamples =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3011, "LoadingTrainingExamples"),
+            "[MAML-LIVE] Loading real training examples for regime {Regime}");
+            
+    private static readonly Action<ILogger, int, string, Exception?> TradingExamplesLoaded =
+        LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(3012, "TradingExamplesLoaded"),
+            "[MAML-LIVE] Loaded {Count} real training examples from trading database for regime {Regime}");
+            
+    private static readonly Action<ILogger, int, string, Exception?> ExternalExamplesLoaded =
+        LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(3013, "ExternalExamplesLoaded"),
+            "[MAML-LIVE] Loaded {Count} training examples from external sources for regime {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> NoTrainingDataSources =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3014, "NoTrainingDataSources"),
+            "[MAML-LIVE] No real training data sources available for regime {Regime}. " +
+            "Consider configuring trading database or external data sources.");
+            
+    private static readonly Action<ILogger, string, Exception?> LoadTrainingExamplesFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3015, "LoadTrainingExamplesFailed"),
+            "[MAML-LIVE] Failed to load real training examples for regime {Regime}");
+            
+    private static readonly Action<ILogger, string, Exception?> TradingDatabaseNotFound =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3016, "TradingDatabaseNotFound"),
+            "[MAML-LIVE] Trading database not found at {DbPath}");
+            
+    private static readonly Action<ILogger, Exception?> TradingDatabaseNotConfigured =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3017, "TradingDatabaseNotConfigured"),
+            "[MAML-LIVE] Trading database available but service integration not configured for MAML");
+            
+    private static readonly Action<ILogger, Exception?> TradingDatabaseAccessError =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3018, "TradingDatabaseAccessError"),
+            "[MAML-LIVE] Error accessing trading history database");
+            
+    private static readonly Action<ILogger, string, Exception?> ExternalDataNotConfigured =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3019, "ExternalDataNotConfigured"),
+            "[MAML-LIVE] External data source integration not configured for regime {Regime}");
+            
+    private static readonly Action<ILogger, Exception?> ExternalDataLoadError =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3020, "ExternalDataLoadError"),
+            "[MAML-LIVE] Error loading from external data sources");
+
 
 
 
@@ -64,7 +146,7 @@ public class MamlLiveIntegration
     public void StartPeriodicUpdates()
     {
         _updateTimer = new Timer(PerformPeriodicUpdate, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
-        _logger.LogInformation("[MAML_LIVE] Started periodic updates every 5 minutes");
+        PeriodicUpdatesStarted(_logger, null);
     }
 
     /// <summary>
@@ -74,7 +156,7 @@ public class MamlLiveIntegration
     {
         _updateTimer?.Dispose();
         _updateTimer = null;
-        _logger.LogInformation("[MAML_LIVE] Stopped periodic updates");
+        PeriodicUpdatesStopped(_logger, null);
     }
 
     /// <summary>
@@ -88,7 +170,7 @@ public class MamlLiveIntegration
         try
         {
             var regimeKey = regime.ToString();
-            _logger.LogInformation("[MAML_LIVE] Starting MAML adaptation for regime: {Regime}", regime);
+            MamlAdaptationStarted(_logger, regime.ToString(), null);
 
             var result = new MamlAdaptationResult
             {
@@ -129,8 +211,7 @@ public class MamlLiveIntegration
             if (!validationResult.IsValid)
             {
                 result.SkippedReason = $"Validation failed: {validationResult.Reason}";
-                _logger.LogWarning("[MAML_LIVE] Adaptation validation failed for {Regime}: {Reason}", 
-                    regime, validationResult.Reason);
+                AdaptationValidationFailed(_logger, regime.ToString(), validationResult.Reason, null);
                 return result;
             }
 
@@ -163,14 +244,13 @@ public class MamlLiveIntegration
             result.PerformanceImprovement = boundedStep.PerformanceGain;
             result.EndTime = DateTime.UtcNow;
 
-            _logger.LogInformation("[MAML_LIVE] MAML adaptation completed for {Regime}: {Improvement:F4} improvement", 
-                regime, boundedStep.PerformanceGain);
+            MamlAdaptationCompleted(_logger, regime.ToString(), boundedStep.PerformanceGain, null);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MAML_LIVE] MAML adaptation failed for regime: {Regime}", regime);
+            MamlAdaptationFailed(_logger, regime.ToString(), ex);
             return new MamlAdaptationResult 
             { 
                 Regime = regime, 
@@ -229,7 +309,7 @@ public class MamlLiveIntegration
         {
             try
             {
-                _logger.LogDebug("[MAML_LIVE] Performing periodic MAML update");
+                PeriodicUpdatePerforming(_logger, null);
             
             // Update for each regime that has recent activity
             var ensembleStatus = _ensemble.GetCurrentStatus();
@@ -251,7 +331,7 @@ public class MamlLiveIntegration
                     }
                     else
                     {
-                        _logger.LogWarning("[MAML-LIVE] No real training examples available for regime {Regime}. Skipping adaptation.", regime);
+                        NoTrainingExamplesWarning(_logger, regime.ToString(), null);
                     }
                 }
             }
@@ -260,7 +340,7 @@ public class MamlLiveIntegration
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MAML_LIVE] Periodic update failed");
+                PeriodicUpdateFailed(_logger, ex);
             }
         });
     }
@@ -436,7 +516,7 @@ public class MamlLiveIntegration
                 modelState.LastRollback = DateTime.UtcNow;
             }
 
-            _logger.LogWarning("[MAML_LIVE] Performed rollback for regime: {Regime}", modelState.RegimeKey);
+            RollbackPerformed(_logger, modelState.RegimeKey, null);
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -569,7 +649,7 @@ public class MamlLiveIntegration
     {
         try
         {
-            _logger.LogDebug("[MAML-LIVE] Loading real training examples for regime {Regime}", regime);
+            LoadingTrainingExamples(_logger, regime.ToString(), null);
             
             var examples = new List<TrainingExample>();
             
@@ -577,8 +657,7 @@ public class MamlLiveIntegration
             var tradingExamples = await LoadFromTradingHistoryDatabase(regime, count, cancellationToken).ConfigureAwait(false);
             if (tradingExamples.Count > 0)
             {
-                _logger.LogInformation("[MAML-LIVE] Loaded {Count} real training examples from trading database for regime {Regime}", 
-                    tradingExamples.Count, regime);
+                TradingExamplesLoaded(_logger, tradingExamples.Count, regime.ToString(), null);
                 return tradingExamples;
             }
             
@@ -586,18 +665,16 @@ public class MamlLiveIntegration
             var externalExamples = await LoadFromExternalDataSources(regime, count, cancellationToken).ConfigureAwait(false);
             if (externalExamples.Count > 0)
             {
-                _logger.LogInformation("[MAML-LIVE] Loaded {Count} training examples from external sources for regime {Regime}", 
-                    externalExamples.Count, regime);
+                ExternalExamplesLoaded(_logger, externalExamples.Count, regime.ToString(), null);
                 return externalExamples;
             }
             
-            _logger.LogWarning("[MAML-LIVE] No real training data sources available for regime {Regime}. " +
-                             "MAML adaptation will be skipped to prevent training on synthetic data.", regime);
+            NoTrainingDataSources(_logger, regime.ToString(), null);
             return examples;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MAML-LIVE] Failed to load real training examples for regime {Regime}", regime);
+            LoadTrainingExamplesFailed(_logger, regime.ToString(), ex);
             return new List<TrainingExample>();
         }
     }
@@ -613,20 +690,20 @@ public class MamlLiveIntegration
             var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trading.db");
             if (!File.Exists(dbPath))
             {
-                _logger.LogDebug("[MAML-LIVE] Trading database not found at {DbPath}", dbPath);
+                TradingDatabaseNotFound(_logger, dbPath, null);
                 return Task.FromResult(new List<TrainingExample>());
             }
             
             // Note: In a full implementation, this would use dependency injection
             // to get ITradingHistoryService and load actual trade outcomes
-            _logger.LogDebug("[MAML-LIVE] Trading database available but service integration not configured for MAML");
+            TradingDatabaseNotConfigured(_logger, null);
             
             // This prevents MAML from training on synthetic data when real data is unavailable
             return Task.FromResult(new List<TrainingExample>());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[MAML-LIVE] Error accessing trading history database");
+            TradingDatabaseAccessError(_logger, ex);
             return Task.FromResult(new List<TrainingExample>());
         }
     }
@@ -645,14 +722,14 @@ public class MamlLiveIntegration
             // 2. External market data providers for training examples
             // 3. Historical strategy performance data
             
-            _logger.LogDebug("[MAML-LIVE] External data source integration not configured for regime {Regime}", regime);
+            ExternalDataNotConfigured(_logger, regime.ToString(), null);
             
             // Returning empty list to enforce "no synthetic data" policy
             return new List<TrainingExample>();
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[MAML-LIVE] Error loading from external data sources");
+            ExternalDataLoadError(_logger, ex);
             return new List<TrainingExample>();
         }
     }
