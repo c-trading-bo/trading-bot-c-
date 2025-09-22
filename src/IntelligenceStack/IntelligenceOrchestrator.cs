@@ -561,7 +561,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            WorkflowActionFailed(_logger, action, ex);
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            WorkflowActionFailed(_logger, action, ex);
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TaskCanceledException ex)
         {
             WorkflowActionFailed(_logger, action, ex);
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
@@ -632,7 +642,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
             ActiveModelsLoaded(_logger, _activeModels.Count, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LoadActiveModelsFailed(_logger, ex);
+        }
+        catch (JsonException ex)
         {
             LoadActiveModelsFailed(_logger, ex);
         }
@@ -806,7 +820,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
             return prediction;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             LatestPredictionFailed(_logger, symbol, ex);
             return new MLPrediction
@@ -913,7 +927,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             return fallbackPrediction;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            OnlinePredictionFailed(_logger, symbol, strategyId, ex);
+            return null;
+        }
+        catch (ArgumentException ex)
         {
             OnlinePredictionFailed(_logger, symbol, strategyId, ex);
             return null;
@@ -1116,13 +1135,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             result.Results["decision"] = decision;
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
-    }
-
-    private async Task<WorkflowExecutionResult> ProcessMarketDataWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
     {
         try
         {
@@ -1131,26 +1151,28 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
-    }
-
-    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
     {
         try
         {
             await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
-    }
-
-    private static MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
     {
         // Extract from workflow context - simplified
         return new MarketContext
@@ -1233,7 +1255,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("trades", payload, cancellationToken).ConfigureAwait(false);
             TradeRecordPushedInfo(_logger, tradeRecord.TradeId, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
+            // Don't throw - cloud push failures shouldn't stop trading
+        }
+        catch (TaskCanceledException ex)
+        {
+            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
+            // Don't throw - cloud push failures shouldn't stop trading
+        }
+        catch (JsonException ex)
         {
             TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
             // Don't throw - cloud push failures shouldn't stop trading
@@ -1264,7 +1296,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("metrics", payload, cancellationToken).ConfigureAwait(false);
             MetricsPushedDebug(_logger, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            MetricsPushFailed(_logger, ex);
+            // Don't throw - metrics push failures shouldn't stop trading
+        }
+        catch (TaskCanceledException ex)
+        {
+            MetricsPushFailed(_logger, ex);
+            // Don't throw - metrics push failures shouldn't stop trading
+        }
+        catch (JsonException ex)
         {
             MetricsPushFailed(_logger, ex);
             // Don't throw - metrics push failures shouldn't stop trading
@@ -1300,7 +1342,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken).ConfigureAwait(false);
             DecisionIntelligencePushedDebug(_logger, decision.DecisionId, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (JsonException ex)
         {
             DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
         }
