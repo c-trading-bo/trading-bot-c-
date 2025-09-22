@@ -27,6 +27,46 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
     
+    // Additional S109 constants
+    private const double DriftDetectionThreshold = 0.1;
+    private const double DefaultLatency = 0.0;
+    private const int WindowStartMinutesOffset = -5;
+    private const int DefaultSampleSize = 1;
+    private const double HighPerformanceThreshold = 0.6;
+    private const double HighPerformanceWeight = 1.1;
+    private const double LowPerformanceWeight = 0.9;
+    private const double BaseLearningRate = 0.1;
+    private const double LearningRateDecay = 0.9;
+    private const double ZeroInitialValue = 0.0;
+    private const int MinCountForVariance = 2;
+    private const int VarianceDivisorAdjustment = 1;
+    private const double ResetWeight = 1.0;
+    private const double GoodDirectionScore = 1.0;
+    private const double NearDirectionScore = 0.6;
+    private const double WrongDirectionScore = 0.3;
+    private const double MarketMovementThreshold = 2.0;
+    private const double DefaultFallbackScore = 0.5;
+    private const double SquarePower = 2;
+    private const double HitRateThreshold = 0.5;
+    private const double PositiveOutcome = 1.0;
+    private const double NegativeOutcome = 0.0;
+    private const double DefaultBrierScore = 0.25;
+    private const double ValidConfidenceMin = 0.0;
+    private const double ValidConfidenceMax = 1.0;
+    private const double MarketHoursConfidence = 0.8;
+    private const double OvernightConfidence = 0.6;
+    private const double OffHoursConfidence = 0.4;
+    private const double ProfitableAccuracy = 0.75;
+    private const double UnprofitableAccuracy = 0.25;
+    private const double F1ScoreMultiplier = 2.0;
+    private const int MarketHoursStart = 9;
+    private const int MarketHoursEnd = 16;
+    private const int OvernightStart = 18;
+    private const int OvernightEnd = 23;
+    private const int PauseMinutesForBreach = 5;
+    private const double DefaultF1Score = 0.6;
+    private const double EpsilonForDivisionCheck = 1e-10;
+    
     // LoggerMessage delegates for CA1848 compliance - OnlineLearningSystem
     private static readonly Action<ILogger, string, double, Exception?> WeightUpdateCompleted =
         LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(6001, "WeightUpdateCompleted"),
@@ -293,7 +333,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 // Check for drift
                 var driftScore = CalculateDriftScore(driftState.BaselineFeatures, features.Features);
                 
-                if (driftScore > 0.1) // Threshold for drift detection
+                if (driftScore > DriftDetectionThreshold) // Threshold for drift detection
                 {
                     _logger.LogWarning("[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}", 
                         modelId, driftScore);
@@ -344,9 +384,9 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 Precision = CalculatePrecision(tradeRecord),
                 Recall = CalculateRecall(tradeRecord),
                 F1Score = CalculateF1Score(tradeRecord),
-                Latency = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("order_latency_ms", 0.0)),
-                SampleSize = 1,
-                WindowStart = tradeRecord.FillTime.AddMinutes(-5),
+                Latency = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("order_latency_ms", DefaultLatency)),
+                SampleSize = DefaultSampleSize,
+                WindowStart = tradeRecord.FillTime.AddMinutes(WindowStartMinutesOffset),
                 WindowEnd = tradeRecord.FillTime,
                 LastUpdated = DateTime.UtcNow,
                 BrierScore = CalculateBrierScore(tradeRecord)
@@ -357,7 +397,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var hitRate = modelPerformance.HitRate;
             
             // Adjust strategy weight based on immediate performance
-            weightUpdates[$"strategy_{strategyId}"] = hitRate > 0.6 ? 1.1 : 0.9;
+            weightUpdates[$"strategy_{strategyId}"] = hitRate > HighPerformanceThreshold ? HighPerformanceWeight : LowPerformanceWeight;
             
             // Update weights for the current regime
             await UpdateWeightsAsync(regimeType, weightUpdates, cancellationToken).ConfigureAwait(false);
@@ -380,25 +420,25 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         var hoursSinceUpdate = (DateTime.UtcNow - lastUpdate).TotalHours;
         
         // Learning rate decay: 0.9 per hour
-        var baseLearningRate = 0.1;
-        return baseLearningRate * Math.Pow(0.9, hoursSinceUpdate);
+        var baseLearningRate = BaseLearningRate;
+        return baseLearningRate * Math.Pow(LearningRateDecay, hoursSinceUpdate);
     }
 
     private static double CalculateVariance(IEnumerable<double> values)
     {
         var valuesList = values.ToList();
-        if (valuesList.Count < 2) return 0.0;
+        if (valuesList.Count < MinCountForVariance) return ZeroInitialValue;
         
         var mean = valuesList.Average();
-        var sumSquaredDiffs = valuesList.Sum(v => Math.Pow(v - mean, 2));
-        return sumSquaredDiffs / (valuesList.Count - 1);
+        var sumSquaredDiffs = valuesList.Sum(v => Math.Pow(v - mean, SquarePower));
+        return sumSquaredDiffs / (valuesList.Count - VarianceDivisorAdjustment);
     }
 
     private static double CalculateDriftScore(Dictionary<string, double> baseline, Dictionary<string, double> current)
     {
-        if (baseline.Count == 0) return 0.0;
-        
-        var score = 0.0;
+        if (baseline.Count == 0) return ZeroInitialValue;
+
+        var score = ZeroInitialValue;
         var featureCount = 0;
         
         foreach (var key in baseline.Keys)
@@ -413,7 +453,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
         }
         
-        return featureCount > 0 ? score / featureCount : 0.0;
+        return featureCount > 0 ? score / featureCount : ZeroInitialValue;
     }
 
     private async Task RollbackWeightsAsync(string modelId, CancellationToken cancellationToken)
@@ -436,7 +476,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                         {
                             if (key.Contains(modelId, StringComparison.OrdinalIgnoreCase))
                             {
-                                weights[key] = 1.0; // Reset to default
+                                weights[key] = ResetWeight; // Reset to default
                             }
                         }
                     }
@@ -536,21 +576,21 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Simple hit rate calculation based on trade direction and immediate market movement
             // In a real implementation, this would compare against actual PnL after position close
             var side = tradeRecord.Side.ToUpperInvariant();
-            var marketMovement = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("market_movement_bps", 0.0));
+            var marketMovement = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("market_movement_bps", DefaultLatency));
             
             // Assume positive market movement means the trade direction was correct
-            if (side == "BUY" && marketMovement > 0) return 1.0;
-            if (side == "SELL" && marketMovement < 0) return 1.0;
+            if (side == "BUY" && marketMovement > 0) return GoodDirectionScore;
+            if (side == "SELL" && marketMovement < 0) return GoodDirectionScore;
             
             // Partial credit for smaller moves in the right direction
-            if (side == "BUY" && marketMovement > -2) return 0.6;
-            if (side == "SELL" && marketMovement < 2) return 0.6;
+            if (side == "BUY" && marketMovement > -MarketMovementThreshold) return NearDirectionScore;
+            if (side == "SELL" && marketMovement < MarketMovementThreshold) return NearDirectionScore;
             
-            return 0.3; // Default for uncertain or wrong direction
+            return WrongDirectionScore; // Default for uncertain or wrong direction
         }
         catch
         {
-            return 0.5; // Default fallback
+            return DefaultFallbackScore; // Default fallback
         }
     }
 
@@ -563,12 +603,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var hitRate = CalculateTradeHitRate(tradeRecord);
             
             // Brier score = (predicted_probability - actual_outcome)^2
-            var actualOutcome = hitRate > 0.5 ? 1.0 : 0.0;
-            return Math.Pow(confidence - actualOutcome, 2);
+            var actualOutcome = hitRate > HitRateThreshold ? PositiveOutcome : NegativeOutcome;
+            return Math.Pow(confidence - actualOutcome, SquarePower);
         }
         catch
         {
-            return 0.25; // Default Brier score
+            return DefaultBrierScore; // Default Brier score
         }
     }
 
@@ -580,7 +620,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (tradeRecord.Metadata.TryGetValue("prediction_confidence", out var storedConfidence))
             {
                 var confidence = Convert.ToDouble(storedConfidence);
-                if (confidence >= 0.0 && confidence <= 1.0)
+                if (confidence >= ValidConfidenceMin && confidence <= ValidConfidenceMax)
                 {
                     return confidence;
                 }
@@ -633,9 +673,9 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var tradingHour = tradeRecord.FillTime.Hour;
             var sessionConfidence = tradingHour switch
             {
-                >= 9 and <= 16 => 0.8,   // Market hours - high confidence
-                >= 18 and <= 23 => 0.6,  // Overnight - medium confidence  
-                _ => 0.4                  // Off hours - lower confidence
+                >= MarketHoursStart and <= MarketHoursEnd => MarketHoursConfidence,   // Market hours - high confidence
+                >= OvernightStart and <= OvernightEnd => OvernightConfidence,  // Overnight - medium confidence  
+                _ => OffHoursConfidence                  // Off hours - lower confidence
             };
             
             return sessionConfidence;
@@ -643,7 +683,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to calculate confidence from trade data, using conservative estimate");
-            return 0.5; // Conservative fallback
+            return DefaultFallbackScore; // Conservative fallback
         }
     }
 
@@ -657,11 +697,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var side = tradeRecord.Side.ToUpper();
             
             var profitLoss = side == "BUY" ? exitPrice - entryPrice : entryPrice - exitPrice;
-            return profitLoss > 0 ? 0.75 : 0.25; // Binary accuracy: profitable = accurate
+            return profitLoss > 0 ? ProfitableAccuracy : UnprofitableAccuracy; // Binary accuracy: profitable = accurate
         }
         catch
         {
-            return 0.5; // Default accuracy
+            return DefaultFallbackScore; // Default accuracy
         }
     }
 
@@ -703,12 +743,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var recall = CalculateRecall(tradeRecord);
             
             // F1 Score = 2 * (precision * recall) / (precision + recall)
-            if (Math.Abs(precision + recall) < 1e-10) return 0.0;
-            return 2.0 * (precision * recall) / (precision + recall);
+            if (Math.Abs(precision + recall) < EpsilonForDivisionCheck) return ZeroInitialValue;
+            return F1ScoreMultiplier * (precision * recall) / (precision + recall);
         }
         catch
         {
-            return 0.6; // Default F1 score
+            return DefaultF1Score; // Default F1 score
         }
     }
 
@@ -911,7 +951,7 @@ public class SloMonitor
         
         if (breachSeverity >= DefaultRetryCount3)
         {
-            // Severe breach: pause trading for 5 minutes
+            // Severe breach: pause trading for configured minutes
             _logger.LogCritical("[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}", metricType);
             // Implementation would trigger trading pause
         }
