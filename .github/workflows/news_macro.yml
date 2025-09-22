@@ -1,0 +1,301 @@
+name: "📰 News Macro Pipeline"
+
+on:
+  schedule:
+    - cron: '15 9,10,11,12,13,15 * * 1-5'  # 6 times daily: 9:15 AM, 10:15 AM, 11:15 AM, 12:15 PM, 1:15 PM, 3:15 PM ET
+  workflow_dispatch:
+    inputs:
+      analysis_mode:
+        description: 'Analysis mode'
+        required: false
+        default: 'macro_focus'
+        type: choice
+        options:
+          - macro_focus
+          - comprehensive
+
+concurrency:
+  group: news-macro
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  NEWS_FLAGS_DIR: "datasets/news_flags"
+  RUNTIME_BUDGET: "180"  # 3 minutes
+
+jobs:
+  news-macro-analysis:
+    name: "News Macro Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: "🐍 Setup Python Environment"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: "📦 Install Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install feedparser requests beautifulsoup4
+          pip install pandas numpy pyarrow
+          pip install textblob nltk
+          python -c "import nltk; nltk.download('punkt'); nltk.download('vader_lexicon')"
+
+      - name: "📰 GDELT Macro Economic Analysis"
+        run: |
+          echo "📰 Collecting GDELT macro economic data..."
+          python << 'EOF'
+          import requests
+          import pandas as pd
+          import json
+          import os
+          from datetime import datetime
+          
+          print("[GDELT-MACRO] 📰 GDELT Macro Economic Analysis")
+          
+          # Macro economic keywords focused on ES/NQ futures drivers
+          macro_keywords = [
+              "Federal Reserve", "FOMC", "Jerome Powell", "interest rates", "monetary policy",
+              "CPI", "inflation", "NFP", "unemployment", "GDP", "recession",
+              "market volatility", "VIX", "economic growth", "yield curve",
+              "Treasury", "dollar index", "DXY", "bond yields", "liquidity"
+          ]
+          
+          gdelt_data = []
+          
+          for keyword in macro_keywords[:5]:  # Limit for runtime budget
+              try:
+                  # GDELT API for financial events
+                  base_url = "https://api.gdeltproject.org/api/v2/doc/doc"
+                  params = {
+                      'query': f'"{keyword}"',
+                      'mode': 'ArtList',
+                      'maxrecords': 10,
+                      'format': 'json',
+                      'sortby': 'DateDesc'
+                  }
+                  
+                  print(f"[GDELT-MACRO] Searching for: {keyword}")
+                  response = requests.get(base_url, params=params, timeout=10)
+                  
+                  if response.status_code == 200:
+                      try:
+                          data = response.json()
+                          articles = data.get('articles', [])
+                          
+                          for article in articles[:3]:  # Limit per keyword
+                              event_flag = {
+                                  'timestamp': datetime.utcnow().isoformat(),
+                                  'keyword': keyword,
+                                  'title': article.get('title', ''),
+                                  'url': article.get('url', ''),
+                                  'source': article.get('domain', ''),
+                                  'date': article.get('seendate', ''),
+                                  'event_type': 'macro_economic',
+                                  'content_usage': 'full_content_allowed',
+                                  'es_nq_relevance': 'high' if keyword in ['Federal Reserve', 'FOMC', 'inflation', 'unemployment'] else 'medium'
+                              }
+                              gdelt_data.append(event_flag)
+                              
+                      except json.JSONDecodeError:
+                          print(f"[GDELT-MACRO] {keyword}: Invalid JSON response")
+                  
+              except Exception as e:
+                  print(f"[GDELT-MACRO] {keyword} error: {e}")
+          
+          # Save GDELT data as parquet
+          os.makedirs('datasets/news_flags', exist_ok=True)
+          
+          if gdelt_data:
+              df = pd.DataFrame(gdelt_data)
+              df.to_parquet('datasets/news_flags/gdelt_macro_events.parquet', index=False)
+              print(f"[GDELT-MACRO] ✅ Saved {len(gdelt_data)} macro events")
+          else:
+              # Create empty DataFrame with schema
+              df = pd.DataFrame(columns=['timestamp', 'keyword', 'title', 'url', 'source', 'date', 'event_type', 'content_usage', 'es_nq_relevance'])
+              df.to_parquet('datasets/news_flags/gdelt_macro_events.parquet', index=False)
+              print("[GDELT-MACRO] ⚠️ No data retrieved, saved empty schema")
+          
+          EOF
+
+      - name: "📄 Commercial Headlines Collection (Compliance)"
+        run: |
+          echo "📄 Collecting commercial headlines (compliance mode)..."
+          python << 'EOF'
+          import feedparser
+          import pandas as pd
+          import json
+          import os
+          from datetime import datetime
+          from textblob import TextBlob
+          
+          print("[COMMERCIAL-HEADLINES] 📄 Commercial Headlines Collection")
+          
+          # Commercial sources - headlines only for compliance
+          commercial_feeds = {
+              'marketwatch': 'https://feeds.marketwatch.com/marketwatch/topstories/',
+              'cnbc': 'https://search.cnbc.com/rs/search/combined.do?partnerId=wrss01&id=15839069'
+          }
+          
+          headlines_data = []
+          
+          for source_name, feed_url in commercial_feeds.items():
+              try:
+                  print(f"[COMMERCIAL-HEADLINES] Processing {source_name}...")
+                  feed = feedparser.parse(feed_url)
+                  
+                  for entry in feed.entries[:10]:  # Limit entries
+                      title = entry.get('title', '')
+                      link = entry.get('link', '')
+                      published = entry.get('published', '')
+                      
+                      # Headlines only - no full content for compliance
+                      try:
+                          sentiment = TextBlob(title.lower()).sentiment.polarity
+                      except:
+                          sentiment = 0.0
+                      
+                      # Check for macro relevance
+                      macro_terms = ['fed', 'federal reserve', 'inflation', 'unemployment', 'gdp', 'recession', 'fomc', 'powell']
+                      is_macro_relevant = any(term in title.lower() for term in macro_terms)
+                      
+                      if is_macro_relevant:  # Only store macro-relevant headlines
+                          headline_flag = {
+                              'timestamp': datetime.utcnow().isoformat(),
+                              'source': source_name,
+                              'title': title[:200],  # Truncate for storage efficiency
+                              'url': link,
+                              'published': published,
+                              'sentiment': sentiment,
+                              'event_type': 'commercial_headline',
+                              'content_usage': 'headlines_only',
+                              'macro_relevance': 'high' if any(term in title.lower() for term in ['fed', 'powell', 'inflation', 'unemployment']) else 'medium',
+                              'es_nq_impact': 'potential'
+                          }
+                          headlines_data.append(headline_flag)
+                  
+                  print(f"[COMMERCIAL-HEADLINES] {source_name}: Processed {len([h for h in headlines_data if h['source'] == source_name])} macro headlines")
+                  
+              except Exception as e:
+                  print(f"[COMMERCIAL-HEADLINES] Error processing {source_name}: {e}")
+          
+          # Save commercial headlines as parquet
+          if headlines_data:
+              df = pd.DataFrame(headlines_data)
+              df.to_parquet('datasets/news_flags/commercial_headlines.parquet', index=False)
+              print(f"[COMMERCIAL-HEADLINES] ✅ Saved {len(headlines_data)} macro-relevant headlines")
+          else:
+              # Create empty DataFrame with schema
+              df = pd.DataFrame(columns=['timestamp', 'source', 'title', 'url', 'published', 'sentiment', 'event_type', 'content_usage', 'macro_relevance', 'es_nq_impact'])
+              df.to_parquet('datasets/news_flags/commercial_headlines.parquet', index=False)
+              print("[COMMERCIAL-HEADLINES] ⚠️ No macro-relevant headlines found")
+          
+          EOF
+
+      - name: "🏛️ Government Source Collection (Full Content)"
+        run: |
+          echo "🏛️ Collecting government source data..."
+          python << 'EOF'
+          import feedparser
+          import pandas as pd
+          import json
+          import os
+          from datetime import datetime
+          from textblob import TextBlob
+          
+          print("[GOVERNMENT-SOURCES] 🏛️ Government Source Collection")
+          
+          # Government sources - full content allowed
+          government_feeds = {
+              'federal_reserve': 'https://www.federalreserve.gov/feeds/press_all.xml',
+              'bureau_labor_stats_employment': 'https://www.bls.gov/feed/news_release/empsit.rss',
+              'bureau_labor_stats_cpi': 'https://www.bls.gov/feed/news_release/cpi.rss'
+          }
+          
+          government_data = []
+          
+          for source_name, feed_url in government_feeds.items():
+              try:
+                  print(f"[GOVERNMENT-SOURCES] Processing {source_name}...")
+                  feed = feedparser.parse(feed_url)
+                  
+                  for entry in feed.entries[:5]:  # Limit entries for budget
+                      title = entry.get('title', '')
+                      summary = entry.get('summary', '')
+                      link = entry.get('link', '')
+                      published = entry.get('published', '')
+                      
+                      # Full content allowed for government sources
+                      full_content = f"{title} {summary}"
+                      
+                      try:
+                          sentiment = TextBlob(full_content.lower()).sentiment.polarity
+                      except:
+                          sentiment = 0.0
+                      
+                      # Determine ES/NQ impact
+                      high_impact_terms = ['monetary policy', 'interest rate', 'inflation', 'employment', 'unemployment', 'fomc']
+                      es_nq_impact = 'high' if any(term in full_content.lower() for term in high_impact_terms) else 'medium'
+                      
+                      government_event = {
+                          'timestamp': datetime.utcnow().isoformat(),
+                          'source': source_name,
+                          'title': title,
+                          'summary': summary[:500],  # Limit summary length
+                          'url': link,
+                          'published': published,
+                          'sentiment': sentiment,
+                          'event_type': 'government_release',
+                          'content_usage': 'full_content_allowed',
+                          'es_nq_impact': es_nq_impact,
+                          'authority_level': 'official'
+                      }
+                      government_data.append(government_event)
+                  
+                  print(f"[GOVERNMENT-SOURCES] {source_name}: Processed {len([g for g in government_data if g['source'] == source_name])} releases")
+                  
+              except Exception as e:
+                  print(f"[GOVERNMENT-SOURCES] Error processing {source_name}: {e}")
+          
+          # Save government data as parquet
+          if government_data:
+              df = pd.DataFrame(government_data)
+              df.to_parquet('datasets/news_flags/government_releases.parquet', index=False)
+              print(f"[GOVERNMENT-SOURCES] ✅ Saved {len(government_data)} government releases")
+          else:
+              # Create empty DataFrame with schema
+              df = pd.DataFrame(columns=['timestamp', 'source', 'title', 'summary', 'url', 'published', 'sentiment', 'event_type', 'content_usage', 'es_nq_impact', 'authority_level'])
+              df.to_parquet('datasets/news_flags/government_releases.parquet', index=False)
+              print("[GOVERNMENT-SOURCES] ⚠️ No government releases found")
+          
+          EOF
+
+      - name: "📦 Upload News Flag Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-flags-${{ github.run_number }}
+          path: datasets/news_flags/
+          retention-days: 7
+
+      - name: "✅ News Macro Summary"
+        run: |
+          echo "✅ News Macro Pipeline Complete"
+          echo "📰 GDELT macro economic events collected"
+          echo "📄 Commercial headlines (MarketWatch, CNBC) - compliance mode"
+          echo "🏛️ Government sources (Fed, BLS) - full content"
+          echo "🚫 Bloomberg/Reuters/Seeking Alpha - REMOVED"
+          echo "🚫 Individual stocks (Tesla, Nvidia) - REMOVED"
+          echo "🚫 Bitcoin/crypto terms - REMOVED"
+          echo "💾 All outputs saved as parquet event flags"
+          echo "⏱️ Runtime: Under 3 minutes budget"

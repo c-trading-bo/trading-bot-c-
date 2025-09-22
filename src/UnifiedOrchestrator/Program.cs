@@ -314,6 +314,12 @@ Stack Trace:
         services.AddSingleton<StrategyPerformanceAnalyzer>();
         services.AddSingleton<IMarketHours, BasicMarketHours>();
         
+        // Register Session-Aware Runtime Gates for 24×5 futures trading
+        services.AddSingleton<SessionAwareRuntimeGates>();
+        
+        // Register Safe-Hold Decision Policy with neutral band logic
+        services.AddSingleton<SafeHoldDecisionPolicy>();
+        
         // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
         services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
         
