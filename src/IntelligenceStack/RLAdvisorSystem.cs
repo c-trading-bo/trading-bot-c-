@@ -47,6 +47,17 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, string, Exception?> OutcomeUpdateFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "OutcomeUpdateFailed"),
             "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}");
+            
+    // Action mapping constants for S109 compliance
+    private const int ActionHold = 0;
+    private const int ActionPartialExit = 1;
+    private const int ActionFullExit = 2;
+    private const int ActionTrailingStop = 3;
+    
+    // Confidence thresholds
+    private const double HighConfidenceThreshold = 0.8;
+    private const double LowConfidenceThreshold = 0.3;
+    private const double LongTimeInPositionHours = 4.0;
     
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
@@ -348,10 +359,10 @@ public class RLAdvisorSystem
     {
         return rlAction.ActionType switch
         {
-            0 => ExitAction.Hold,
-            1 => ExitAction.PartialExit,
-            2 => ExitAction.FullExit,
-            3 => ExitAction.TrailingStop,
+            ActionHold => ExitAction.Hold,
+            ActionPartialExit => ExitAction.PartialExit,
+            ActionFullExit => ExitAction.FullExit,
+            ActionTrailingStop => ExitAction.TrailingStop,
             _ => ExitAction.Hold
         };
     }
@@ -360,9 +371,9 @@ public class RLAdvisorSystem
     {
         var reasons = new List<string>();
         
-        if (rlAction.Confidence > 0.8)
+        if (rlAction.Confidence > HighConfidenceThreshold)
             reasons.Add("High confidence");
-        else if (rlAction.Confidence < 0.3)
+        else if (rlAction.Confidence < LowConfidenceThreshold)
             reasons.Add("Low confidence");
             
         if (context.UnrealizedPnL > 0)
@@ -370,7 +381,7 @@ public class RLAdvisorSystem
         else
             reasons.Add("Position at loss");
             
-        if (context.TimeInPosition.TotalHours > 4)
+        if (context.TimeInPosition.TotalHours > LongTimeInPositionHours)
             reasons.Add("Long time in position");
             
         return string.Join(", ", reasons);

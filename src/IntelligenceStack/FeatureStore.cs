@@ -25,6 +25,7 @@ public class FeatureStore : IFeatureStore
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
+    private const int ChecksumLength = 16;
 
     // LoggerMessage delegates for CA1848 compliance - FeatureStore  
     private static readonly Action<ILogger, string, Exception?> NoFeatureDataFound =
@@ -360,7 +361,7 @@ public class FeatureStore : IFeatureStore
         var content = JsonSerializer.Serialize(features.Features);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
-        return Convert.ToHexString(hash)[..16]; // First 16 chars
+        return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static string CalculateSchemaChecksum(FeatureSchema schema)
@@ -368,7 +369,7 @@ public class FeatureStore : IFeatureStore
         var content = JsonSerializer.Serialize(schema.Features);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
-        return Convert.ToHexString(hash)[..16]; // First 16 chars
+        return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static bool IsFileInTimeRange(string filePath, DateTime fromTime, DateTime toTime)

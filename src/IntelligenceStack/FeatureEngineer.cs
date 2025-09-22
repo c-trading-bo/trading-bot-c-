@@ -29,6 +29,11 @@ public class FeatureEngineer : IDisposable
     private const int MaxFeatureCount = 10;
     private const int VarianceSquared = 2;
     
+    // Additional S109 constants
+    private const int AsyncProcessingDelayMs = 2;
+    private const double MidPriceDivisor = 2.0;
+    private const double CorrelationTolerance = 1e-10;
+    
     // LoggerMessage delegates for CA1848 compliance - FeatureEngineer
     private static readonly Action<ILogger, string, Exception?> LogsDirectoryWarning =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4001, "LogsDirectoryWarning"),
@@ -480,11 +485,11 @@ public class FeatureEngineer : IDisposable
         try
         {
             // Perform async feature extraction with external data enrichment
-            await Task.Delay(2, cancellationToken).ConfigureAwait(false); // Simulate async processing
+            await Task.Delay(AsyncProcessingDelayMs, cancellationToken).ConfigureAwait(false); // Simulate async processing
             
             // Basic feature extraction using available MarketData properties
             var spread = marketData.Ask - marketData.Bid;
-            var midPrice = (marketData.Bid + marketData.Ask) / 2.0;
+            var midPrice = (marketData.Bid + marketData.Ask) / MidPriceDivisor;
             var priceChange = marketData.Close - marketData.Open;
             var priceChangeRatio = marketData.Open > 0 ? priceChange / marketData.Open : 0.0;
             
@@ -544,7 +549,7 @@ public class FeatureEngineer : IDisposable
         var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, VarianceSquared)));
         var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, VarianceSquared)));
         
-        if (Math.Abs(denomX) < 1e-10 || Math.Abs(denomY) < 1e-10)
+        if (Math.Abs(denomX) < CorrelationTolerance || Math.Abs(denomY) < CorrelationTolerance)
         {
             return 0.0;
         }
