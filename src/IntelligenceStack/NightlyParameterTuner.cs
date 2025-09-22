@@ -491,7 +491,7 @@ public class NightlyParameterTuner
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<ModelMetrics> EvaluateParametersAsync(
+    private static async Task<ModelMetrics> EvaluateParametersAsync(
         string modelFamily,
         Dictionary<string, double> parameters,
         CancellationToken cancellationToken)
@@ -529,7 +529,7 @@ public class NightlyParameterTuner
         };
     }
 
-    private Dictionary<string, double> GenerateNextCandidateByesian(TuningSession session, int trial)
+    private static Dictionary<string, double> GenerateNextCandidateByesian(TuningSession session, int trial)
     {
         // Simplified Bayesian optimization - in production would use Gaussian Processes
         var candidate = new Dictionary<string, double>();
@@ -640,7 +640,7 @@ public class NightlyParameterTuner
         return newPopulation;
     }
 
-    private double SampleFromRange(ParameterRange range)
+    private static double SampleFromRange(ParameterRange range)
     {
         return range.Type switch
         {
@@ -651,20 +651,20 @@ public class NightlyParameterTuner
         };
     }
 
-    private double CalculateFitness(ModelMetrics metrics)
+    private static double CalculateFitness(ModelMetrics metrics)
     {
         // Weighted combination of metrics for fitness calculation
         return metrics.AUC * 0.5 + (metrics.PrAt10 / 0.2) * 0.3 + (metrics.EdgeBps / 10.0) * 0.2;
     }
 
-    private Individual TournamentSelection(List<Individual> population)
+    private static Individual TournamentSelection(List<Individual> population)
     {
         var tournamentSize = Math.Min(3, population.Count);
         var tournament = population.OrderBy(x => System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, int.MaxValue)).Take(tournamentSize);
         return tournament.OrderByDescending(ind => ind.Fitness).First();
     }
 
-    private Individual Crossover(Individual parent1, Individual parent2)
+    private static Individual Crossover(Individual parent1, Individual parent2)
     {
         var offspring = new Individual();
         
@@ -683,7 +683,7 @@ public class NightlyParameterTuner
         return offspring;
     }
 
-    private Individual Mutate(Individual individual)
+    private static Individual Mutate(Individual individual)
     {
         var mutationRate = 0.1;
         var mutated = new Individual();
@@ -715,7 +715,7 @@ public class NightlyParameterTuner
         return mean + stdDev * randStdNormal;
     }
 
-    private bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
+    private static bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
     {
         // Multi-objective comparison - candidate must be better in majority of metrics
         var improvements = 0;
