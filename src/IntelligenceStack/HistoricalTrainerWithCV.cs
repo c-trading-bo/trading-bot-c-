@@ -348,7 +348,19 @@ public class HistoricalTrainerWithCV
             
             FoldDebugInfo(_logger, foldNumber, trainingData.Count, testData.Count, null);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            FoldFailed(_logger, foldNumber, ex);
+            foldResult.Success = false;
+            foldResult.ErrorMessage = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            FoldFailed(_logger, foldNumber, ex);
+            foldResult.Success = false;
+            foldResult.ErrorMessage = ex.Message;
+        }
+        catch (OutOfMemoryException ex)
         {
             FoldFailed(_logger, foldNumber, ex);
             foldResult.Success = false;

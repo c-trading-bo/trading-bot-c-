@@ -40,6 +40,18 @@ public class MlrlObservabilityService : IDisposable
     private readonly ConcurrentDictionary<string, MetricValue> _metricsStorage = new();
     private readonly object _lock = new();
 
+    // S109 Magic Number Constants - ML/RL Thresholds and Configuration
+    private const double HighDriftScoreThreshold = 0.7;
+    private const double HighPolicyNormThreshold = 10.0;
+    private const double HighEnsembleVarianceThreshold = 0.1;
+    private const int MaxModelCountThreshold = 10;
+    private const int MetricsExportIntervalMs = 1000;
+    private const int HashIdLength = 16;
+    private const int StringIdLength = 8;
+    private const int MaxHashValue = 10000;
+    private const int MaxHistogramSamples = 1000;
+    private const int HistogramPruneSize = 500;
+
     // LoggerMessage delegates for CA1848 compliance - MLRLObservabilityService
     private static readonly Action<ILogger, Exception?> ObservabilityServiceInitialized =
         LoggerMessage.Define(LogLevel.Information, new EventId(5001, "ObservabilityServiceInitialized"), 
@@ -61,25 +73,14 @@ public class MlrlObservabilityService : IDisposable
         LoggerMessage.Define<string, int, double>(LogLevel.Debug, new EventId(5005, "RecordedRLReward"), 
             "Recorded RL reward for {AgentId}: episode={Episode}, reward={Reward:F3}");
 
-    private static readonly Action<ILogger, string, double, Exception?> HighPolicyNormDetected =
-        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(5006, "HighPolicyNormDetected"), 
-            "High policy norm detected for {AgentId}: {PolicyNorm:F3}");
 
-    private static readonly Action<ILogger, double, int, Exception?> HighEnsembleVarianceDetected =
-        LoggerMessage.Define<double, int>(LogLevel.Warning, new EventId(5007, "HighEnsembleVarianceDetected"), 
-            "High ensemble variance detected: {Variance:F3} with {ModelCount} models");
 
-    private static readonly Action<ILogger, Exception?> FailedToExportMetrics =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5008, "FailedToExportMetrics"), 
-            "Failed to export metrics");
 
-    private static readonly Action<ILogger, Exception?> SuccessfullyExportedMetrics =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(5009, "SuccessfullyExportedMetrics"), 
-            "Successfully exported metrics to Prometheus gateway");
 
-    private static readonly Action<ILogger, int, Exception?> FailedToExportMetricsToPrometheus =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(5010, "FailedToExportMetricsToPrometheus"), 
-            "Failed to export metrics to Prometheus: {StatusCode}");
+
+
+
+
 
     public MlrlObservabilityService(
         ILogger<MlrlObservabilityService> logger,
@@ -139,7 +140,7 @@ public class MlrlObservabilityService : IDisposable
         _driftScore.Record(driftScore, new TagList { { "model_id", modelId } });
         UpdateMetricValue($"ml_drift_score{{model_id=\"{modelId}\"}}", driftScore, MetricType.Histogram);
 
-        if (driftScore > 0.7) // Configurable threshold
+        if (driftScore > HighDriftScoreThreshold) // Configurable threshold
         {
             HighDriftScoreDetected(_logger, modelId, driftScore, null);
         }
@@ -168,7 +169,7 @@ public class MlrlObservabilityService : IDisposable
         _policyNorms.Record(policyNorm, new TagList { { "agent_id", agentId } });
         UpdateMetricValue($"rl_policy_norms{{agent_id=\"{agentId}\"}}", policyNorm, MetricType.Histogram);
 
-        if (policyNorm > 10.0) // Configurable threshold
+        if (policyNorm > HighPolicyNormThreshold) // Configurable threshold
         {
             _logger.LogWarning("High policy norm detected for {AgentId}: {PolicyNorm:F3}", agentId, policyNorm);
         }
@@ -183,7 +184,7 @@ public class MlrlObservabilityService : IDisposable
         _ensembleVariance.Record(variance, new TagList { { "model_count", modelCount.ToString() } });
         UpdateMetricValue($"ensemble_prediction_variance{{model_count=\"{modelCount}\"}}", variance, MetricType.Histogram);
 
-        if (variance > 0.1) // Configurable threshold
+        if (variance > HighEnsembleVarianceThreshold) // Configurable threshold
         {
             _logger.LogWarning("High ensemble variance detected: {Variance:F3} with {ModelCount} models", 
                 variance, modelCount);
@@ -212,9 +213,9 @@ public class MlrlObservabilityService : IDisposable
                         existing.Samples.Add(value);
                         existing.Value = existing.Samples.Count > 0 ? existing.Samples.Average() : value;
                         // Keep only recent samples to prevent memory growth
-                        if (existing.Samples.Count > 1000)
+                        if (existing.Samples.Count > MaxHistogramSamples)
                         {
-                            existing.Samples.RemoveRange(0, 500);
+                            existing.Samples.RemoveRange(0, HistogramPruneSize);
                         }
                         break;
                 }

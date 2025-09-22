@@ -78,26 +78,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> ErrorDuringDispose =
         LoggerMessage.Define(LogLevel.Warning, new EventId(3018, "ErrorDuringDispose"), "[LEADER] Error during dispose");
 
-    // Quarantine-related LoggerMessage delegates (seems to be mixed functionality)
-    private static readonly Action<ILogger, string, string, Exception?> ModelQuarantined =
-        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(3019, "ModelQuarantined"), 
-            "[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})");
 
-    private static readonly Action<ILogger, string, Exception?> FailedToQuarantineModel =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3020, "FailedToQuarantineModel"), 
-            "[QUARANTINE] Failed to quarantine model: {ModelId}");
-
-    private static readonly Action<ILogger, string, Exception?> ModelRestoredFromQuarantine =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3021, "ModelRestoredFromQuarantine"), 
-            "[QUARANTINE] Model restored from quarantine: {ModelId}");
-
-    private static readonly Action<ILogger, string, Exception?> FailedToRestoreModel =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3022, "FailedToRestoreModel"), 
-            "[QUARANTINE] Failed to restore model: {ModelId}");
-
-    private static readonly Action<ILogger, string, Exception?> FailedToUpdatePerformance =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3023, "FailedToUpdatePerformance"), 
-            "[QUARANTINE] Failed to update performance for model: {ModelId}");
 
     private static readonly Action<ILogger, string, string, string, double, double, Exception?> ModelHealthChanged =
         LoggerMessage.Define<string, string, string, double, double>(LogLevel.Information, new EventId(3024, "ModelHealthChanged"), 
@@ -180,7 +161,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             FailedToAcquireLeadershipDebug(_logger, null);
             return false;
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToAcquireLeadershipError(_logger, ex);
+            return false;
+        }
+        catch (System.IO.IOException ex)
+        {
+            FailedToAcquireLeadershipError(_logger, ex);
+            return false;
+        }
+        catch (DirectoryNotFoundException ex)
         {
             FailedToAcquireLeadershipError(_logger, ex);
             return false;
