@@ -33,6 +33,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BearishThreshold = 0.45;
     
     // S109 Magic Number Constants - Intelligence Orchestrator
+    private const double LowValueFeatureThreshold = 0.5;
+    private const double DefaultESPrice = 4500.0;
+    private const double DefaultVolume = 1000.0;
+    private const double DefaultBidOffset = 4499.75;
+    private const double DefaultAskOffset = 4500.25;
+    private const double DefaultMarketDataOpen = 4500.0;
+    private const double DefaultMarketDataHigh = 4502.0;
+    private const double DefaultMarketDataLow = 4498.0;
+    private const double DefaultMarketDataClose = 4501.0;
+    private const double DefaultMarketDataBid = 4500.75;
+    private const double DefaultMarketDataAsk = 4501.25;
+    private const int HttpClientErrorStart = 400;
+    private const int HttpServerErrorStart = 500;
 
 
 
@@ -1052,7 +1065,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         // Add metadata about feature weighting
         weightedFeatures.Metadata["feature_weights_applied"] = true;
         weightedFeatures.Metadata["weights_count"] = weights.Count;
-        weightedFeatures.Metadata["low_value_features"] = weights.Count(kvp => kvp.Value < 0.5);
+        weightedFeatures.Metadata["low_value_features"] = weights.Count(kvp => kvp.Value < LowValueFeatureThreshold);
 
         return weightedFeatures;
     }
@@ -1110,10 +1123,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return new MarketContext
         {
             Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500), CultureInfo.InvariantCulture),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000), CultureInfo.InvariantCulture),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", 4499.75), CultureInfo.InvariantCulture),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", 4500.25), CultureInfo.InvariantCulture),
+            Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", DefaultESPrice), CultureInfo.InvariantCulture),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume), CultureInfo.InvariantCulture),
+            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultBidOffset), CultureInfo.InvariantCulture),
+            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultAskOffset), CultureInfo.InvariantCulture),
             Timestamp = DateTime.UtcNow
         };
     }
@@ -1123,13 +1136,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return new MarketData
         {
             Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", 4500)),
-            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", 4502)),
-            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", 4498)),
-            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", 4501)),
+            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", DefaultMarketDataOpen)),
+            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
+            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
+            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
             Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000)),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", 4500.75)),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", 4501.25)),
+            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
+            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
             Timestamp = DateTime.UtcNow
         };
     }
@@ -1288,7 +1301,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 CloudPushFailedWarning(_logger, (int)response.StatusCode, responseContent, null);
 
                 // Don't retry on client errors (4xx)
-                if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+                if ((int)response.StatusCode >= HttpClientErrorStart && (int)response.StatusCode < HttpServerErrorStart)
                 {
                     throw new InvalidOperationException($"Client error from cloud endpoint: {response.StatusCode}");
                 }
