@@ -1,10 +1,116 @@
 {
-  "timestamp": "2025-09-22T06:34:56.232190",
-  "total_articles": 0,
+  "timestamp": "2025-09-22T09:27:04.646879",
+  "total_articles": 15,
   "keywords_searched": [
     "stock market",
     "trading",
     "futures"
   ],
-  "articles": []
+  "articles": [
+    {
+      "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
+      "url": "http://www.haberler.com/finans/borsa/",
+      "source": "haberler.com",
+      "date": "20250902T144500Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 4 Eyl\u00fcl 2025 Per\u015fembe ) ",
+      "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-4-eylul-2025-persembe/513304/",
+      "source": "finans.mynet.com",
+      "date": "20250904T080000Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 2 Eyl\u00fcl 2025 Sal\u0131 ) ",
+      "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-2-eylul-2025-sali/512991/",
+      "source": "finans.mynet.com",
+      "date": "20250902T080000Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "BORSA NEDEN D\u00dc\u015eT\u00dc ? 8 Eyl\u00fcl 2025 Pazartesi Borsa \u0130stanbul BIST 100 endeksi ile borsa bug\u00fcn neden d\u00fc\u015f\u00fcyor ? ",
+      "url": "https://www.haberturk.com/borsa-neden-dustu-8-eylul-2025-pazartesi-borsa-istanbul-bist-100-endeksi-ile-borsa-bugun-neden-dusuyor-3820894",
+      "source": "haberturk.com",
+      "date": "20250908T163000Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 19 A\u011fustos 2025 Sal\u0131 ) ",
+      "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-19-agustos-2025-sali/511732/",
+      "source": "finans.mynet.com",
+      "date": "20250819T103000Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "24 / 7 Trading Is Coming . But Is It a Good Thing ? ",
+      "url": "https://finance.yahoo.com/news/24-7-trading-coming-good-104500167.html",
+      "source": "finance.yahoo.com",
+      "date": "20250921T123000Z",
+      "keyword": "trading"
+    },
+    {
+      "title": "Pasukan Petugas Geoekonomi ASEAN mulakan siri mesyuarat AEM pada Isnin",
+      "url": "https://www.astroawani.com/berita-bisnes/pasukan-petugas-geoekonomi-asean-mulakan-siri-mesyuarat-aem-pada-isnin-539463",
+      "source": "astroawani.com",
+      "date": "20250922T010000Z",
+      "keyword": "trading"
+    },
+    {
+      "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
+      "url": "https://www.koreastardaily.com/tc/news/159375",
+      "source": "koreastardaily.com",
+      "date": "20250822T063000Z",
+      "keyword": "trading"
+    },
+    {
+      "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
+      "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
+      "source": "benzinga.com",
+      "date": "20250908T100000Z",
+      "keyword": "trading"
+    },
+    {
+      "title": "Why Dayforce Shares Are Trading Higher By Around 21 %; Here Are 20 Stocks Moving Premarket - Advent Technologies Hldgs ( NASDAQ : ADN ), Adaptimmune Therapeutics ( NASDAQ : ADAP ) ",
+      "url": "https://www.benzinga.com/news/25/08/47181278/why-dayforce-shares-are-trading-higher-by-around-21-here-are-20-stocks-moving-premarket",
+      "source": "benzinga.com",
+      "date": "20250818T131500Z",
+      "keyword": "trading"
+    },
+    {
+      "title": "\u671f\u8d27\u4e1a\u53c8\u4e00\u6b21\u9ad8\u5c42  \u5927\u6362\u8840  |\u5e7f\u53d1|\u8bc1\u5238|\u4e2d\u671f\u534f|\u671f\u8d27\u5e02\u573a _ \u7f51\u6613\u8ba2\u9605",
+      "url": "https://www.163.com/dy/article/K84R0E8S0519DTSV.html",
+      "source": "163.com",
+      "date": "20250829T063000Z",
+      "keyword": "futures"
+    },
+    {
+      "title": " \u300a \u671f\u8ca8 \u300b \u671f\u4ea4\u6240\u8abf\u6574\u591a\u6a94\u671f\u8ca8\u4fdd\u8b49\u91d1 11\u65e5\u4e00\u822c\u4ea4\u6613\u6642\u6bb5\u7d50\u675f\u5f8c\u5be6\u65bd - \u8ca1\u7d93",
+      "url": "https://www.chinatimes.com/realtimenews/20250911001170-260410",
+      "source": "chinatimes.com",
+      "date": "20250911T010000Z",
+      "keyword": "futures"
+    },
+    {
+      "title": "\u6052\u9038\u77f3\u5316 ( 000703 ): \u671f\u8d27\u5957\u671f\u4fdd\u503c\u4e1a\u52a1\u7ba1\u7406\u5236\u5ea6 - CFi . CN \u4e2d\u8d22\u7f51",
+      "url": "http://www.cfi.net.cn/p20250818003177.html",
+      "source": "cfi.net.cn",
+      "date": "20250818T144500Z",
+      "keyword": "futures"
+    },
+    {
+      "title": "\u7ade\u4e89\u683c\u5c40\u751f\u53d8 \uff01 \u4e0a\u5e02\u671f\u8d27\u516c\u53f8\u8425\u6536  \u4e09\u8dcc\u4e00\u5347  |\u738b\u9a8f|\u5f18\u4e1a\u671f\u8d27|\u6c38\u5b89\u671f\u8d27",
+      "url": "https://www.163.com/dy/article/K8JU07K00519DTSV.html",
+      "source": "163.com",
+      "date": "20250904T030000Z",
+      "keyword": "futures"
+    },
+    {
+      "title": "\u4ea4\u6613\u968f\u884c \uff1a \u751f\u732a\u672c\u5468\u591a\u5f3a\u52bf20250922 _ \u671f\u8d27\u8bc4\u8bba _ \u671f\u8d27 _ \u4e2d\u91d1\u5728\u7ebf",
+      "url": "http://futures.cnfol.com/mingjialunshi/20250922/31661320.shtml",
+      "source": "futures.cnfol.com",
+      "date": "20250922T014500Z",
+      "keyword": "futures"
+    }
+  ]
 }

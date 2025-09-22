@@ -1,40 +1,40 @@
 {
-  "timestamp": "2025-09-22T06:34:58.225599",
+  "timestamp": "2025-09-22T09:27:06.660372",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 11,
+  "total_articles_processed": 9,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": -0.175,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "S&P 500 Earnings: Scary Charts - Don't Forget To Pay Attention To Asset Classes That Haven't Worked In The Last 15 Years",
-          "sentiment": -0.175,
-          "textblob_score": -0.25,
-          "keyword_score": 0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4824704-sp500-earnings-scary-charts-pay-attention-to-asset-classes-that-havent-worked-last-15-years?source=feed_all_articles",
-          "published": "Mon, 22 Sep 2025 01:35:00 -0400",
-          "relevance_keywords": [
-            "S&P"
-          ]
-        }
-      ],
-      "signal": "NEUTRAL",
-      "confidence": 0.1,
-      "sources": [
-        "seeking_alpha"
-      ]
-    },
-    "NQ": {
       "sentiment_score": 0.0,
       "article_count": 0,
       "articles": [],
       "signal": "NEUTRAL",
       "confidence": 0.0,
       "sources": []
+    },
+    "NQ": {
+      "sentiment_score": -0.24166666666666667,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Big Tech stocks hold steady after Trump visa fees crackdown",
+          "sentiment": -0.24166666666666667,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": -1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/big-tech-shares-steady-trump-063324397.html",
+          "published": "2025-09-22T06:33:24Z",
+          "relevance_keywords": [
+            "tech stocks"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "yahoo_finance"
+      ]
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -53,77 +53,79 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": -0.5449999999999999,
-      "article_count": 1,
+      "sentiment_score": 0.38666666666666666,
+      "article_count": 3,
       "articles": [
         {
-          "title": "Are your parents afraid of investing in crypto? How to talk with them so they\u2019ll actually listen.",
-          "sentiment": -0.5449999999999999,
-          "textblob_score": -0.35,
-          "keyword_score": -1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-          "published": "Sun, 21 Sep 2025 12:07:00 GMT",
+          "title": "Metaplanet Cracks Top Five Bitcoin Treasuries After $632M Buy",
+          "sentiment": 0.6499999999999999,
+          "textblob_score": 0.5,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/metaplanets-1-4b-international-offering-160215720.html",
+          "published": "2025-09-22T09:02:15Z",
+          "relevance_keywords": [
+            "Bitcoin"
+          ]
+        },
+        {
+          "title": "Cryptocurrencies Sink as $1.5 Billion in Bullish Bets Wiped Out",
+          "sentiment": 0.0875,
+          "textblob_score": 0.125,
+          "keyword_score": 0.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/cryptocurrencies-sink-as-1-5-billion-in-bullish-bets-wiped-out",
+          "published": "Mon, 22 Sep 2025 07:01:47 GMT",
+          "relevance_keywords": [
+            "cryptocurrency",
+            "crypto"
+          ]
+        },
+        {
+          "title": "A $20 Billion South African Fund Warns Against Full Bitcoin Bet",
+          "sentiment": 0.4225,
+          "textblob_score": 0.175,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/a-20-billion-south-african-fund-warns-against-full-bitcoin-bet",
+          "published": "Mon, 22 Sep 2025 08:22:54 GMT",
           "relevance_keywords": [
             "Bitcoin",
             "crypto"
           ]
         }
       ],
-      "signal": "BEARISH",
-      "confidence": 0.1,
+      "signal": "BULLISH",
+      "confidence": 0.3,
       "sources": [
-        "marketwatch"
+        "yahoo_finance",
+        "bloomberg"
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.09210317460317463,
-      "article_count": 7,
+      "sentiment_score": 0.2185,
+      "article_count": 5,
       "articles": [
         {
-          "title": "Jim Cramer Thinks Tesla, Inc. (TSLA) Might See Better Numbers",
-          "sentiment": 0.35,
+          "title": "BBVA Boosts Sabadell Takeover Bid by 10% to $20 Billion",
+          "sentiment": 0.6499999999999999,
           "textblob_score": 0.5,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/jim-cramer-thinks-tesla-inc-190333446.html",
-          "published": "2025-09-20T19:03:33Z",
-          "relevance_keywords": [
-            "Tesla"
-          ]
-        },
-        {
-          "title": "Mideast Royals Invest $680 Million In London Developer Regal",
-          "sentiment": 0.06999999999999999,
-          "textblob_score": 0.1,
-          "keyword_score": 0,
+          "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-22/mideast-royals-invest-680-million-in-london-developer-regal",
-          "published": "Mon, 22 Sep 2025 06:00:00 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-22/bbva-boosts-offer-for-sabadell-with-17-billion-all-share-bid",
+          "published": "Mon, 22 Sep 2025 06:09:27 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "La Caisse to Buy Edify Energy in Australian Renewables Bet",
-          "sentiment": 0.3525,
+          "title": "US Stocks Slip From Highs as Gold Tops $3,700: Markets Wrap",
+          "sentiment": 0.0525,
           "textblob_score": 0.075,
-          "keyword_score": 1.0,
+          "keyword_score": 0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-22/la-caisse-cdpq-to-buy-australia-s-edify-energy-in-c-1-billion-renewables-deal",
-          "published": "Mon, 22 Sep 2025 05:12:22 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Hong Kong Exchange Is \u2018Closely Monitoring\u2019 Incoming Typhoon",
-          "sentiment": 0.3272222222222222,
-          "textblob_score": 0.03888888888888888,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-22/hong-kong-exchange-is-closely-monitoring-incoming-typhoon",
-          "published": "Mon, 22 Sep 2025 05:28:50 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-21/us-futures-slip-as-traders-gauge-h-1b-visa-fallout-markets-wrap",
+          "published": "Sun, 21 Sep 2025 22:39:02 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -153,60 +155,33 @@
           ]
         },
         {
-          "title": "Are your parents afraid of investing in crypto? How to talk with them so they\u2019ll actually listen.",
-          "sentiment": -0.5449999999999999,
-          "textblob_score": -0.35,
-          "keyword_score": -1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-          "published": "Sun, 21 Sep 2025 12:07:00 GMT",
+          "title": "Preformed Line Products Company: Growth Justifies A Revision (Rating Upgrade)",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4824717-preformed-line-products-company-growth-justifies-revision?source=feed_all_articles",
+          "published": "Mon, 22 Sep 2025 03:57:50 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.7,
+      "confidence": 0.5,
       "sources": [
-        "yahoo_finance",
         "bloomberg",
-        "marketwatch"
+        "marketwatch",
+        "seeking_alpha"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.4684999999999999,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Prediction: These AI Chip Stocks Could Soar (Hint: It's Not Nvidia or Broadcom)",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/prediction-ai-chip-stocks-could-190500381.html",
-          "published": "2025-09-20T19:05:00Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "CoreWeave, Inc. (CRWV)\u2019s Deal With NVIDIA Is \u201cVery Good,\u201d Says Jim Cramer",
-          "sentiment": 0.6369999999999999,
-          "textblob_score": 0.9099999999999999,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/coreweave-inc-crwv-deal-nvidia-190514967.html",
-          "published": "2025-09-20T19:05:14Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "AAPL": {
       "sentiment_score": 0.0,

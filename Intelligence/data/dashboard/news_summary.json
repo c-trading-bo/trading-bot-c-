@@ -1,45 +1,45 @@
 {
-  "timestamp": "2025-09-22T06:39:43.713895",
+  "timestamp": "2025-09-22T09:31:50.697922",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "81",
+  "workflow_run": "82",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-22T06:34:58.225599",
+    "timestamp": "2025-09-22T09:27:06.660372",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 11,
+    "total_articles_processed": 9,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": -0.175,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "S&P 500 Earnings: Scary Charts - Don't Forget To Pay Attention To Asset Classes That Haven't Worked In The Last 15 Years",
-            "sentiment": -0.175,
-            "textblob_score": -0.25,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824704-sp500-earnings-scary-charts-pay-attention-to-asset-classes-that-havent-worked-last-15-years?source=feed_all_articles",
-            "published": "Mon, 22 Sep 2025 01:35:00 -0400",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "seeking_alpha"
-        ]
-      },
-      "NQ": {
         "sentiment_score": 0.0,
         "article_count": 0,
         "articles": [],
         "signal": "NEUTRAL",
         "confidence": 0.0,
         "sources": []
+      },
+      "NQ": {
+        "sentiment_score": -0.24166666666666667,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Big Tech stocks hold steady after Trump visa fees crackdown",
+            "sentiment": -0.24166666666666667,
+            "textblob_score": 0.08333333333333333,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/big-tech-shares-steady-trump-063324397.html",
+            "published": "2025-09-22T06:33:24Z",
+            "relevance_keywords": [
+              "tech stocks"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -58,77 +58,79 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": -0.5449999999999999,
-        "article_count": 1,
+        "sentiment_score": 0.38666666666666666,
+        "article_count": 3,
         "articles": [
           {
-            "title": "Are your parents afraid of investing in crypto? How to talk with them so they\u2019ll actually listen.",
-            "sentiment": -0.5449999999999999,
-            "textblob_score": -0.35,
-            "keyword_score": -1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-            "published": "Sun, 21 Sep 2025 12:07:00 GMT",
+            "title": "Metaplanet Cracks Top Five Bitcoin Treasuries After $632M Buy",
+            "sentiment": 0.6499999999999999,
+            "textblob_score": 0.5,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/metaplanets-1-4b-international-offering-160215720.html",
+            "published": "2025-09-22T09:02:15Z",
+            "relevance_keywords": [
+              "Bitcoin"
+            ]
+          },
+          {
+            "title": "Cryptocurrencies Sink as $1.5 Billion in Bullish Bets Wiped Out",
+            "sentiment": 0.0875,
+            "textblob_score": 0.125,
+            "keyword_score": 0.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/cryptocurrencies-sink-as-1-5-billion-in-bullish-bets-wiped-out",
+            "published": "Mon, 22 Sep 2025 07:01:47 GMT",
+            "relevance_keywords": [
+              "cryptocurrency",
+              "crypto"
+            ]
+          },
+          {
+            "title": "A $20 Billion South African Fund Warns Against Full Bitcoin Bet",
+            "sentiment": 0.4225,
+            "textblob_score": 0.175,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/a-20-billion-south-african-fund-warns-against-full-bitcoin-bet",
+            "published": "Mon, 22 Sep 2025 08:22:54 GMT",
             "relevance_keywords": [
               "Bitcoin",
               "crypto"
             ]
           }
         ],
-        "signal": "BEARISH",
-        "confidence": 0.1,
+        "signal": "BULLISH",
+        "confidence": 0.3,
         "sources": [
-          "marketwatch"
+          "yahoo_finance",
+          "bloomberg"
         ]
       },
       "TSLA": {
-        "sentiment_score": 0.09210317460317463,
-        "article_count": 7,
+        "sentiment_score": 0.2185,
+        "article_count": 5,
         "articles": [
           {
-            "title": "Jim Cramer Thinks Tesla, Inc. (TSLA) Might See Better Numbers",
-            "sentiment": 0.35,
+            "title": "BBVA Boosts Sabadell Takeover Bid by 10% to $20 Billion",
+            "sentiment": 0.6499999999999999,
             "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/jim-cramer-thinks-tesla-inc-190333446.html",
-            "published": "2025-09-20T19:03:33Z",
-            "relevance_keywords": [
-              "Tesla"
-            ]
-          },
-          {
-            "title": "Mideast Royals Invest $680 Million In London Developer Regal",
-            "sentiment": 0.06999999999999999,
-            "textblob_score": 0.1,
-            "keyword_score": 0,
+            "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/mideast-royals-invest-680-million-in-london-developer-regal",
-            "published": "Mon, 22 Sep 2025 06:00:00 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-22/bbva-boosts-offer-for-sabadell-with-17-billion-all-share-bid",
+            "published": "Mon, 22 Sep 2025 06:09:27 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "La Caisse to Buy Edify Energy in Australian Renewables Bet",
-            "sentiment": 0.3525,
+            "title": "US Stocks Slip From Highs as Gold Tops $3,700: Markets Wrap",
+            "sentiment": 0.0525,
             "textblob_score": 0.075,
-            "keyword_score": 1.0,
+            "keyword_score": 0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/la-caisse-cdpq-to-buy-australia-s-edify-energy-in-c-1-billion-renewables-deal",
-            "published": "Mon, 22 Sep 2025 05:12:22 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Hong Kong Exchange Is \u2018Closely Monitoring\u2019 Incoming Typhoon",
-            "sentiment": 0.3272222222222222,
-            "textblob_score": 0.03888888888888888,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-22/hong-kong-exchange-is-closely-monitoring-incoming-typhoon",
-            "published": "Mon, 22 Sep 2025 05:28:50 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-21/us-futures-slip-as-traders-gauge-h-1b-visa-fallout-markets-wrap",
+            "published": "Sun, 21 Sep 2025 22:39:02 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -158,60 +160,33 @@
             ]
           },
           {
-            "title": "Are your parents afraid of investing in crypto? How to talk with them so they\u2019ll actually listen.",
-            "sentiment": -0.5449999999999999,
-            "textblob_score": -0.35,
-            "keyword_score": -1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-was-fearful-how-this-father-learned-to-take-crypto-advice-from-his-adult-child-c6b85826?mod=mw_rss_topstories",
-            "published": "Sun, 21 Sep 2025 12:07:00 GMT",
+            "title": "Preformed Line Products Company: Growth Justifies A Revision (Rating Upgrade)",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4824717-preformed-line-products-company-growth-justifies-revision?source=feed_all_articles",
+            "published": "Mon, 22 Sep 2025 03:57:50 -0400",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.7,
+        "confidence": 0.5,
         "sources": [
-          "yahoo_finance",
           "bloomberg",
-          "marketwatch"
+          "marketwatch",
+          "seeking_alpha"
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.4684999999999999,
-        "article_count": 2,
-        "articles": [
-          {
-            "title": "Prediction: These AI Chip Stocks Could Soar (Hint: It's Not Nvidia or Broadcom)",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/prediction-ai-chip-stocks-could-190500381.html",
-            "published": "2025-09-20T19:05:00Z",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "CoreWeave, Inc. (CRWV)\u2019s Deal With NVIDIA Is \u201cVery Good,\u201d Says Jim Cramer",
-            "sentiment": 0.6369999999999999,
-            "textblob_score": 0.9099999999999999,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/coreweave-inc-crwv-deal-nvidia-190514967.html",
-            "published": "2025-09-20T19:05:14Z",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.2,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       },
       "AAPL": {
         "sentiment_score": 0.0,
@@ -232,7 +207,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-22T06:39:43.529962",
+    "timestamp": "2025-09-22T09:31:50.558274",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -254,16 +229,122 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-22T06:34:56.232190",
-    "total_articles": 0,
+    "timestamp": "2025-09-22T09:27:04.646879",
+    "total_articles": 15,
     "keywords_searched": [
       "stock market",
       "trading",
       "futures"
     ],
-    "articles": []
+    "articles": [
+      {
+        "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
+        "url": "http://www.haberler.com/finans/borsa/",
+        "source": "haberler.com",
+        "date": "20250902T144500Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 4 Eyl\u00fcl 2025 Per\u015fembe ) ",
+        "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-4-eylul-2025-persembe/513304/",
+        "source": "finans.mynet.com",
+        "date": "20250904T080000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 2 Eyl\u00fcl 2025 Sal\u0131 ) ",
+        "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-2-eylul-2025-sali/512991/",
+        "source": "finans.mynet.com",
+        "date": "20250902T080000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "BORSA NEDEN D\u00dc\u015eT\u00dc ? 8 Eyl\u00fcl 2025 Pazartesi Borsa \u0130stanbul BIST 100 endeksi ile borsa bug\u00fcn neden d\u00fc\u015f\u00fcyor ? ",
+        "url": "https://www.haberturk.com/borsa-neden-dustu-8-eylul-2025-pazartesi-borsa-istanbul-bist-100-endeksi-ile-borsa-bugun-neden-dusuyor-3820894",
+        "source": "haberturk.com",
+        "date": "20250908T163000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 19 A\u011fustos 2025 Sal\u0131 ) ",
+        "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-19-agustos-2025-sali/511732/",
+        "source": "finans.mynet.com",
+        "date": "20250819T103000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "24 / 7 Trading Is Coming . But Is It a Good Thing ? ",
+        "url": "https://finance.yahoo.com/news/24-7-trading-coming-good-104500167.html",
+        "source": "finance.yahoo.com",
+        "date": "20250921T123000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Pasukan Petugas Geoekonomi ASEAN mulakan siri mesyuarat AEM pada Isnin",
+        "url": "https://www.astroawani.com/berita-bisnes/pasukan-petugas-geoekonomi-asean-mulakan-siri-mesyuarat-aem-pada-isnin-539463",
+        "source": "astroawani.com",
+        "date": "20250922T010000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
+        "url": "https://www.koreastardaily.com/tc/news/159375",
+        "source": "koreastardaily.com",
+        "date": "20250822T063000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
+        "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250908T100000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Why Dayforce Shares Are Trading Higher By Around 21 %; Here Are 20 Stocks Moving Premarket - Advent Technologies Hldgs ( NASDAQ : ADN ), Adaptimmune Therapeutics ( NASDAQ : ADAP ) ",
+        "url": "https://www.benzinga.com/news/25/08/47181278/why-dayforce-shares-are-trading-higher-by-around-21-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250818T131500Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "\u671f\u8d27\u4e1a\u53c8\u4e00\u6b21\u9ad8\u5c42  \u5927\u6362\u8840  |\u5e7f\u53d1|\u8bc1\u5238|\u4e2d\u671f\u534f|\u671f\u8d27\u5e02\u573a _ \u7f51\u6613\u8ba2\u9605",
+        "url": "https://www.163.com/dy/article/K84R0E8S0519DTSV.html",
+        "source": "163.com",
+        "date": "20250829T063000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": " \u300a \u671f\u8ca8 \u300b \u671f\u4ea4\u6240\u8abf\u6574\u591a\u6a94\u671f\u8ca8\u4fdd\u8b49\u91d1 11\u65e5\u4e00\u822c\u4ea4\u6613\u6642\u6bb5\u7d50\u675f\u5f8c\u5be6\u65bd - \u8ca1\u7d93",
+        "url": "https://www.chinatimes.com/realtimenews/20250911001170-260410",
+        "source": "chinatimes.com",
+        "date": "20250911T010000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u6052\u9038\u77f3\u5316 ( 000703 ): \u671f\u8d27\u5957\u671f\u4fdd\u503c\u4e1a\u52a1\u7ba1\u7406\u5236\u5ea6 - CFi . CN \u4e2d\u8d22\u7f51",
+        "url": "http://www.cfi.net.cn/p20250818003177.html",
+        "source": "cfi.net.cn",
+        "date": "20250818T144500Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u7ade\u4e89\u683c\u5c40\u751f\u53d8 \uff01 \u4e0a\u5e02\u671f\u8d27\u516c\u53f8\u8425\u6536  \u4e09\u8dcc\u4e00\u5347  |\u738b\u9a8f|\u5f18\u4e1a\u671f\u8d27|\u6c38\u5b89\u671f\u8d27",
+        "url": "https://www.163.com/dy/article/K8JU07K00519DTSV.html",
+        "source": "163.com",
+        "date": "20250904T030000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u4ea4\u6613\u968f\u884c \uff1a \u751f\u732a\u672c\u5468\u591a\u5f3a\u52bf20250922 _ \u671f\u8d27\u8bc4\u8bba _ \u671f\u8d27 _ \u4e2d\u91d1\u5728\u7ebf",
+        "url": "http://futures.cnfol.com/mingjialunshi/20250922/31661320.shtml",
+        "source": "futures.cnfol.com",
+        "date": "20250922T014500Z",
+        "keyword": "futures"
+      }
+    ]
   },
-  "overall_market_sentiment": "NEUTRAL",
+  "overall_market_sentiment": "BULLISH",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
