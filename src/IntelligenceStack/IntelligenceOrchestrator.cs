@@ -1158,7 +1158,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -1260,7 +1264,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("trades", payload, cancellationToken).ConfigureAwait(false);
             TradeRecordPushedInfo(_logger, tradeRecord.TradeId, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
+            // Don't throw - cloud push failures shouldn't stop trading
+        }
+        catch (TaskCanceledException ex)
+        {
+            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
+            // Don't throw - cloud push failures shouldn't stop trading
+        }
+        catch (JsonException ex)
         {
             TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
             // Don't throw - cloud push failures shouldn't stop trading
