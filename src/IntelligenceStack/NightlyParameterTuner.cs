@@ -29,6 +29,61 @@ public class NightlyParameterTuner
     private const int MinEnsembleSize = 3;
     private const int MaxEnsembleSize = 10;
     
+    // S109 Magic Number Constants - Parameter Tuning
+    private const int InitialNoImprovementCount = 0;
+    private const int TrialNumberOffset = 1;
+    private const int MaxPopulationSize = 20;
+    private const int PopulationDivisor = 3;
+    private const int GenerationOffset = 1;
+    private const int EnsembleSizeOption1 = 5;
+    private const int EnsembleSizeOption2 = 7;
+    private const double DefaultAucFallback = 0.0;
+    private const double DefaultLearningRate = 0.01;
+    private const int DefaultHiddenSize = 128;
+    private const double DefaultDropoutRate = 0.1;
+    private const double RnnLearningRate = 0.005;
+    private const int RnnHiddenSize = 256;
+    private const double TransformerLearningRate = 0.0001;
+    private const int TransformerHiddenSize = 512;
+    private const double BaseScore = 0.6;
+    private const double HighLearningRateThreshold = 0.05;
+    private const double LowLearningRateThreshold = 0.005;
+    private const double HighLearningRatePenalty = -0.05;
+    private const double LowLearningRatePenalty = -0.03;
+    private const double GoodLearningRateBonus = 0.02;
+    private const int LargeHiddenSizeThreshold = 256;
+    private const int SmallHiddenSizeThreshold = 64;
+    private const double LargeHiddenSizeBonus = 0.03;
+    private const double SmallHiddenSizePenalty = -0.02;
+    private const double MediumHiddenSizeBonus = 0.01;
+    private const double HighDropoutThreshold = 0.3;
+    private const double LowDropoutThreshold = 0.05;
+    private const double HighDropoutPenalty = -0.02;
+    private const double LowDropoutPenalty = -0.01;
+    private const double GoodDropoutBonus = 0.01;
+    private const int NoiseRangeMin = -25;
+    private const int NoiseRangeMax = 25;
+    private const double NoiseScaleFactor = 500.0;
+    private const double PrAt10Multiplier = 0.15;
+    private const int PercentageRange = 100;
+    private const int FiftPercentChance = 50;
+    private const double MutationRate = 0.1;
+    private const double NoiseMultiplier = 0.1;
+    private const double GaussianDefaultMean = 0.0;
+    private const double GaussianDefaultStdDev = 1.0;
+    private const double GaussianAdjustment = 1.0;
+    private const int GaussianRandomMin = 1;
+    private const int GaussianRandomMax = 10000;
+    private const double GaussianRandomDivisor = 10000.0;
+    private const int InitialImprovementsCount = 0;
+    private const int InitialTotalCount = 0;
+    private const double ImprovementThresholdDivisor = 2.0;
+    private const int MinRecentResultsCount = 3;
+    private const double DefaultHistoricalAuc = 0.0;
+    private const double DegradationThreshold = 0.05;
+    private const double MetricsValidityThreshold = 0.0;
+    private const int MaxTuningHistoryCount = 30;
+    
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
     private readonly NetworkConfig _networkConfig;
@@ -176,7 +231,7 @@ public class NightlyParameterTuner
         
         var bestParameters = new Dictionary<string, double>(baseline);
         var bestMetrics = result.BaselineMetrics;
-        var noImprovementCount = 0;
+        var noImprovementCount = InitialNoImprovementCount;
 
         // Bayesian optimization loop
         for (int trial = 0; trial < _config.Trials && noImprovementCount < _config.EarlyStopNoImprove; trial++)
@@ -193,7 +248,7 @@ public class NightlyParameterTuner
             // Update session history
             var trialResult = new TrialResult
             {
-                TrialNumber = trial + 1,
+                TrialNumber = trial + TrialNumberOffset,
                 Metrics = candidateMetrics,
                 Timestamp = DateTime.UtcNow
             };
@@ -211,17 +266,17 @@ public class NightlyParameterTuner
             {
                 bestParameters = candidateParams;
                 bestMetrics = candidateMetrics;
-                noImprovementCount = 0;
+                noImprovementCount = InitialNoImprovementCount;
                 
                 _logger.LogInformation("[BAYESIAN_OPT] New best found at trial {Trial}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
-                    trial + 1, candidateMetrics.AUC, candidateMetrics.EdgeBps);
+                    trial + TrialNumberOffset, candidateMetrics.AUC, candidateMetrics.EdgeBps);
             }
             else
             {
                 noImprovementCount++;
             }
 
-            result.TrialsCompleted = trial + 1;
+            result.TrialsCompleted = trial + TrialNumberOffset;
         }
 
         result.BestMetrics = bestMetrics;
@@ -256,7 +311,7 @@ public class NightlyParameterTuner
         };
 
         // Initialize population
-        var populationSize = Math.Min(20, _config.Trials / 3);
+        var populationSize = Math.Min(MaxPopulationSize, _config.Trials / PopulationDivisor);
         var population = await InitializePopulationAsync(session.ModelFamily, populationSize, cancellationToken).ConfigureAwait(false);
         
         var generations = _config.Trials / populationSize;
@@ -294,7 +349,7 @@ public class NightlyParameterTuner
                 bestParameters = currentBest.Parameters;
                 
                 _logger.LogInformation("[EVOLUTIONARY] New best found at generation {Gen}: AUC={AUC:F3}, EdgeBps={Edge:F1}", 
-                    generation + 1, bestMetrics.AUC, bestMetrics.EdgeBps);
+                    generation + GenerationOffset, bestMetrics.AUC, bestMetrics.EdgeBps);
             }
         }
 
@@ -384,7 +439,7 @@ public class NightlyParameterTuner
             ["hidden_size"] = new ParameterRange { Min = MinHiddenSize, Max = MaxHiddenSize, Type = ParameterType.LogUniform },
             ["dropout_rate"] = new ParameterRange { Min = MinDropoutRate, Max = MaxDropoutRate, Type = ParameterType.Uniform },
             ["l2_regularization"] = new ParameterRange { Min = MinL2Regularization, Max = MaxL2Regularization, Type = ParameterType.LogUniform },
-            ["ensemble_size"] = new ParameterRange { Min = MinEnsembleSize, Max = MaxEnsembleSize, Type = ParameterType.Categorical, Categories = new double[] { MinEnsembleSize, 5, 7, MaxEnsembleSize } }
+            ["ensemble_size"] = new ParameterRange { Min = MinEnsembleSize, Max = MaxEnsembleSize, Type = ParameterType.Categorical, Categories = new double[] { MinEnsembleSize, EnsembleSizeOption1, EnsembleSizeOption2, MaxEnsembleSize } }
         };
     }
 
@@ -422,7 +477,7 @@ public class NightlyParameterTuner
             {
                 var bestResult = history
                     .Where(r => r.Success && !r.RolledBack)
-                    .OrderByDescending(r => r.BestMetrics?.AUC ?? 0)
+                    .OrderByDescending(r => r.BestMetrics?.AUC ?? DefaultAucFallback)
                     .FirstOrDefault();
 
                 return bestResult?.BestParameters;
@@ -467,10 +522,10 @@ public class NightlyParameterTuner
             // Return model-family specific intelligent defaults
             var defaults = new Dictionary<string, double>
             {
-                ["learning_rate"] = 0.01,
+                ["learning_rate"] = DefaultLearningRate,
                 ["batch_size"] = _networkConfig.Batch.DefaultBatchSize,
-                ["hidden_size"] = 128,
-                ["dropout_rate"] = 0.1,
+                ["hidden_size"] = DefaultHiddenSize,
+                ["dropout_rate"] = DefaultDropoutRate,
                 ["l2_regularization"] = 1e-4,
                 ["ensemble_size"] = 5
             };
@@ -478,13 +533,13 @@ public class NightlyParameterTuner
             // Adjust defaults based on model family characteristics
             if (modelFamily.Contains("LSTM", StringComparison.OrdinalIgnoreCase))
             {
-                defaults["learning_rate"] = 0.005; // Lower learning rate for RNNs
-                defaults["hidden_size"] = 256; // Larger hidden size for LSTM
+                defaults["learning_rate"] = RnnLearningRate; // Lower learning rate for RNNs
+                defaults["hidden_size"] = RnnHiddenSize; // Larger hidden size for LSTM
             }
             else if (modelFamily.Contains("Transformer", StringComparison.OrdinalIgnoreCase))
             {
-                defaults["learning_rate"] = 0.0001; // Even lower for transformers
-                defaults["hidden_size"] = 512; // Much larger hidden size
+                defaults["learning_rate"] = TransformerLearningRate; // Even lower for transformers
+                defaults["hidden_size"] = TransformerHiddenSize; // Much larger hidden size
             }
 
             return defaults;
@@ -497,31 +552,31 @@ public class NightlyParameterTuner
         CancellationToken cancellationToken)
     {
         // Simplified parameter evaluation - in production would train actual model
-        var baseScore = 0.6;
+        var baseScore = BaseScore;
         
         // Simulate parameter impact on performance
-        var learningRate = parameters.GetValueOrDefault("learning_rate", 0.01);
-        var hiddenSize = parameters.GetValueOrDefault("hidden_size", 128);
-        var dropoutRate = parameters.GetValueOrDefault("dropout_rate", 0.1);
+        var learningRate = parameters.GetValueOrDefault("learning_rate", DefaultLearningRate);
+        var hiddenSize = parameters.GetValueOrDefault("hidden_size", DefaultHiddenSize);
+        var dropoutRate = parameters.GetValueOrDefault("dropout_rate", DefaultDropoutRate);
         
         // Learning rate impact
-        var lrScore = learningRate > 0.05 ? -0.05 : (learningRate < 0.005 ? -0.03 : 0.02);
+        var lrScore = learningRate > HighLearningRateThreshold ? HighLearningRatePenalty : (learningRate < LowLearningRateThreshold ? LowLearningRatePenalty : GoodLearningRateBonus);
         
         // Hidden size impact
-        var hsScore = hiddenSize >= 256 ? 0.03 : (hiddenSize <= 64 ? -0.02 : 0.01);
+        var hsScore = hiddenSize >= LargeHiddenSizeThreshold ? LargeHiddenSizeBonus : (hiddenSize <= SmallHiddenSizeThreshold ? SmallHiddenSizePenalty : MediumHiddenSizeBonus);
         
         // Dropout impact
-        var dropScore = dropoutRate > 0.3 ? -0.02 : (dropoutRate < 0.05 ? -0.01 : 0.01);
+        var dropScore = dropoutRate > HighDropoutThreshold ? HighDropoutPenalty : (dropoutRate < LowDropoutThreshold ? LowDropoutPenalty : GoodDropoutBonus);
         
         var finalScore = Math.Max(0.5, Math.Min(0.85, baseScore + lrScore + hsScore + dropScore + 
-            (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-25, 25) / 500.0))); // Add some noise
+            (System.Security.Cryptography.RandomNumberGenerator.GetInt32(NoiseRangeMin, NoiseRangeMax) / NoiseScaleFactor))); // Add some noise
         
         await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate evaluation time
         
         return new ModelMetrics
         {
             AUC = finalScore,
-            PrAt10 = finalScore * 0.15,
+            PrAt10 = finalScore * PrAt10Multiplier,
             ECE = 0.05 + (1 - finalScore) * 0.1,
             EdgeBps = finalScore * 8,
             SampleSize = 10000,
@@ -675,7 +730,7 @@ public class NightlyParameterTuner
             var value1 = parent1.Parameters[paramName];
             var value2 = parent2.Parameters[paramName];
             
-            offspring.Parameters[paramName] = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < 50 ? 
+            offspring.Parameters[paramName] = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, PercentageRange) < FiftPercentChance ? 
                 value1 + alpha * (value2 - value1) : 
                 value2 + alpha * (value1 - value2);
         }
@@ -685,7 +740,7 @@ public class NightlyParameterTuner
 
     private static Individual Mutate(Individual individual)
     {
-        var mutationRate = 0.1;
+        var mutationRate = MutationRate;
         var mutated = new Individual();
         
         // Copy parameters from the original individual
@@ -696,10 +751,10 @@ public class NightlyParameterTuner
         
         foreach (var paramName in mutated.Parameters.Keys.ToList())
         {
-            if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < mutationRate * 100)
+            if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, PercentageRange) < mutationRate * PercentageRange)
             {
                 // Add Gaussian-like noise using secure random
-                var noise = NextGaussian() * 0.1;
+                var noise = NextGaussian() * NoiseMultiplier;
                 mutated.Parameters[paramName] += noise;
             }
         }
@@ -707,10 +762,10 @@ public class NightlyParameterTuner
         return mutated;
     }
 
-    private static double NextGaussian(double mean = 0, double stdDev = 1)
+    private static double NextGaussian(double mean = GaussianDefaultMean, double stdDev = GaussianDefaultStdDev)
     {
-        var u1 = 1.0 - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10000) / 10000.0);
-        var u2 = 1.0 - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10000) / 10000.0);
+        var u1 = GaussianAdjustment - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(GaussianRandomMin, GaussianRandomMax) / GaussianRandomDivisor);
+        var u2 = GaussianAdjustment - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(GaussianRandomMin, GaussianRandomMax) / GaussianRandomDivisor);
         var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
         return mean + stdDev * randStdNormal;
     }
@@ -718,15 +773,15 @@ public class NightlyParameterTuner
     private static bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
     {
         // Multi-objective comparison - candidate must be better in majority of metrics
-        var improvements = 0;
-        var total = 0;
+        var improvements = InitialImprovementsCount;
+        var total = InitialTotalCount;
         
         if (candidate.AUC > baseline.AUC) improvements++; total++;
         if (candidate.PrAt10 > baseline.PrAt10) improvements++; total++;
         if (candidate.ECE < baseline.ECE) improvements++; total++;
         if (candidate.EdgeBps > baseline.EdgeBps) improvements++; total++;
         
-        return improvements > total / 2.0;
+        return improvements > total / ImprovementThresholdDivisor;
     }
 
     private async Task PromoteImprovedModelAsync(
@@ -771,13 +826,13 @@ public class NightlyParameterTuner
             }
 
             var recentResults = history.TakeLast(5).Where(r => r.Success).ToList();
-            if (recentResults.Count < 3)
+            if (recentResults.Count < MinRecentResultsCount)
             {
                 return false;
             }
 
-            var historicalAUC = recentResults.Average(r => r.BestMetrics?.AUC ?? 0);
-            var degradationThreshold = 0.05; // 5% degradation threshold
+            var historicalAUC = recentResults.Average(r => r.BestMetrics?.AUC ?? DefaultHistoricalAuc);
+            var degradationThreshold = DegradationThreshold; // 5% degradation threshold
             
             return currentMetrics.AUC < historicalAUC - degradationThreshold;
         }, cancellationToken);
@@ -787,7 +842,7 @@ public class NightlyParameterTuner
         {
             // Validate metrics quality and completeness
             await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate validation processing
-            return currentMetrics.AUC > 0 && currentMetrics.PrAt10 > 0 && currentMetrics.EdgeBps > 0;
+            return currentMetrics.AUC > MetricsValidityThreshold && currentMetrics.PrAt10 > MetricsValidityThreshold && currentMetrics.EdgeBps > MetricsValidityThreshold;
         }, cancellationToken);
 
         var shouldRollback = await analysisTask.ConfigureAwait(false);
@@ -929,7 +984,7 @@ public class NightlyParameterTuner
                 });
                 
                 // Keep only recent history
-                if (_tuningHistory[result.ModelFamily].Count > 30)
+                if (_tuningHistory[result.ModelFamily].Count > MaxTuningHistoryCount)
                 {
                     _tuningHistory[result.ModelFamily].RemoveAt(0);
                 }
