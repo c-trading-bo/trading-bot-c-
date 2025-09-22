@@ -42,7 +42,7 @@ public class ObservabilityDashboard : IDisposable
     private const double DefaultSlippageBps = 1.2;
     private const double DefaultSpreadBps = 0.8;
     private const double DefaultSlippageRatio = 1.5;
-    private const double SpreadMultiplierThreshold = 2.0;
+
     private const double DefaultCurrentDrawdownPct = 0.15;
     private const double DefaultMaxDrawdownPct = 0.25;
     private const double DefaultForecastedMaxDrawdown = 0.30;
@@ -52,8 +52,8 @@ public class ObservabilityDashboard : IDisposable
     private const int DashboardUpdateIntervalSeconds = 30;
     private const double ActiveRegimeValue = 1.0;
     private const double InactiveRegimeValue = 0.0;
-    private const int DefaultModelCount = 0;
-    private const int DefaultLatencyValue = 0;
+
+
     private const int MaxMetricPoints = 10000;
     private const double SecondsPerMinute = 60.0;
     
