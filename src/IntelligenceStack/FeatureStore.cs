@@ -67,6 +67,10 @@ public class FeatureStore : IFeatureStore
     private static readonly Action<ILogger, string, Exception?> SchemaSaveFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(3010, "SchemaSaveFailed"),
             "[FEATURES] Failed to save schema: {Version}");
+            
+    private static readonly Action<ILogger, string, Exception?> SchemaRetrievalFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3011, "SchemaRetrievalFailed"),
+            "[FEATURES] Failed to get schema for version: {Version}");
 
     public FeatureStore(ILogger<FeatureStore> logger, string basePath = "data/features")
     {
@@ -246,7 +250,7 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to get schema for version: {Version}", version);
+            SchemaRetrievalFailed(_logger, version, ex);
             return CreateDefaultSchema(version);
         }
     }

@@ -52,6 +52,31 @@ public class HistoricalTrainerWithCV
         LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2006, "LeakSafeLabelingStarted"),
             "[LEAK_SAFE_LABELING] Generating labels for {Symbol}: {Start} to {End}");
             
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> NoMarketDataWarning =
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Warning, new EventId(2007, "NoMarketDataWarning"),
+            "[LEAK_SAFE_LABELING] No market data available for {Symbol} from {Start} to {End}");
+            
+    private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> NoFeaturesWarning =
+        LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Warning, new EventId(2008, "NoFeaturesWarning"),
+            "[LEAK_SAFE_LABELING] No features available for {Symbol} from {Start} to {End}");
+            
+    private static readonly Action<ILogger, int, Exception?> LabelsGenerated =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(2009, "LabelsGenerated"),
+            "[LEAK_SAFE_LABELING] Generated {Count} leak-safe training examples");
+            
+    private static readonly Action<ILogger, string, Exception?> LabelGenerationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(2010, "LabelGenerationFailed"),
+            "[LEAK_SAFE_LABELING] Failed to generate leak-safe labels for {Symbol}");
+            
+    private static readonly Action<ILogger, int, int, int, Exception?> FoldDebugInfo =
+        LoggerMessage.Define<int, int, int>(LogLevel.Debug, new EventId(2011, "FoldDebugInfo"),
+            "[HISTORICAL_CV] Fold {Fold} completed - Train: {TrainCount}, Test: {TestCount}");
+            
+    private static readonly Action<ILogger, int, Exception?> FoldFailed =
+        LoggerMessage.Define<int>(LogLevel.Error, new EventId(2012, "FoldFailed"),
+            "[HISTORICAL_CV] Fold {Fold} failed");
+            
 
 
     public HistoricalTrainerWithCV(
@@ -181,8 +206,7 @@ public class HistoricalTrainerWithCV
             var marketData = await GetMarketDataAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
             if (marketData == null)
             {
-                _logger.LogWarning("[LEAK_SAFE_LABELING] No market data available for {Symbol} from {Start} to {End}",
-                    symbol, startTime, endTime);
+                NoMarketDataWarning(_logger, symbol, startTime, endTime, null);
                 return examples;
             }
             
@@ -190,8 +214,7 @@ public class HistoricalTrainerWithCV
             var features = await _featureStore.GetFeaturesAsync(symbol, startTime, endTime, cancellationToken).ConfigureAwait(false);
             if (features == null)
             {
-                _logger.LogWarning("[LEAK_SAFE_LABELING] No features available for {Symbol} from {Start} to {End}",
-                    symbol, startTime, endTime);
+                NoFeaturesWarning(_logger, symbol, startTime, endTime, null);
                 return examples;
             }
 
@@ -210,13 +233,13 @@ public class HistoricalTrainerWithCV
                 }
             }
 
-            _logger.LogInformation("[LEAK_SAFE_LABELING] Generated {Count} leak-safe training examples", examples.Count);
+            LabelsGenerated(_logger, examples.Count, null);
 
             return examples;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEAK_SAFE_LABELING] Failed to generate leak-safe labels for {Symbol}", symbol);
+            LabelGenerationFailed(_logger, symbol, ex);
             throw new InvalidOperationException($"Leak-safe label generation failed for {symbol}", ex);
         }
     }
@@ -292,12 +315,11 @@ public class HistoricalTrainerWithCV
             foldResult.TestExamples = testData.Count;
             foldResult.Success = true;
             
-            _logger.LogDebug("[HISTORICAL_CV] Fold {Fold} completed - Train: {TrainCount}, Test: {TestCount}", 
-                foldNumber, trainingData.Count, testData.Count);
+            FoldDebugInfo(_logger, foldNumber, trainingData.Count, testData.Count, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL_CV] Fold {Fold} failed", foldNumber);
+            FoldFailed(_logger, foldNumber, ex);
             foldResult.Success = false;
             foldResult.ErrorMessage = ex.Message;
         }
