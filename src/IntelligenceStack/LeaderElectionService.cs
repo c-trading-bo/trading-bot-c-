@@ -41,6 +41,13 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
         LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
 
+    // Constants for magic numbers (S109 compliance)
+    private const double BaseBrierThreshold = 0.25;
+    private const double HalfBlendWeight = 0.5;
+    private const int LatencyMultiplierMax = 5;
+    private const double FullBlendWeight = 1.0;
+    private const double ZeroBlendWeight = 0.0;
+
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
 
     public LeaderElectionService(
@@ -569,30 +576,30 @@ public class QuarantineManager : IQuarantineManager
         var previousState = status.State;
 
         // Evaluate against thresholds
-        if (avgBrierScore > 0.25 + _config.QuarantineBrierDelta || avgLatency > _config.LatencyP99Ms * 5)
+        if (avgBrierScore > BaseBrierThreshold + _config.QuarantineBrierDelta || avgLatency > _config.LatencyP99Ms * LatencyMultiplierMax)
         {
             status.State = HealthState.Quarantine;
-            status.BlendWeight = 0.0;
+            status.BlendWeight = ZeroBlendWeight;
             
             if (previousState != HealthState.Quarantine)
             {
                 await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
-        else if (avgBrierScore > 0.25 + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
+        else if (avgBrierScore > BaseBrierThreshold + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
         {
             status.State = HealthState.Degrade;
-            status.BlendWeight = 0.5; // Require agreement with another model
+            status.BlendWeight = HalfBlendWeight; // Require agreement with another model
         }
-        else if (avgBrierScore > 0.25 + _config.WatchBrierDelta || avgLatency > _config.LatencyP99Ms)
+        else if (avgBrierScore > BaseBrierThreshold + _config.WatchBrierDelta || avgLatency > _config.LatencyP99Ms)
         {
             status.State = HealthState.Watch;
-            status.BlendWeight = 0.5; // Halve blend weight
+            status.BlendWeight = HalfBlendWeight; // Halve blend weight
         }
         else
         {
             status.State = HealthState.Healthy;
-            status.BlendWeight = 1.0;
+            status.BlendWeight = FullBlendWeight;
         }
 
         if (status.State != previousState)

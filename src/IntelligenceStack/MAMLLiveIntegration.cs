@@ -29,6 +29,15 @@ public class MamlLiveIntegration
     private Timer? _updateTimer;
     private DateTime _lastUpdate = DateTime.MinValue;
 
+    // Constants for magic numbers (S109 compliance)
+    private const int MaxExamplesPerAdaptation = 100;
+    private const int MinExamplesRequired = 10;
+    private const int MaxRecentExamples = 20;
+    private const double DefaultLearningRate = 0.1;
+    private const double HalfWeight = 0.5;
+    private const double AdaptationMultiplier = 2.0;
+    private const double PercentageBase = 100.0;
+
     public MamlLiveIntegration(
         ILogger<MamlLiveIntegration> logger,
         MetaLearningConfig config,
@@ -99,8 +108,8 @@ public class MamlLiveIntegration
             }
 
             // Prepare adaptation data
-            var examples = recentExamples.Take(100).ToList(); // Limit to recent examples
-            if (examples.Count < 10)
+            var examples = recentExamples.Take(MaxExamplesPerAdaptation).ToList(); // Limit to recent examples
+            if (examples.Count < MinExamplesRequired)
             {
                 result.SkippedReason = "Insufficient training examples";
                 return result;
