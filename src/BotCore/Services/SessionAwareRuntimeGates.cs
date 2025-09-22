@@ -141,7 +141,9 @@ public class SessionAwareRuntimeGates
             IsSundayReopenCurb = IsSundayReopenCurb(et),
             IsEthFirstMinsCurb = IsEthFirstMinsCurb(et),
             EasternTime = et,
-            NextSessionChange = GetNextSessionChange(et)
+            NextSessionChange = GetNextSessionChange(et),
+            IsWithinReopenCurbWindow = IsWithinReopenCurbWindow(et),
+            ReopenCurbTimeRemaining = GetReopenCurbTimeRemaining(et)
         };
     }
 
@@ -228,6 +230,7 @@ public class SessionAwareRuntimeGates
 
     /// <summary>
     /// Check if in ETH first minutes curb after daily reopen
+    /// Enhanced logic tracks maintenance break end times and curbs trading for first few minutes
     /// </summary>
     private bool IsEthFirstMinsCurb(DateTime et)
     {
@@ -245,6 +248,62 @@ public class SessionAwareRuntimeGates
         }
         
         return false;
+    }
+
+    /// <summary>
+    /// Enhanced reopen curbing logic - tracks session restart times and applies curbs
+    /// Stores maintenance break end times and checks if current time is within curbing window
+    /// </summary>
+    public bool IsWithinReopenCurbWindow(DateTime? etTime = null)
+    {
+        var et = etTime ?? NowEt();
+        
+        // Check ETH first minutes curb
+        if (IsEthFirstMinsCurb(et))
+        {
+            _logger.LogDebug("[REOPEN_CURB] ETH first minutes curb active: {CurbMins} minutes after {ReopenTime}", 
+                _sessionConfig.ETH.CurbFirstMins, _sessionConfig.MaintenanceBreak.End);
+            return true;
+        }
+        
+        // Check Sunday reopen curb
+        if (IsSundayReopenCurb(et))
+        {
+            _logger.LogDebug("[REOPEN_CURB] Sunday reopen curb active: {CurbMins} minutes after Sunday {ReopenTime}", 
+                _sessionConfig.SundayReopen.CurbMins, _sessionConfig.MaintenanceBreak.End);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /// <summary>
+    /// Get time remaining in current reopen curb window (if any)
+    /// </summary>
+    public TimeSpan? GetReopenCurbTimeRemaining(DateTime? etTime = null)
+    {
+        var et = etTime ?? NowEt();
+        
+        if (!IsWithinReopenCurbWindow(et))
+            return null;
+        
+        var reopenTime = TimeSpan.Parse(_sessionConfig.MaintenanceBreak.End); // 18:00
+        
+        // Check ETH curb
+        if (IsEthFirstMinsCurb(et))
+        {
+            var curbEndTime = reopenTime.Add(TimeSpan.FromMinutes(_sessionConfig.ETH.CurbFirstMins));
+            return curbEndTime - et.TimeOfDay;
+        }
+        
+        // Check Sunday curb
+        if (IsSundayReopenCurb(et))
+        {
+            var curbEndTime = reopenTime.Add(TimeSpan.FromMinutes(_sessionConfig.SundayReopen.CurbMins));
+            return curbEndTime - et.TimeOfDay;
+        }
+        
+        return null;
     }
 
     /// <summary>
@@ -361,4 +420,6 @@ public class SessionStatus
     public bool IsEthFirstMinsCurb { get; set; }
     public DateTime EasternTime { get; set; }
     public DateTime? NextSessionChange { get; set; }
+    public bool IsWithinReopenCurbWindow { get; set; }
+    public TimeSpan? ReopenCurbTimeRemaining { get; set; }
 }
