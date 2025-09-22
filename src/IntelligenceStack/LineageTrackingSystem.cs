@@ -21,6 +21,14 @@ public class LineageTrackingSystem
 {
     private readonly ILogger<LineageTrackingSystem> _logger;
     
+    // S109 Magic Number Constants - Hash and ID Lengths
+    private const int HashIdLength = 16;
+    private const int ShortHashLength = 8;
+    private const int MaxDataSampleSize = 10000;
+    private const int ModelInferenceTimeMs = 100;
+    private const int CalibrationTimeMs = 20;
+    private const int MinDelayMs = 1;
+    
     // LoggerMessage delegates for CA1848 compliance
     private static readonly Action<ILogger, string, Exception?> CreatingLineageSnapshot =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(5001, "CreatingLineageSnapshot"),
@@ -481,7 +489,7 @@ public class LineageTrackingSystem
         var configJson = JsonSerializer.Serialize(configData);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(configJson));
-        return Convert.ToHexString(hash)[..16];
+        return Convert.ToHexString(hash)[..HashIdLength];
     }
 
     private static async Task<Dictionary<string, string>> GetSystemComponentVersionsAsync(CancellationToken cancellationToken)
@@ -565,7 +573,7 @@ public class LineageTrackingSystem
         var inputJson = JsonSerializer.Serialize(inputData);
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
-        return Convert.ToHexString(hash)[..16];
+        return Convert.ToHexString(hash)[..HashIdLength];
     }
 
     private static string GetRegimeTransitionId(IntelligenceDecision decision)
@@ -652,17 +660,17 @@ public class LineageTrackingSystem
                     ComponentName = "model_registry",
                     Version = decision.ModelVersion,
                     InputHash = CalculateInputDataHash(decision),
-                    OutputHash = decision.DecisionId[..8],
-                    ProcessingTime = TimeSpan.FromMilliseconds(100)
+                    OutputHash = decision.DecisionId[..ShortHashLength],
+                    ProcessingTime = TimeSpan.FromMilliseconds(ModelInferenceTimeMs)
                 },
                 new ProcessingStep
                 {
                     StepName = "confidence_calibration",
                     ComponentName = "calibration_manager",
                     Version = "v1.0",
-                    InputHash = decision.DecisionId[..8],
-                    OutputHash = decision.DecisionId[^8..],
-                    ProcessingTime = TimeSpan.FromMilliseconds(20)
+                    InputHash = decision.DecisionId[..ShortHashLength],
+                    OutputHash = decision.DecisionId[^ShortHashLength..],
+                    ProcessingTime = TimeSpan.FromMilliseconds(CalibrationTimeMs)
                 }
             };
         }, cancellationToken).ConfigureAwait(false);
@@ -681,7 +689,7 @@ public class LineageTrackingSystem
             _eventHistory[key].Add(lineageEvent);
             
             // Keep only recent events
-            if (_eventHistory[key].Count > 10000)
+            if (_eventHistory[key].Count > MaxDataSampleSize)
             {
                 _eventHistory[key].RemoveAt(0);
             }
