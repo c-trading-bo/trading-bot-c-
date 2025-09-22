@@ -406,12 +406,13 @@ public class RLAdvisorSystem
 
         lock (_lock)
         {
-            if (!_decisionHistory.ContainsKey(agentKey))
+            if (!_decisionHistory.TryGetValue(agentKey, out var decisions))
             {
-                _decisionHistory[agentKey] = new List<RLDecision>();
+                decisions = new List<RLDecision>();
+                _decisionHistory[agentKey] = decisions;
             }
             
-            _decisionHistory[agentKey].Add(decision);
+            decisions.Add(decision);
             
             // Keep only recent decisions
             if (_decisionHistory[agentKey].Count > 1000)
@@ -504,12 +505,12 @@ public class RLAdvisorSystem
         
         lock (_lock)
         {
-            if (!_performanceTrackers.ContainsKey(agentKey))
+            if (!_performanceTrackers.TryGetValue(agentKey, out var tracker))
             {
-                _performanceTrackers[agentKey] = new PerformanceTracker();
+                tracker = new PerformanceTracker();
+                _performanceTrackers[agentKey] = tracker;
             }
             
-            var tracker = _performanceTrackers[agentKey];
             tracker.AddOutcome(outcome.RealizedPnL, outcome.TimeToExit);
         }
     }

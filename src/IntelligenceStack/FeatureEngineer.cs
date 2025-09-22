@@ -319,12 +319,12 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Get current feature weights for a strategy
     /// </summary>
-    public async Task<Dictionary<string, double>> GetCurrentWeightsAsync(
+    public Task<Dictionary<string, double>> GetCurrentWeightsAsync(
         string strategyId,
         CancellationToken cancellationToken = default)
     {
-        // Perform async weight retrieval with persistence layer
-        return await LoadWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false);
+        // Perform weight retrieval from memory cache
+        return Task.FromResult(LoadWeights(strategyId));
     }
 
     /// <summary>
@@ -610,11 +610,8 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Async load weights from persistent storage
     /// </summary>
-    private async Task<Dictionary<string, double>> LoadWeightsAsync(string strategyId, CancellationToken cancellationToken)
+    private Dictionary<string, double> LoadWeights(string strategyId)
     {
-        // Simulate async loading from database/cache
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-        
         if (_currentWeights.TryGetValue(strategyId, out var weights))
         {
             return new Dictionary<string, double>(weights);
@@ -646,50 +643,49 @@ public class FeatureImportanceTracker
         _maxWindowSize = maxWindowSize;
     }
 
-    public async Task UpdateAsync(FeatureSet features, double prediction, double outcome, CancellationToken cancellationToken)
+    public Task UpdateAsync(FeatureSet features, double prediction, double outcome, CancellationToken cancellationToken)
     {
-        await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            // Update feature history
+            _featureHistory.Enqueue(features);
+            if (_featureHistory.Count > _maxWindowSize)
             {
-                // Update feature history
-                _featureHistory.Enqueue(features);
-                if (_featureHistory.Count > _maxWindowSize)
+                _featureHistory.Dequeue();
+            }
+
+            // Update prediction history
+            _predictionHistory.Enqueue(prediction);
+            if (_predictionHistory.Count > _maxWindowSize)
+            {
+                _predictionHistory.Dequeue();
+            }
+
+            // Update outcome history
+            _outcomeHistory.Enqueue(outcome);
+            if (_outcomeHistory.Count > _maxWindowSize)
+            {
+                _outcomeHistory.Dequeue();
+            }
+
+            // Update individual feature value histories
+            foreach (var (featureName, featureValue) in features.Features)
+            {
+                if (!_featureValueHistory.TryGetValue(featureName, out var history))
                 {
-                    _featureHistory.Dequeue();
+                    history = new Queue<double>();
+                    _featureValueHistory[featureName] = history;
                 }
 
-                // Update prediction history
-                _predictionHistory.Enqueue(prediction);
-                if (_predictionHistory.Count > _maxWindowSize)
+                history.Enqueue(featureValue);
+                if (history.Count > _maxWindowSize)
                 {
-                    _predictionHistory.Dequeue();
-                }
-
-                // Update outcome history
-                _outcomeHistory.Enqueue(outcome);
-                if (_outcomeHistory.Count > _maxWindowSize)
-                {
-                    _outcomeHistory.Dequeue();
-                }
-
-                // Update individual feature value histories
-                foreach (var (featureName, featureValue) in features.Features)
-                {
-                    if (!_featureValueHistory.TryGetValue(featureName, out var history))
-                    {
-                        history = new Queue<double>();
-                        _featureValueHistory[featureName] = history;
-                    }
-
-                    history.Enqueue(featureValue);
-                    if (history.Count > _maxWindowSize)
-                    {
-                        history.Dequeue();
-                    }
+                    history.Dequeue();
                 }
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }
+        
+        return Task.CompletedTask;
     }
 
     public List<double> GetRecentPredictions()
