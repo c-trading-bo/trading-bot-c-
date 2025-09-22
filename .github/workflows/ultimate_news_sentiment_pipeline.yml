@@ -122,15 +122,18 @@ jobs:
               # Using free tier with basic financial keywords
               base_url = "https://api.gdeltproject.org/api/v2/doc/doc"
               
-              # Financial keywords for comprehensive coverage
+              # Enhanced financial keywords for comprehensive coverage
               keywords = [
                   "stock market", "trading", "futures", "options", "Fed", "inflation",
-                  "earnings", "GDP", "unemployment", "interest rates", "S&P 500", "Nasdaq"
+                  "earnings", "GDP", "unemployment", "interest rates", "S&P 500", "Nasdaq",
+                  "ES futures", "NQ futures", "SPY", "QQQ", "market volatility", "VIX",
+                  "Federal Reserve", "monetary policy", "economic data", "CPI", "PPI",
+                  "FOMC", "treasury yields", "dollar index", "crude oil", "gold prices"
               ]
               
               all_articles = []
               
-              for keyword in keywords[:3]:  # Limit API calls
+              for keyword in keywords[:5]:  # Increased coverage to compensate for removed feeds
                   try:
                       # Build query
                       query = f'"{keyword}"'
@@ -152,7 +155,7 @@ jobs:
                               data = response.json()
                               articles = data.get('articles', [])
                               
-                              for article in articles[:5]:  # Limit per keyword
+                              for article in articles[:8]:  # Increased per keyword
                                   article_data = {
                                       'title': article.get('title', ''),
                                       'url': article.get('url', ''),
@@ -177,7 +180,7 @@ jobs:
               gdelt_data = {
                   'timestamp': datetime.utcnow().isoformat(),
                   'total_articles': len(all_articles),
-                  'keywords_searched': keywords[:3],
+                  'keywords_searched': keywords[:5],
                   'articles': all_articles
               }
               
@@ -222,12 +225,7 @@ jobs:
                   'https://feeds.finance.yahoo.com/rss/2.0/headline',
                   'https://finance.yahoo.com/news/rssindex'
               ],
-              'bloomberg': [
-                  'https://feeds.bloomberg.com/markets/news.rss'
-              ],
-              'reuters': [
-                  'https://feeds.reuters.com/reuters/businessNews'
-              ],
+
               'marketwatch': [
                   'https://feeds.marketwatch.com/marketwatch/topstories/'
               ],
@@ -446,8 +444,7 @@ jobs:
           # Futures-specific news sources
           futures_feeds = {
               'cme_group': 'https://www.cmegroup.com/tools-information/quikstrike-mobile.rss',
-              'futures_magazine': 'https://www.futuresmag.com/rss.xml',
-              'bloomberg_futures': 'https://feeds.bloomberg.com/markets/news.rss'
+              'futures_magazine': 'https://www.futuresmag.com/rss.xml'
           }
           
           # Enhanced futures keywords
@@ -767,8 +764,6 @@ jobs:
           echo ""
           echo "📡 DATA SOURCES INTEGRATED:"
           echo "   • Yahoo Finance RSS"
-          echo "   • Bloomberg Markets"
-          echo "   • Reuters Business"
           echo "   • MarketWatch"
           echo "   • CNBC Financial"
           echo "   • Seeking Alpha"
