@@ -102,7 +102,13 @@ public class FeatureEngineer : IDisposable
         {
             Directory.CreateDirectory(_logsPath);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            LogsDirectoryWarning(_logger, _logsPath, ex);
+            _logsPath = Path.Combine(Path.GetTempPath(), "trading-bot", "features");
+            Directory.CreateDirectory(_logsPath);
+        }
+        catch (IOException ex)
         {
             LogsDirectoryWarning(_logger, _logsPath, ex);
             _logsPath = Path.Combine(Path.GetTempPath(), "trading-bot", "features");
@@ -179,7 +185,17 @@ public class FeatureEngineer : IDisposable
 
             return shapValues;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            SHAPCalculationFailed(_logger, strategyId, ex);
+            return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
+        }
+        catch (InvalidOperationException ex)
+        {
+            SHAPCalculationFailed(_logger, strategyId, ex);
+            return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
+        }
+        catch (ArithmeticException ex)
         {
             SHAPCalculationFailed(_logger, strategyId, ex);
             return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
@@ -257,7 +273,17 @@ public class FeatureEngineer : IDisposable
 
             return importanceScores;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            PermutationImportanceFailed(_logger, strategyId, ex);
+            return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
+        }
+        catch (InvalidOperationException ex)
+        {
+            PermutationImportanceFailed(_logger, strategyId, ex);
+            return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
+        }
+        catch (ArithmeticException ex)
         {
             PermutationImportanceFailed(_logger, strategyId, ex);
             return features.Features.ToDictionary(kvp => kvp.Key, _ => 1.0);
@@ -310,7 +336,15 @@ public class FeatureEngineer : IDisposable
 
             FeatureWeightsUpdated(_logger, strategyId, weights.Count(kvp => kvp.Value < ImportanceThreshold), null);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            FeatureWeightsUpdateFailed(_logger, strategyId, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FeatureWeightsUpdateFailed(_logger, strategyId, ex);
+        }
+        catch (TaskCanceledException ex)
         {
             FeatureWeightsUpdateFailed(_logger, strategyId, ex);
         }

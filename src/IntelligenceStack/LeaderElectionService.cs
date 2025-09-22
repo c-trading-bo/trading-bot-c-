@@ -22,6 +22,32 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private bool _isLeader;
     private readonly object _lock = new();
 
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> LeaderElectionDisabledAssumeLeadership =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3001, "LeaderElectionDisabled"), "[LEADER] Leader election disabled - assuming leadership");
+
+    private static readonly Action<ILogger, Exception?> AlreadyLeaderDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3002, "AlreadyLeader"), "[LEADER] Already the leader");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipAcquired =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3003, "LeadershipAcquired"), "[LEADER] 🎯 Leadership acquired by node: {NodeId}");
+
+    private static readonly Action<ILogger, string, Exception?> LeadershipTakenOver =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3004, "LeadershipTakenOver"), "[LEADER] 🔄 Leadership taken over by node: {NodeId}");
+
+    private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3005, "FailedToAcquireLeadership"), "[LEADER] Failed to acquire leadership");
+
+    private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
+
+    // Constants for magic numbers (S109 compliance)
+    private const double BaseBrierThreshold = 0.25;
+    private const double HalfBlendWeight = 0.5;
+    private const int LatencyMultiplierMax = 5;
+    private const double FullBlendWeight = 1.0;
+    private const double ZeroBlendWeight = 0.0;
+
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
 
     public LeaderElectionService(
@@ -41,7 +67,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     {
         if (!_config.Enabled)
         {
-            _logger.LogInformation("[LEADER] Leader election disabled - assuming leadership");
+            LeaderElectionDisabledAssumeLeadership(_logger, null);
             return true;
         }
 
@@ -51,7 +77,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 if (_isLeader)
                 {
-                    _logger.LogDebug("[LEADER] Already the leader");
+                    AlreadyLeaderDebug(_logger, null);
                     return true;
                 }
             }
@@ -69,7 +95,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 StartRenewalTimer();
                 OnLeadershipChanged(true, "Acquired leadership");
                 
-                _logger.LogInformation("[LEADER] 🎯 Leadership acquired by node: {NodeId}", _nodeId);
+                LeadershipAcquired(_logger, _nodeId, null);
                 return true;
             }
             
@@ -86,17 +112,17 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                     StartRenewalTimer();
                     OnLeadershipChanged(true, "Took over expired leadership");
                     
-                    _logger.LogInformation("[LEADER] 🔄 Leadership taken over by node: {NodeId}", _nodeId);
+                    LeadershipTakenOver(_logger, _nodeId, null);
                     return true;
                 }
             }
 
-            _logger.LogDebug("[LEADER] Failed to acquire leadership");
+            FailedToAcquireLeadershipDebug(_logger, null);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LEADER] Failed to acquire leadership");
+            FailedToAcquireLeadershipError(_logger, ex);
             return false;
         }
     }
@@ -550,30 +576,30 @@ public class QuarantineManager : IQuarantineManager
         var previousState = status.State;
 
         // Evaluate against thresholds
-        if (avgBrierScore > 0.25 + _config.QuarantineBrierDelta || avgLatency > _config.LatencyP99Ms * 5)
+        if (avgBrierScore > BaseBrierThreshold + _config.QuarantineBrierDelta || avgLatency > _config.LatencyP99Ms * LatencyMultiplierMax)
         {
             status.State = HealthState.Quarantine;
-            status.BlendWeight = 0.0;
+            status.BlendWeight = ZeroBlendWeight;
             
             if (previousState != HealthState.Quarantine)
             {
                 await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
-        else if (avgBrierScore > 0.25 + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
+        else if (avgBrierScore > BaseBrierThreshold + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
         {
             status.State = HealthState.Degrade;
-            status.BlendWeight = 0.5; // Require agreement with another model
+            status.BlendWeight = HalfBlendWeight; // Require agreement with another model
         }
-        else if (avgBrierScore > 0.25 + _config.WatchBrierDelta || avgLatency > _config.LatencyP99Ms)
+        else if (avgBrierScore > BaseBrierThreshold + _config.WatchBrierDelta || avgLatency > _config.LatencyP99Ms)
         {
             status.State = HealthState.Watch;
-            status.BlendWeight = 0.5; // Halve blend weight
+            status.BlendWeight = HalfBlendWeight; // Halve blend weight
         }
         else
         {
             status.State = HealthState.Healthy;
-            status.BlendWeight = 1.0;
+            status.BlendWeight = FullBlendWeight;
         }
 
         if (status.State != previousState)
