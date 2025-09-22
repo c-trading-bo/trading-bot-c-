@@ -96,10 +96,6 @@ public class DecisionLogger : IDecisionLogger
         {
             DecisionLogFailed(_logger, decision.DecisionId, ex);
         }
-        catch (DirectoryNotFoundException ex)
-        {
-            DecisionLogFailed(_logger, decision.DecisionId, ex);
-        }
     }
 
     public async Task<List<IntelligenceDecision>> GetDecisionHistoryAsync(DateTime fromTime, DateTime toTime, CancellationToken cancellationToken = default)
@@ -160,10 +156,6 @@ public class DecisionLogger : IDecisionLogger
             HistoryLoadFailed(_logger, ex);
         }
         catch (UnauthorizedAccessException ex)
-        {
-            HistoryLoadFailed(_logger, ex);
-        }
-        catch (DirectoryNotFoundException ex)
         {
             HistoryLoadFailed(_logger, ex);
         }
@@ -229,10 +221,7 @@ public class DecisionLogger : IDecisionLogger
         var fileName = $"decisions_{date:yyyy-MM-dd}.jsonl";
         var filePath = Path.Combine(_basePath, "daily", fileName);
 
-        var json = JsonSerializer.Serialize(logEntry, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        var json = JsonSerializer.Serialize(logEntry, JsonOptions);
 
         // Append to daily file
         return File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
@@ -302,6 +291,8 @@ public class DriftMonitor
 
     public async Task<DriftDetectionResult> DetectFeatureDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         if (!_config.Enabled)
         {
             return new DriftDetectionResult { HasDrift = false };

@@ -26,6 +26,8 @@ public class ModelRegistry : IModelRegistry
     private DateTime _lastPromotion = DateTime.MinValue;
     private readonly TimeSpan _promotionCooldown = TimeSpan.FromMinutes(60);
 
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public ModelRegistry(
         ILogger<ModelRegistry> logger, 
         PromotionsConfig config,
@@ -144,10 +146,7 @@ public class ModelRegistry : IModelRegistry
 
             // Save metadata
             var metadataPath = Path.Combine(_basePath, "metadata", $"{modelId}.json");
-            var metadataJson = JsonSerializer.Serialize(model, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var metadataJson = JsonSerializer.Serialize(model, JsonOptions);
             await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Save model artifact
@@ -222,10 +221,7 @@ public class ModelRegistry : IModelRegistry
                 PromotedBy = "auto-promotion"
             };
 
-            var json = JsonSerializer.Serialize(promotionRecord, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(promotionRecord, JsonOptions);
             await File.WriteAllTextAsync(promotedPath, json, cancellationToken).ConfigureAwait(false);
 
             _lastPromotion = DateTime.UtcNow;

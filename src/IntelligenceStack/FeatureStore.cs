@@ -22,6 +22,7 @@ public class FeatureStore : IFeatureStore
     private readonly Dictionary<string, FeatureSchema> _schemaCache = new();
     private readonly object _lock = new();
 
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
 
@@ -125,6 +126,8 @@ public class FeatureStore : IFeatureStore
 
     public async Task SaveFeaturesAsync(FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         try
         {
             // Validate before saving
@@ -143,10 +146,7 @@ public class FeatureStore : IFeatureStore
             var fileName = $"{features.Timestamp:yyyy-MM-dd_HH-mm-ss}.json";
             var filePath = Path.Combine(symbolPath, fileName);
 
-            var json = JsonSerializer.Serialize(features, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(features, JsonOptions);
 
             await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
 
@@ -161,6 +161,8 @@ public class FeatureStore : IFeatureStore
 
     public async Task<bool> ValidateSchemaAsync(FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
+
         try
         {
             var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false);
@@ -231,16 +233,15 @@ public class FeatureStore : IFeatureStore
 
     public async Task SaveSchemaAsync(FeatureSchema schema, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(schema);
+
         try
         {
             schema.Checksum = CalculateSchemaChecksum(schema);
             schema.CreatedAt = DateTime.UtcNow;
 
             var schemaPath = Path.Combine(_basePath, "schemas", $"{schema.Version}.json");
-            var json = JsonSerializer.Serialize(schema, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(schema, JsonOptions);
 
             await File.WriteAllTextAsync(schemaPath, json, cancellationToken).ConfigureAwait(false);
 

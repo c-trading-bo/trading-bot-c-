@@ -86,6 +86,8 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private readonly object _lock = new();
     private Timer? _nightlyTimer;
 
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public CalibrationManager(ILogger<CalibrationManager> logger, string basePath = "data/calibration")
     {
         _logger = logger;
@@ -453,7 +455,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private async Task SaveCalibrationMapAsync(CalibrationMap map, CancellationToken cancellationToken)
     {
         var path = Path.Combine(_basePath, $"{map.ModelId}_calibration.json");
-        var json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(map, JsonOptions);
         await File.WriteAllTextAsync(path, json, cancellationToken).ConfigureAwait(false);
         
         lock (_lock)

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TradingBot.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -234,6 +235,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     public async Task<TradingDecision> MakeDecisionAsync(MarketContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         if (!_isInitialized || !_isTradingEnabled)
         {
             return CreateSafeDecision("Trading disabled - system not initialized or enabled");
@@ -300,6 +303,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData data, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         try
         {
             // Update regime detector with new data
@@ -986,10 +991,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return new MarketContext
         {
             Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500)),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000)),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", 4499.75)),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", 4500.25)),
+            Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500), CultureInfo.InvariantCulture),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000), CultureInfo.InvariantCulture),
+            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", 4499.75), CultureInfo.InvariantCulture),
+            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", 4500.25), CultureInfo.InvariantCulture),
             Timestamp = DateTime.UtcNow
         };
     }

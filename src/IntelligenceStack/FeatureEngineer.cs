@@ -224,7 +224,7 @@ public class FeatureEngineer : IDisposable
 
                 // Permute this feature (use median of recent values)
                 var tracker = _importanceTrackers.GetOrAdd(strategyId,
-                    _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                    id => new FeatureImportanceTracker(id, _rollingWindowSize));
                 
                 var medianValue = tracker.GetFeatureMedian(featureName);
                 permutedFeatures.Features[featureName] = medianValue;
@@ -268,6 +268,8 @@ public class FeatureEngineer : IDisposable
         Dictionary<string, double> importanceScores,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(importanceScores);
+
         try
         {
             var timestamp = DateTime.UtcNow;
@@ -328,6 +330,8 @@ public class FeatureEngineer : IDisposable
         Func<FeatureSet, Task<double>> predictionFunction,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(marketData);
+
         try
         {
             // Extract features from market data
@@ -342,7 +346,7 @@ public class FeatureEngineer : IDisposable
 
             // Get tracker for this strategy
             var tracker = _importanceTrackers.GetOrAdd(strategyId, 
-                _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                id => new FeatureImportanceTracker(id, _rollingWindowSize));
 
             // Only update if enough time has passed
             if (DateTime.UtcNow - _lastUpdate < _updateInterval)
