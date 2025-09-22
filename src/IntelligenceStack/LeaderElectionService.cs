@@ -41,12 +41,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private static readonly Action<ILogger, Exception?> FailedToAcquireLeadershipError =
         LoggerMessage.Define(LogLevel.Error, new EventId(3006, "FailedToAcquireLeadershipError"), "[LEADER] Failed to acquire leadership");
 
-    // Constants for magic numbers (S109 compliance)
-    private const double BaseBrierThreshold = 0.25;
-    private const double HalfBlendWeight = 0.5;
-    private const int LatencyMultiplierMax = 5;
-    private const double FullBlendWeight = 1.0;
-    private const double ZeroBlendWeight = 0.0;
+
 
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
 
@@ -399,6 +394,13 @@ public class QuarantineManager : IQuarantineManager
     private readonly Dictionary<string, QuarantineStatus> _modelStatus = new();
     private readonly Dictionary<string, List<ModelPerformance>> _performanceHistory = new();
     private readonly object _lock = new();
+
+    // Constants for magic numbers (S109 compliance)
+    private const double BaseBrierThreshold = 0.25;
+    private const double HalfBlendWeight = 0.5;
+    private const int LatencyMultiplierMax = 5;
+    private const double FullBlendWeight = 1.0;
+    private const double ZeroBlendWeight = 0.0;
 
     public QuarantineManager(ILogger<QuarantineManager> logger, QuarantineConfig config)
     {
