@@ -408,7 +408,15 @@ public class FeatureEngineer : IDisposable
 
             _lastUpdate = DateTime.UtcNow;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            MarketDataProcessingFailed(_logger, ex);
+        }
+        catch (ArithmeticException ex)
+        {
+            MarketDataProcessingFailed(_logger, ex);
+        }
+        catch (OverflowException ex)
         {
             MarketDataProcessingFailed(_logger, ex);
         }

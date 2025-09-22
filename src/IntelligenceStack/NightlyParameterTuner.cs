@@ -68,6 +68,13 @@ public class NightlyParameterTuner
     private const int PercentageRange = 100;
     private const int FiftPercentChance = 50;
     private const double MutationRate = 0.1;
+    
+    // Additional S109 constants for evaluation metrics and timing
+    private const int EvaluationDelayMs = 100;
+    private const double BaseErrorCalibratedEstimate = 0.05;
+    private const double ErrorCalibrationMultiplier = 0.1;
+    private const double EdgeBpsMultiplier = 8.0;
+    private const int DefaultSampleSize = 10000;
     private const double NoiseMultiplier = 0.1;
     private const double GaussianDefaultMean = 0.0;
     private const double GaussianDefaultStdDev = 1.0;
@@ -571,15 +578,15 @@ public class NightlyParameterTuner
         var finalScore = Math.Max(0.5, Math.Min(0.85, baseScore + lrScore + hsScore + dropScore + 
             (System.Security.Cryptography.RandomNumberGenerator.GetInt32(NoiseRangeMin, NoiseRangeMax) / NoiseScaleFactor))); // Add some noise
         
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate evaluation time
+        await Task.Delay(EvaluationDelayMs, cancellationToken).ConfigureAwait(false); // Simulate evaluation time
         
         return new ModelMetrics
         {
             AUC = finalScore,
             PrAt10 = finalScore * PrAt10Multiplier,
-            ECE = 0.05 + (1 - finalScore) * 0.1,
-            EdgeBps = finalScore * 8,
-            SampleSize = 10000,
+            ECE = BaseErrorCalibratedEstimate + (1 - finalScore) * ErrorCalibrationMultiplier,
+            EdgeBps = finalScore * EdgeBpsMultiplier,
+            SampleSize = DefaultSampleSize,
             ComputedAt = DateTime.UtcNow
         };
     }

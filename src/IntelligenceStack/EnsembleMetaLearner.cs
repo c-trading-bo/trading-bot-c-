@@ -673,7 +673,15 @@ public class EnsembleMetaLearner
             var json = JsonSerializer.Serialize(state, SerializerOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            SaveStateFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            SaveStateFailed(_logger, ex);
+        }
+        catch (JsonException ex)
         {
             SaveStateFailed(_logger, ex);
         }
@@ -710,7 +718,15 @@ public class EnsembleMetaLearner
                 StateLoaded(_logger, _currentRegime, null);
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            LoadStateFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LoadStateFailed(_logger, ex);
+        }
+        catch (JsonException ex)
         {
             LoadStateFailed(_logger, ex);
         }

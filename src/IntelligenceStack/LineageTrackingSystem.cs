@@ -20,6 +20,76 @@ namespace TradingBot.IntelligenceStack;
 public class LineageTrackingSystem
 {
     private readonly ILogger<LineageTrackingSystem> _logger;
+    
+    // LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, Exception?> CreatingLineageSnapshot =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(5001, "CreatingLineageSnapshot"),
+            "[LINEAGE] Creating lineage snapshot: {SnapshotId}");
+    
+    private static readonly Action<ILogger, string, int, string, Exception?> CreatedLineageSnapshot =
+        LoggerMessage.Define<string, int, string>(LogLevel.Information, new EventId(5002, "CreatedLineageSnapshot"),
+            "[LINEAGE] Created snapshot {SnapshotId} with {Models} models and feature store v{FeatureVersion}");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToCreateLineageSnapshot =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5003, "FailedToCreateLineageSnapshot"),
+            "[LINEAGE] Failed to create lineage snapshot: {SnapshotId}");
+    
+    private static readonly Action<ILogger, string, Exception?> StampingDecisionWithLineage =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5004, "StampingDecisionWithLineage"),
+            "[LINEAGE] Stamping decision {DecisionId} with complete lineage");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToStampDecision =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5005, "FailedToStampDecision"),
+            "[LINEAGE] Failed to stamp decision with lineage: {DecisionId}");
+    
+    private static readonly Action<ILogger, string, string, string, string, Exception?> StampedDecisionWithLineage =
+        LoggerMessage.Define<string, string, string, string>(LogLevel.Debug, new EventId(5006, "StampedDecisionWithLineage"),
+            "[LINEAGE] Stamped decision {DecisionId} with model {ModelVersion}, features {FeatureVersion}, calibration {CalibrationId}");
+    
+    private static readonly Action<ILogger, string, string, string, Exception?> TrackedModelPromotion =
+        LoggerMessage.Define<string, string, string>(LogLevel.Information, new EventId(5007, "TrackedModelPromotion"),
+            "[LINEAGE] Tracked model promotion: {ModelId} {FromVersion} -> {ToVersion}");
+    
+    private static readonly Action<ILogger, string, string, int, Exception?> TrackedFeatureStoreUpdate =
+        LoggerMessage.Define<string, string, int>(LogLevel.Information, new EventId(5008, "TrackedFeatureStoreUpdate"),
+            "[LINEAGE] Tracked feature store update: {FromVersion} -> {ToVersion} ({ChangeCount} features)");
+    
+    private static readonly Action<ILogger, string, string, double, Exception?> TrackedCalibrationUpdate =
+        LoggerMessage.Define<string, string, double>(LogLevel.Information, new EventId(5009, "TrackedCalibrationUpdate"),
+            "[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetDecisionLineage =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5010, "FailedToGetDecisionLineage"),
+            "[LINEAGE] Failed to get decision lineage: {DecisionId}");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetModelVersion =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5011, "FailedToGetModelVersion"),
+            "[LINEAGE] Failed to get version for model family: {Family}");
+    
+    private static readonly Action<ILogger, Exception?> FailedToGetFeatureStoreVersion =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5012, "FailedToGetFeatureStoreVersion"),
+            "[LINEAGE] Failed to get feature store version");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetCalibrationMap =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5013, "FailedToGetCalibrationMap"),
+            "[LINEAGE] Failed to get calibration map for model: {ModelFamily}");
+    
+    private static readonly Action<ILogger, Exception?> FailedToGetModelVersionForDecision =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(5014, "FailedToGetModelVersionForDecision"),
+            "[LINEAGE] Failed to get model version for decision");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetCalibrationMapId =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5015, "FailedToGetCalibrationMapId"),
+            "[LINEAGE] Failed to get calibration map ID for model: {ModelId}");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetModelLineage =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5016, "FailedToGetModelLineage"),
+            "[LINEAGE] Failed to get model lineage: {ModelId}");
+    
+    private static readonly Action<ILogger, string, Exception?> FailedToGetFeatureLineage =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5017, "FailedToGetFeatureLineage"),
+            "[LINEAGE] Failed to get feature lineage: {Version}");
+    
     private readonly IModelRegistry _modelRegistry;
     private readonly IFeatureStore _featureStore;
     private readonly ICalibrationManager _calibrationManager;
@@ -55,7 +125,7 @@ public class LineageTrackingSystem
     {
         try
         {
-            _logger.LogInformation("[LINEAGE] Creating lineage snapshot: {SnapshotId}", snapshotId);
+            CreatingLineageSnapshot(_logger, snapshotId, null);
 
             var snapshot = new LineageSnapshot
             {
@@ -93,14 +163,13 @@ public class LineageTrackingSystem
 
             await SaveSnapshotAsync(snapshot, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("[LINEAGE] Created snapshot {SnapshotId} with {Models} models and feature store v{FeatureVersion}", 
-                snapshotId, snapshot.ModelVersions.Count, snapshot.FeatureStoreVersion);
+            CreatedLineageSnapshot(_logger, snapshotId, snapshot.ModelVersions.Count, snapshot.FeatureStoreVersion, null);
 
             return snapshot;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LINEAGE] Failed to create lineage snapshot: {SnapshotId}", snapshotId);
+            FailedToCreateLineageSnapshot(_logger, snapshotId, ex);
             throw new InvalidOperationException($"Lineage snapshot creation failed for {snapshotId}", ex);
         }
     }
@@ -165,14 +234,13 @@ public class LineageTrackingSystem
             // Store decision with lineage
             await SaveDecisionLineageAsync(decisionId, decision, stamp, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[LINEAGE] Stamped decision {DecisionId} with model {ModelVersion}, features {FeatureVersion}, calibration {CalibrationId}", 
-                decisionId, stamp.ModelRegistryVersion, stamp.FeatureStoreVersion, stamp.CalibrationMapId);
+            StampedDecisionWithLineage(_logger, decisionId, stamp.ModelRegistryVersion, stamp.FeatureStoreVersion, stamp.CalibrationMapId, null);
 
             return stamp;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LINEAGE] Failed to stamp decision: {DecisionId}", decisionId);
+            FailedToStampDecision(_logger, decisionId, ex);
             throw new InvalidOperationException($"Decision stamping failed for {decisionId}", ex);
         }
     }
@@ -204,8 +272,7 @@ public class LineageTrackingSystem
         
         await RecordLineageEventAsync(promotionEvent, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("[LINEAGE] Tracked model promotion: {ModelId} {FromVersion} -> {ToVersion}", 
-            modelId, fromVersion, toVersion);
+        TrackedModelPromotion(_logger, modelId, fromVersion, toVersion, null);
     }
 
     /// <summary>
@@ -234,8 +301,7 @@ public class LineageTrackingSystem
         
         await RecordLineageEventAsync(featureUpdateEvent, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("[LINEAGE] Tracked feature store update: {FromVersion} -> {ToVersion} ({ChangeCount} features)", 
-            fromVersion, toVersion, changedFeatures.Count);
+        TrackedFeatureStoreUpdate(_logger, fromVersion, toVersion, changedFeatures.Count, null);
     }
 
     /// <summary>
@@ -264,8 +330,7 @@ public class LineageTrackingSystem
         
         await RecordLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})", 
-            calibrationMapId, modelId, brierScore);
+        TrackedCalibrationUpdate(_logger, calibrationMapId, modelId, brierScore, null);
     }
 
     /// <summary>
@@ -312,7 +377,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LINEAGE] Failed to get decision lineage: {DecisionId}", decisionId);
+            FailedToGetDecisionLineage(_logger, decisionId, ex);
             throw new InvalidOperationException($"Decision lineage retrieval failed for {decisionId}", ex);
         }
     }
@@ -381,7 +446,7 @@ public class LineageTrackingSystem
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[LINEAGE] Failed to get version for model family: {Family}", family);
+                FailedToGetModelVersion(_logger, family, ex);
                 modelVersions[family] = "unknown";
             }
         }

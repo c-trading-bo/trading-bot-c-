@@ -33,6 +33,7 @@ public class RLAdvisorSystem
     private const double QuickExitBonus = 0.1;
     private const double LongHoldThresholdHours = 8;
     private const double LongHoldPenalty = -0.1;
+    private const double HoldInactionPenalty = 0.1;
     private const double SmallLearningRate = 0.02;
     private const double ModerateLearningRate = 0.1;
     private const double HighLearningRate = 0.2;
@@ -106,9 +107,7 @@ public class RLAdvisorSystem
         LoggerMessage.Define<string, int, double>(LogLevel.Information, new EventId(4016, "AgentTrainingCompleted"),
             "[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}");
 
-    private static readonly Action<ILogger, string, Exception?> HistoricalTrainingFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4017, "HistoricalTrainingFailed"),
-            "[RL_ADVISOR] Historical training failed for {Symbol}");
+
 
     private static readonly Action<ILogger, string, int, Exception?> MinimumShadowDecisionsReached =
         LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4018, "MinimumShadowDecisionsReached"),
@@ -130,9 +129,7 @@ public class RLAdvisorSystem
         LoggerMessage.Define(LogLevel.Error, new EventId(4022, "ProvenUpliftCheckFailed"),
             "[RL_ADVISOR] Failed to check for proven uplift");
 
-    private static readonly Action<ILogger, int, string, DateTime, DateTime, Exception?> TrainingEpisodesGenerated =
-        LoggerMessage.Define<int, string, DateTime, DateTime>(LogLevel.Information, new EventId(4023, "TrainingEpisodesGenerated"),
-            "[RL_ADVISOR] Generated {EpisodeCount} training episodes for {Symbol} from {Start} to {End}");
+
 
     private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataSDK =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4024, "LoadingHistoricalDataSDK"),
@@ -429,8 +426,7 @@ public class RLAdvisorSystem
                 var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken).ConfigureAwait(false);
                 result.AgentResults[agentType] = agentResult;
                 
-                _logger.LogInformation("[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}", 
-                    agentType, agentResult.EpisodesProcessed, agentResult.FinalAverageReward);
+                AgentTrainingCompleted(_logger, agentType.ToString(), agentResult.EpisodesProcessed, agentResult.FinalAverageReward, null);
             }
 
             result.Success = true;
@@ -442,7 +438,7 @@ public class RLAdvisorSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Historical training failed for {Symbol}", symbol);
+            HistoricalTrainingFailed(_logger, symbol, ex);
             return new RLTrainingResult 
             { 
                 Symbol = symbol, 
@@ -601,8 +597,7 @@ public class RLAdvisorSystem
         
         if (decisions.Count >= _config.ShadowMinDecisions && !_orderInfluenceEnabled)
         {
-            _logger.LogInformation("[RL_ADVISOR] Agent {Agent} has reached minimum shadow decisions: {Count}", 
-                agentKey, decisions.Count);
+            MinimumShadowDecisionsReached(_logger, agentKey, decisions.Count, null);
         }
     }
 
@@ -643,7 +638,7 @@ public class RLAdvisorSystem
         {
             1 => priceChange > 0 ? priceChange * action.Confidence : -Math.Abs(priceChange) * action.Confidence, // Buy
             ActionFullExit => priceChange < 0 ? Math.Abs(priceChange) * action.Confidence : -priceChange * action.Confidence, // Sell
-            _ => -Math.Abs(priceChange) * 0.1 // Hold - small penalty for inaction during significant moves
+            _ => -Math.Abs(priceChange) * HoldInactionPenalty // Hold - small penalty for inaction during significant moves
         };
     }
 
@@ -690,7 +685,7 @@ public class RLAdvisorSystem
         {
             try
             {
-                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence");
+                CheckingProvenUplift(_logger, null);
                 
                 var totalEdgeBps = 0.0;
                 var validAgents = 0;
@@ -713,20 +708,18 @@ public class RLAdvisorSystem
                     if (averageEdgeBps >= _config.MinEdgeBps && !_orderInfluenceEnabled)
                     {
                         _orderInfluenceEnabled = true;
-                        _logger.LogInformation("[RL_ADVISOR] ✅ Enabled order influence - proven uplift: {EdgeBps:F1} bps", 
-                            averageEdgeBps);
+                        OrderInfluenceEnabled(_logger, averageEdgeBps, null);
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
                         _orderInfluenceEnabled = false;
-                        _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
-                            averageEdgeBps);
+                        OrderInfluenceDisabled(_logger, averageEdgeBps, null);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RL_ADVISOR] Failed to check for proven uplift");
+                ProvenUpliftCheckFailed(_logger, ex);
             }
         }, cancellationToken).ConfigureAwait(false);
     }
