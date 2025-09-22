@@ -27,6 +27,27 @@ public class RLAdvisorSystem
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     
+    // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
+    private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
+        LoggerMessage.Define<string, ExitAction, double>(LogLevel.Debug, new EventId(4001, "RecommendationGenerated"),
+            "[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})");
+            
+    private static readonly Action<ILogger, string, Exception?> RecommendationFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4002, "RecommendationFailed"),
+            "[RL_ADVISOR] Failed to generate exit recommendation for {Symbol}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionNotFound =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4003, "DecisionNotFound"),
+            "[RL_ADVISOR] Decision not found for outcome update: {DecisionId}");
+            
+    private static readonly Action<ILogger, string, double, Exception?> AgentUpdated =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4004, "AgentUpdated"),
+            "[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}");
+            
+    private static readonly Action<ILogger, string, Exception?> OutcomeUpdateFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4005, "OutcomeUpdateFailed"),
+            "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}");
+    
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
     private readonly IDecisionLogger _decisionLogger;
@@ -107,14 +128,13 @@ public class RLAdvisorSystem
             // Increment shadow decision count
             await IncrementShadowDecisionCountAsync(agentKey).ConfigureAwait(false);
 
-            _logger.LogDebug("[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})", 
-                context.Symbol, recommendation.Action, recommendation.Confidence);
+            RecommendationGenerated(_logger, context.Symbol, recommendation.Action, recommendation.Confidence, null);
 
             return recommendation;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Failed to generate exit recommendation for {Symbol}", context.Symbol);
+            RecommendationFailed(_logger, context.Symbol, ex);
             return new RLAdvisorRecommendation
             {
                 Action = ExitAction.Hold,
@@ -139,7 +159,7 @@ public class RLAdvisorSystem
             var decision = FindDecisionById(decisionId);
             if (decision == null)
             {
-                _logger.LogWarning("[RL_ADVISOR] Decision not found for outcome update: {DecisionId}", decisionId);
+                DecisionNotFound(_logger, decisionId, null);
                 return;
             }
 
@@ -155,8 +175,7 @@ public class RLAdvisorSystem
             // Update performance tracking
             await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogDebug("[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}", 
-                agentKey, reward);
+            AgentUpdated(_logger, agentKey, reward, null);
 
             // Check for uplift periodically
             if (DateTime.UtcNow - _lastUpliftCheck > TimeSpan.FromHours(UpliftCheckHours))
@@ -167,7 +186,7 @@ public class RLAdvisorSystem
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RL_ADVISOR] Failed to update with outcome for decision: {DecisionId}", decisionId);
+            OutcomeUpdateFailed(_logger, decisionId, ex);
         }
     }
 
