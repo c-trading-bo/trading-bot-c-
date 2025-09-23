@@ -276,7 +276,22 @@ public class ModelRegistry : IModelRegistry
             ModelPromoted(_logger, modelId, null);
             return true;
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException ex)
+        {
+            FailedToPromoteModel(_logger, modelId, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToPromoteModel(_logger, modelId, ex);
+            return false;
+        }
+        catch (IOException ex)
+        {
+            FailedToPromoteModel(_logger, modelId, ex);
+            return false;
+        }
+        catch (JsonException ex)
         {
             FailedToPromoteModel(_logger, modelId, ex);
             return false;

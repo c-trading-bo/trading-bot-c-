@@ -133,7 +133,17 @@ public class ObservabilityDashboard : IDisposable
 
             return dashboardData;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogFailedToGetDashboardData(_logger, ex);
+            return new DashboardData { Timestamp = DateTime.UtcNow };
+        }
+        catch (TimeoutException ex)
+        {
+            LogFailedToGetDashboardData(_logger, ex);
+            return new DashboardData { Timestamp = DateTime.UtcNow };
+        }
+        catch (ArgumentException ex)
         {
             LogFailedToGetDashboardData(_logger, ex);
             return new DashboardData { Timestamp = DateTime.UtcNow };

@@ -277,7 +277,37 @@ public class NightlyParameterTuner
 
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (IOException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (TimeoutException ex)
         {
             NightlyTuningFailed(_logger, modelFamily, ex);
             return new NightlyTuningResult 
