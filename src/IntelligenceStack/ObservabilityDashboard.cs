@@ -17,6 +17,19 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ObservabilityDashboard : IDisposable
 {
+    // LoggerMessage delegates for CA1848 performance compliance
+    private static readonly Action<ILogger, Exception?> LogFailedToGetDashboardData =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4001, nameof(LogFailedToGetDashboardData)),
+            "[OBSERVABILITY] Failed to get dashboard data");
+    
+    private static readonly Action<ILogger, int, Exception?> LogStartedDashboardUpdates =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4002, nameof(LogStartedDashboardUpdates)),
+            "[OBSERVABILITY] Started dashboard updates every {UpdateInterval} seconds");
+    
+    private static readonly Action<ILogger, Exception?> LogDashboardUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4003, nameof(LogDashboardUpdateFailed)),
+            "[OBSERVABILITY] Dashboard update failed");
+    
     // Target SLO constants for golden signals
     private const int TargetDecisionLatencyP99Ms = 120;
     private const int TargetDecisionsPerSecond = 10;
@@ -122,7 +135,7 @@ public class ObservabilityDashboard : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[OBSERVABILITY] Failed to get dashboard data");
+            LogFailedToGetDashboardData(_logger, ex);
             return new DashboardData { Timestamp = DateTime.UtcNow };
         }
     }
@@ -588,7 +601,7 @@ public class ObservabilityDashboard : IDisposable
     private void StartDashboardUpdates()
     {
         _updateTimer = new Timer(UpdateDashboardData, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
-        _logger.LogInformation("[OBSERVABILITY] Started dashboard updates every {UpdateInterval} seconds", DashboardUpdateIntervalSeconds);
+        LogStartedDashboardUpdates(_logger, DashboardUpdateIntervalSeconds, null);
     }
 
     private async void UpdateDashboardData(object? state)
@@ -600,7 +613,7 @@ public class ObservabilityDashboard : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[OBSERVABILITY] Dashboard update failed");
+            LogDashboardUpdateFailed(_logger, ex);
         }
     }
 

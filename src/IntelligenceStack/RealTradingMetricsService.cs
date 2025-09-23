@@ -29,6 +29,14 @@ public class RealTradingMetricsService : BackgroundService
     // Data structures for real metrics calculation
     private readonly List<InferenceRecord> _recentInferences = new();
     
+    // S109 Magic Number Constants - Trading Metrics
+    private const int RecentInferencesMinutes = 5;
+    private const int MinimumActiveModels = 3; // ES, NQ, Regime models
+    private const double DefaultPositionSize = 2.5;
+    private const double MinimumReturnStdDev = 1e-10;
+    private const int BytesToMegabytes = 1024;
+    private const int KiloBytesToMegabytes = 1024;
+    
     // LoggerMessage delegates for CA1848 compliance - RealTradingMetricsService
     private static readonly Action<ILogger, TimeSpan, Exception?> ServiceInitialized =
         LoggerMessage.Define<TimeSpan>(LogLevel.Information, new EventId(6001, "ServiceInitialized"),
@@ -109,7 +117,11 @@ public class RealTradingMetricsService : BackgroundService
         {
             ServiceStopping(_logger, ex);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            ServiceError(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             ServiceError(_logger, ex);
         }
@@ -183,7 +195,7 @@ public class RealTradingMetricsService : BackgroundService
                     PredictionAccuracy = CalculatePredictionAccuracy(),
                     FeatureDrift = CalculateFeatureDrift(),
                     ActiveModels = GetActiveModelCount(),
-                    MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024)
+                    MemoryUsageMB = GC.GetTotalMemory(false) / (BytesToMegabytes * KiloBytesToMegabytes)
                 };
                 
                 metrics.CustomMetrics["daily_pnl"] = (double)_dailyPnL;
@@ -204,7 +216,15 @@ public class RealTradingMetricsService : BackgroundService
             
             MetricsPushedSuccess(_logger, _dailyPnL, _totalPositions, _totalFills, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            MetricsCollectionFailed(_logger, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            MetricsCollectionFailed(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             MetricsCollectionFailed(_logger, ex);
         }
@@ -263,11 +283,11 @@ public class RealTradingMetricsService : BackgroundService
     private int GetActiveModelCount()
     {
         // Production implementation - count unique models in recent inferences
-        var uniqueModels = _recentInferences.Where(i => i.Timestamp > DateTime.UtcNow.AddMinutes(-5))
+        var uniqueModels = _recentInferences.Where(i => i.Timestamp > DateTime.UtcNow.AddMinutes(-RecentInferencesMinutes))
                                            .Select(i => i.ModelName)
                                            .Distinct()
                                            .Count();
-        return Math.Max(uniqueModels, 3); // Minimum of 3 (ES, NQ, Regime models)
+        return Math.Max(uniqueModels, MinimumActiveModels); // Minimum of 3 (ES, NQ, Regime models)
     }
 
     private double CalculateFillsPerHour()
@@ -286,7 +306,7 @@ public class RealTradingMetricsService : BackgroundService
         }
         
         // Simplified calculation - in production would track actual position sizes
-        return 2.5; // Placeholder for actual position size calculation
+        return DefaultPositionSize; // Placeholder for actual position size calculation
     }
 
     private double GetDailyTradeCount()
@@ -328,7 +348,7 @@ public class RealTradingMetricsService : BackgroundService
         var averageReturn = returns.Average();
         var returnStdDev = Math.Sqrt(returns.Select(r => Math.Pow(r - averageReturn, 2)).Average());
         
-        if (Math.Abs(returnStdDev) < 1e-10) return 0.0;
+        if (Math.Abs(returnStdDev) < MinimumReturnStdDev) return 0.0;
         
         // Assuming risk-free rate of 0 for simplicity
         return averageReturn / returnStdDev;

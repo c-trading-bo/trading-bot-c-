@@ -346,7 +346,19 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                     result.Warnings.Add(warning);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                var error = $"Failed to verify service {serviceName}: {ex.Message}";
+                ProductionVerificationErrorWithException(_logger, error, ex);
+                result.Errors.Add(error);
+            }
+            catch (ArgumentException ex)
+            {
+                var error = $"Failed to verify service {serviceName}: {ex.Message}";
+                ProductionVerificationErrorWithException(_logger, error, ex);
+                result.Errors.Add(error);
+            }
+            catch (TimeoutException ex)
             {
                 var error = $"Failed to verify service {serviceName}: {ex.Message}";
                 ProductionVerificationErrorWithException(_logger, error, ex);
@@ -420,7 +432,15 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                     var model = await modelRegistry.GetModelAsync("test").ConfigureAwait(false);
                     ModelRegistryProof(_logger, model.Id, model.Version, null);
                 }
-                catch (Exception ex)
+                catch (FileNotFoundException ex)
+                {
+                    ModelRegistryNoModelInfo(_logger, ex.Message, ex);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    ModelRegistryNoModelInfo(_logger, ex.Message, ex);
+                }
+                catch (ArgumentException ex)
                 {
                     ModelRegistryNoModelInfo(_logger, ex.Message, ex);
                 }
@@ -428,7 +448,15 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
 
             AllServicesRuntimeVerified(_logger, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            RuntimeVerificationError(_logger, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            RuntimeVerificationError(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             RuntimeVerificationError(_logger, ex);
         }

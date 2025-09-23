@@ -26,6 +26,10 @@ public class ModelRegistry : IModelRegistry
     private DateTime _lastPromotion = DateTime.MinValue;
     private readonly TimeSpan _promotionCooldown = TimeSpan.FromMinutes(60);
 
+    // S109 Magic Number Constants - Hash and ID Processing
+    private const int ChecksumHashLength = 16;
+    private const int RuntimeSignatureLength = 16;
+    
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     // LoggerMessage delegates for CA1848 compliance - ModelRegistry
@@ -378,21 +382,21 @@ public class ModelRegistry : IModelRegistry
         var data = model.ModelData ?? Array.Empty<byte>();
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(data);
-        return Convert.ToHexString(hash)[..16];
+        return Convert.ToHexString(hash)[..ChecksumHashLength];
     }
 
     private static string CalculateSchemaChecksum(string featuresVersion)
     {
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(featuresVersion));
-        return Convert.ToHexString(hash)[..16];
+        return Convert.ToHexString(hash)[..ChecksumHashLength];
     }
 
     private static string CalculateRuntimeSignature(byte[] modelData)
     {
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(modelData);
-        return Convert.ToBase64String(hash)[..16];
+        return Convert.ToBase64String(hash)[..RuntimeSignatureLength];
     }
 
     private static bool VerifyModelChecksum(ModelArtifact model)

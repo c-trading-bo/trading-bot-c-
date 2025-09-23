@@ -23,6 +23,16 @@ public class ModelQuarantineManager : IQuarantineManager
     private const double MediumPerformanceThreshold = 0.05;
     private const double LowPerformanceThreshold = 0.02;
     
+    // Additional S109 constants for performance thresholds
+    private const double HitRateDeltaThreshold = 0.1;
+    private const double DefaultBaselineBrierScore = 0.25;
+    private const double DefaultBaselineHitRate = 0.5;
+    private const int DefaultBaselineLatency = 50;
+    private const double HealthyModelWeight = 1.0;
+    private const double WatchStateWeight = 0.8;
+    private const double DegradeStateWeight = 0.5;
+    private const double QuarantineStateWeight = 0.0;
+    
     // LoggerMessage delegates for CA1848 compliance - ModelQuarantineManager
     private static readonly Action<ILogger, string, Exception?> ModelHealthCheckFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(5001, "ModelHealthCheckFailed"),
@@ -195,7 +205,15 @@ public class ModelQuarantineManager : IQuarantineManager
 
             await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            QuarantineModelFailed(_logger, modelId, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            QuarantineModelFailed(_logger, modelId, ex);
+        }
+        catch (InvalidOperationException ex)
         {
             QuarantineModelFailed(_logger, modelId, ex);
         }
@@ -475,7 +493,7 @@ public class ModelQuarantineManager : IQuarantineManager
         if (latencyIssue)
             return QuarantineReason.LatencyTooHigh;
         
-        if (hitRateDelta > 0.1)
+        if (hitRateDelta > HitRateDeltaThreshold)
             return QuarantineReason.HitRateTooLow;
         
         return QuarantineReason.BrierDeltaTooHigh;
@@ -487,9 +505,9 @@ public class ModelQuarantineManager : IQuarantineManager
         {
             return new ModelPerformance
             {
-                BrierScore = 0.25, // Default baseline
-                HitRate = 0.5,
-                Latency = 50
+                BrierScore = DefaultBaselineBrierScore, // Default baseline
+                HitRate = DefaultBaselineHitRate,
+                Latency = DefaultBaselineLatency
             };
         }
 
@@ -508,11 +526,11 @@ public class ModelQuarantineManager : IQuarantineManager
     {
         return healthState.State switch
         {
-            HealthState.Healthy => 1.0,
-            HealthState.Watch => 0.8,
-            HealthState.Degrade => 0.5,
-            HealthState.Quarantine => 0.0,
-            _ => 1.0
+            HealthState.Healthy => HealthyModelWeight,
+            HealthState.Watch => WatchStateWeight,
+            HealthState.Degrade => DegradeStateWeight,
+            HealthState.Quarantine => QuarantineStateWeight,
+            _ => HealthyModelWeight
         };
     }
 

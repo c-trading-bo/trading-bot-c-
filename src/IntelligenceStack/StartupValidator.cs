@@ -464,7 +464,17 @@ public class StartupValidator : IStartupValidator
             RegistryValidationPassed(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            RegistryValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
+        {
+            RegistryValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
         {
             RegistryValidationFailed(_logger, ex);
             return false;
@@ -494,7 +504,17 @@ public class StartupValidator : IStartupValidator
             CalibrationPassed(_logger, calibratedConf, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            CalibrationValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            CalibrationValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
         {
             CalibrationValidationFailed(_logger, ex);
             return false;
@@ -540,7 +560,17 @@ public class StartupValidator : IStartupValidator
             IdempotencyPassed(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            IdempotencyValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            IdempotencyValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
         {
             IdempotencyValidationFailed(_logger, ex);
             return false;
@@ -586,7 +616,17 @@ public class StartupValidator : IStartupValidator
             KillSwitchResponsive(_logger, stopwatch.ElapsedMilliseconds, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            KillSwitchValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            KillSwitchValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
         {
             KillSwitchValidationFailed(_logger, ex);
             return false;
@@ -624,7 +664,17 @@ public class StartupValidator : IStartupValidator
             LeaderElectionPassed(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LeaderElectionValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            LeaderElectionValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
         {
             LeaderElectionValidationFailed(_logger, ex);
             return false;

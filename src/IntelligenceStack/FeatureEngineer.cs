@@ -469,7 +469,15 @@ public class FeatureEngineer : IDisposable
 
             FeatureWeightsLogged(_logger, filePath, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            FeatureWeightsLogFailed(_logger, strategyId, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FeatureWeightsLogFailed(_logger, strategyId, ex);
+        }
+        catch (JsonException ex)
         {
             FeatureWeightsLogFailed(_logger, strategyId, ex);
         }

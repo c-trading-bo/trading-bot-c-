@@ -21,6 +21,43 @@ public class LineageTrackingSystem
 {
     private readonly ILogger<LineageTrackingSystem> _logger;
     
+    // LoggerMessage delegates for CA1848 performance compliance
+    private static readonly Action<ILogger, Exception?> LogFailedToGetFeatureStoreVersion =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2001, nameof(LogFailedToGetFeatureStoreVersion)),
+            "[LINEAGE] Failed to get feature store version");
+    
+    private static readonly Action<ILogger, string, Exception?> LogFailedToGetCalibrationMap =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2002, nameof(LogFailedToGetCalibrationMap)),
+            "[LINEAGE] Failed to get calibration map for model: {ModelFamily}");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToStoreDecisionLineage =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2003, nameof(LogFailedToStoreDecisionLineage)),
+            "[LINEAGE] Failed to store decision lineage");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToLoadLineageHistory =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2004, nameof(LogFailedToLoadLineageHistory)),
+            "[LINEAGE] Failed to load lineage history");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToValidateLineage =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2005, nameof(LogFailedToValidateLineage)),
+            "[LINEAGE] Failed to validate lineage data");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToGetModelVersion =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(2006, nameof(LogFailedToGetModelVersion)),
+            "[LINEAGE] Failed to get model version for decision");
+    
+    private static readonly Action<ILogger, string, Exception?> LogFailedToGetCalibrationMapId =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2007, nameof(LogFailedToGetCalibrationMapId)),
+            "[LINEAGE] Failed to get calibration map ID for model: {ModelId}");
+    
+    private static readonly Action<ILogger, string, Exception?> LogFailedToGetModelLineage =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2008, nameof(LogFailedToGetModelLineage)),
+            "[LINEAGE] Failed to get model lineage: {ModelId}");
+    
+    private static readonly Action<ILogger, string, Exception?> LogFailedToGetFeatureLineage =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2009, nameof(LogFailedToGetFeatureLineage)),
+            "[LINEAGE] Failed to get feature lineage: {Version}");
+    
     // S109 Magic Number Constants - Hash and ID Lengths
     private const int HashIdLength = 16;
     private const int ShortHashLength = 8;
@@ -443,7 +480,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LINEAGE] Failed to get feature store version");
+            LogFailedToGetFeatureStoreVersion(_logger, ex);
             return "unknown";
         }
     }
@@ -465,7 +502,7 @@ public class LineageTrackingSystem
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[LINEAGE] Failed to get calibration map for model: {ModelFamily}", modelFamily);
+                LogFailedToGetCalibrationMap(_logger, modelFamily, ex);
                 calibrationMaps[modelFamily] = "unknown";
             }
         }
@@ -541,7 +578,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LINEAGE] Failed to get model version for decision");
+            LogFailedToGetModelVersion(_logger, ex);
             return "unknown";
         }
     }
@@ -555,7 +592,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LINEAGE] Failed to get calibration map ID for model: {ModelId}", modelId);
+            LogFailedToGetCalibrationMapId(_logger, modelId, ex);
             return "unknown";
         }
     }
@@ -603,7 +640,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LINEAGE] Failed to get model lineage: {ModelId}", modelId);
+            LogFailedToGetModelLineage(_logger, modelId, ex);
             return null;
         }
     }
@@ -632,7 +669,7 @@ public class LineageTrackingSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[LINEAGE] Failed to get feature lineage: {Version}", version);
+            LogFailedToGetFeatureLineage(_logger, version, ex);
             return null;
         }
     }
