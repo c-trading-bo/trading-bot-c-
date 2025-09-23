@@ -586,9 +586,9 @@ public class NightlyParameterTuner
         return await baselineTask.ConfigureAwait(false);
     }
 
-    private async Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
+    private Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             if (_tuningHistory.TryGetValue(modelFamily, out var history))
             {
@@ -600,53 +600,50 @@ public class NightlyParameterTuner
                 return bestResult?.BestParameters;
             }
             return null;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task<Dictionary<string, double>?> LoadParametersFromRegistryAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(async () =>
+        try
         {
-            try
+            // Load from model registry
+            var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
+            if (File.Exists(configPath))
             {
-                // Load from model registry
-                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
-                if (File.Exists(configPath))
+                var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
+                var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
+                if (config?.TryGetValue("parameters", out var paramsObj) == true)
                 {
-                    var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
-                    var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
-                    if (config?.TryGetValue("parameters", out var paramsObj) == true)
+                    if (paramsObj is JsonElement jsonElement)
                     {
-                        if (paramsObj is JsonElement jsonElement)
-                        {
-                            return jsonElement.Deserialize<Dictionary<string, double>>();
-                        }
+                        return jsonElement.Deserialize<Dictionary<string, double>>();
                     }
                 }
             }
-            catch (IOException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (JsonException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            return null;
-        }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (JsonException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        return null;
     }
 
-    private async Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
+    private Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Return model-family specific intelligent defaults
             var defaults = new Dictionary<string, double>
@@ -672,7 +669,7 @@ public class NightlyParameterTuner
             }
 
             return defaults;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private static async Task<ModelMetrics> EvaluateParametersAsync(
@@ -931,7 +928,7 @@ public class NightlyParameterTuner
         return improvements > total / ImprovementThresholdDivisor;
     }
 
-    private async Task PromoteImprovedModelAsync(
+    private Task PromoteImprovedModelAsync(
         string modelFamily,
         OptimizationResult result,
         CancellationToken cancellationToken)
@@ -955,7 +952,7 @@ public class NightlyParameterTuner
         registration.Metadata["improved_auc"] = result.BestMetrics.AUC;
         registration.Metadata["tuning_date"] = DateTime.UtcNow;
 
-        await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
+        return _modelRegistry.RegisterModelAsync(registration, cancellationToken);
     }
 
     private async Task<bool> ShouldRollbackAsync(

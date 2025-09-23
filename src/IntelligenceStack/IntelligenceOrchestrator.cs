@@ -665,19 +665,19 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
 
     #region Private Helper Methods (delegated to IntelligenceOrchestratorHelpers)
 
-    private async Task LoadActiveModelsAsync(CancellationToken cancellationToken)
+    private Task LoadActiveModelsAsync(CancellationToken cancellationToken)
     {
-        await _helpers.LoadActiveModelsAsync(cancellationToken).ConfigureAwait(false);
+        return _helpers.LoadActiveModelsAsync(cancellationToken);
     }
 
-    private async Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        return await _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken).ConfigureAwait(false);
+        return _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken);
     }
 
-    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        return await _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken).ConfigureAwait(false);
+        return _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken);
     }
 
     private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
@@ -775,25 +775,25 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
     /// <summary>
     /// Push trade record to cloud after decision execution
     /// </summary>
-    public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    public Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken);
     }
 
     /// <summary>
     /// Push service metrics to cloud
     /// </summary>
-    public async Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
+    public Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken);
     }
 
     /// <summary>
     /// Push decision intelligence data to cloud
     /// </summary>
-    public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
+    public Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken);
     }
 
     #endregion
