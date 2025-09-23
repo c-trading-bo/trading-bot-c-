@@ -28,6 +28,9 @@ public class MamlLiveIntegration
     
     private Timer? _updateTimer;
     private DateTime _lastUpdate = DateTime.MinValue;
+    
+    // S109 Magic Number Constants - MAML Processing
+    private const int GradientComputationDelayMs = 20;
 
     // Constants for magic numbers (S109 compliance)
     private const int MaxExamplesPerAdaptation = 100;
@@ -389,7 +392,7 @@ public class MamlLiveIntegration
         return await Task.Run(async () =>
         {
             // Simulate async gradient computation with external ML compute services
-            await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(GradientComputationDelayMs, cancellationToken).ConfigureAwait(false);
             
             // Simplified MAML inner loop - in production would use actual gradient computation
             var step = new AdaptationStep

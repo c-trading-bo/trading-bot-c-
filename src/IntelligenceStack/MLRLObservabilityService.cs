@@ -101,6 +101,9 @@ public class MlrlObservabilityService : IDisposable
     private readonly Counter<int> _modelInferences;
     private readonly Histogram<double> _ensembleVariance;
 
+    // S109 Magic Number Constants for Observability
+    private const int HistogramSampleLimit = 10;
+
     // In-memory metrics storage for Prometheus export
     private readonly ConcurrentDictionary<string, MetricValue> _metricsStorage = new();
     private readonly object _lock = new();
@@ -405,7 +408,7 @@ public class MlrlObservabilityService : IDisposable
                         type = metric.Type.ToString(),
                         last_updated = metric.LastUpdated,
                         sample_count = metric.Samples.Count,
-                        samples = metric.Type == MetricType.Histogram ? metric.Samples.TakeLast(10).ToArray() : null
+                        samples = metric.Type == MetricType.Histogram ? metric.Samples.TakeLast(HistogramSampleLimit).ToArray() : null
                     };
                 }
             }
