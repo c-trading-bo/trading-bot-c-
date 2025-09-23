@@ -146,23 +146,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
     private static readonly Action<ILogger, Exception?> RLTrainingUpdateFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(4025, "RLTrainingUpdateFailed"),
             "[RL] RL training update failed");
-            
-    private static readonly Action<ILogger, Exception?> PredictionGenerationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4026, "PredictionGenerationFailed"),
-            "[PREDICTION] Prediction generation failed");
-            
-    private static readonly Action<ILogger, Exception?> FeatureCorrelationAnalysisStarted =
-        LoggerMessage.Define(LogLevel.Information, new EventId(4027, "FeatureCorrelationAnalysisStarted"),
-            "[CORRELATION] Performing feature correlation analysis");
-            
-    private static readonly Action<ILogger, string, double, Exception?> FeatureCorrelation =
-        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4028, "FeatureCorrelation"),
-            "[CORRELATION] {Feature}: {Correlation:F3}");
-            
-    private static readonly Action<ILogger, Exception?> CorrelationAnalysisFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4029, "CorrelationAnalysisFailed"),
-            "[CORRELATION] Correlation analysis failed");
-            
+    
     private static readonly Action<ILogger, string, string, Exception?> IntelligenceEventLogged =
         LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(4030, "IntelligenceEvent"),
             "[INTELLIGENCE] Event: {EventName} - {Message}");
@@ -170,14 +154,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
     private static readonly Action<ILogger, string, Exception?> EventRaiseFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "EventRaiseFailed"),
             "[INTELLIGENCE] Failed to raise event: {EventName}");
-            
-    private static readonly Action<ILogger, string, Exception?> ModelRetrievalFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "ModelRetrievalFailed"),
-            "[INTELLIGENCE] Failed to get model for regime: {RegimeType}");
-            
-    private static readonly Action<ILogger, Exception?> PredictionFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4033, "PredictionFailed"),
-            "[INTELLIGENCE] Prediction failed");
             
     private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(4034, "RealPredictionCalculationFailed"),
