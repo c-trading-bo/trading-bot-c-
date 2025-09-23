@@ -59,6 +59,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double ProfitableAccuracy = 0.75;
     private const double UnprofitableAccuracy = 0.25;
     private const double F1ScoreMultiplier = 2.0;
+    private const double SevereBreachThreshold = 2.0;
+    private const double PercentileP99 = 0.99;
     private const int MarketHoursStart = 9;
     private const int MarketHoursEnd = 16;
     private const int OvernightStart = 18;
@@ -596,7 +598,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 StateLoaded(_logger, state.RegimeWeights.Count, null);
             }
         }
-        catch (IOException ex)
+        catch (DirectoryNotFoundException ex)
         {
             StateLoadFailed(_logger, ex);
         }
@@ -604,7 +606,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         {
             StateLoadFailed(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
+        catch (IOException ex)
         {
             StateLoadFailed(_logger, ex);
         }
@@ -638,7 +640,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var json = JsonSerializer.Serialize(state, JsonOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (IOException ex)
+        catch (DirectoryNotFoundException ex)
         {
             StateSaveFailed(_logger, ex);
         }
@@ -646,7 +648,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         {
             StateSaveFailed(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
+        catch (IOException ex)
         {
             StateSaveFailed(_logger, ex);
         }
@@ -1134,7 +1136,7 @@ public class SloMonitor
             SevereSloBreach(_logger, metricType, null);
             // Implementation would trigger trading pause
         }
-        else if (breachSeverity >= 2.0) // SevereBreachThreshold
+        else if (breachSeverity >= SevereBreachThreshold)
         {
             // Moderate breach: downsize by 50%
             ModerateSloBreach(_logger, metricType, null);
@@ -1168,12 +1170,12 @@ public class SloMonitor
             // Calculate current P99 latencies
             if (_latencyHistory.TryGetValue("decision", out var decisionLatencies) && decisionLatencies.Count > 0)
             {
-                status.DecisionLatencyP99Ms = CalculatePercentile(decisionLatencies, 0.99); // PercentileP99
+                status.DecisionLatencyP99Ms = CalculatePercentile(decisionLatencies, PercentileP99);
             }
             
             if (_latencyHistory.TryGetValue("order", out var orderLatencies) && orderLatencies.Count > 0)
             {
-                status.OrderLatencyP99Ms = CalculatePercentile(orderLatencies, 0.99); // PercentileP99
+                status.OrderLatencyP99Ms = CalculatePercentile(orderLatencies, PercentileP99);
             }
             
             // Calculate error rate

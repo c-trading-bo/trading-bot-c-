@@ -32,6 +32,9 @@ public class ModelQuarantineManager : IQuarantineManager
     private const double WatchStateWeight = 0.8;
     private const double DegradeStateWeight = 0.5;
     private const double QuarantineStateWeight = 0.0;
+    private const int MinShadowDecisionsForReentry = 10;
+    private const double MaxBrierScoreForReentry = 0.3;
+    private const double MinHitRateForReentry = 0.45;
     
     // LoggerMessage delegates for CA1848 compliance - ModelQuarantineManager
     private static readonly Action<ILogger, string, Exception?> ModelHealthCheckFailed =
@@ -167,7 +170,17 @@ public class ModelQuarantineManager : IQuarantineManager
                 };
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            ModelHealthCheckFailed(_logger, modelId, ex);
+            return new QuarantineStatus
+            {
+                State = HealthState.Quarantine,
+                ModelId = modelId,
+                Reason = QuarantineReason.ExceptionRateTooHigh
+            };
+        }
+        catch (InvalidOperationException ex)
         {
             ModelHealthCheckFailed(_logger, modelId, ex);
             return new QuarantineStatus
@@ -263,7 +276,17 @@ public class ModelQuarantineManager : IQuarantineManager
                 return true;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            RestoreModelFailed(_logger, modelId, ex);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            RestoreModelFailed(_logger, modelId, ex);
+            return false;
+        }
+        catch (IOException ex)
         {
             RestoreModelFailed(_logger, modelId, ex);
             return false;
@@ -543,7 +566,7 @@ public class ModelQuarantineManager : IQuarantineManager
 
         // Check recent shadow performance
         var recentShadow = history.TakeLast(Math.Min(50, _config.ShadowDecisionsForReentry / 10)).ToList();
-        if (recentShadow.Count < 10)
+        if (recentShadow.Count < MinShadowDecisionsForReentry)
         {
             return false;
         }
@@ -552,7 +575,7 @@ public class ModelQuarantineManager : IQuarantineManager
         var avgHitRate = recentShadow.Average(p => p.HitRate);
         
         // Performance must be reasonable to qualify for restoration
-        return avgBrierScore < 0.3 && avgHitRate > 0.45;
+        return avgBrierScore < MaxBrierScoreForReentry && avgHitRate > MinHitRateForReentry;
     }
 
     private double CalculateExceptionRate(string modelId)

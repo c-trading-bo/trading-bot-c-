@@ -95,6 +95,8 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
 
     public async Task<RegimeTransition> CheckTransitionAsync(RegimeState currentState, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(currentState);
+        
         var newRegime = await DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
         
         return new RegimeTransition
@@ -270,6 +272,8 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
 
     public void UpdateMarketData(MarketData data)
     {
+        ArgumentNullException.ThrowIfNull(data);
+        
         lock (_lock)
         {
             // Update ATR history

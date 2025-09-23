@@ -1175,7 +1175,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true };
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -1305,7 +1313,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("metrics", payload, cancellationToken).ConfigureAwait(false);
             MetricsPushedDebug(_logger, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            MetricsPushFailed(_logger, ex);
+            // Don't throw - metrics push failures shouldn't stop trading
+        }
+        catch (TaskCanceledException ex)
+        {
+            MetricsPushFailed(_logger, ex);
+            // Don't throw - metrics push failures shouldn't stop trading
+        }
+        catch (ArgumentException ex)
         {
             MetricsPushFailed(_logger, ex);
             // Don't throw - metrics push failures shouldn't stop trading
@@ -1341,7 +1359,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken).ConfigureAwait(false);
             DecisionIntelligencePushedDebug(_logger, decision.DecisionId, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
+        }
+        catch (ArgumentException ex)
         {
             DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
         }

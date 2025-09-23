@@ -35,7 +35,9 @@ public class MamlLiveIntegration
     // Constants for magic numbers (S109 compliance)
     private const int MaxExamplesPerAdaptation = 100;
     private const int MinExamplesRequired = 10;
-
+    private const double MinPerformanceGainThreshold = -0.1;
+    private const double MaxWeightChangeThreshold = 0.5;
+    
     // LoggerMessage delegates for CA1848 compliance - MamlLiveIntegration
     private static readonly Action<ILogger, Exception?> PeriodicUpdatesStarted =
         LoggerMessage.Define(LogLevel.Information, new EventId(3001, "PeriodicUpdatesStarted"),
@@ -251,14 +253,34 @@ public class MamlLiveIntegration
 
             return result;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             MamlAdaptationFailed(_logger, regime.ToString(), ex);
             return new MamlAdaptationResult 
             { 
                 Regime = regime, 
                 Success = false, 
-                SkippedReason = $"Exception: {ex.Message}" 
+                SkippedReason = $"ArgumentException: {ex.Message}" 
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            MamlAdaptationFailed(_logger, regime.ToString(), ex);
+            return new MamlAdaptationResult 
+            { 
+                Regime = regime, 
+                Success = false, 
+                SkippedReason = $"InvalidOperationException: {ex.Message}" 
+            };
+        }
+        catch (IOException ex)
+        {
+            MamlAdaptationFailed(_logger, regime.ToString(), ex);
+            return new MamlAdaptationResult 
+            { 
+                Regime = regime, 
+                Success = false, 
+                SkippedReason = $"IOException: {ex.Message}" 
             };
         }
     }
@@ -341,7 +363,15 @@ public class MamlLiveIntegration
             
             _lastUpdate = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                PeriodicUpdateFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                PeriodicUpdateFailed(_logger, ex);
+            }
+            catch (IOException ex)
             {
                 PeriodicUpdateFailed(_logger, ex);
             }
@@ -435,14 +465,14 @@ public class MamlLiveIntegration
         return await Task.Run(() =>
         {
             // Check if performance gain is reasonable
-            if (step.PerformanceGain < -0.1)
+            if (step.PerformanceGain < MinPerformanceGainThreshold)
             {
                 return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" };
             }
 
             // Check if weight changes are within reasonable bounds
             var maxChange = step.WeightChanges.Values.Max(Math.Abs);
-            if (maxChange > 0.5)
+            if (maxChange > MaxWeightChangeThreshold)
             {
                 return new ValidationResult { IsValid = false, Reason = "Weight changes too large" };
             }

@@ -65,7 +65,6 @@ public class RLAdvisorSystem
     private const double VolumeNormalizationFactor = 500.0; // Volume normalization divisor
     private const double VolatilityBasisPointMultiplier = 100.0; // Convert to basis points
     private const double HourToDegreeConversion = 12.0; // Hours to convert for sine/cosine features
-    private const int PowerOfTwo = 2; // Power of 2 for calculations
     
     // LoggerMessage delegates for CA1848 compliance - RLAdvisorSystem
     private static readonly Action<ILogger, string, ExitAction, double, Exception?> RecommendationGenerated =
@@ -130,10 +129,6 @@ public class RLAdvisorSystem
 
 
 
-    private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataSDK =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4024, "LoadingHistoricalDataSDK"),
-            "[RL_ADVISOR] Loading historical data via SDK adapter for {Symbol}");
-
     private static readonly Action<ILogger, Exception?> SDKBridgeScriptNotFound =
         LoggerMessage.Define(LogLevel.Warning, new EventId(4025, "SDKBridgeScriptNotFound"),
             "[RL_ADVISOR] SDK bridge script not found, using fallback data");
@@ -153,26 +148,6 @@ public class RLAdvisorSystem
     private static readonly Action<ILogger, string, Exception?> BarDataParseFailed =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4029, "BarDataParseFailed"),
             "[RL_ADVISOR] Failed to parse bar data: {Error}");
-
-    private static readonly Action<ILogger, int, string, Exception?> HistoricalDataLoaded =
-        LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(4030, "HistoricalDataLoaded"),
-            "[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}");
-
-    private static readonly Action<ILogger, string, Exception?> HistoricalDataLoadFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "HistoricalDataLoadFailed"),
-            "[RL_ADVISOR] Failed to load historical data via SDK adapter for {Symbol}");
-
-    private static readonly Action<ILogger, Exception?> SaveTrainingResultFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(4032, "SaveTrainingResultFailed"),
-            "[RL_ADVISOR] Failed to save training result");
-
-    private static readonly Action<ILogger, bool, Exception?> StateLoaded =
-        LoggerMessage.Define<bool>(LogLevel.Information, new EventId(4033, "StateLoaded"),
-            "[RL_ADVISOR] Loaded state - order influence: {Enabled}");
-
-    private static readonly Action<ILogger, Exception?> StateLoadFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(4034, "StateLoadFailed"),
-            "[RL_ADVISOR] Failed to load state");
 
     // Additional LoggerMessage delegates for remaining CA1848 violations  
     private static readonly Action<ILogger, string, Exception?> LoadingHistoricalDataViaSDK =
@@ -219,8 +194,7 @@ public class RLAdvisorSystem
 
 
 
-    private const double RewardScalingFactor = 2.0; // Reward scaling factor
-    
+
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
     private readonly IDecisionLogger _decisionLogger;
@@ -260,6 +234,8 @@ public class RLAdvisorSystem
         ExitDecisionContext context,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         try
         {
             if (!_config.Enabled)
@@ -348,6 +324,8 @@ public class RLAdvisorSystem
         ExitOutcome outcome,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(outcome);
+        
         try
         {
             // Find the corresponding decision
@@ -1168,6 +1146,8 @@ public class RLAgent
         double[] nextState,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(action);
+        
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         

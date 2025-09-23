@@ -716,7 +716,15 @@ public class HistoricalTrainerWithCV
             
             CVResultsSaved(_logger, resultFile, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            CVResultsSaveFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            CVResultsSaveFailed(_logger, ex);
+        }
+        catch (ArgumentException ex)
         {
             CVResultsSaveFailed(_logger, ex);
         }
@@ -756,7 +764,15 @@ public class HistoricalTrainerWithCV
             
             BestModelRegistered(_logger, model.Id, bestFold.FoldNumber, null);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            ModelRegistrationFailed(_logger, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelRegistrationFailed(_logger, ex);
+        }
+        catch (IOException ex)
         {
             ModelRegistrationFailed(_logger, ex);
         }

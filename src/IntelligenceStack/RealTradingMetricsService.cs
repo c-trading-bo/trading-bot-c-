@@ -58,14 +58,6 @@ public class RealTradingMetricsService : BackgroundService
         LoggerMessage.Define<string, string, string, int, decimal, decimal>(LogLevel.Information, new EventId(6005, "FillRecorded"),
             "[REAL_METRICS] Fill recorded: {OrderId} {Symbol} {Side} {Quantity}@{FillPrice}, Estimated P&L: {PnL:F2}");
             
-    private static readonly Action<ILogger, int, decimal, Exception?> MetricsPushed =
-        LoggerMessage.Define<int, decimal>(LogLevel.Debug, new EventId(6006, "MetricsPushed"),
-            "[REAL_METRICS] Metrics pushed: {Positions} positions, P&L: {PnL}");
-            
-    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(6007, "MetricsPushFailed"),
-            "[REAL_METRICS] Failed to push metrics to cloud");
-            
     private static readonly Action<ILogger, string, string, int, decimal, Exception?> PositionRecorded =
         LoggerMessage.Define<string, string, int, decimal>(LogLevel.Information, new EventId(6008, "PositionRecorded"),
             "[REAL_METRICS] Position recorded: {Symbol} {Side} {Quantity}@{AvgPrice}");
