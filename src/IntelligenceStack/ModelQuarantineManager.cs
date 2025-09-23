@@ -592,10 +592,10 @@ public class ModelQuarantineManager : IQuarantineManager
         return minutesSinceLastException > 0 ? healthState.ExceptionCount / minutesSinceLastException : 0.0;
     }
 
-    private async Task IncrementShadowDecisionCountAsync(string modelId, CancellationToken cancellationToken)
+    private Task IncrementShadowDecisionCountAsync(string modelId, CancellationToken cancellationToken)
     {
         // Increment shadow decision count asynchronously to avoid blocking performance recording
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             lock (_lock)
             {
@@ -605,7 +605,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
                 }
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task SaveStateAsync(CancellationToken cancellationToken = default)

@@ -980,14 +980,14 @@ public class SloMonitor
         _config = config;
     }
 
-    public async Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    public Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken).ConfigureAwait(false);
+        return RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken);
     }
 
-    public async Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    public Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken).ConfigureAwait(false);
+        return RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken);
     }
 
     public async Task RecordErrorAsync(string errorType, CancellationToken cancellationToken = default)
@@ -1017,10 +1017,10 @@ public class SloMonitor
         }
     }
 
-    private async Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
+    private Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
     {
         // Record latency metrics asynchronously to avoid blocking performance monitoring
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -1064,13 +1064,13 @@ public class SloMonitor
             {
                 SloLatencyArgumentError(_logger, metricType, latencyMs, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    private async Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
+    private Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
     {
         // Check error budget asynchronously to avoid blocking SLO monitoring
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -1103,7 +1103,7 @@ public class SloMonitor
             {
                 SloDivisionByZeroError(_logger, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private void HandleSLOBreach(string metricType, double actualValue, double threshold)

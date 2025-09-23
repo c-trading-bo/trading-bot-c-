@@ -503,16 +503,13 @@ public class HistoricalTrainerWithCV
         List<MarketDataPoint> allData,
         CancellationToken cancellationToken)
     {
-        // Perform async leak-safe example generation with external validation
-        return await Task.Run(async () =>
-        {
-            // Simulate async validation against external data integrity services
-            await Task.Delay(CrossValidationFolds, cancellationToken).ConfigureAwait(false);
-            
-            // Find future outcome with embargo to prevent lookahead bias
-            var embargoTime = dataPoint.Timestamp.Add(_embargoWindow);
-            var futureData = allData.Where(d => d.Timestamp > embargoTime).Take(20).ToList();
+        // Simulate async validation against external data integrity services
+        await Task.Delay(CrossValidationFolds, cancellationToken).ConfigureAwait(false);
         
+        // Find future outcome with embargo to prevent lookahead bias
+        var embargoTime = dataPoint.Timestamp.Add(_embargoWindow);
+        var futureData = allData.Where(d => d.Timestamp > embargoTime).Take(20).ToList();
+    
         if (futureData.Count < DefaultIterations)
         {
             return null; // Not enough future data for reliable labeling
@@ -536,7 +533,6 @@ public class HistoricalTrainerWithCV
         }
         
         return example;
-        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<List<MarketDataPoint>> GetMarketDataAsync(
@@ -545,46 +541,42 @@ public class HistoricalTrainerWithCV
         DateTime endTime,
         CancellationToken cancellationToken)
     {
-        // Production-grade market data retrieval with async I/O operations
-        return await Task.Run(async () =>
+        var dataPoints = new List<MarketDataPoint>();
+        
+        // Step 1: Load historical data from multiple sources asynchronously
+        var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
+        var backupDataTask = LoadBackupMarketDataAsync(symbol, startTime, endTime, cancellationToken);
+        var volumeDataTask = LoadVolumeDataAsync(cancellationToken);
+        
+        try
         {
-            var dataPoints = new List<MarketDataPoint>();
+            // Prefer primary data source
+            dataPoints = await primaryDataTask.ConfigureAwait(false);
             
-            // Step 1: Load historical data from multiple sources asynchronously
-            var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
-            var backupDataTask = LoadBackupMarketDataAsync(symbol, startTime, endTime, cancellationToken);
-            var volumeDataTask = LoadVolumeDataAsync(cancellationToken);
-            
-            try
+            if (dataPoints.Count == 0)
             {
-                // Prefer primary data source
-                dataPoints = await primaryDataTask.ConfigureAwait(false);
-                
-                if (dataPoints.Count == 0)
-                {
-                    PrimaryDataSourceFailed(_logger, symbol, null);
-                    dataPoints = await backupDataTask.ConfigureAwait(false);
-                }
-                
-                // Enhance with volume data
-                var volumeData = await volumeDataTask.ConfigureAwait(false);
-                EnhanceWithVolumeData(dataPoints, volumeData);
-            }
-            catch (Exception ex)
-            {
-                // FAIL FAST: No synthetic data generation allowed
-                MarketDataLoadFailed(_logger, symbol, ex);
-                throw new InvalidOperationException($"Real market data required for training {symbol}. " +
-                    "System will not operate on synthetic data. Implement real market data loading from TopstepX API.");
+                PrimaryDataSourceFailed(_logger, symbol, null);
+                dataPoints = await backupDataTask.ConfigureAwait(false);
             }
             
-            // Step 2: Apply data quality checks and cleaning
-            dataPoints = await ApplyDataQualityChecksAsync(dataPoints, cancellationToken).ConfigureAwait(false);
-            
-            DataPointsRetrieved(_logger, dataPoints.Count, symbol, startTime, endTime, null);
-            
-            return dataPoints;
-        }, cancellationToken).ConfigureAwait(false);
+            // Enhance with volume data
+            var volumeData = await volumeDataTask.ConfigureAwait(false);
+            EnhanceWithVolumeData(dataPoints, volumeData);
+        }
+        catch (Exception ex)
+        {
+            // FAIL FAST: No synthetic data generation allowed
+            MarketDataLoadFailed(_logger, symbol, ex);
+            throw new InvalidOperationException($"Real market data required for training {symbol}. " +
+                "System will not operate on synthetic data. Implement real market data loading from TopstepX API.");
+        }
+        
+        // Step 2: Apply data quality checks and cleaning
+        dataPoints = await ApplyDataQualityChecksAsync(dataPoints, cancellationToken).ConfigureAwait(false);
+        
+        DataPointsRetrieved(_logger, dataPoints.Count, symbol, startTime, endTime, null);
+        
+        return dataPoints;
     }
     
     private static async Task<List<MarketDataPoint>> LoadPrimaryMarketDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
