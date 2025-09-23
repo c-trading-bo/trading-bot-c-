@@ -59,8 +59,6 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double ProfitableAccuracy = 0.75;
     private const double UnprofitableAccuracy = 0.25;
     private const double F1ScoreMultiplier = 2.0;
-    private const double SevereBreachThreshold = 2.0;
-    private const double PercentileP99 = 0.99;
     private const int MarketHoursStart = 9;
     private const int MarketHoursEnd = 16;
     private const int OvernightStart = 18;
@@ -68,6 +66,17 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     private const double DefaultF1Score = 0.6;
     private const double EpsilonForDivisionCheck = 1e-10;
+    
+    // Additional S109 constants for confidence calculations and bounds
+    private const double RiskRewardNormalizationFactor = 3.0;
+    private const double MinConfidenceBound = 0.1;
+    private const double MaxConfidenceBound = 0.95;
+    
+    // Additional S109 constants for precision calculations
+    private const double MinPrecisionBound = 0.4;
+    private const double MaxPrecisionBound = 0.8;
+    private const double PrecisionBoostFactor = 0.1;
+    private const double DefaultPrecision = 0.6;
     
     // Additional S109 constants for SLO breach thresholds and timing
     private const int ModelPersistenceDelayMs = 10;
@@ -760,7 +769,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (tradeRecord.Metadata.TryGetValue("risk_reward_ratio", out var rrRatio))
             {
                 var rr = Convert.ToDouble(rrRatio);
-                factors.Add(Math.Min(1.0, rr / 3.0)); // Normalize 3:1 RR to confidence 1.0
+                factors.Add(Math.Min(1.0, rr / RiskRewardNormalizationFactor)); // Normalize 3:1 RR to confidence 1.0
             }
             
             // Factor 3: Market condition alignment
@@ -773,7 +782,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (factors.Count > 0)
             {
                 var avgConfidence = factors.Average();
-                return Math.Max(0.1, Math.Min(0.95, avgConfidence)); // Bound between 0.1-0.95
+                return Math.Max(MinConfidenceBound, Math.Min(MaxConfidenceBound, avgConfidence)); // Bound between 0.1-0.95
             }
             
             // Fallback: calculate from trade timing and market conditions
@@ -828,15 +837,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Precision: True Positives / (True Positives + False Positives)
             // For trading: profitable trades / total trades taken
             var hitRate = CalculateTradeHitRate(tradeRecord);
-            return Math.Max(0.4, Math.Min(0.8, hitRate + 0.1)); // Bound between 0.4-0.8
+            return Math.Max(MinPrecisionBound, Math.Min(MaxPrecisionBound, hitRate + PrecisionBoostFactor)); // Bound between 0.4-0.8
         }
         catch (ArgumentException)
         {
-            return 0.6; // Default precision
+            return DefaultPrecision; // Default precision
         }
         catch (OverflowException)
         {
-            return 0.6; // Default precision
+            return DefaultPrecision; // Default precision
         }
     }
 
@@ -907,6 +916,8 @@ public class SloMonitor
     private const int DefaultRetryCount = 10;
     private const double DefaultRetryCount3 = 3.0;
     private const double PercentageDivisor = 100.0;
+    private const double SevereBreachThreshold = 2.0;
+    private const double PercentileP99 = 0.99;
     
     // LoggerMessage delegates for CA1848 compliance - SloMonitor
     private static readonly Action<ILogger, string, Exception?> SloObjectDisposedError =
@@ -975,14 +986,14 @@ public class SloMonitor
         _config = config;
     }
 
-    public async Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    public Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken).ConfigureAwait(false);
+        return RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken);
     }
 
-    public async Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    public Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken).ConfigureAwait(false);
+        return RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken);
     }
 
     public async Task RecordErrorAsync(string errorType, CancellationToken cancellationToken = default)
@@ -1012,10 +1023,10 @@ public class SloMonitor
         }
     }
 
-    private async Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
+    private Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
     {
         // Record latency metrics asynchronously to avoid blocking performance monitoring
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -1059,13 +1070,13 @@ public class SloMonitor
             {
                 SloLatencyArgumentError(_logger, metricType, latencyMs, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    private async Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
+    private Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
     {
         // Check error budget asynchronously to avoid blocking SLO monitoring
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -1098,7 +1109,7 @@ public class SloMonitor
             {
                 SloDivisionByZeroError(_logger, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private void HandleSLOBreach(string metricType, double actualValue, double threshold)

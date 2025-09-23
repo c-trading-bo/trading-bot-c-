@@ -38,6 +38,14 @@ public class NightlyParameterTuner
     private const int EnsembleSizeOption1 = 5;
     private const int EnsembleSizeOption2 = 7;
     private const double DefaultAucFallback = 0.0;
+    private const int ExplorationPhaseThreshold = 5;
+    private const int RandomNumberGeneratorRange = 10000;
+    private const double RandomNumberNormalizationFactor = 10000.0;
+    private const double AucWeight = 0.5;
+    private const double PrAt10Weight = 0.3;
+    private const double EdgeBpsWeight = 0.2;
+    private const double PrAt10Divisor = 0.2;
+    private const double EdgeBpsDivisor = 10.0;
     private const double DefaultLearningRate = 0.01;
     private const int DefaultHiddenSize = 128;
     private const double DefaultDropoutRate = 0.1;
@@ -277,7 +285,37 @@ public class NightlyParameterTuner
 
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (IOException ex)
+        {
+            NightlyTuningFailed(_logger, modelFamily, ex);
+            return new NightlyTuningResult 
+            { 
+                ModelFamily = modelFamily, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (TimeoutException ex)
         {
             NightlyTuningFailed(_logger, modelFamily, ex);
             return new NightlyTuningResult 
@@ -665,7 +703,7 @@ public class NightlyParameterTuner
         
         foreach (var (paramName, range) in session.ParameterSpace)
         {
-            if (trial < 5)
+            if (trial < ExplorationPhaseThreshold)
             {
                 // Exploration phase - sample randomly
                 candidate[paramName] = SampleFromRange(range);
@@ -773,8 +811,8 @@ public class NightlyParameterTuner
     {
         return range.Type switch
         {
-            ParameterType.Uniform => range.Min + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (range.Max - range.Min),
-            ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (Math.Log(range.Max) - Math.Log(range.Min))),
+            ParameterType.Uniform => range.Min + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, RandomNumberGeneratorRange) / RandomNumberNormalizationFactor) * (range.Max - range.Min),
+            ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, RandomNumberGeneratorRange) / RandomNumberNormalizationFactor) * (Math.Log(range.Max) - Math.Log(range.Min))),
             ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Count)],
             _ => range.Min
         };
@@ -783,7 +821,7 @@ public class NightlyParameterTuner
     private static double CalculateFitness(ModelMetrics metrics)
     {
         // Weighted combination of metrics for fitness calculation
-        return metrics.AUC * 0.5 + (metrics.PrAt10 / 0.2) * 0.3 + (metrics.EdgeBps / 10.0) * 0.2;
+        return metrics.AUC * AucWeight + (metrics.PrAt10 / PrAt10Divisor) * PrAt10Weight + (metrics.EdgeBps / EdgeBpsDivisor) * EdgeBpsWeight;
     }
 
     private static Individual TournamentSelection(List<Individual> population)

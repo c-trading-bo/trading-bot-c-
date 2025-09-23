@@ -554,10 +554,10 @@ public class QuarantineManager : IQuarantineManager
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task QuarantineModelAsync(string modelId, QuarantineReason reason, CancellationToken cancellationToken = default)
+    public Task QuarantineModelAsync(string modelId, QuarantineReason reason, CancellationToken cancellationToken = default)
     {
         // Perform quarantine operation asynchronously to avoid blocking the calling thread
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -590,13 +590,13 @@ public class QuarantineManager : IQuarantineManager
             {
                 FailedToQuarantineModel(_logger, modelId, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    public async Task<bool> TryRestoreModelAsync(string modelId, CancellationToken cancellationToken = default)
+    public Task<bool> TryRestoreModelAsync(string modelId, CancellationToken cancellationToken = default)
     {
         // Perform restoration check asynchronously
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -638,13 +638,13 @@ public class QuarantineManager : IQuarantineManager
                 FailedToRestoreModel(_logger, modelId, ex);
                 return false;
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    public async Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
+    public Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
     {
         // Get quarantined models asynchronously
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             lock (_lock)
             {
@@ -653,7 +653,7 @@ public class QuarantineManager : IQuarantineManager
                     .Select(kvp => kvp.Key)
                     .ToList();
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     public async Task UpdateModelPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)

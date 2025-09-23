@@ -708,24 +708,20 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private static async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
     {
-        // Perform async prediction with model inference
-        return await Task.Run(async () =>
-        {
-            // Simulate async model inference with ONNX runtime
-            await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
-            
-            // Simplified prediction - in production would use ONNX runtime
-            // Return a sample confidence based on spread and volume
-            var spread = features.Features.GetValueOrDefault("spread", 0);
-            var volume = features.Features.GetValueOrDefault("volume", 0);
-            
-            // Tighter spreads and higher volume = higher confidence
-            var baseConfidence = 0.5;
-            var spreadFactor = Math.Max(0, 1 - (spread * 0.1));
-            var volumeFactor = Math.Min(1, volume / 10000.0);
-            
-            return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
-        }, cancellationToken).ConfigureAwait(false);
+        // Simulate async model inference with ONNX runtime
+        await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
+        
+        // Simplified prediction - in production would use ONNX runtime
+        // Return a sample confidence based on spread and volume
+        var spread = features.Features.GetValueOrDefault("spread", 0);
+        var volume = features.Features.GetValueOrDefault("volume", 0);
+        
+        // Tighter spreads and higher volume = higher confidence
+        var baseConfidence = 0.5;
+        var spreadFactor = Math.Max(0, 1 - (spread * 0.1));
+        var volumeFactor = Math.Min(1, volume / 10000.0);
+        
+        return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
     }
 
     private async Task<MLPrediction> CalculateRealPredictionAsync(FeatureSet features, MarketData data, CancellationToken cancellationToken)
@@ -1073,11 +1069,11 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                (lastMaintenance.Date < now.Date || lastMaintenance == DateTime.MinValue);
     }
 
-    private static async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
+    private static Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
     {
         // Check for models that should be promoted
         // Implementation would check recent performance metrics
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private void RaiseEvent(string eventType, string message)
@@ -1212,7 +1208,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
             Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
             Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000)),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume)),
             Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
             Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
             Timestamp = DateTime.UtcNow
