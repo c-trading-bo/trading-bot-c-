@@ -977,10 +977,10 @@ public class LineageTrackingSystem
         return calibrationLineage;
     }
 
-    private async Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
+    private Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
     {
         // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var relatedEvents = new List<LineageEvent>();
             
@@ -995,7 +995,7 @@ public class LineageTrackingSystem
             }
             
             return relatedEvents.OrderBy(e => e.Timestamp).ToList();
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private static string ExtractFamilyFromId(string modelId)

@@ -490,6 +490,8 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
 
     public async Task<WorkflowExecutionResult> ExecuteActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         try
         {
             var result = action switch
