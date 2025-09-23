@@ -464,7 +464,17 @@ public class StartupValidator : IStartupValidator
             RegistryValidationPassed(_logger, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            RegistryValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
+        {
+            RegistryValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
         {
             RegistryValidationFailed(_logger, ex);
             return false;
@@ -494,7 +504,17 @@ public class StartupValidator : IStartupValidator
             CalibrationPassed(_logger, calibratedConf, null);
             return true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            CalibrationValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            CalibrationValidationFailed(_logger, ex);
+            return false;
+        }
+        catch (TimeoutException ex)
         {
             CalibrationValidationFailed(_logger, ex);
             return false;

@@ -597,7 +597,12 @@ public class QuarantineManager : IQuarantineManager
                     return false;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                FailedToRestoreModel(_logger, modelId, ex);
+                return false;
+            }
+            catch (ArgumentException ex)
             {
                 FailedToRestoreModel(_logger, modelId, ex);
                 return false;
