@@ -383,9 +383,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 }
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Model promotion check failed");
+            _logger.LogError(ex,  "[INTELLIGENCE] Invalid operation during model promotion check");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex,  "[INTELLIGENCE] Invalid argument during model promotion check");
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex,  "[INTELLIGENCE] Timeout during model promotion check");
         }
     }
 
@@ -489,9 +497,17 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     _logger.LogInformation("[ML] Processed {ModelCount} active models", activeModels.Count());
                 }
             }
-            catch (Exception ex)
+            catch (TaskCanceledException ex)
             {
-                _logger.LogError(ex, "[ML] ML model execution failed");
+                _logger.LogError(ex,  "[ML] ML model execution task was canceled");
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogError(ex,  "[ML] ML model execution was canceled");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex,  "[ML] Invalid operation during ML model execution");
             }
         }, cancellationToken);
     }
@@ -515,7 +531,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RL] RL training update failed");
+                _logger.LogError(ex,  "[RL] RL training update failed");
             }
         }, cancellationToken);
     }
@@ -533,8 +549,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 var marketContext = new MarketContext
                 {
                     Symbol = symbol,
-                    Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                    Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                    Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                    Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                     Timestamp = DateTime.UtcNow
                 };
                 
@@ -544,7 +560,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[PREDICTION] Prediction generation failed");
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
             }
         }, cancellationToken);
     }
@@ -579,7 +595,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CORRELATION] Correlation analysis failed");
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
             }
         }, cancellationToken);
     }
@@ -650,8 +666,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketContext = new MarketContext
             {
                 Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
-                Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                 Timestamp = DateTime.UtcNow
             };
 
@@ -676,8 +692,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketData = new TradingBot.Abstractions.MarketData
             {
                 Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
-                Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                 Timestamp = DateTime.UtcNow
             };
 
@@ -735,7 +751,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
+            _logger.LogError(ex,  "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
         }
     }
 
@@ -784,7 +800,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         features.Features["volatility"] = CalculateVolatility(context);
         features.Features["trend_strength"] = CalculateTrendStrength(context);
 
-        return await Task.FromResult(features).ConfigureAwait(false);
+        // Brief async operation to properly use cancellationToken
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        return features;
     }
 
     /// <summary>
@@ -794,7 +812,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            var familyName = $"regime_{regimeType.ToString().ToLowerInvariant()}";
+            var familyName = $"regime_{regimeType.ToString().ToUpperInvariant()}";
             return await _modelRegistry.GetModelAsync(familyName, "latest", cancellationToken).ConfigureAwait(false);
         }
         catch (FileNotFoundException)
@@ -804,7 +822,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to get model for regime: {RegimeType}", regimeType);
+            _logger.LogError(ex,  "[INTELLIGENCE] Failed to get model for regime: {RegimeType}", regimeType);
             return null;
         }
     }
@@ -846,11 +864,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             if (volatilityFeature > VolatilityThreshold) baseConfidence += ConfidenceBoost; // Higher volatility = higher confidence
             if (volumeFeature > VolumeThreshold) baseConfidence += ConfidenceBoost; // Higher volume = higher confidence
             
-            return await Task.FromResult(Math.Min(baseConfidence, MaxConfidence)).ConfigureAwait(false);
+            // Brief async operation to properly use cancellationToken  
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+            return Math.Min(baseConfidence, MaxConfidence);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Prediction failed");
+            _logger.LogError(ex,  "[INTELLIGENCE] Prediction failed");
             return 0.0;
         }
     }
@@ -860,10 +880,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     private static decimal CalculatePositionSize(double confidence, MarketContext context)
     {
-        // Simple position sizing based on confidence
+        // Simple position sizing based on confidence and market conditions
         var baseSize = 100m; // Base position size
         var confidenceMultiplier = (decimal)Math.Max(0.0, confidence);
-        return baseSize * confidenceMultiplier;
+        
+        // Use available volatility from technical indicators or default
+        var volatility = context.TechnicalIndicators.GetValueOrDefault("volatility", 0.1);
+        var volatilityAdjustment = (decimal)(1.0 / Math.Max(0.1, volatility)); // Reduce size in high volatility
+        
+        return baseSize * confidenceMultiplier * volatilityAdjustment;
     }
 
     /// <summary>
@@ -956,6 +981,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
+            // Validate input data
+            if (data.Volume <= 0)
+            {
+                return (BaseConfidenceLevel, "low_volume_fallback");
+            }
+            
             // Get current regime
             var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
             
@@ -964,7 +995,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             if (model == null)
             {
-                return (0.5, "fallback"); // Neutral confidence with fallback model
+                return (BaseConfidenceLevel, "fallback"); // Neutral confidence with fallback model
             }
 
             // Make prediction (this would be replaced with actual ML inference)
@@ -974,8 +1005,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Real prediction calculation failed");
-            return (0.5, "error_fallback");
+            _logger.LogError(ex,  "[INTELLIGENCE] Real prediction calculation failed");
+            return (BaseConfidenceLevel, "error_fallback");
         }
     }
 

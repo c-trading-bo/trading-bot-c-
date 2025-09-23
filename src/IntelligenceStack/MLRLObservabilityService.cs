@@ -467,8 +467,8 @@ public class MlrlObservabilityService : IDisposable
         {
             foreach (var (name, metric) in _metricsStorage)
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"# TYPE {metric.Name.Split('{')[0]} {metric.Type.ToString().ToLower()}");
-                sb.AppendLine($"{name} {metric.Value}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"# TYPE {metric.Name.Split('{')[0]} {metric.Type.ToString().ToLower(CultureInfo.InvariantCulture)}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{name} {metric.Value}");
             }
         }
         

@@ -17,7 +17,7 @@ rich>=14.1.0
 signalrcore>=0.9.5
 
 # ML/RL Dependencies for Backtest Validation and Model Training
-pandas>=2.1.0
+pandas>=2.3.2
 pandas-ta>=0.3.14b0
 yfinance>=0.2.28
 numpy>=1.24.0

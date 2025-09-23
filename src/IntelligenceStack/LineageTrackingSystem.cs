@@ -21,6 +21,9 @@ public class LineageTrackingSystem
 {
     private readonly ILogger<LineageTrackingSystem> _logger;
     
+    // Cached JsonSerializerOptions for CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, Exception?> LogFailedToGetFeatureStoreVersion =
         LoggerMessage.Define(LogLevel.Warning, new EventId(2001, nameof(LogFailedToGetFeatureStoreVersion)),
@@ -557,8 +560,7 @@ public class LineageTrackingSystem
         };
         
         var configJson = JsonSerializer.Serialize(configData);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(configJson));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(configJson));
         return Convert.ToHexString(hash)[..HashIdLength];
     }
 
@@ -661,8 +663,7 @@ public class LineageTrackingSystem
         };
         
         var inputJson = JsonSerializer.Serialize(inputData);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(inputJson));
         return Convert.ToHexString(hash)[..HashIdLength];
     }
 
@@ -840,7 +841,7 @@ public class LineageTrackingSystem
     private Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
     {
         var snapshotFile = Path.Combine(_lineagePath, "snapshots", $"{snapshot.SnapshotId}.json");
-        var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(snapshot, JsonOptions);
         return File.WriteAllTextAsync(snapshotFile, json, cancellationToken);
     }
 
@@ -859,14 +860,14 @@ public class LineageTrackingSystem
         };
 
         var decisionFile = Path.Combine(_lineagePath, "decisions", $"{decisionId}.json");
-        var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(record, JsonOptions);
         await File.WriteAllTextAsync(decisionFile, json, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
     {
         var eventFile = Path.Combine(_lineagePath, "events", $"{lineageEvent.EventId}.json");
-        var json = JsonSerializer.Serialize(lineageEvent, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(lineageEvent, JsonOptions);
         await File.WriteAllTextAsync(eventFile, json, cancellationToken).ConfigureAwait(false);
     }
 

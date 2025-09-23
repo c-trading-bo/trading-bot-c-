@@ -18,6 +18,9 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ObservabilityDashboard : IDisposable
 {
+    // Cached JsonSerializerOptions for CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, Exception?> LogFailedToGetDashboardData =
         LoggerMessage.Define(LogLevel.Error, new EventId(4001, nameof(LogFailedToGetDashboardData)),
@@ -225,8 +228,8 @@ public class ObservabilityDashboard : IDisposable
                 FromRegime = m.Tags.GetValueOrDefault("from_regime", "Unknown"),
                 ToRegime = m.Tags.GetValueOrDefault("to_regime", "Unknown"),
                 Confidence = m.Value,
-                Duration = TimeSpan.FromMinutes(m.Tags.ContainsKey("duration_min") ? 
-                    double.Parse(m.Tags["duration_min"], CultureInfo.InvariantCulture) : DefaultDurationMin)
+                Duration = TimeSpan.FromMinutes(m.Tags.TryGetValue("duration_min", out var duration) ? 
+                    double.Parse(duration, CultureInfo.InvariantCulture) : DefaultDurationMin)
             })
             .ToList();
 
@@ -695,7 +698,7 @@ public class ObservabilityDashboard : IDisposable
         
         // Generate JSON data files for dashboard
         var dataFile = Path.Combine(_dashboardPath, "data", "dashboard_data.json");
-        var json = JsonSerializer.Serialize(dashboardData, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(dashboardData, JsonOptions);
         await File.WriteAllTextAsync(dataFile, json).ConfigureAwait(false);
         
         // Generate summary metrics file
@@ -711,7 +714,7 @@ public class ObservabilityDashboard : IDisposable
             error_rate = dashboardData.GoldenSignals?.ErrorRate?.ErrorRatePercent ?? 0
         };
         
-        var summaryJson = JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true });
+        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
         await File.WriteAllTextAsync(summaryFile, summaryJson).ConfigureAwait(false);
     }
 
@@ -719,9 +722,10 @@ public class ObservabilityDashboard : IDisposable
     {
         lock (_lock)
         {
-            if (!_metrics.ContainsKey(name))
+            if (!_metrics.TryGetValue(name, out var timeSeries))
             {
-                _metrics[name] = new MetricTimeSeries { Name = name };
+                timeSeries = new MetricTimeSeries { Name = name };
+                _metrics[name] = timeSeries;
             }
             
             var point = new MetricPoint
@@ -739,7 +743,7 @@ public class ObservabilityDashboard : IDisposable
                 }
             }
             
-            _metrics[name].Points.Add(point);
+            timeSeries.Points.Add(point);
             
             // Keep only recent points
             if (_metrics[name].Points.Count > MaxMetricPoints)

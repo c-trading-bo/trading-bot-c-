@@ -579,17 +579,18 @@ public class MamlLiveIntegration
                 modelState.IsStable = true;
 
                 // Store adaptation history
-                if (!_adaptationHistory.ContainsKey(modelState.RegimeKey))
+                if (!_adaptationHistory.TryGetValue(modelState.RegimeKey, out var history))
                 {
-                    _adaptationHistory[modelState.RegimeKey] = new List<AdaptationStep>();
+                    history = new List<AdaptationStep>();
+                    _adaptationHistory[modelState.RegimeKey] = history;
                 }
                 
-                _adaptationHistory[modelState.RegimeKey].Add(step);
+                history.Add(step);
                 
                 // Keep only recent history
-                if (_adaptationHistory[modelState.RegimeKey].Count > MaxAdaptationHistoryCount)
+                if (history.Count > MaxAdaptationHistoryCount)
                 {
-                    _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
+                    history.RemoveAt(0);
                 }
             }
         }, cancellationToken).ConfigureAwait(false);
@@ -659,13 +660,13 @@ public class MamlLiveIntegration
     private static double GetStrategyPrediction(TrainingExample example, string strategyKey)
     {
         // Get deterministic prediction based on actual features without random noise
-        var basePrediction = example.Features.Values.FirstOrDefault();
+        var basePrediction = example.Features.Values[0];
         
         // Apply strategy-specific scaling based on strategy type
         var strategyMultiplier = strategyKey switch
         {
-            var key when key.Contains("Conservative") => 0.8,
-            var key when key.Contains("Aggressive") => 1.2,
+            var key when key.Contains("Conservative", StringComparison.Ordinal) => 0.8,
+            var key when key.Contains("Aggressive", StringComparison.Ordinal) => 1.2,
             _ => 1.0
         };
         

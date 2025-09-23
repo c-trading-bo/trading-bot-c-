@@ -826,7 +826,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Simplified accuracy calculation based on trade profitability
             var entryPrice = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("entry_price", tradeRecord.FillPrice), CultureInfo.InvariantCulture);
             var exitPrice = tradeRecord.FillPrice;
-            var side = tradeRecord.Side.ToUpper();
+            var side = tradeRecord.Side.ToUpper(CultureInfo.InvariantCulture);
             
             var profitLoss = side == "BUY" ? exitPrice - entryPrice : entryPrice - exitPrice;
             return profitLoss > 0 ? ProfitableAccuracy : UnprofitableAccuracy; // Binary accuracy: profitable = accurate

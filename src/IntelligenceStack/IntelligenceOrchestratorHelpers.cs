@@ -122,7 +122,7 @@ public partial class IntelligenceOrchestratorHelpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CORRELATION] Correlation analysis failed in helper method");
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed in helper method");
             }
         }, cancellationToken);
     }

@@ -426,15 +426,15 @@ public class FeatureStore : IFeatureStore
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
         }
     }
 

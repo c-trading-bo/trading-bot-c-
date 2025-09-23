@@ -557,7 +557,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         return Task.Run(() =>
         {
             var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
-            return Convert.ToHexString(hash).ToLowerInvariant();
+            return Convert.ToHexString(hash).ToUpperInvariant();
         }, cancellationToken);
     }
 

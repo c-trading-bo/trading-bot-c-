@@ -30,6 +30,9 @@ public class RLAdvisorSystem
     private const int SellActionType = 2;
     private const int HoldActionType = 0;
     
+    // Cached JsonSerializerOptions for CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, Exception?> LogFailedToSaveTrainingResult =
         LoggerMessage.Define(LogLevel.Warning, new EventId(1001, nameof(LogFailedToSaveTrainingResult)),
@@ -508,7 +511,7 @@ public class RLAdvisorSystem
         
         foreach (var context in contexts)
         {
-            var agentType = context.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
+            var agentType = context.Contains("CVaR", StringComparison.Ordinal) ? RLAgentType.CVarPPO : RLAgentType.PPO;
             _agents[context] = new RLAdvisorModel(_logger, agentType, context, _config);
         }
     }
@@ -519,7 +522,7 @@ public class RLAdvisorSystem
         {
             if (!_agents.TryGetValue(agentKey, out var agent))
             {
-                var agentType = agentKey.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
+                var agentType = agentKey.Contains("CVaR", StringComparison.Ordinal) ? RLAgentType.CVarPPO : RLAgentType.PPO;
                 agent = new RLAdvisorModel(_logger, agentType, agentKey, _config);
                 _agents[agentKey] = agent;
             }
@@ -1103,7 +1106,7 @@ public class RLAdvisorSystem
         try
         {
             var resultFile = Path.Combine(_statePath, $"training_{result.Symbol}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-            var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(result, JsonOptions);
             await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException ex)
