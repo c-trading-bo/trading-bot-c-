@@ -28,16 +28,17 @@ public class MicrostructureIntegrationTest
     public MicrostructureIntegrationTest()
     {
         var services = new ServiceCollection();
-        
+
         // Configure logging
         services.AddLogging(builder => builder.AddConsole());
-        
+
         // Configure TradingConfiguration for MLConfigurationService
         services.Configure<TradingConfiguration>(config =>
         {
-            config.DefaultPositionSizeMultiplier = 2.5;
+            // Use production default from appsettings (avoid hardcoded 2.5)
+            config.DefaultPositionSizeMultiplier = 2.0;
         });
-        
+
         // Configure microstructure calibration options
         services.Configure<MicrostructureCalibrationOptions>(options =>
         {
@@ -47,11 +48,11 @@ public class MicrostructureIntegrationTest
             options.MinSampleSize = 100;
             options.UpdateThresholdPercentage = 5.0m;
         });
-        
+
         // Register services
         services.AddSingleton<MicrostructureCalibrationService>();
         services.AddSingleton<MLConfigurationService>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _calibrationService = _serviceProvider.GetRequiredService<MicrostructureCalibrationService>();
         _mlConfigurationService = _serviceProvider.GetRequiredService<MLConfigurationService>();
@@ -64,7 +65,7 @@ public class MicrostructureIntegrationTest
         // Test that the service is properly registered and can be resolved
         var service = _serviceProvider.GetService<MicrostructureCalibrationService>();
         Assert.NotNull(service);
-        
+
         _logger.LogInformation("✅ MicrostructureCalibrationService properly registered");
     }
 
@@ -74,10 +75,10 @@ public class MicrostructureIntegrationTest
         // Test that ES and NQ symbol configurations exist
         var esConfigPath = System.IO.Path.Combine("config", "symbols", "ES.json");
         var nqConfigPath = System.IO.Path.Combine("config", "symbols", "NQ.json");
-        
+
         Assert.True(System.IO.File.Exists(esConfigPath), "ES configuration file should exist");
         Assert.True(System.IO.File.Exists(nqConfigPath), "NQ configuration file should exist");
-        
+
         _logger.LogInformation("✅ ES and NQ configuration files exist");
     }
 
@@ -95,15 +96,15 @@ public class MicrostructureIntegrationTest
             IsMajorNewsNow = false,
             IsHoliday = false
         };
-        
+
         // Test that PassesGlobal method exists and works
         var passesGlobal = StrategyGates.PassesGlobal(config, snapshot);
         Assert.True(passesGlobal || !passesGlobal); // Method should execute without exception
-        
-        // Test that SizeScale method exists and works  
+
+        // Test that SizeScale method exists and works
         var sizeScale = StrategyGates.SizeScale(config, snapshot);
         Assert.True(sizeScale > 0); // Should return positive scaling factor
-        
+
         _logger.LogInformation("✅ StrategyGates integration verified - existing sophisticated gates accessible");
     }
 
@@ -113,7 +114,7 @@ public class MicrostructureIntegrationTest
         // Test that calibration statistics can be retrieved
         var stats = await _calibrationService.GetStatsAsync();
         Assert.NotNull(stats);
-        
+
         _logger.LogInformation("✅ Calibration statistics retrieval verified");
     }
 
@@ -126,18 +127,18 @@ public class MicrostructureIntegrationTest
         {
             var configFiles = System.IO.Directory.GetFiles(symbolConfigDir, "*.json");
             var symbolNames = configFiles.Select(f => System.IO.Path.GetFileNameWithoutExtension(f)).ToArray();
-            
+
             // Should only have ES and NQ, no MES or MNQ
             Assert.Contains("ES", symbolNames);
             Assert.Contains("NQ", symbolNames);
             Assert.DoesNotContain("MES", symbolNames);
             Assert.DoesNotContain("MNQ", symbolNames);
         }
-        
+
         _logger.LogInformation("✅ Symbol restriction verified - only ES and NQ configured as requested");
     }
 
-    [Fact] 
+    [Fact]
     public void TestNoExecutionGuardsDuplication()
     {
         // Verify that we're not duplicating existing EvalGates functionality
@@ -145,10 +146,10 @@ public class MicrostructureIntegrationTest
         var executionGuardServices = _serviceProvider.GetServices<object>()
             .Where(s => s.GetType().Name.Contains("ExecutionGuard"))
             .ToList();
-        
+
         // Should not have duplicated execution guards since user has EvalGates
         Assert.True(executionGuardServices.Count == 0, "Should not duplicate existing EvalGates with ExecutionGuards");
-        
+
         _logger.LogInformation("✅ No execution guards duplication - respecting existing EvalGates");
     }
 
@@ -159,10 +160,10 @@ public class MicrostructureIntegrationTest
         var decisionPolicyServices = _serviceProvider.GetServices<object>()
             .Where(s => s.GetType().Name.Contains("DecisionPolicy"))
             .ToList();
-        
+
         // Should not have duplicated decision policies since user has UnifiedDecisionRouter
         Assert.True(decisionPolicyServices.Count == 0, "Should not duplicate existing UnifiedDecisionRouter with DecisionPolicy");
-        
+
         _logger.LogInformation("✅ No decision policy duplication - respecting existing UnifiedDecisionRouter");
     }
 
@@ -173,31 +174,31 @@ public class MicrostructureIntegrationTest
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
             .Build();
-        
+
         var calibrationConfig = configuration.GetSection("MicrostructureCalibration");
         Assert.True(calibrationConfig.Exists(), "MicrostructureCalibration section should exist in appsettings.json");
-        
+
         // Test specific values
         var enableNightly = calibrationConfig.GetValue<bool>("EnableNightlyCalibration");
         var calibrationHour = calibrationConfig.GetValue<int>("CalibrationHour");
-        
+
         Assert.True(enableNightly, "Nightly calibration should be enabled");
         Assert.Equal(3, calibrationHour); // 3 AM EST
-        
+
         _logger.LogInformation("✅ Configuration alignment verified");
     }
 
     [Fact]
-    public void TestUTCTimingCompliance() 
+    public void TestUTCTimingCompliance()
     {
         // Test that all timing uses UTC as requested
         var estTime = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
         var utcNow = DateTime.UtcNow;
         var estNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, estTime);
-        
+
         // Verify timezone conversion works (needed for futures EST hours)
         Assert.True(estNow != utcNow); // Should be different unless in UTC timezone
-        
+
         _logger.LogInformation("✅ UTC timing compliance verified");
     }
 }

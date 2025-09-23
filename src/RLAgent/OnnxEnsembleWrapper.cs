@@ -31,7 +31,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private readonly Task _batchProcessingTask;
     private readonly AnomalyDetector _anomalyDetector;
     private bool _disposed;
-    
+
     // Constants
     private const int BytesToMegabytes = 1024 * 1024;
     private const double DefaultLatencyMs = 50.0;
@@ -41,7 +41,7 @@ public class OnnxEnsembleWrapper : IDisposable
         IOptions<OnnxEnsembleOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        
+
         _logger = logger;
         _options = options.Value;
 
@@ -52,7 +52,7 @@ public class OnnxEnsembleWrapper : IDisposable
             SingleReader = true,
             SingleWriter = false
         };
-        
+
         var channel = Channel.CreateBounded<InferenceRequest>(channelOptions);
         _inferenceQueue = channel;
         _inferenceWriter = channel.Writer;
@@ -81,7 +81,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             // Configure session options for GPU and optimization
             using var sessionOptions = CreateSessionOptions();
-            
+
             var session = new InferenceSession(modelPath, sessionOptions);
             var finalConfidence = confidence ?? _options.DefaultModelConfidence;
             var modelSession = new ModelSession
@@ -132,7 +132,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             // Brief yield for async context
             await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
-            
+
             if (_modelSessions.TryRemove(modelName, out var modelSession))
             {
                 modelSession.Session.Dispose();
@@ -159,7 +159,7 @@ public class OnnxEnsembleWrapper : IDisposable
     public async Task<EnsemblePrediction> PredictAsync(float[] features, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(features);
-        
+
         // Input anomaly detection
         var isAnomaly = _anomalyDetector.IsAnomaly(features);
         if (isAnomaly && _options.BlockAnomalousInputs)
@@ -230,7 +230,7 @@ public class OnnxEnsembleWrapper : IDisposable
                 if (batch.Count > 0)
                 {
                     await _batchSemaphore.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
-                    
+
                     // Process batch on background thread
                     _ = Task.Run(async () =>
                     {
@@ -300,14 +300,14 @@ public class OnnxEnsembleWrapper : IDisposable
             foreach (var group in featureGroups)
             {
                 var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features.ToArray()).ToArray()).ConfigureAwait(false);
-                
+
                 for (int i = 0; i < group.Count; i++)
                 {
                     var request = group[i];
                     var prediction = predictions[i];
                     prediction.IsAnomaly = request.IsAnomaly;
                     prediction.LatencyMs = (DateTime.UtcNow - request.RequestTime).TotalMilliseconds;
-                    
+
                     results[request] = prediction;
                 }
             }
@@ -324,7 +324,7 @@ public class OnnxEnsembleWrapper : IDisposable
         catch (InvalidOperationException ex)
         {
             LogMessages.InferenceBatchError(_logger, ex);
-            
+
             // Complete all requests with error
             foreach (var request in batch)
             {
@@ -334,7 +334,7 @@ public class OnnxEnsembleWrapper : IDisposable
         catch (OutOfMemoryException ex)
         {
             LogMessages.InferenceBatchError(_logger, ex);
-            
+
             // Complete all requests with error
             foreach (var request in batch)
             {
@@ -377,7 +377,7 @@ public class OnnxEnsembleWrapper : IDisposable
             try
             {
                 var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures).ConfigureAwait(false);
-                
+
                 for (int i = 0; i < batchSize; i++)
                 {
                     results[i].Predictions[modelSession.Name] = modelPredictions[i];
@@ -415,14 +415,14 @@ public class OnnxEnsembleWrapper : IDisposable
     {
         // Brief yield for async context in CPU-intensive operation
         await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
-        
+
         var batchSize = batchFeatures.Length;
         var featureCount = batchFeatures[0].Length;
 
         // Create input tensor
         var inputShape = new int[] { batchSize, featureCount };
         var inputData = new float[batchSize * featureCount];
-        
+
         for (int i = 0; i < batchSize; i++)
         {
             Array.Copy(batchFeatures[i], 0, inputData, i * featureCount, featureCount);
@@ -481,7 +481,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private SessionOptions CreateSessionOptions()
     {
         var sessionOptions = new SessionOptions();
-        
+
         // Try to use GPU if available
         if (_options.UseGpu)
         {
@@ -508,7 +508,7 @@ public class OnnxEnsembleWrapper : IDisposable
         sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
         sessionOptions.EnableMemoryPattern = true;
         sessionOptions.EnableCpuMemArena = true;
-        
+
         return sessionOptions;
     }
 
@@ -516,20 +516,35 @@ public class OnnxEnsembleWrapper : IDisposable
     {
         // Brief yield for async context
         await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
-        
+
         try
         {
             var inputInfo = modelSession.Session.InputMetadata.First();
             var outputInfo = modelSession.Session.OutputMetadata.First();
-            
-            LogMessages.OnnxModelValidationDebug(_logger, modelSession.Name, 
-                string.Join("x", inputInfo.Value.Dimensions), 
+
+            LogMessages.OnnxModelValidationDebug(_logger, modelSession.Name,
+                string.Join("x", inputInfo.Value.Dimensions),
                 string.Join("x", outputInfo.Value.Dimensions));
         }
-        catch (Exception ex)
+        catch (OnnxRuntimeException ex)
         {
             LogMessages.ModelValidationFailed(_logger, modelSession.Name, ex);
             throw new InvalidOperationException($"Model validation failed for {modelSession.Name}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogMessages.ModelValidationFailed(_logger, modelSession.Name, ex);
+            throw;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            LogMessages.ModelValidationFailed(_logger, modelSession.Name, ex);
+            throw new InvalidOperationException($"Model validation failed due to missing metadata for {modelSession.Name}", ex);
+        }
+        catch (NotSupportedException ex)
+        {
+            LogMessages.ModelValidationFailed(_logger, modelSession.Name, ex);
+            throw;
         }
     }
 
@@ -587,7 +602,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             _cancellationTokenSource.Cancel();
             _inferenceWriter.Complete();
-            
+
             try
             {
                 _batchProcessingTask.Wait(TimeSpan.FromSeconds(5));
@@ -614,7 +629,7 @@ public class OnnxEnsembleWrapper : IDisposable
             _batchSemaphore.Dispose();
             _cancellationTokenSource.Dispose();
             _disposed = true;
-            
+
             LogMessages.OnnxDisposedDebug(_logger);
         }
     }
@@ -728,13 +743,13 @@ public class AnomalyDetector
     public bool IsAnomaly(float[] features)
     {
         ArgumentNullException.ThrowIfNull(features);
-        
+
         bool isAnomaly = false;
 
         for (int i = 0; i < features.Length; i++)
         {
             var value = features[i];
-            
+
             if (_featureStats.TryGetValue(i, out var stats))
             {
                 if (stats.count > MinimumSampleCount) // Need some data for meaningful statistics
@@ -742,14 +757,14 @@ public class AnomalyDetector
                     var mean = stats.sum / stats.count;
                     var variance = (stats.sumSquared / stats.count) - (mean * mean);
                     var stdDev = Math.Sqrt(Math.Max(variance, 1e-10));
-                    
+
                     var zScore = Math.Abs(value - mean) / stdDev;
                     if (zScore > _threshold)
                     {
                         isAnomaly = true;
                     }
                 }
-                
+
                 // Update stats
                 _featureStats[i] = (stats.sum + value, stats.sumSquared + value * value, stats.count + 1);
             }

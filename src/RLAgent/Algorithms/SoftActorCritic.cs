@@ -29,7 +29,7 @@ public class SoftActorCritic : IDisposable
 {
     private readonly ILogger<SoftActorCritic> _logger;
     private readonly Models.SacConfig _config;
-    
+
     // Neural networks
     private readonly ActorNetwork _actor;
     private readonly CriticNetwork _critic1;
@@ -37,45 +37,45 @@ public class SoftActorCritic : IDisposable
     private readonly CriticNetwork _targetCritic1;
     private readonly CriticNetwork _targetCritic2;
     private readonly ValueNetwork _valueNetwork;
-    
+
     // Experience replay buffer
     private readonly ExperienceReplayBuffer _replayBuffer;
-    
+
     // Training statistics
     private int _totalSteps;
     private double _averageReward;
     private double _entropy;
-    
+
     // Constants for moving average
     private const double RewardMovingAverageDecay = 0.99;
     private const double RewardMovingAverageWeight = 0.01;
-    
+
     public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
-        
+
         _logger = logger;
         _config = config;
-        
+
         // Initialize networks with proper dimensions
         var stateDim = config.StateDimension;
         var actionDim = config.ActionDimension;
         var hiddenDim = config.HiddenDimension;
-        
+
         _actor = new ActorNetwork(stateDim, actionDim, hiddenDim, config.LearningRateActor);
         _critic1 = new CriticNetwork(stateDim + actionDim, 1, hiddenDim, config.LearningRateCritic);
         _critic2 = new CriticNetwork(stateDim + actionDim, 1, hiddenDim, config.LearningRateCritic);
         _targetCritic1 = new CriticNetwork(stateDim + actionDim, 1, hiddenDim, config.LearningRateCritic);
         _targetCritic2 = new CriticNetwork(stateDim + actionDim, 1, hiddenDim, config.LearningRateCritic);
         _valueNetwork = new ValueNetwork(stateDim, 1, hiddenDim, config.LearningRateValue);
-        
+
         // Initialize experience replay buffer
         _replayBuffer = new ExperienceReplayBuffer(config.BufferSize);
-        
+
         // Copy weights to target networks
         _targetCritic1.CopyWeightsFrom(_critic1);
         _targetCritic2.CopyWeightsFrom(_critic2);
-        
+
         LogMessages.SACInitialized(_logger, stateDim, actionDim, hiddenDim);
     }
 
@@ -87,20 +87,20 @@ public class SoftActorCritic : IDisposable
         try
         {
             await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
-            
+
             var action = _actor.SampleAction(state, isTraining);
-            
+
             // Clip actions to valid range for trading
             for (int i = 0; i < action.Length; i++)
             {
                 action[i] = Math.Max(_config.ActionLowBound, Math.Min(_config.ActionHighBound, action[i]));
             }
-            
+
             if (isTraining)
             {
                 _totalSteps++;
             }
-            
+
             return action;
         }
         catch (ArgumentException ex)
@@ -130,7 +130,7 @@ public class SoftActorCritic : IDisposable
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(action);
         ArgumentNullException.ThrowIfNull(nextState);
-        
+
         var experience = new Experience
         {
             State = (double[])state.Clone(),
@@ -139,9 +139,9 @@ public class SoftActorCritic : IDisposable
             NextState = (double[])nextState.Clone(),
             Done = done
         };
-        
+
         _replayBuffer.Add(experience);
-        
+
         // Update moving average reward
         _averageReward = RewardMovingAverageDecay * _averageReward + RewardMovingAverageWeight * reward;
     }
@@ -164,31 +164,31 @@ public class SoftActorCritic : IDisposable
         try
         {
             await Task.FromResult(0).ConfigureAwait(false); // Proper async pattern
-            
+
             var batchSize = Math.Min(_config.BatchSize, _replayBuffer.Count);
             var batch = _replayBuffer.SampleBatch(batchSize);
-            
+
             // Extract batch data
             var states = batch.Select(e => e.State.ToArray()).ToArray();
             var actions = batch.Select(e => e.Action.ToArray()).ToArray();
             var rewards = batch.Select(e => e.Reward).ToArray();
             var nextStates = batch.Select(e => e.NextState.ToArray()).ToArray();
             var dones = batch.Select(e => e.Done).ToArray();
-            
+
             // Train critic networks
             var criticLoss1 = TrainCritic(_critic1, states, actions, rewards, nextStates, dones);
             var criticLoss2 = TrainCritic(_critic2, states, actions, rewards, nextStates, dones);
-            
+
             // Train actor network
             var (actorLoss, entropy) = TrainActor(states);
             _entropy = entropy;
-            
+
             // Train value network
             var valueLoss = TrainValueNetwork(states);
-            
+
             // Soft update target networks
             SoftUpdateTargetNetworks();
-            
+
             var result = new Models.SacTrainingResult
             {
                 Success = true,
@@ -201,9 +201,9 @@ public class SoftActorCritic : IDisposable
                 BufferSize = _replayBuffer.Count,
                 TotalSteps = _totalSteps
             };
-            
+
             LogMessages.SACTrainingCompleted(_logger, actorLoss, criticLoss1, criticLoss2, valueLoss, entropy);
-            
+
             return result;
         }
         catch (InvalidOperationException ex)
@@ -242,35 +242,35 @@ public class SoftActorCritic : IDisposable
     {
         var totalLoss = 0.0;
         var batchSize = states.Length;
-        
+
         for (int i = 0; i < batchSize; i++)
         {
             // Sample next action from current policy
             var nextAction = _actor.SampleAction(nextStates[i], isTraining: true);
-            
+
             // Calculate target Q-value using target critics and value network
             var nextQValue1 = _targetCritic1.Predict(CombineStateAction(nextStates[i], nextAction));
             var nextQValue2 = _targetCritic2.Predict(CombineStateAction(nextStates[i], nextAction));
             var nextQValue = Math.Min(nextQValue1, nextQValue2);
-            
+
             var targetQValue = rewards[i];
             if (!dones[i])
             {
                 targetQValue += _config.Gamma * nextQValue;
             }
-            
+
             // Current Q-value
             var currentQValue = critic.Predict(CombineStateAction(states[i], actions[i]));
-            
+
             // TD error
             var tdError = targetQValue - currentQValue;
             var loss = tdError * tdError;
             totalLoss += loss;
-            
+
             // Update critic network
             critic.UpdateWeights(CombineStateAction(states[i], actions[i]), targetQValue);
         }
-        
+
         return totalLoss / batchSize;
     }
 
@@ -282,28 +282,28 @@ public class SoftActorCritic : IDisposable
         var totalLoss = 0.0;
         var totalEntropy = 0.0;
         var batchSize = states.Length;
-        
+
         for (int i = 0; i < batchSize; i++)
         {
             var action = _actor.SampleAction(states[i], isTraining: true);
             var logProb = _actor.GetLogProbability(states[i], action);
-            
+
             // Q-values from both critics
             var qValue1 = _critic1.Predict(CombineStateAction(states[i], action));
             var qValue2 = _critic2.Predict(CombineStateAction(states[i], action));
             var qValue = Math.Min(qValue1, qValue2);
-            
+
             // SAC loss: maximize Q-value and entropy
             var loss = _config.TemperatureAlpha * logProb - qValue;
             totalLoss += loss;
-            
+
             // Calculate entropy for logging
             totalEntropy += -logProb;
-            
+
             // Update actor network
             _actor.UpdateWeights(states[i], -loss); // Negative because we want to minimize loss
         }
-        
+
         return (totalLoss / batchSize, totalEntropy / batchSize);
     }
 
@@ -314,29 +314,29 @@ public class SoftActorCritic : IDisposable
     {
         var totalLoss = 0.0;
         var batchSize = states.Length;
-        
+
         for (int i = 0; i < batchSize; i++)
         {
             var action = _actor.SampleAction(states[i], isTraining: true);
             var logProb = _actor.GetLogProbability(states[i], action);
-            
+
             // Target value: Q-value minus entropy term
             var qValue1 = _critic1.Predict(CombineStateAction(states[i], action));
             var qValue2 = _critic2.Predict(CombineStateAction(states[i], action));
             var qValue = Math.Min(qValue1, qValue2);
             var targetValue = qValue - _config.TemperatureAlpha * logProb;
-            
+
             // Current value
             var currentValue = _valueNetwork.Predict(states[i]);
-            
+
             // Value loss
             var loss = Math.Pow(targetValue - currentValue, 2);
             totalLoss += loss;
-            
+
             // Update value network
             _valueNetwork.UpdateWeights(states[i], targetValue);
         }
-        
+
         return totalLoss / batchSize;
     }
 
@@ -389,6 +389,11 @@ public class SoftActorCritic : IDisposable
         if (disposing)
         {
             _actor?.Dispose();
+            _critic1?.Dispose();
+            _critic2?.Dispose();
+            _targetCritic1?.Dispose();
+            _targetCritic2?.Dispose();
+            _valueNetwork?.Dispose();
             _replayBuffer?.Dispose();
         }
     }
@@ -405,7 +410,7 @@ public class SacConfig
     public int ActionDimension { get; set; } = 1;          // Position size
     public int HiddenDimension { get; set; } = 256;        // Hidden layer size
     public double LearningRateActor { get; set; } = 3e-4;  // Actor learning rate
-    public double LearningRateCritic { get; set; } = 3e-4; // Critic learning rate  
+    public double LearningRateCritic { get; set; } = 3e-4; // Critic learning rate
     public double LearningRateValue { get; set; } = 3e-4;  // Value network learning rate
     public double Gamma { get; set; } = 0.99;              // Discount factor
     public double Tau { get; set; } = 0.005;               // Soft update rate
@@ -498,7 +503,7 @@ public class ExperienceReplayBuffer : IDisposable
 
         var batch = new List<Experience>(batchSize);
         var indices = new HashSet<int>();
-        
+
         while (indices.Count < batchSize)
         {
             var bytes = new byte[4];
@@ -506,12 +511,12 @@ public class ExperienceReplayBuffer : IDisposable
             var randomIndex = BitConverter.ToUInt32(bytes, 0) % _buffer.Count;
             indices.Add((int)randomIndex);
         }
-        
+
         foreach (var index in indices)
         {
             batch.Add(_buffer[index]);
         }
-        
+
         return batch;
     }
 
@@ -520,7 +525,7 @@ public class ExperienceReplayBuffer : IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-    
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -541,7 +546,7 @@ public class ActorNetwork : IDisposable
     private readonly double _learningRate;
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     private bool _disposed;
-    
+
     // Network weights (simplified implementation)
     private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
@@ -555,7 +560,7 @@ public class ActorNetwork : IDisposable
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
         _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        
+
         InitializeWeights();
     }
 
@@ -563,7 +568,7 @@ public class ActorNetwork : IDisposable
     {
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
-        
+
         _weightsInput = new double[_inputDim][];
         for (int i = 0; i < _inputDim; i++)
         {
@@ -576,7 +581,7 @@ public class ActorNetwork : IDisposable
             _weightsOutput[i] = new double[_outputDim];
         }
         _biasOutput = new double[_outputDim];
-        
+
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
@@ -584,7 +589,7 @@ public class ActorNetwork : IDisposable
                 _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
-        
+
         scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
@@ -616,7 +621,7 @@ public class ActorNetwork : IDisposable
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
-        
+
         var output = new double[_outputDim];
         for (int i = 0; i < _outputDim; i++)
         {
@@ -627,7 +632,7 @@ public class ActorNetwork : IDisposable
             }
             output[i] = Math.Tanh(output[i]); // Tanh for bounded actions
         }
-        
+
         // Add exploration noise if training
         if (isTraining)
         {
@@ -639,7 +644,7 @@ public class ActorNetwork : IDisposable
                 output[i] += (randomValue * NeuralNetworkConstants.RANDOM_VALUE_MULTIPLIER - NeuralNetworkConstants.RANDOM_VALUE_OFFSET) * NeuralNetworkConstants.EXPLORATION_NOISE_FACTOR; // Small exploration noise
             }
         }
-        
+
         return output;
     }
 
@@ -651,12 +656,12 @@ public class ActorNetwork : IDisposable
         // In a full implementation, this would use proper probability distributions
         var predictedAction = SampleAction(state, isTraining: false);
         var distance = 0.0;
-        
+
         for (int i = 0; i < action.Length; i++)
         {
             distance += Math.Pow(action[i] - predictedAction[i], NeuralNetworkConstants.RANDOM_VALUE_MULTIPLIER);
         }
-        
+
         return -distance; // Negative distance as log probability
     }
 
@@ -665,7 +670,7 @@ public class ActorNetwork : IDisposable
         // Simplified gradient descent update
         // In a full implementation, this would use proper backpropagation
         var gradient = loss * _learningRate;
-        
+
         // Update output biases (simplified)
         for (int i = 0; i < _outputDim; i++)
         {
@@ -699,7 +704,7 @@ public class CriticNetwork
     private readonly int _hiddenDim;
     private readonly double _learningRate;
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
-    
+
     // Network weights (simplified implementation)
     private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
@@ -713,7 +718,7 @@ public class CriticNetwork
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
         _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        
+
         InitializeWeights();
     }
 
@@ -721,7 +726,7 @@ public class CriticNetwork
     {
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
-        
+
         _weightsInput = new double[_inputDim][];
         for (int i = 0; i < _inputDim; i++)
         {
@@ -734,7 +739,7 @@ public class CriticNetwork
             _weightsOutput[i] = new double[_outputDim];
         }
         _biasOutput = new double[_outputDim];
-        
+
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
@@ -742,7 +747,7 @@ public class CriticNetwork
                 _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
-        
+
         scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
@@ -767,14 +772,14 @@ public class CriticNetwork
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
-        
+
         var output = 0.0;
         for (int j = 0; j < _hiddenDim; j++)
         {
             output += hidden[j] * _weightsOutput[j][0];
         }
         output += _biasOutput[0];
-        
+
         return output;
     }
 
@@ -784,7 +789,7 @@ public class CriticNetwork
         var prediction = Predict(input);
         var error = target - prediction;
         var gradient = error * _learningRate;
-        
+
         // Update output bias (simplified)
         _biasOutput[0] += gradient;
     }
@@ -810,12 +815,12 @@ public class CriticNetwork
                 _weightsInput[i][j] = tau * source._weightsInput[i][j] + (1 - tau) * _weightsInput[i][j];
             }
         }
-        
+
         for (int i = 0; i < _biasHidden.Length; i++)
         {
             _biasHidden[i] = tau * source._biasHidden[i] + (1 - tau) * _biasHidden[i];
         }
-        
+
         for (int i = 0; i < _weightsOutput.GetLength(0); i++)
         {
             for (int j = 0; j < _weightsOutput.GetLength(1); j++)
@@ -823,7 +828,7 @@ public class CriticNetwork
                 _weightsOutput[i][j] = tau * source._weightsOutput[i][j] + (1 - tau) * _weightsOutput[i][j];
             }
         }
-        
+
         for (int i = 0; i < _biasOutput.Length; i++)
         {
             _biasOutput[i] = tau * source._biasOutput[i] + (1 - tau) * _biasOutput[i];
@@ -848,7 +853,7 @@ public class ValueNetwork
     private readonly int _hiddenDim;
     private readonly double _learningRate;
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
-    
+
     // Network weights (simplified implementation)
     private double[][] _weightsInput = null!;
     private double[] _biasHidden = null!;
@@ -862,7 +867,7 @@ public class ValueNetwork
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
         _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        
+
         InitializeWeights();
     }
 
@@ -870,7 +875,7 @@ public class ValueNetwork
     {
         // Xavier initialization
         var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
-        
+
         _weightsInput = new double[_inputDim][];
         for (int i = 0; i < _inputDim; i++)
         {
@@ -883,7 +888,7 @@ public class ValueNetwork
             _weightsOutput[i] = new double[_outputDim];
         }
         _biasOutput = new double[_outputDim];
-        
+
         for (int i = 0; i < _inputDim; i++)
         {
             for (int j = 0; j < _hiddenDim; j++)
@@ -891,7 +896,7 @@ public class ValueNetwork
                 _weightsInput[i][j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
-        
+
         scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
@@ -916,14 +921,14 @@ public class ValueNetwork
             }
             hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
         }
-        
+
         var output = 0.0;
         for (int j = 0; j < _hiddenDim; j++)
         {
             output += hidden[j] * _weightsOutput[j][0];
         }
         output += _biasOutput[0];
-        
+
         return output;
     }
 
@@ -933,7 +938,7 @@ public class ValueNetwork
         var prediction = Predict(input);
         var error = target - prediction;
         var gradient = error * _learningRate;
-        
+
         // Update output bias (simplified)
         _biasOutput[0] += gradient;
     }

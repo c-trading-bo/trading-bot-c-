@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace UpdaterAgent;
 
-public static class Program
+internal static class Program
 {
     public static Task<int> Main(string[] args)
     {
@@ -154,7 +154,7 @@ internal sealed class UpdaterService
     {
         // Compute pending commits vs last deployed
         var head = Git("rev-parse HEAD");
-        var last = File.Exists(_lastDeployedPath) ? 
+        var last = File.Exists(_lastDeployedPath) ?
             (await File.ReadAllTextAsync(_lastDeployedPath).ConfigureAwait(false)).Split('|').FirstOrDefault() ?? "" : "";
 
         if (head == last)
@@ -169,7 +169,7 @@ internal sealed class UpdaterService
     private async Task BuildAndDeployUpdate(string head)
     {
         var outDir = Path.Combine(_publishDir, $"build-{DateTime.UtcNow:yyyyMMdd-HHmmss}");
-        
+
         if (await BuildProject(outDir).ConfigureAwait(false) && await RunValidation().ConfigureAwait(false))
         {
             await DeployUpdate(head).ConfigureAwait(false);
@@ -221,7 +221,7 @@ internal sealed class UpdaterService
     private async Task DeployUpdate(string head)
     {
         Log.Information("Launching vNext in SHADOW on :{Port}", _shadowPort);
-        
+
         // Launch shadow process and validate
         if (LaunchAndValidateShadow())
         {
@@ -245,12 +245,12 @@ internal sealed class UpdaterService
 
     private async Task CreateBuildMetadata(string outDir)
     {
-        await File.WriteAllTextAsync(Path.Combine(outDir, "buildinfo.json"), 
+        await File.WriteAllTextAsync(Path.Combine(outDir, "buildinfo.json"),
             $"{{\"commit\":\"{Git("rev-parse HEAD")}\",\"builtUtc\":\"{DateTime.UtcNow:O}\"}}").ConfigureAwait(false);
-        
+
         var outState = Path.Combine(outDir, "state");
         Directory.CreateDirectory(outState);
-        
+
         CopyStateFiles(outState);
     }
 
@@ -258,11 +258,11 @@ internal sealed class UpdaterService
     {
         try
         {
-            if (File.Exists(_pendingPath)) 
+            if (File.Exists(_pendingPath))
                 File.Copy(_pendingPath, Path.Combine(outState, Path.GetFileName(_pendingPath)), true);
-            if (File.Exists(_deployLogPath)) 
+            if (File.Exists(_deployLogPath))
                 File.Copy(_deployLogPath, Path.Combine(outState, Path.GetFileName(_deployLogPath)), true);
-            if (File.Exists(_lastDeployedPath)) 
+            if (File.Exists(_lastDeployedPath))
                 File.Copy(_lastDeployedPath, Path.Combine(outState, Path.GetFileName(_lastDeployedPath)), true);
         }
         catch (UnauthorizedAccessException ex)
@@ -281,11 +281,11 @@ internal sealed class UpdaterService
 
     private async Task LogBuildFailure()
     {
-        try 
-        { 
-            await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
-        } 
+        try
+        {
+            await File.AppendAllTextAsync(_deployLogPath,
+                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false);
+        }
         catch (UnauthorizedAccessException ex)
         {
             Console.WriteLine($"Warning: Access denied logging build failure: {ex.Message}");
@@ -302,11 +302,11 @@ internal sealed class UpdaterService
 
     private async Task LogTestFailure()
     {
-        try 
-        { 
-            await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
-        } 
+        try
+        {
+            await File.AppendAllTextAsync(_deployLogPath,
+                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false);
+        }
         catch (UnauthorizedAccessException ex)
         {
             Console.WriteLine($"Warning: Access denied logging test failure: {ex.Message}");

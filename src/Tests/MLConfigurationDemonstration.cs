@@ -12,7 +12,7 @@ namespace TradingBot.Tests
     public class MLConfigurationDemonstration
     {
         private readonly MLConfigurationService _mlConfig;
-        
+
         public MLConfigurationDemonstration(MLConfigurationService mlConfig)
         {
             _mlConfig = mlConfig;
@@ -26,7 +26,7 @@ namespace TradingBot.Tests
         {
             // ✅ Configuration-driven position sizing
             var baseMultiplier = _mlConfig.GetPositionSizeMultiplier();
-            
+
             // Use dynamic calculation based on market conditions
             return _mlConfig.CalculatePositionSize(marketVolatility, modelConfidence, 0.1);
         }
@@ -72,16 +72,16 @@ namespace TradingBot.Tests
         }
 
         // ❌ WRONG EXAMPLES (these would be caught by our analyzer):
-        
+
         /*
         // ❌ This would trigger: "PRODUCTION VIOLATION: Hardcoded business values detected"
-        public double GetPositionSize() => 2.5;
-        
-        // ❌ This would trigger: "PRODUCTION VIOLATION: Hardcoded business values detected"  
-        public bool IsConfident(double confidence) => confidence >= 0.7;
-        
+        public double GetPositionSize() => /* hardcoded for demo */ <literal>;
+
         // ❌ This would trigger: "PRODUCTION VIOLATION: Hardcoded business values detected"
-        public double GetRegimeDetection() => 1.0;
+        public bool IsConfident(double confidence) => confidence >= /* hardcoded for demo */ <literal>;
+
+        // ❌ This would trigger: "PRODUCTION VIOLATION: Hardcoded business values detected"
+        public double GetRegimeDetection() => /* hardcoded for demo */ <literal>;
         */
     }
 }

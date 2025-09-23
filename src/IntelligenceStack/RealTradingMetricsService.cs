@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.IntelligenceStack;
+using TradingBot.BotCore.Services;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -16,87 +17,89 @@ public class RealTradingMetricsService : BackgroundService
 {
     private readonly ILogger<RealTradingMetricsService> _logger;
     private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
+    private readonly MLConfigurationService _mlConfig;
     private readonly Timer _metricsTimer;
     private readonly TimeSpan _pushInterval = TimeSpan.FromMinutes(1); // Push metrics every minute
-    
+
     // Real trading metrics tracking
     private decimal _dailyPnL;
     private int _totalPositions;
     private int _totalFills;
     private DateTime _lastMetricsPush = DateTime.MinValue;
     private readonly object _metricsLock = new();
-    
+
     // Data structures for real metrics calculation
     private readonly List<InferenceRecord> _recentInferences = new();
-    
+
     // S109 Magic Number Constants - Trading Metrics
     private const int RecentInferencesMinutes = 5;
     private const int MinimumActiveModels = 3; // ES, NQ, Regime models
-    private const double DefaultPositionSize = 2.5;
     private const double MinimumReturnStdDev = 1e-10;
     private const int BytesToMegabytes = 1024;
     private const int KiloBytesToMegabytes = 1024;
-    
+
     // LoggerMessage delegates for CA1848 compliance - RealTradingMetricsService
     private static readonly Action<ILogger, TimeSpan, Exception?> ServiceInitialized =
         LoggerMessage.Define<TimeSpan>(LogLevel.Information, new EventId(6001, "ServiceInitialized"),
             "[REAL_METRICS] Real Trading Metrics Service initialized - push interval: {Interval}");
-            
+
     private static readonly Action<ILogger, Exception?> ServiceStarted =
         LoggerMessage.Define(LogLevel.Information, new EventId(6002, "ServiceStarted"),
             "[REAL_METRICS] Real Trading Metrics Service started");
-            
+
     private static readonly Action<ILogger, Exception?> ServiceStopping =
         LoggerMessage.Define(LogLevel.Information, new EventId(6003, "ServiceStopping"),
             "[REAL_METRICS] Real Trading Metrics Service stopping");
-            
+
     private static readonly Action<ILogger, Exception?> ServiceError =
         LoggerMessage.Define(LogLevel.Error, new EventId(6004, "ServiceError"),
             "[REAL_METRICS] Error in Real Trading Metrics Service");
-            
+
     private static readonly Action<ILogger, string, string, string, int, decimal, decimal, Exception?> FillRecorded =
         LoggerMessage.Define<string, string, string, int, decimal, decimal>(LogLevel.Information, new EventId(6005, "FillRecorded"),
             "[REAL_METRICS] Fill recorded: {OrderId} {Symbol} {Side} {Quantity}@{FillPrice}, Estimated P&L: {PnL:F2}");
-            
+
     private static readonly Action<ILogger, string, string, int, decimal, Exception?> PositionRecorded =
         LoggerMessage.Define<string, string, int, decimal>(LogLevel.Information, new EventId(6008, "PositionRecorded"),
             "[REAL_METRICS] Position recorded: {Symbol} {Side} {Quantity}@{AvgPrice}");
-            
+
     private static readonly Action<ILogger, decimal, decimal, decimal, Exception?> PnLUpdated =
         LoggerMessage.Define<decimal, decimal, decimal>(LogLevel.Debug, new EventId(6009, "PnLUpdated"),
             "[REAL_METRICS] P&L updated: Realized={Realized:F2}, Unrealized={Unrealized:F2}, Total={Total:F2}");
-            
+
     private static readonly Action<ILogger, decimal, int, int, Exception?> MetricsPushedSuccess =
         LoggerMessage.Define<decimal, int, int>(LogLevel.Information, new EventId(6010, "MetricsPushedSuccess"),
             "[REAL_METRICS] ✅ Real trading metrics pushed to cloud - P&L: {PnL:F2}, Positions: {Positions}, Fills: {Fills}");
-            
+
     private static readonly Action<ILogger, Exception?> MetricsCollectionFailed =
         LoggerMessage.Define(LogLevel.Error, new EventId(6011, "MetricsCollectionFailed"),
             "[REAL_METRICS] Failed to collect and push real trading metrics");
-            
+
     private static readonly Action<ILogger, Exception?> ServiceDisposed =
         LoggerMessage.Define(LogLevel.Information, new EventId(6012, "ServiceDisposed"),
             "[REAL_METRICS] Real Trading Metrics Service disposed");
     private readonly List<MetricsTradeRecord> _recentTrades = new();
     private readonly List<FeatureRecord> _recentFeatures = new();
-    
+
     public RealTradingMetricsService(
         ILogger<RealTradingMetricsService> logger,
+        MLConfigurationService mlConfig,
         IntelligenceOrchestrator? intelligenceOrchestrator = null)
     {
         _logger = logger;
+        _mlConfig = mlConfig ?? throw new ArgumentNullException(nameof(mlConfig));
         _intelligenceOrchestrator = intelligenceOrchestrator;
-        
+
         // Initialize timer for regular metrics collection
         _metricsTimer = new Timer(CollectAndPushMetrics, null, _pushInterval, _pushInterval);
-        
+
         ServiceInitialized(_logger, _pushInterval, null);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         ServiceStarted(_logger, null);
-        
+
         try
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -128,12 +131,12 @@ public class RealTradingMetricsService : BackgroundService
         lock (_metricsLock)
         {
             _totalFills++;
-            
+
             // Simple P&L calculation (this would be more sophisticated in practice)
             // For demo purposes, assume small positive P&L for buys and negative for sells
             var estimatedPnL = side.ToUpperInvariant() == "BUY" ? quantity * 0.25m : quantity * -0.15m;
             _dailyPnL += estimatedPnL;
-            
+
             FillRecorded(_logger, orderId, symbol, side, quantity, fillPrice, estimatedPnL, null);
         }
     }
@@ -146,7 +149,7 @@ public class RealTradingMetricsService : BackgroundService
         lock (_metricsLock)
         {
             _totalPositions++;
-            
+
             PositionRecorded(_logger, symbol, side, quantity, averagePrice, null);
         }
     }
@@ -159,7 +162,7 @@ public class RealTradingMetricsService : BackgroundService
         lock (_metricsLock)
         {
             _dailyPnL = realizedPnL + unrealizedPnL;
-            
+
             PnLUpdated(_logger, realizedPnL, unrealizedPnL, _dailyPnL, null);
         }
     }
@@ -178,7 +181,7 @@ public class RealTradingMetricsService : BackgroundService
         try
         {
             CloudServiceMetrics metrics;
-            
+
             lock (_metricsLock)
             {
                 // 5️⃣ Create real metrics with actual P&L, positions, fills
@@ -190,7 +193,7 @@ public class RealTradingMetricsService : BackgroundService
                     ActiveModels = GetActiveModelCount(),
                     MemoryUsageMB = GC.GetTotalMemory(false) / (BytesToMegabytes * KiloBytesToMegabytes)
                 };
-                
+
                 metrics.CustomMetrics["daily_pnl"] = (double)_dailyPnL;
                 metrics.CustomMetrics["total_positions"] = _totalPositions;
                 metrics.CustomMetrics["total_fills"] = _totalFills;
@@ -204,9 +207,9 @@ public class RealTradingMetricsService : BackgroundService
 
             // Push real metrics to cloud
             await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics).ConfigureAwait(false);
-            
+
             _lastMetricsPush = DateTime.UtcNow;
-            
+
             MetricsPushedSuccess(_logger, _dailyPnL, _totalPositions, _totalFills, null);
         }
         catch (InvalidOperationException ex)
@@ -233,7 +236,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             return 0.0; // No recent inferences
         }
-        
+
         return recentInferences.Average(i => i.LatencyMs);
     }
 
@@ -245,7 +248,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             return 0.0; // No completed trades to measure accuracy
         }
-        
+
         var correctPredictions = completedTrades.Count(t => t.WasPredictionCorrect);
         return (double)correctPredictions / completedTrades.Count();
     }
@@ -255,21 +258,21 @@ public class RealTradingMetricsService : BackgroundService
         // Production implementation - calculate feature drift using statistical analysis
         var recentFeatures = _recentFeatures.Where(f => f.Timestamp > DateTime.UtcNow.AddHours(-1)).ToList();
         var baselineFeatures = _recentFeatures.Where(f => f.Timestamp <= DateTime.UtcNow.AddHours(-1) && f.Timestamp > DateTime.UtcNow.AddHours(-2)).ToList();
-        
+
         if (!recentFeatures.Any() || !baselineFeatures.Any())
         {
             return 0.0; // Insufficient data for drift calculation
         }
-        
+
         // Calculate statistical distance between recent and baseline features
         // Using simplified approach - in production would use more sophisticated drift detection
         var recentMean = recentFeatures.Average(f => f.Value);
         var baselineMean = baselineFeatures.Average(f => f.Value);
         var baselineStd = Math.Sqrt(baselineFeatures.Select(f => Math.Pow(f.Value - baselineMean, 2)).Average());
-        
+
         const double tolerance = 1e-10;
         if (Math.Abs(baselineStd) < tolerance) return 0.0;
-        
+
         return Math.Abs(recentMean - baselineMean) / baselineStd;
     }
 
@@ -297,9 +300,9 @@ public class RealTradingMetricsService : BackgroundService
         {
             return 0.0; // No recent trades
         }
-        
+
         // Simplified calculation - in production would track actual position sizes
-        return DefaultPositionSize; // Placeholder for actual position size calculation
+        return _mlConfig.GetPositionSizeMultiplier();
     }
 
     private double GetDailyTradeCount()
@@ -318,7 +321,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             return 0.0; // No completed trades
         }
-        
+
         var winningTrades = completedTrades.Count(t => t.PnL > 0);
         return (double)winningTrades / completedTrades.Count();
     }
@@ -331,18 +334,18 @@ public class RealTradingMetricsService : BackgroundService
         {
             return 0.0; // No completed trades for calculation
         }
-        
+
         var returns = completedTrades.Select(t => (double)t.PnL).ToArray();
         if (returns.Length < 2)
         {
             return 0.0; // Need at least 2 trades for meaningful calculation
         }
-        
+
         var averageReturn = returns.Average();
         var returnStdDev = Math.Sqrt(returns.Select(r => Math.Pow(r - averageReturn, 2)).Average());
-        
+
         if (Math.Abs(returnStdDev) < MinimumReturnStdDev) return 0.0;
-        
+
         // Assuming risk-free rate of 0 for simplicity
         return averageReturn / returnStdDev;
     }
