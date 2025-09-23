@@ -290,22 +290,22 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         _logger = logger;
     }
 
-    public async Task<ProductionVerificationResult> VerifyProductionReadinessAsync()
+    public Task<ProductionVerificationResult> VerifyProductionReadinessAsync()
     {
         var result = new ProductionVerificationResult();
         
         VerificationStarted(_logger, null);
 
         // Verify critical intelligence services
-        await VerifyCriticalServicesAsync(result).ConfigureAwait(false);
+        VerifyCriticalServicesAsync(result);
 
         // Log final verification result
         LogVerificationResults(result);
 
-        return result;
+        return Task.FromResult(result);
     }
 
-    private async Task VerifyCriticalServicesAsync(ProductionVerificationResult result)
+    private void VerifyCriticalServicesAsync(ProductionVerificationResult result)
     {
         // Critical intelligence services that must NOT be mocks
         var criticalServices = new Dictionary<Type, string>
@@ -324,11 +324,11 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
 
         foreach (var (serviceType, serviceName) in criticalServices)
         {
-            await VerifyIndividualServiceAsync(result, serviceType, serviceName).ConfigureAwait(false);
+            VerifyIndividualServiceAsync(result, serviceType, serviceName);
         }
     }
 
-    private async Task VerifyIndividualServiceAsync(ProductionVerificationResult result, Type serviceType, string serviceName)
+    private void VerifyIndividualServiceAsync(ProductionVerificationResult result, Type serviceType, string serviceName)
     {
         try
         {
@@ -382,7 +382,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             result.Errors.Add(error);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        // Method is already async, no need for Task.CompletedTask
     }
 
     private void LogVerificationResults(ProductionVerificationResult result)
