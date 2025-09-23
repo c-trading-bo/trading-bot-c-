@@ -68,7 +68,7 @@ public interface IUnifiedOrchestrator
     /// <summary>
     /// Get execution history for a workflow
     /// </summary>
-    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = -1);
+    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit);
     
     /// <summary>
     /// Get current system status
