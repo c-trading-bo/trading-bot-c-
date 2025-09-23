@@ -134,7 +134,7 @@ public class RealTradingMetricsService : BackgroundService
 
             // Simple P&L calculation (this would be more sophisticated in practice)
             // For demo purposes, assume small positive P&L for buys and negative for sells
-            var estimatedPnL = side.ToUpperInvariant() == "BUY" ? quantity * 0.25m : quantity * -0.15m;
+            var estimatedPnL = string.Equals(side, "BUY", StringComparison.OrdinalIgnoreCase) ? quantity * 0.25m : quantity * -0.15m;
             _dailyPnL += estimatedPnL;
 
             FillRecorded(_logger, orderId, symbol, side, quantity, fillPrice, estimatedPnL, null);
@@ -376,6 +376,7 @@ public class RealTradingMetricsService : BackgroundService
     {
         _metricsTimer?.Dispose();
         base.Dispose();
+        GC.SuppressFinalize(this);
         ServiceDisposed(_logger, null);
     }
 }

@@ -36,6 +36,8 @@ public class ModelQuarantineManager : IQuarantineManager
     private const double MaxBrierScoreForReentry = 0.3;
     private const double MinHitRateForReentry = 0.45;
     
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 compliance - ModelQuarantineManager
     private static readonly Action<ILogger, string, Exception?> ModelHealthCheckFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(5001, "ModelHealthCheckFailed"),
@@ -653,7 +655,7 @@ public class ModelQuarantineManager : IQuarantineManager
             }
 
             var stateFile = Path.Combine(_statePath, "quarantine_state.json");
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(state, JsonOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException ex)

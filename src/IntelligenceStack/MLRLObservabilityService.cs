@@ -24,6 +24,8 @@ public class MlrlObservabilityService : IDisposable
     private readonly HttpClient _httpClient;
     private readonly Timer _exportTimer;
     
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, string, double, Exception?> LogHighPolicyNormDetected =
         LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(3001, nameof(LogHighPolicyNormDetected)),
@@ -356,9 +358,9 @@ public class MlrlObservabilityService : IDisposable
         try
         {
             var prometheusFormat = GeneratePrometheusFormat();
-            var content = new StringContent(prometheusFormat, Encoding.UTF8, "text/plain");
+            using var content = new StringContent(prometheusFormat, Encoding.UTF8, "text/plain");
             
-            var response = await _httpClient.PostAsync($"{gatewayUrl}/metrics/job/trading_bot", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync(new Uri($"{gatewayUrl}/metrics/job/trading_bot"), content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -389,11 +391,11 @@ public class MlrlObservabilityService : IDisposable
         {
             var metrics = GenerateGrafanaMetrics();
             var json = JsonSerializer.Serialize(metrics);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
             
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
             
-            var response = await _httpClient.PostAsync($"{grafanaUrl}/api/push", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync(new Uri($"{grafanaUrl}/api/push"), content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -444,7 +446,7 @@ public class MlrlObservabilityService : IDisposable
                 }
             }
             
-            var json = JsonSerializer.Serialize(allMetrics, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(allMetrics, JsonOptions);
             await System.IO.File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             
             LogFileExportSuccess(_logger, allMetrics.Count, filePath, null);

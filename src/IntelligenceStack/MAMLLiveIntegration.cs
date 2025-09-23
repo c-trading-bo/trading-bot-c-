@@ -352,21 +352,18 @@ public sealed class MamlLiveIntegration : IDisposable
             // Focus updates on current and recently active regimes
             var activeRegimes = new[] { currentRegime, ensembleStatus.PreviousRegime }.Distinct();
             
-            foreach (var regime in activeRegimes)
+            foreach (var regime in activeRegimes.Where(r => _modelStates.ContainsKey(r.ToString())))
             {
-                if (_modelStates.ContainsKey(regime.ToString()))
+                // FAIL FAST: No synthetic training examples allowed
+                // Load real training examples from actual trading outcomes
+                var realExamples = await LoadRealTrainingExamplesAsync(regime, 20, CancellationToken.None).ConfigureAwait(false);
+                if (realExamples.Count > 0)
                 {
-                    // FAIL FAST: No synthetic training examples allowed
-                    // Load real training examples from actual trading outcomes
-                    var realExamples = await LoadRealTrainingExamplesAsync(regime, 20, CancellationToken.None).ConfigureAwait(false);
-                    if (realExamples.Count > 0)
-                    {
-                        await AdaptToRegimeAsync(regime, realExamples, CancellationToken.None).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        NoTrainingExamplesWarning(_logger, regime.ToString(), null);
-                    }
+                    await AdaptToRegimeAsync(regime, realExamples, CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    NoTrainingExamplesWarning(_logger, regime.ToString(), null);
                 }
             }
             
