@@ -630,33 +630,37 @@ public class ObservabilityDashboard : IDisposable
         LogStartedDashboardUpdates(_logger, DashboardUpdateIntervalSeconds, null);
     }
 
-    private async void UpdateDashboardData(object? state)
+    private void UpdateDashboardData(object? state)
     {
-        try
+        // Fire and forget with proper exception handling
+        _ = Task.Run(async () =>
         {
-            await CollectMetricsAsync().ConfigureAwait(false);
-            await GenerateDashboardFilesAsync().ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex)
-        {
-            LogDashboardUpdateFailed(_logger, ex);
-        }
-        catch (IOException ex)
-        {
-            LogDashboardUpdateFailed(_logger, ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            LogDashboardUpdateFailed(_logger, ex);
-        }
-        catch (TaskCanceledException ex)
-        {
-            LogDashboardUpdateFailed(_logger, ex);
-        }
-        catch (TimeoutException ex)
-        {
-            LogDashboardUpdateFailed(_logger, ex);
-        }
+            try
+            {
+                await CollectMetricsAsync().ConfigureAwait(false);
+                await GenerateDashboardFilesAsync().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogDashboardUpdateFailed(_logger, ex);
+            }
+            catch (IOException ex)
+            {
+                LogDashboardUpdateFailed(_logger, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogDashboardUpdateFailed(_logger, ex);
+            }
+            catch (TaskCanceledException ex)
+            {
+                LogDashboardUpdateFailed(_logger, ex);
+            }
+            catch (TimeoutException ex)
+            {
+                LogDashboardUpdateFailed(_logger, ex);
+            }
+        });
     }
 
     private async Task CollectMetricsAsync()

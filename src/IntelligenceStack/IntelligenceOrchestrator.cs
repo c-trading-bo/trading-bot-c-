@@ -490,6 +490,8 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
 
     public async Task<WorkflowExecutionResult> ExecuteActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         try
         {
             var result = action switch
@@ -654,7 +656,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                     _logger.LogDebug("[CORRELATION] {Feature}: {Correlation:F3}", correlation.Key, correlation.Value);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+            }
+            catch (TimeoutException ex)
             {
                 _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
             }
@@ -665,19 +675,19 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
 
     #region Private Helper Methods (delegated to IntelligenceOrchestratorHelpers)
 
-    private async Task LoadActiveModelsAsync(CancellationToken cancellationToken)
+    private Task LoadActiveModelsAsync(CancellationToken cancellationToken)
     {
-        await _helpers.LoadActiveModelsAsync(cancellationToken).ConfigureAwait(false);
+        return _helpers.LoadActiveModelsAsync(cancellationToken);
     }
 
-    private async Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        return await _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken).ConfigureAwait(false);
+        return _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken);
     }
 
-    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        return await _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken).ConfigureAwait(false);
+        return _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken);
     }
 
     private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
@@ -687,7 +697,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "ML models executed successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -700,7 +718,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "RL training updated successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -713,7 +739,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Predictions generated successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -775,25 +809,25 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
     /// <summary>
     /// Push trade record to cloud after decision execution
     /// </summary>
-    public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    public Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken);
     }
 
     /// <summary>
     /// Push service metrics to cloud
     /// </summary>
-    public async Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
+    public Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken);
     }
 
     /// <summary>
     /// Push decision intelligence data to cloud
     /// </summary>
-    public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
+    public Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
     {
-        await _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken).ConfigureAwait(false);
+        return _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken);
     }
 
     #endregion

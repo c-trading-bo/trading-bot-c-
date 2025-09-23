@@ -432,13 +432,13 @@ public class NightlyParameterTuner
 
         // Initialize population
         var populationSize = Math.Min(MaxPopulationSize, _config.Trials / PopulationDivisor);
-        var population = await InitializePopulationAsync(session.ModelFamily, populationSize, cancellationToken).ConfigureAwait(false);
+        var population = await InitializePopulationAsync(populationSize, cancellationToken).ConfigureAwait(false);
         
         var generations = _config.Trials / populationSize;
         var bestIndividual = population.OrderByDescending(ind => ind.Fitness).First();
         
         result.BaselineMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
-        var bestMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
+        var bestMetrics = bestIndividual.Metrics;
         var bestParameters = bestIndividual.Parameters;
 
         // Evolution loop
@@ -562,33 +562,27 @@ public class NightlyParameterTuner
 
     private async Task<Dictionary<string, double>> GetBaselineParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        // Load baseline parameters asynchronously from multiple sources
-        var baselineTask = Task.Run(async () =>
+        // Step 1: Try to load from historical tuning results
+        var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+        if (historicalParams != null)
         {
-            // Step 1: Try to load from historical tuning results
-            var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-            if (historicalParams != null)
-            {
-                return historicalParams;
-            }
+            return historicalParams;
+        }
 
-            // Step 2: Load from model registry if available
-            var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-            if (registryParams != null)
-            {
-                return registryParams;
-            }
+        // Step 2: Load from model registry if available
+        var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+        if (registryParams != null)
+        {
+            return registryParams;
+        }
 
-            // Step 3: Use intelligent defaults based on model family
-            return GetIntelligentDefaultsAsync(modelFamily, cancellationToken).Result;
-        }, cancellationToken);
-
-        return await baselineTask.ConfigureAwait(false);
+        // Step 3: Use intelligent defaults based on model family
+        return await GetIntelligentDefaultsAsync(modelFamily, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
+    private Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             if (_tuningHistory.TryGetValue(modelFamily, out var history))
             {
@@ -600,53 +594,47 @@ public class NightlyParameterTuner
                 return bestResult?.BestParameters;
             }
             return null;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task<Dictionary<string, double>?> LoadParametersFromRegistryAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(async () =>
+        try
         {
-            try
+            // Load from model registry
+            var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
+            if (File.Exists(configPath))
             {
-                // Load from model registry
-                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
-                if (File.Exists(configPath))
+                var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
+                var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
+                if (config?.TryGetValue("parameters", out var paramsObj) == true && paramsObj is JsonElement jsonElement)
                 {
-                    var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
-                    var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
-                    if (config?.TryGetValue("parameters", out var paramsObj) == true)
-                    {
-                        if (paramsObj is JsonElement jsonElement)
-                        {
-                            return jsonElement.Deserialize<Dictionary<string, double>>();
-                        }
-                    }
+                    return jsonElement.Deserialize<Dictionary<string, double>>();
                 }
             }
-            catch (IOException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (JsonException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
-            }
-            return null;
-        }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (JsonException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+        }
+        return null;
     }
 
-    private async Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
+    private Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Return model-family specific intelligent defaults
             var defaults = new Dictionary<string, double>
@@ -672,7 +660,7 @@ public class NightlyParameterTuner
             }
 
             return defaults;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private static async Task<ModelMetrics> EvaluateParametersAsync(
@@ -688,13 +676,31 @@ public class NightlyParameterTuner
         var dropoutRate = parameters.GetValueOrDefault("dropout_rate", DefaultDropoutRate);
         
         // Learning rate impact
-        var lrScore = learningRate > HighLearningRateThreshold ? HighLearningRatePenalty : (learningRate < LowLearningRateThreshold ? LowLearningRatePenalty : GoodLearningRateBonus);
+        double lrScore;
+        if (learningRate > HighLearningRateThreshold)
+            lrScore = HighLearningRatePenalty;
+        else if (learningRate < LowLearningRateThreshold)
+            lrScore = LowLearningRatePenalty;
+        else
+            lrScore = GoodLearningRateBonus;
         
         // Hidden size impact
-        var hsScore = hiddenSize >= LargeHiddenSizeThreshold ? LargeHiddenSizeBonus : (hiddenSize <= SmallHiddenSizeThreshold ? SmallHiddenSizePenalty : MediumHiddenSizeBonus);
+        double hsScore;
+        if (hiddenSize >= LargeHiddenSizeThreshold)
+            hsScore = LargeHiddenSizeBonus;
+        else if (hiddenSize <= SmallHiddenSizeThreshold)
+            hsScore = SmallHiddenSizePenalty;
+        else
+            hsScore = MediumHiddenSizeBonus;
         
         // Dropout impact
-        var dropScore = dropoutRate > HighDropoutThreshold ? HighDropoutPenalty : (dropoutRate < LowDropoutThreshold ? LowDropoutPenalty : GoodDropoutBonus);
+        double dropScore;
+        if (dropoutRate > HighDropoutThreshold)
+            dropScore = HighDropoutPenalty;
+        else if (dropoutRate < LowDropoutThreshold)
+            dropScore = LowDropoutPenalty;
+        else
+            dropScore = GoodDropoutBonus;
         
         var finalScore = Math.Max(0.5, Math.Min(0.85, baseScore + lrScore + hsScore + dropScore + 
             (System.Security.Cryptography.RandomNumberGenerator.GetInt32(NoiseRangeMin, NoiseRangeMax) / NoiseScaleFactor))); // Add some noise
@@ -734,7 +740,7 @@ public class NightlyParameterTuner
                 
                 if (bestTrials.Count > 0)
                 {
-                    var bestParam = bestTrials.First().Parameters.GetValueOrDefault(paramName, range.Min);
+                    var bestParam = bestTrials[0].Parameters.GetValueOrDefault(paramName, range.Min);
                     var noiseRange = (range.Max - range.Min) * 0.1;
                     var noise = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * noiseRange;
                     candidate[paramName] = Math.Max(range.Min, Math.Min(range.Max, bestParam + noise));
@@ -750,7 +756,6 @@ public class NightlyParameterTuner
     }
 
     private async Task<List<Individual>> InitializePopulationAsync(
-        string modelFamily,
         int populationSize,
         CancellationToken cancellationToken)
     {
@@ -931,7 +936,7 @@ public class NightlyParameterTuner
         return improvements > total / ImprovementThresholdDivisor;
     }
 
-    private async Task PromoteImprovedModelAsync(
+    private Task<ModelArtifact> PromoteImprovedModelAsync(
         string modelFamily,
         OptimizationResult result,
         CancellationToken cancellationToken)
@@ -955,7 +960,7 @@ public class NightlyParameterTuner
         registration.Metadata["improved_auc"] = result.BestMetrics.AUC;
         registration.Metadata["tuning_date"] = DateTime.UtcNow;
 
-        await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
+        return _modelRegistry.RegisterModelAsync(registration, cancellationToken);
     }
 
     private async Task<bool> ShouldRollbackAsync(

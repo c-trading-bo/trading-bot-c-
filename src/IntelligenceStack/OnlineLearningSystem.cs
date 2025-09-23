@@ -558,12 +558,10 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                     foreach (var regimeType in _regimeWeights.Keys.ToList())
                     {
                         var weights = _regimeWeights[regimeType];
-                        foreach (var key in weights.Keys.ToList())
+                        var keysToUpdate = weights.Keys.Where(key => key.Contains(modelId, StringComparison.OrdinalIgnoreCase)).ToList();
+                        foreach (var key in keysToUpdate)
                         {
-                            if (key.Contains(modelId, StringComparison.OrdinalIgnoreCase))
-                            {
-                                weights[key] = ResetWeight; // Reset to default
-                            }
+                            weights[key] = ResetWeight; // Reset to default
                         }
                     }
                 }

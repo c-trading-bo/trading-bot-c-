@@ -544,7 +544,7 @@ public class HistoricalTrainerWithCV
         DateTime endTime,
         CancellationToken cancellationToken)
     {
-        var dataPoints = new List<MarketDataPoint>();
+        List<MarketDataPoint> dataPoints;
         
         // Step 1: Load historical data from multiple sources asynchronously
         var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);

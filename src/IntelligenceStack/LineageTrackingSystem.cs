@@ -608,6 +608,11 @@ public class LineageTrackingSystem
             }
             
             // Extract model version from model ID if not directly available
+            if (string.IsNullOrEmpty(decision.ModelId))
+            {
+                return "unknown";
+            }
+            
             var parts = decision.ModelId.Split('_');
             return parts.Length > 1 ? parts[^1] : "unknown";
         }
@@ -617,11 +622,6 @@ public class LineageTrackingSystem
             return "unknown";
         }
         catch (InvalidOperationException ex)
-        {
-            LogFailedToGetModelVersion(_logger, ex);
-            return "unknown";
-        }
-        catch (NullReferenceException ex)
         {
             LogFailedToGetModelVersion(_logger, ex);
             return "unknown";
@@ -846,7 +846,7 @@ public class LineageTrackingSystem
         return File.WriteAllTextAsync(snapshotFile, json, cancellationToken);
     }
 
-    private async Task SaveDecisionLineageAsync(
+    private Task SaveDecisionLineageAsync(
         string decisionId,
         IntelligenceDecision decision,
         LineageStamp stamp,
@@ -862,20 +862,20 @@ public class LineageTrackingSystem
 
         var decisionFile = Path.Combine(_lineagePath, "decisions", $"{decisionId}.json");
         var json = JsonSerializer.Serialize(record, JsonOptions);
-        await File.WriteAllTextAsync(decisionFile, json, cancellationToken).ConfigureAwait(false);
+        return File.WriteAllTextAsync(decisionFile, json, cancellationToken);
     }
 
-    private async Task SaveLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
+    private Task SaveLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
     {
         var eventFile = Path.Combine(_lineagePath, "events", $"{lineageEvent.EventId}.json");
         var json = JsonSerializer.Serialize(lineageEvent, JsonOptions);
-        await File.WriteAllTextAsync(eventFile, json, cancellationToken).ConfigureAwait(false);
+        return File.WriteAllTextAsync(eventFile, json, cancellationToken);
     }
 
-    private async Task<List<LineageEvent>> GetEventsInPeriodAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private Task<List<LineageEvent>> GetEventsInPeriodAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         // Retrieve lineage events in period asynchronously to avoid blocking analysis operations
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var allEvents = new List<LineageEvent>();
             
@@ -888,7 +888,7 @@ public class LineageTrackingSystem
             }
             
             return allEvents.OrderBy(e => e.Timestamp).ToList();
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task<CompleteModelLineage> GetCompleteModelLineageAsync(string modelId, CancellationToken cancellationToken)
@@ -977,10 +977,10 @@ public class LineageTrackingSystem
         return calibrationLineage;
     }
 
-    private async Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
+    private Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
     {
         // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var relatedEvents = new List<LineageEvent>();
             
@@ -995,7 +995,7 @@ public class LineageTrackingSystem
             }
             
             return relatedEvents.OrderBy(e => e.Timestamp).ToList();
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private static string ExtractFamilyFromId(string modelId)
