@@ -350,14 +350,14 @@ public class ObservabilityDashboard : IDisposable
         };
         
         // Add time of day data to read-only dictionary
-        var timeOfDayProfile = CreateTimeOfDayProfile("slippage");
+        var timeOfDayProfile = CreateTimeOfDayProfile();
         foreach (var kvp in timeOfDayProfile)
         {
             slippageData.ByTimeOfDay[kvp.Key] = kvp.Value;
         }
         
         // Add volatility data to read-only dictionary
-        var volatilityProfile = CreateVolatilityProfile("slippage");
+        var volatilityProfile = CreateVolatilityProfile();
         foreach (var kvp in volatilityProfile)
         {
             slippageData.ByVolatility[kvp.Key] = kvp.Value;
@@ -808,7 +808,7 @@ public class ObservabilityDashboard : IDisposable
         return Math.Max(0.0, 1.0 - Math.Abs(confidences.Average() - _config.CalibrationScoreOffset) * _config.CalibrationScoreMultiplier);
     }
 
-    private static Dictionary<string, double> CreateTimeOfDayProfile(string metricName)
+    private static Dictionary<string, double> CreateTimeOfDayProfile()
     {
         // Simplified time-of-day profile
         return new Dictionary<string, double>
@@ -817,7 +817,7 @@ public class ObservabilityDashboard : IDisposable
         };
     }
 
-    private static Dictionary<string, double> CreateVolatilityProfile(string metricName)
+    private static Dictionary<string, double> CreateVolatilityProfile()
     {
         // Simplified volatility profile
         return new Dictionary<string, double>

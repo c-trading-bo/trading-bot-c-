@@ -348,7 +348,7 @@ public class NightlyParameterTuner
 
         // Initialize with baseline parameters
         var baseline = await GetBaselineParametersAsync(session.ModelFamily, cancellationToken).ConfigureAwait(false);
-        result.BaselineMetrics = await EvaluateParametersAsync(session.ModelFamily, baseline, cancellationToken).ConfigureAwait(false);
+        result.BaselineMetrics = await EvaluateParametersAsync(baseline, cancellationToken).ConfigureAwait(false);
         
         var bestParameters = new Dictionary<string, double>(baseline);
         var bestMetrics = result.BaselineMetrics;
@@ -364,7 +364,7 @@ public class NightlyParameterTuner
             var candidateParams = GenerateNextCandidateByesian(session, trial);
             
             // Evaluate candidate parameters
-            var candidateMetrics = await EvaluateParametersAsync(session.ModelFamily, candidateParams, cancellationToken).ConfigureAwait(false);
+            var candidateMetrics = await EvaluateParametersAsync(candidateParams, cancellationToken).ConfigureAwait(false);
             
             // Update session history
             var trialResult = new TrialResult
@@ -453,7 +453,7 @@ public class NightlyParameterTuner
             // Evaluate new individuals
             foreach (var individual in newPopulation.Where(ind => ind.Metrics == null))
             {
-                individual.Metrics = await EvaluateParametersAsync(session.ModelFamily, individual.Parameters, cancellationToken).ConfigureAwait(false);
+                individual.Metrics = await EvaluateParametersAsync(individual.Parameters, cancellationToken).ConfigureAwait(false);
                 individual.Fitness = CalculateFitness(individual.Metrics);
                 result.TrialsCompleted++;
             }
@@ -676,7 +676,6 @@ public class NightlyParameterTuner
     }
 
     private static async Task<ModelMetrics> EvaluateParametersAsync(
-        string modelFamily,
         Dictionary<string, double> parameters,
         CancellationToken cancellationToken)
     {
@@ -766,7 +765,7 @@ public class NightlyParameterTuner
                 parameters[paramName] = SampleFromRange(range);
             }
             
-            var metrics = await EvaluateParametersAsync(modelFamily, parameters, cancellationToken).ConfigureAwait(false);
+            var metrics = await EvaluateParametersAsync(parameters, cancellationToken).ConfigureAwait(false);
             
             var individual = new Individual
             {

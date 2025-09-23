@@ -48,6 +48,22 @@ public class FeatureStore : IFeatureStore
         LoggerMessage.Define<int, string, DateTime>(LogLevel.Debug, new EventId(3004, "FeaturesSaved"),
             "[FEATURES] Saved {Count} features for {Symbol} at {Timestamp}");
             
+    private static readonly Action<ILogger, Exception?> StorageOptimizationCompleted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3005, "StorageOptimizationCompleted"),
+            "[FEATURES] Storage optimization completed");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationDirectoryNotFound =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3006, "StorageOptimizationDirectoryNotFound"),
+            "[FEATURES] Storage optimization failed due to directory not found");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationAccessDenied =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3007, "StorageOptimizationAccessDenied"),
+            "[FEATURES] Storage optimization failed due to access denied");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationIOError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3008, "StorageOptimizationIOError"),
+            "[FEATURES] Storage optimization failed due to I/O error");
+            
     private static readonly Action<ILogger, string, DateTime, Exception?> FeatureSavingFailed =
         LoggerMessage.Define<string, DateTime>(LogLevel.Error, new EventId(3005, "FeatureSavingFailed"),
             "[FEATURES] Failed to save features for {Symbol} at {Timestamp}");
@@ -341,19 +357,19 @@ public class FeatureStore : IFeatureStore
                 }
             }
             
-            _logger.LogInformation("[FEATURES] Storage optimization completed");
+            StorageOptimizationCompleted(_logger, null);
         }
         catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to directory not found");
+            StorageOptimizationDirectoryNotFound(_logger, ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to access denied");
+            StorageOptimizationAccessDenied(_logger, ex);
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to I/O error");
+            StorageOptimizationIOError(_logger, ex);
         }
     }
 
@@ -374,7 +390,11 @@ public class FeatureStore : IFeatureStore
                         compactedFeatures.Add(features);
                     }
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
+                }
+                catch (IOException ex)
                 {
                     _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
                 }
@@ -393,14 +413,26 @@ public class FeatureStore : IFeatureStore
                     {
                         File.Delete(file);
                     }
-                    catch (Exception ex)
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
+                    }
+                    catch (UnauthorizedAccessException ex)
                     {
                         _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
                     }
                 }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
         }
@@ -513,16 +545,14 @@ public class FeatureStore : IFeatureStore
     private static string CalculateChecksum(FeatureSet features)
     {
         var content = JsonSerializer.Serialize(features.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static string CalculateSchemaChecksum(FeatureSchema schema)
     {
         var content = JsonSerializer.Serialize(schema.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
