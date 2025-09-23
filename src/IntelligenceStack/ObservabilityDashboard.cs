@@ -18,6 +18,9 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class ObservabilityDashboard : IDisposable
 {
+    // Cached JsonSerializerOptions for CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, Exception?> LogFailedToGetDashboardData =
         LoggerMessage.Define(LogLevel.Error, new EventId(4001, nameof(LogFailedToGetDashboardData)),
@@ -695,7 +698,7 @@ public class ObservabilityDashboard : IDisposable
         
         // Generate JSON data files for dashboard
         var dataFile = Path.Combine(_dashboardPath, "data", "dashboard_data.json");
-        var json = JsonSerializer.Serialize(dashboardData, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(dashboardData, JsonOptions);
         await File.WriteAllTextAsync(dataFile, json).ConfigureAwait(false);
         
         // Generate summary metrics file
@@ -711,7 +714,7 @@ public class ObservabilityDashboard : IDisposable
             error_rate = dashboardData.GoldenSignals?.ErrorRate?.ErrorRatePercent ?? 0
         };
         
-        var summaryJson = JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true });
+        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
         await File.WriteAllTextAsync(summaryFile, summaryJson).ConfigureAwait(false);
     }
 

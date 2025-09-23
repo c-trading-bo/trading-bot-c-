@@ -164,6 +164,7 @@ public class RLAdvisorModel
     private const int NumActions = 4; // Q-learning action space size
     private const double MinExplorationRate = 0.01;
     private const double ExplorationDecayFactor = 0.9999;
+    private const double DefaultExplorationConfidence = 0.3;
     
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
@@ -195,7 +196,7 @@ public class RLAdvisorModel
         {
             // Exploration
             actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, ActionTypeCount);
-            confidence = 0.3; // Default exploration confidence
+            confidence = DefaultExplorationConfidence; // Default exploration confidence
         }
         else
         {

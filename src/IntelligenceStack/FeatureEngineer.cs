@@ -783,9 +783,9 @@ public class FeatureImportanceTracker
     /// <summary>
     /// Analyzes correlations between features and with outcomes
     /// </summary>
-    public async Task<Dictionary<string, double>> AnalyzeCorrelationsAsync(CancellationToken cancellationToken = default)
+    public Task<Dictionary<string, double>> AnalyzeCorrelationsAsync(CancellationToken cancellationToken = default)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var correlations = new Dictionary<string, double>();
             
@@ -816,7 +816,7 @@ public class FeatureImportanceTracker
             }
             
             return correlations;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -841,7 +841,7 @@ public class FeatureImportanceTracker
         var denominatorY = n * sumYSquared - sumY * sumY;
         var denominator = Math.Sqrt(denominatorX * denominatorY);
 
-        return denominator == 0 ? double.NaN : numerator / denominator;
+        return Math.Abs(denominator) < double.Epsilon ? double.NaN : numerator / denominator;
     }
 
     public IReadOnlyList<double> GetRecentPredictions()

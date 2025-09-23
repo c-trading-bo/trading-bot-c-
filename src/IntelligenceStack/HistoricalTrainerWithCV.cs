@@ -44,6 +44,9 @@ public class HistoricalTrainerWithCV
     private const int ThreadPoolSize = 8; // Thread pool size for parallel operations
     private const int BatchSize = 32; // Batch size for data processing
 
+    // Cached JsonSerializerOptions for CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     // LoggerMessage delegates for CA1848 compliance - HistoricalTrainerWithCV
     private static readonly Action<ILogger, string, DateTime, DateTime, Exception?> WalkForwardCVStarted =
         LoggerMessage.Define<string, DateTime, DateTime>(LogLevel.Information, new EventId(2001, "WalkForwardCVStarted"),
@@ -703,7 +706,7 @@ public class HistoricalTrainerWithCV
         try
         {
             var resultFile = Path.Combine(_dataPath, $"cv_result_{cvResult.ModelFamily}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-            var json = JsonSerializer.Serialize(cvResult, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(cvResult, JsonOptions);
             await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
             
             CVResultsSaved(_logger, resultFile, null);
