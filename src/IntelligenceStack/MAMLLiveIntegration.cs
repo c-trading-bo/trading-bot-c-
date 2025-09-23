@@ -504,12 +504,12 @@ public sealed class MamlLiveIntegration : IDisposable
         return boundedStep;
     }
 
-    private async Task<bool> ShouldRollbackAsync(
+    private Task<bool> ShouldRollbackAsync(
         MamlModelState modelState,
         CancellationToken cancellationToken)
     {
         // Analyze adaptation stability asynchronously to avoid blocking adaptation pipeline
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Get recent adaptation history
             var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>());
@@ -530,13 +530,13 @@ public sealed class MamlLiveIntegration : IDisposable
             
             // Check if current variance exceeds rollback threshold
             return variance > baselineVariance * _config.RollbackVarMultiplier;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    private async Task PerformRollbackAsync(MamlModelState modelState, CancellationToken cancellationToken)
+    private Task PerformRollbackAsync(MamlModelState modelState, CancellationToken cancellationToken)
     {
         // Perform model rollback asynchronously to avoid blocking adaptation pipeline
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             lock (_lock)
             {
@@ -551,16 +551,16 @@ public sealed class MamlLiveIntegration : IDisposable
             }
 
             RollbackPerformed(_logger, modelState.RegimeKey, null);
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    private async Task ApplyAdaptationAsync(
+    private Task ApplyAdaptationAsync(
         MamlModelState modelState,
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
         // Apply adaptation changes asynchronously to avoid blocking adaptation pipeline
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             lock (_lock)
             {
@@ -596,10 +596,10 @@ public sealed class MamlLiveIntegration : IDisposable
                     history.RemoveAt(0);
                 }
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
-    private async Task UpdateEnsembleWeightsAsync(
+    private Task UpdateEnsembleWeightsAsync(
         RegimeType regime,
         CancellationToken cancellationToken)
     {
@@ -607,7 +607,7 @@ public sealed class MamlLiveIntegration : IDisposable
         var regimeKey = regime.ToString();
         var modelState = _modelStates[regimeKey];
         
-        await _onlineLearning.UpdateWeightsAsync(regimeKey, modelState.CurrentWeights, cancellationToken).ConfigureAwait(false);
+        return _onlineLearning.UpdateWeightsAsync(regimeKey, modelState.CurrentWeights, cancellationToken);
     }
 
     private static double CalculatePerformance(List<TrainingExample> examples, Dictionary<string, double> weights)
@@ -696,7 +696,7 @@ public sealed class MamlLiveIntegration : IDisposable
             }
             
             // Fallback: Attempt to load from external data sources
-            var externalExamples = await LoadFromExternalDataSources(regime, count, cancellationToken).ConfigureAwait(false);
+            var externalExamples = await LoadFromExternalDataSources(regime, count).ConfigureAwait(false);
             if (externalExamples.Count > 0)
             {
                 ExternalExamplesLoaded(_logger, externalExamples.Count, regime.ToString(), null);
@@ -770,7 +770,7 @@ public sealed class MamlLiveIntegration : IDisposable
     /// <summary>
     /// Load training examples from external data sources (TopstepX, market data, etc.)
     /// </summary>
-    private async Task<List<TrainingExample>> LoadFromExternalDataSources(RegimeType regime, int count, CancellationToken cancellationToken)
+    private async Task<List<TrainingExample>> LoadFromExternalDataSources(RegimeType regime, int count)
     {
         try
         {

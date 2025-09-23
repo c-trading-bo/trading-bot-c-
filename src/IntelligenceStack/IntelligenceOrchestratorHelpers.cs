@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public partial class IntelligenceOrchestratorHelpers
 {
-    private readonly ILogger<IntelligenceOrchestratorHelpers> _logger;
+    private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IModelRegistry _modelRegistry;
     
     // State tracking (shared with main orchestrator)
@@ -22,7 +22,7 @@ public partial class IntelligenceOrchestratorHelpers
     private readonly object _lock = new();
     
     public IntelligenceOrchestratorHelpers(
-        ILogger<IntelligenceOrchestratorHelpers> logger,
+        ILogger<IntelligenceOrchestrator> logger,
         IModelRegistry modelRegistry,
         Dictionary<string, ModelArtifact> activeModels)
     {
