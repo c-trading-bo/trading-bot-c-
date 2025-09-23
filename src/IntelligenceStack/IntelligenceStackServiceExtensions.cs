@@ -328,7 +328,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         }
     }
 
-    private async Task VerifyIndividualServiceAsync(ProductionVerificationResult result, Type serviceType, string serviceName)
+    private Task VerifyIndividualServiceAsync(ProductionVerificationResult result, Type serviceType, string serviceName)
     {
         try
         {

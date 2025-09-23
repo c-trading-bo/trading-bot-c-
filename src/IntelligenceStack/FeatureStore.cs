@@ -328,13 +328,10 @@ public class FeatureStore : IFeatureStore
             }
 
             // Type validation
-            if (schemaFeature.DataType == typeof(double))
+            if (schemaFeature.DataType == typeof(double) && !double.IsFinite(value))
             {
-                if (!double.IsFinite(value))
-                {
-                    typeErrorCount++;
-                    continue;
-                }
+                typeErrorCount++;
+                continue;
             }
 
             // Range validation

@@ -384,7 +384,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         var renewalInterval = TimeSpan.FromSeconds(_config.RenewSeconds);
         _renewalTimer = new Timer(_ =>
         {
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
