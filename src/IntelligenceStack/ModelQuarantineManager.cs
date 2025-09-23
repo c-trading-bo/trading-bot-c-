@@ -330,6 +330,7 @@ public class ModelQuarantineManager : IQuarantineManager
     /// </summary>
     public async Task RecordPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(performance);
         try
         {
             lock (_lock)
@@ -374,6 +375,7 @@ public class ModelQuarantineManager : IQuarantineManager
     /// </summary>
     public async Task RecordExceptionAsync(string modelId, Exception exception, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(exception);
         try
         {
             bool shouldQuarantine = false;

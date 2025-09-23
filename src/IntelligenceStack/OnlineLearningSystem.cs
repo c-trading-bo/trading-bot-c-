@@ -195,6 +195,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(weights);
         // Brief async operation for proper async pattern
         await Task.Delay(DelayMs, cancellationToken).ConfigureAwait(false);
         
@@ -294,6 +295,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task AdaptToPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(performance);
         if (!_config.Enabled)
         {
             return;
@@ -364,6 +366,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task DetectDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
         // Simple drift detection based on feature distribution changes
         // In production, would use more sophisticated methods like ADWIN
         
@@ -434,6 +437,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task UpdateModelAsync(TradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(tradeRecord);
         if (!_config.Enabled)
         {
             return;

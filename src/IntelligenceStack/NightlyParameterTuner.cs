@@ -334,6 +334,7 @@ public class NightlyParameterTuner
         TuningSession session,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(session);
         StartingBayesianOptimization(_logger, session.ModelFamily, null);
 
         var result = new OptimizationResult
@@ -417,6 +418,7 @@ public class NightlyParameterTuner
         TuningSession session,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(session);
         StartingEvolutionarySearch(_logger, session.ModelFamily, null);
 
         var result = new OptimizationResult

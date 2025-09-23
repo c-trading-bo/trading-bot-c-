@@ -84,6 +84,7 @@ public class ModelRegistry : IModelRegistry
     {
         _logger = logger;
         _basePath = basePath;
+        ArgumentNullException.ThrowIfNull(config);
         _defaultCriteria = new PromotionCriteria
         {
             MinAuc = config.Auto.PromoteIf.MinAuc,
@@ -190,6 +191,7 @@ public class ModelRegistry : IModelRegistry
 
     public async Task<ModelArtifact> RegisterModelAsync(ModelRegistration registration, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(registration);
         try
         {
             var modelId = GenerateModelId(registration.FamilyName);
@@ -262,6 +264,8 @@ public class ModelRegistry : IModelRegistry
 
     public async Task<bool> PromoteModelAsync(string modelId, PromotionCriteria criteria, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(modelId);
+        ArgumentNullException.ThrowIfNull(criteria);
         try
         {
             // Check cooldown

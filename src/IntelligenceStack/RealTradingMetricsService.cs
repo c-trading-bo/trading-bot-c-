@@ -124,6 +124,7 @@ public class RealTradingMetricsService : BackgroundService
     /// </summary>
     public void RecordFill(string orderId, string symbol, decimal fillPrice, int quantity, string side)
     {
+        ArgumentNullException.ThrowIfNull(side);
         lock (_metricsLock)
         {
             _totalFills++;
