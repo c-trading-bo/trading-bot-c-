@@ -203,7 +203,7 @@ public class RLAdvisorSystem
     private readonly IDecisionLogger _decisionLogger;
     private readonly string _statePath;
     
-    private readonly Dictionary<string, RLAgent> _agents = new();
+    private readonly Dictionary<string, RLAdvisorModel> _agents = new();
     private readonly Dictionary<string, List<RLDecision>> _decisionHistory = new();
     private readonly Dictionary<string, PerformanceTracker> _performanceTrackers = new();
     private readonly object _lock = new();
@@ -509,18 +509,18 @@ public class RLAdvisorSystem
         foreach (var context in contexts)
         {
             var agentType = context.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
-            _agents[context] = new RLAgent(_logger, agentType, context, _config);
+            _agents[context] = new RLAdvisorModel(_logger, agentType, context, _config);
         }
     }
 
-    private RLAgent GetOrCreateAgent(string agentKey)
+    private RLAdvisorModel GetOrCreateAgent(string agentKey)
     {
         lock (_lock)
         {
             if (!_agents.TryGetValue(agentKey, out var agent))
             {
                 var agentType = agentKey.Contains("CVaR") ? RLAgentType.CVarPPO : RLAgentType.PPO;
-                agent = new RLAgent(_logger, agentType, agentKey, _config);
+                agent = new RLAdvisorModel(_logger, agentType, agentKey, _config);
                 _agents[agentKey] = agent;
             }
             return agent;
@@ -1063,7 +1063,7 @@ public class RLAdvisorSystem
     }
     
     private static async Task<AgentTrainingResult> TrainAgentAsync(
-        RLAgent agent,
+        RLAdvisorModel agent,
         List<TrainingEpisode> episodes,
         CancellationToken cancellationToken)
     {

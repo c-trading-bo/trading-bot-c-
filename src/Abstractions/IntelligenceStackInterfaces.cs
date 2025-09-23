@@ -57,6 +57,7 @@ public interface IFeatureStore
     Task SaveFeaturesAsync(FeatureSet features, CancellationToken cancellationToken = default);
     Task<bool> ValidateSchemaAsync(FeatureSet features, CancellationToken cancellationToken = default);
     Task<FeatureSchema> GetSchemaAsync(string version, CancellationToken cancellationToken = default);
+    Task OptimizeStorageAsync(CancellationToken cancellationToken = default);
 }
 
 public class FeatureSet
@@ -96,6 +97,8 @@ public interface IModelRegistry
     Task<ModelArtifact> RegisterModelAsync(ModelRegistration registration, CancellationToken cancellationToken = default);
     Task<bool> PromoteModelAsync(string modelId, PromotionCriteria criteria, CancellationToken cancellationToken = default);
     Task<ModelMetrics> GetModelMetricsAsync(string modelId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ModelArtifact>> GetActiveModelsAsync(CancellationToken cancellationToken = default);
+    Task CleanupExpiredModelsAsync(CancellationToken cancellationToken = default);
 }
 
 public class ModelArtifact

@@ -370,6 +370,116 @@ public class ModelRegistry : IModelRegistry
         }
     }
 
+    /// <summary>
+    /// Gets all active models from the registry
+    /// </summary>
+    public async Task<IEnumerable<ModelArtifact>> GetActiveModelsAsync(CancellationToken cancellationToken = default)
+    {
+        var activeModels = new List<ModelArtifact>();
+        
+        try
+        {
+            var metadataDir = Path.Combine(_basePath, "metadata");
+            if (!Directory.Exists(metadataDir))
+            {
+                return activeModels;
+            }
+
+            var files = Directory.GetFiles(metadataDir, "*.json");
+            
+            foreach (var file in files)
+            {
+                try
+                {
+                    var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
+                    var model = JsonSerializer.Deserialize<ModelArtifact>(content);
+                    
+                    if (model != null)
+                    {
+                        activeModels.Add(model);
+                    }
+                }
+                catch (IOException ex)
+                {
+                    FailedToParseModelMetadata(_logger, file, ex);
+                }
+                catch (JsonException ex)
+                {
+                    FailedToParseModelMetadata(_logger, file, ex);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    FailedToParseModelMetadata(_logger, file, ex);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break; // Stop processing files on cancellation
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[REGISTRY] Failed to read models directory");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[REGISTRY] Access denied to models directory");
+        }
+        
+        return activeModels;
+    }
+
+    /// <summary>
+    /// Cleans up expired models that are past their retention period
+    /// </summary>
+    public async Task CleanupExpiredModelsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var activeModels = await GetActiveModelsAsync(cancellationToken).ConfigureAwait(false);
+            var retentionPeriod = TimeSpan.FromDays(30); // Keep models for 30 days
+            var cutoffDate = DateTime.UtcNow - retentionPeriod;
+            
+            foreach (var model in activeModels.Where(m => m.CreatedAt < cutoffDate))
+            {
+                try
+                {
+                    var metadataPath = Path.Combine(_basePath, "metadata", $"{model.Id}.json");
+                    var artifactPath = Path.Combine(_basePath, "artifacts", $"{model.Id}.dat");
+                    
+                    if (File.Exists(metadataPath))
+                    {
+                        File.Delete(metadataPath);
+                    }
+                    
+                    if (File.Exists(artifactPath))
+                    {
+                        File.Delete(artifactPath);
+                    }
+                    
+                    lock (_lock)
+                    {
+                        _modelCache.Remove(model.Id);
+                    }
+                    
+                    _logger.LogInformation("[REGISTRY] Cleaned up expired model: {ModelId}", model.Id);
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogError(ex, "[REGISTRY] Failed to cleanup model: {ModelId}", model.Id);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogError(ex, "[REGISTRY] Access denied when cleaning up model: {ModelId}", model.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[REGISTRY] Failed to cleanup expired models");
+        }
+    }
+
     private async Task<ModelArtifact?> GetModelByIdAsync(string modelId, CancellationToken cancellationToken)
     {
         var metadataPath = Path.Combine(_basePath, "metadata", $"{modelId}.json");
