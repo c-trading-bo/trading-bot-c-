@@ -360,7 +360,15 @@ public class RLAdvisorSystem
                 _lastUpliftCheck = DateTime.UtcNow;
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            OutcomeUpdateFailed(_logger, decisionId, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            OutcomeUpdateFailed(_logger, decisionId, ex);
+        }
+        catch (TimeoutException ex)
         {
             OutcomeUpdateFailed(_logger, decisionId, ex);
         }
@@ -451,7 +459,37 @@ public class RLAdvisorSystem
 
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            HistoricalTrainingFailed(_logger, symbol, ex);
+            return new RLTrainingResult 
+            { 
+                Symbol = symbol, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            HistoricalTrainingFailed(_logger, symbol, ex);
+            return new RLTrainingResult 
+            { 
+                Symbol = symbol, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (IOException ex)
+        {
+            HistoricalTrainingFailed(_logger, symbol, ex);
+            return new RLTrainingResult 
+            { 
+                Symbol = symbol, 
+                Success = false, 
+                ErrorMessage = ex.Message 
+            };
+        }
+        catch (TimeoutException ex)
         {
             HistoricalTrainingFailed(_logger, symbol, ex);
             return new RLTrainingResult 
