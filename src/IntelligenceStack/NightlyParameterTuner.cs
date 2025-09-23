@@ -607,12 +607,9 @@ public class NightlyParameterTuner
             {
                 var configJson = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
                 var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
-                if (config?.TryGetValue("parameters", out var paramsObj) == true)
+                if (config?.TryGetValue("parameters", out var paramsObj) == true && paramsObj is JsonElement jsonElement)
                 {
-                    if (paramsObj is JsonElement jsonElement)
-                    {
-                        return jsonElement.Deserialize<Dictionary<string, double>>();
-                    }
+                    return jsonElement.Deserialize<Dictionary<string, double>>();
                 }
             }
         }
@@ -682,10 +679,22 @@ public class NightlyParameterTuner
         var lrScore = learningRate > HighLearningRateThreshold ? HighLearningRatePenalty : (learningRate < LowLearningRateThreshold ? LowLearningRatePenalty : GoodLearningRateBonus);
         
         // Hidden size impact
-        var hsScore = hiddenSize >= LargeHiddenSizeThreshold ? LargeHiddenSizeBonus : (hiddenSize <= SmallHiddenSizeThreshold ? SmallHiddenSizePenalty : MediumHiddenSizeBonus);
+        double hsScore;
+        if (hiddenSize >= LargeHiddenSizeThreshold)
+            hsScore = LargeHiddenSizeBonus;
+        else if (hiddenSize <= SmallHiddenSizeThreshold)
+            hsScore = SmallHiddenSizePenalty;
+        else
+            hsScore = MediumHiddenSizeBonus;
         
         // Dropout impact
-        var dropScore = dropoutRate > HighDropoutThreshold ? HighDropoutPenalty : (dropoutRate < LowDropoutThreshold ? LowDropoutPenalty : GoodDropoutBonus);
+        double dropScore;
+        if (dropoutRate > HighDropoutThreshold)
+            dropScore = HighDropoutPenalty;
+        else if (dropoutRate < LowDropoutThreshold)
+            dropScore = LowDropoutPenalty;
+        else
+            dropScore = GoodDropoutBonus;
         
         var finalScore = Math.Max(0.5, Math.Min(0.85, baseScore + lrScore + hsScore + dropScore + 
             (System.Security.Cryptography.RandomNumberGenerator.GetInt32(NoiseRangeMin, NoiseRangeMax) / NoiseScaleFactor))); // Add some noise
@@ -725,7 +734,7 @@ public class NightlyParameterTuner
                 
                 if (bestTrials.Count > 0)
                 {
-                    var bestParam = bestTrials.First().Parameters.GetValueOrDefault(paramName, range.Min);
+                    var bestParam = bestTrials[0].Parameters.GetValueOrDefault(paramName, range.Min);
                     var noiseRange = (range.Max - range.Min) * 0.1;
                     var noise = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * noiseRange;
                     candidate[paramName] = Math.Max(range.Min, Math.Min(range.Max, bestParam + noise));

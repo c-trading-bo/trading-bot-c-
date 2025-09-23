@@ -608,6 +608,11 @@ public class LineageTrackingSystem
             }
             
             // Extract model version from model ID if not directly available
+            if (string.IsNullOrEmpty(decision.ModelId))
+            {
+                return "unknown";
+            }
+            
             var parts = decision.ModelId.Split('_');
             return parts.Length > 1 ? parts[^1] : "unknown";
         }
@@ -617,11 +622,6 @@ public class LineageTrackingSystem
             return "unknown";
         }
         catch (InvalidOperationException ex)
-        {
-            LogFailedToGetModelVersion(_logger, ex);
-            return "unknown";
-        }
-        catch (NullReferenceException ex)
         {
             LogFailedToGetModelVersion(_logger, ex);
             return "unknown";
