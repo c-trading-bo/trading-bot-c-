@@ -357,7 +357,6 @@ public class FeatureStore : IFeatureStore
     {
         try
         {
-            var symbol = Path.GetFileName(symbolDir);
             var compactedFeatures = new List<FeatureSet>();
             
             foreach (var file in files.Take(50)) // Compact in batches
@@ -531,54 +530,6 @@ public class FeatureStore : IFeatureStore
             return fileTime >= fromTime && fileTime <= toTime;
         }
         return false;
-    }
-
-    private string[] GetFeatureFilesInRange(string featuresPath, DateTime fromTime, DateTime toTime)
-    {
-        return Directory.GetFiles(featuresPath, "*.json")
-            .Where(file => IsFileInTimeRange(file, fromTime, toTime))
-            .OrderBy(file => file)
-            .ToArray();
-    }
-
-    private async Task<FeatureSet> LoadFeaturesFromFiles(string[] featureFiles, string symbol, CancellationToken cancellationToken)
-    {
-        var features = new Dictionary<string, double>();
-        string? version = null;
-        string? checksum = null;
-
-        foreach (var file in featureFiles)
-        {
-            var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
-            var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
-            
-            if (featureSet != null)
-            {
-                // Merge features (later timestamps override earlier ones)
-                foreach (var kvp in featureSet.Features)
-                {
-                    features[kvp.Key] = kvp.Value;
-                }
-                
-                version = featureSet.Version;
-                checksum = featureSet.SchemaChecksum;
-            }
-        }
-
-        var result = new FeatureSet
-        {
-            Symbol = symbol,
-            Version = version ?? "unknown",
-            SchemaChecksum = checksum ?? "unknown"
-        };
-
-        // Populate the read-only Features dictionary
-        foreach (var kvp in features)
-        {
-            result.Features[kvp.Key] = kvp.Value;
-        }
-
-        return result;
     }
 
     private sealed class ValidationResult

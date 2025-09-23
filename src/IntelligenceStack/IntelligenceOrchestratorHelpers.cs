@@ -111,9 +111,6 @@ public partial class IntelligenceOrchestratorHelpers
         
         return Task.Run(() =>
         {
-            // Extract market data from context
-            var marketData = WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
-            
             // Perform correlation analysis using feature engineer
             try
             {

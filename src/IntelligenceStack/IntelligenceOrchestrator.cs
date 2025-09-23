@@ -723,7 +723,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Creates a safe fallback decision when normal processing fails
     /// </summary>
-    private TradingDecision CreateSafeDecision(string reason)
+    private static TradingDecision CreateSafeDecision(string reason)
     {
         return new TradingDecision
         {
@@ -749,7 +749,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Extracts features from market context for decision making
     /// </summary>
-    private async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
+    private static async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
     {
         // Create a basic feature set from market context
         var features = new FeatureSet
@@ -819,7 +819,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         try
         {
             // Simple prediction logic - this would be replaced with actual ML model inference
-            var priceFeature = features.Features.GetValueOrDefault("price", 0.0);
             var volumeFeature = features.Features.GetValueOrDefault("volume", 0.0);
             var volatilityFeature = features.Features.GetValueOrDefault("volatility", 0.0);
             
@@ -851,7 +850,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Creates a trading decision from intelligence analysis
     /// </summary>
-    private TradingDecision CreateTradingDecision(
+    private static TradingDecision CreateTradingDecision(
         string decisionId,
         MarketContext context,
         RegimeState regime,
