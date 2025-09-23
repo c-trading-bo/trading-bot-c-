@@ -253,14 +253,34 @@ public class MamlLiveIntegration
 
             return result;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             MamlAdaptationFailed(_logger, regime.ToString(), ex);
             return new MamlAdaptationResult 
             { 
                 Regime = regime, 
                 Success = false, 
-                SkippedReason = $"Exception: {ex.Message}" 
+                SkippedReason = $"ArgumentException: {ex.Message}" 
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            MamlAdaptationFailed(_logger, regime.ToString(), ex);
+            return new MamlAdaptationResult 
+            { 
+                Regime = regime, 
+                Success = false, 
+                SkippedReason = $"InvalidOperationException: {ex.Message}" 
+            };
+        }
+        catch (IOException ex)
+        {
+            MamlAdaptationFailed(_logger, regime.ToString(), ex);
+            return new MamlAdaptationResult 
+            { 
+                Regime = regime, 
+                Success = false, 
+                SkippedReason = $"IOException: {ex.Message}" 
             };
         }
     }
@@ -343,7 +363,15 @@ public class MamlLiveIntegration
             
             _lastUpdate = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                PeriodicUpdateFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                PeriodicUpdateFailed(_logger, ex);
+            }
+            catch (IOException ex)
             {
                 PeriodicUpdateFailed(_logger, ex);
             }

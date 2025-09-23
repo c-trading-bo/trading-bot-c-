@@ -534,7 +534,15 @@ public class FeatureEngineer : IDisposable
 
             return marginalContribution;
         }
-        catch
+        catch (ArgumentException)
+        {
+            return 0.0;
+        }
+        catch (InvalidOperationException)
+        {
+            return 0.0;
+        }
+        catch (ArithmeticException)
         {
             return 0.0;
         }
@@ -591,7 +599,15 @@ public class FeatureEngineer : IDisposable
             
             return featureSet;
         }
-        catch
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (IOException)
         {
             return null;
         }
@@ -649,7 +665,15 @@ public class FeatureEngineer : IDisposable
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                ScheduledUpdateFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                ScheduledUpdateFailed(_logger, ex);
+            }
+            catch (IOException ex)
             {
                 ScheduledUpdateFailed(_logger, ex);
             }

@@ -464,7 +464,17 @@ public class LineageTrackingSystem
                 var model = await _modelRegistry.GetModelAsync(family, "latest", cancellationToken).ConfigureAwait(false);
                 modelVersions[family] = model.Version;
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
+            {
+                FailedToGetModelVersion(_logger, family, ex);
+                modelVersions[family] = "unknown";
+            }
+            catch (InvalidOperationException ex)
+            {
+                FailedToGetModelVersion(_logger, family, ex);
+                modelVersions[family] = "unknown";
+            }
+            catch (ArgumentException ex)
             {
                 FailedToGetModelVersion(_logger, family, ex);
                 modelVersions[family] = "unknown";
@@ -481,7 +491,17 @@ public class LineageTrackingSystem
             var schema = await _featureStore.GetSchemaAsync("latest", cancellationToken).ConfigureAwait(false);
             return schema.Version;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            LogFailedToGetFeatureStoreVersion(_logger, ex);
+            return "unknown";
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogFailedToGetFeatureStoreVersion(_logger, ex);
+            return "unknown";
+        }
+        catch (JsonException ex)
         {
             LogFailedToGetFeatureStoreVersion(_logger, ex);
             return "unknown";
@@ -503,7 +523,17 @@ public class LineageTrackingSystem
                 var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
                 calibrationMaps[modelId] = $"{calibrationMap.ModelId}_{calibrationMap.CreatedAt:yyyyMMdd}";
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
+            {
+                LogFailedToGetCalibrationMap(_logger, modelFamily, ex);
+                calibrationMaps[modelFamily] = "unknown";
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogFailedToGetCalibrationMap(_logger, modelFamily, ex);
+                calibrationMaps[modelFamily] = "unknown";
+            }
+            catch (ArgumentException ex)
             {
                 LogFailedToGetCalibrationMap(_logger, modelFamily, ex);
                 calibrationMaps[modelFamily] = "unknown";
@@ -579,7 +609,17 @@ public class LineageTrackingSystem
             var parts = decision.ModelId.Split('_');
             return parts.Length > 1 ? parts[^1] : "unknown";
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            LogFailedToGetModelVersion(_logger, ex);
+            return "unknown";
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogFailedToGetModelVersion(_logger, ex);
+            return "unknown";
+        }
+        catch (NullReferenceException ex)
         {
             LogFailedToGetModelVersion(_logger, ex);
             return "unknown";
@@ -593,7 +633,17 @@ public class LineageTrackingSystem
             var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return $"{calibrationMap.ModelId}_cal_{calibrationMap.CreatedAt:yyyyMMdd}";
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            LogFailedToGetCalibrationMapId(_logger, modelId, ex);
+            return "unknown";
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogFailedToGetCalibrationMapId(_logger, modelId, ex);
+            return "unknown";
+        }
+        catch (ArgumentException ex)
         {
             LogFailedToGetCalibrationMapId(_logger, modelId, ex);
             return "unknown";
