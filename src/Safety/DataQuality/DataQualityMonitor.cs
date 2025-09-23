@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using TradingBot.Abstractions;
 
 namespace Trading.Safety.DataQuality;
@@ -563,8 +564,10 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
     {
         // Simulate NTP query with small random offset
         await Task.Delay(50).ConfigureAwait(false); // Simulate network delay
-        var random = new Random();
-        var offsetMs = random.Next(-100, 100); // ±100ms random offset
+        using var rng = RandomNumberGenerator.Create();
+        var randomBytes = new byte[4];
+        rng.GetBytes(randomBytes);
+        var offsetMs = (int)(BitConverter.ToUInt32(randomBytes, 0) % 200) - 100; // ±100ms random offset
         return DateTime.UtcNow.AddMilliseconds(offsetMs);
     }
 
