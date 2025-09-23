@@ -1134,10 +1134,6 @@ public class NightlyParameterTuner
         {
             FailedToSaveTuningResult(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
-        {
-            FailedToSaveTuningResult(_logger, ex);
-        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Expected cancellation

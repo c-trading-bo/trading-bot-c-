@@ -457,10 +457,6 @@ public class MlrlObservabilityService : IDisposable
         {
             LogFileExportError(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
-        {
-            LogFileExportError(_logger, ex);
-        }
     }
 
     private string GeneratePrometheusFormat()
