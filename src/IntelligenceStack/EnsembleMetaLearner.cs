@@ -660,7 +660,7 @@ public class EnsembleMetaLearner
             // Populate read-only RegimeHeadData dictionary
             var regimeHeadData = _regimeHeads.ToDictionary(
                 kvp => kvp.Key,
-                kvp => kvp.Value.GetState()
+                kvp => kvp.Value.State
             );
             
             foreach (var kvp in regimeHeadData)
@@ -782,16 +782,13 @@ public class RegimeBlendHead
         RegimeHeadTrained(_logger, _regime, TrainingExampleCount, LastValidationScore, null);
     }
 
-    public RegimeHeadState GetState()
-    {
-        return new RegimeHeadState
+    public RegimeHeadState State => new RegimeHeadState
         {
             Regime = _regime,
             LastTrainingTime = LastTrainingTime,
             TrainingExampleCount = TrainingExampleCount,
             LastValidationScore = LastValidationScore
         };
-    }
 
     public void LoadState(RegimeHeadState state)
     {

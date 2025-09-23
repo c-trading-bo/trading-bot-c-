@@ -509,7 +509,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         
         _nightlyTimer = new Timer(_ =>
         {
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {

@@ -299,7 +299,7 @@ public class LineageTrackingSystem
     public async Task TrackFeatureStoreUpdateAsync(
         string fromVersion,
         string toVersion,
-        List<string> changedFeatures,
+        IReadOnlyList<string> changedFeatures,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(changedFeatures);

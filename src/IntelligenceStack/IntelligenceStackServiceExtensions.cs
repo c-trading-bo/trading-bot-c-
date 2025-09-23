@@ -296,6 +296,17 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
         
         VerificationStarted(_logger, null);
 
+        // Verify critical intelligence services
+        await VerifyCriticalServicesAsync(result).ConfigureAwait(false);
+
+        // Log final verification result
+        LogVerificationResults(result);
+
+        return result;
+    }
+
+    private async Task VerifyCriticalServicesAsync(ProductionVerificationResult result)
+    {
         // Critical intelligence services that must NOT be mocks
         var criticalServices = new Dictionary<Type, string>
         {
@@ -313,59 +324,69 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
 
         foreach (var (serviceType, serviceName) in criticalServices)
         {
-            try
+            await VerifyIndividualServiceAsync(result, serviceType, serviceName).ConfigureAwait(false);
+        }
+    }
+
+    private async Task VerifyIndividualServiceAsync(ProductionVerificationResult result, Type serviceType, string serviceName)
+    {
+        try
+        {
+            var service = _serviceProvider.GetService(serviceType);
+            if (service != null)
             {
-                var service = _serviceProvider.GetService(serviceType);
-                if (service != null)
+                var implementationType = service.GetType();
+                var typeName = implementationType.Name;
+                var assemblyName = implementationType.Assembly.GetName().Name ?? "Unknown";
+                
+                // Check for any mock-related names
+                var forbiddenTerms = new[] { "Mock", "Test", "Fake", "Stub", "Dummy", "Placeholder" };
+                var isMock = Array.Exists(forbiddenTerms, term => typeName.Contains(term, StringComparison.OrdinalIgnoreCase));
+                
+                if (isMock)
                 {
-                    var implementationType = service.GetType();
-                    var typeName = implementationType.Name;
-                    var assemblyName = implementationType.Assembly.GetName().Name ?? "Unknown";
-                    
-                    // Check for any mock-related names
-                    var forbiddenTerms = new[] { "Mock", "Test", "Fake", "Stub", "Dummy", "Placeholder" };
-                    var isMock = forbiddenTerms.Any(term => typeName.Contains(term, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (isMock)
-                    {
-                        var error = $"CRITICAL ERROR: Service {serviceName} uses SIMULATION implementation: {typeName} from {assemblyName}";
-                        ProductionVerificationError(_logger, error, null);
-                        result.Errors.Add(error);
-                        result.IsProductionReady = false;
-                    }
-                    else
-                    {
-                        ProductionServiceVerified(_logger, serviceName, typeName, assemblyName, null);
-                        result.ProductionServices.Add(serviceName, $"{typeName} ({assemblyName})");
-                    }
+                    var error = $"CRITICAL ERROR: Service {serviceName} uses SIMULATION implementation: {typeName} from {assemblyName}";
+                    ProductionVerificationError(_logger, error, null);
+                    result.Errors.Add(error);
+                    result.IsProductionReady = false;
                 }
                 else
                 {
-                    var warning = $"Service {serviceName} not registered";
-                    VerificationWarning(_logger, warning, null);
-                    result.Warnings.Add(warning);
+                    ProductionServiceVerified(_logger, serviceName, typeName, assemblyName, null);
+                    result.ProductionServices.Add(serviceName, $"{typeName} ({assemblyName})");
                 }
             }
-            catch (InvalidOperationException ex)
+            else
             {
-                var error = $"Failed to verify service {serviceName}: {ex.Message}";
-                ProductionVerificationErrorWithException(_logger, error, ex);
-                result.Errors.Add(error);
-            }
-            catch (ArgumentException ex)
-            {
-                var error = $"Failed to verify service {serviceName}: {ex.Message}";
-                ProductionVerificationErrorWithException(_logger, error, ex);
-                result.Errors.Add(error);
-            }
-            catch (TimeoutException ex)
-            {
-                var error = $"Failed to verify service {serviceName}: {ex.Message}";
-                ProductionVerificationErrorWithException(_logger, error, ex);
-                result.Errors.Add(error);
+                var warning = $"Service {serviceName} not registered";
+                VerificationWarning(_logger, warning, null);
+                result.Warnings.Add(warning);
             }
         }
+        catch (InvalidOperationException ex)
+        {
+            var error = $"Failed to verify service {serviceName}: {ex.Message}";
+            ProductionVerificationErrorWithException(_logger, error, ex);
+            result.Errors.Add(error);
+        }
+        catch (ArgumentException ex)
+        {
+            var error = $"Failed to verify service {serviceName}: {ex.Message}";
+            ProductionVerificationErrorWithException(_logger, error, ex);
+            result.Errors.Add(error);
+        }
+        catch (TimeoutException ex)
+        {
+            var error = $"Failed to verify service {serviceName}: {ex.Message}";
+            ProductionVerificationErrorWithException(_logger, error, ex);
+            result.Errors.Add(error);
+        }
 
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private void LogVerificationResults(ProductionVerificationResult result)
+    {
         // Log final verification result
         if (result.IsProductionReady)
         {
@@ -380,9 +401,6 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                 ProductionVerificationErrorDetail(_logger, error, null);
             }
         }
-
-        await Task.CompletedTask.ConfigureAwait(false);
-        return result;
     }
 
     public void LogServiceRegistrations()
@@ -474,8 +492,5 @@ public class ProductionVerificationResult
     public Collection<string> Warnings { get; } = new();
     public DateTime VerificationTime { get; set; } = DateTime.UtcNow;
     
-    public string GetSummary()
-    {
-        return $"Production Ready: {IsProductionReady}, Services: {ProductionServices.Count}, Errors: {Errors.Count}, Warnings: {Warnings.Count}";
-    }
+    public string Summary => $"Production Ready: {IsProductionReady}, Services: {ProductionServices.Count}, Errors: {Errors.Count}, Warnings: {Warnings.Count}";
 }
