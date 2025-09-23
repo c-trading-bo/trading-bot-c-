@@ -656,7 +656,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                     _logger.LogDebug("[CORRELATION] {Feature}: {Correlation:F3}", correlation.Key, correlation.Value);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+            }
+            catch (TimeoutException ex)
             {
                 _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
             }
@@ -689,7 +697,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "ML models executed successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -702,7 +718,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "RL training updated successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -715,7 +739,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Predictions generated successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
