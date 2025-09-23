@@ -412,7 +412,7 @@ public class EnsembleMetaLearner
             await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate model loading time
             
             // Step 2: Feature extraction and normalization
-            var features = await ProcessFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
+            var features = await ProcessFeaturesAsync(context).ConfigureAwait(false);
             
             // Step 3: Model inference
             var rawPrediction = await RunModelInferenceAsync(features, cancellationToken).ConfigureAwait(false);
@@ -445,8 +445,7 @@ public class EnsembleMetaLearner
     }
     
     private static Task<Dictionary<string, double>> ProcessFeaturesAsync(
-        MarketContext context, 
-        CancellationToken cancellationToken)
+        MarketContext context)
     {
         // Feature engineering based on model requirements
         var features = new Dictionary<string, double>(context.TechnicalIndicators);

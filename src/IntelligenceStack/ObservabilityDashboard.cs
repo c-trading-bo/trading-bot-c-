@@ -67,6 +67,18 @@ public class ObservabilityDashboard : IDisposable
     private const double ActiveRegimeValue = 1.0;
     private const double InactiveRegimeValue = 0.0;
 
+    // Time-of-day profile constants (S109)
+    private const double MidnightActivityLevel = 0.8;
+    private const double MorningActivityLevel = 1.2;
+    private const double NoonActivityLevel = 1.5;
+    private const double EveningActivityLevel = 1.1;
+    
+    // Volatility profile constants (S109)
+    private const double LowVolatilityLevel = 0.5;
+    private const double MediumVolatilityLevel = 1.0;
+    private const double HighVolatilityLevel = 2.0;
+    private const double ExtremeVolatilityLevel = 4.0;
+
 
     private const int MaxMetricPoints = 10000;
     private const double SecondsPerMinute = 60.0;
@@ -801,7 +813,7 @@ public class ObservabilityDashboard : IDisposable
         // Simplified time-of-day profile
         return new Dictionary<string, double>
         {
-            ["00:00"] = 0.8, ["06:00"] = 1.2, ["12:00"] = 1.5, ["18:00"] = 1.1
+            ["00:00"] = MidnightActivityLevel, ["06:00"] = MorningActivityLevel, ["12:00"] = NoonActivityLevel, ["18:00"] = EveningActivityLevel
         };
     }
 
@@ -810,7 +822,7 @@ public class ObservabilityDashboard : IDisposable
         // Simplified volatility profile
         return new Dictionary<string, double>
         {
-            ["low"] = 0.5, ["medium"] = 1.0, ["high"] = 2.0, ["extreme"] = 4.0
+            ["low"] = LowVolatilityLevel, ["medium"] = MediumVolatilityLevel, ["high"] = HighVolatilityLevel, ["extreme"] = ExtremeVolatilityLevel
         };
     }
 

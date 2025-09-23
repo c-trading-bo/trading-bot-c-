@@ -28,6 +28,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
     
+    // Recall calculation constants
+    private const double MinRecallThreshold = 0.5;
+    private const double MaxRecallThreshold = 0.9;
+    private const double RecallBoost = 0.15;
+    private const double DefaultRecall = 0.65;
+    
     // Additional S109 constants
     private const double DriftDetectionThreshold = 0.1;
     private const double DefaultLatency = 0.0;
@@ -861,15 +867,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Recall: True Positives / (True Positives + False Negatives)
             // For trading: profitable trades / total profitable opportunities
             var hitRate = CalculateTradeHitRate(tradeRecord);
-            return Math.Max(0.5, Math.Min(0.9, hitRate + 0.15)); // Slightly higher than precision
+            return Math.Max(MinRecallThreshold, Math.Min(MaxRecallThreshold, hitRate + RecallBoost)); // Slightly higher than precision
         }
         catch (ArgumentException)
         {
-            return 0.65; // Default recall
+            return DefaultRecall; // Default recall
         }
         catch (OverflowException)
         {
-            return 0.65; // Default recall
+            return DefaultRecall; // Default recall
         }
     }
 

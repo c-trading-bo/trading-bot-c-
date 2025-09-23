@@ -227,7 +227,7 @@ public class MamlLiveIntegration
             var boundedStep = ApplyBoundedUpdates(adaptationStep);
             
             // Check for instability and potential rollback
-            if (await ShouldRollbackAsync(modelState, boundedStep, cancellationToken).ConfigureAwait(false))
+            if (await ShouldRollbackAsync(modelState, cancellationToken).ConfigureAwait(false))
             {
                 await PerformRollbackAsync(modelState, cancellationToken).ConfigureAwait(false);
                 result.RolledBack = true;
@@ -239,7 +239,7 @@ public class MamlLiveIntegration
             await ApplyAdaptationAsync(modelState, boundedStep, cancellationToken).ConfigureAwait(false);
             
             // Update ensemble weights
-            await UpdateEnsembleWeightsAsync(regime, boundedStep, cancellationToken).ConfigureAwait(false);
+            await UpdateEnsembleWeightsAsync(regime, cancellationToken).ConfigureAwait(false);
 
             result.Success = true;
             
@@ -503,7 +503,6 @@ public class MamlLiveIntegration
 
     private async Task<bool> ShouldRollbackAsync(
         MamlModelState modelState,
-        AdaptationStep step,
         CancellationToken cancellationToken)
     {
         // Analyze adaptation stability asynchronously to avoid blocking adaptation pipeline
@@ -598,7 +597,6 @@ public class MamlLiveIntegration
 
     private async Task UpdateEnsembleWeightsAsync(
         RegimeType regime,
-        AdaptationStep step,
         CancellationToken cancellationToken)
     {
         // Update the online learning system with new weights
