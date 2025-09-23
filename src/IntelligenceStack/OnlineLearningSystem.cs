@@ -72,6 +72,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double MinConfidenceBound = 0.1;
     private const double MaxConfidenceBound = 0.95;
     
+    // Additional S109 constants for precision calculations
+    private const double MinPrecisionBound = 0.4;
+    private const double MaxPrecisionBound = 0.8;
+    private const double PrecisionBoostFactor = 0.1;
+    private const double DefaultPrecision = 0.6;
+    
     // Additional S109 constants for SLO breach thresholds and timing
     private const int ModelPersistenceDelayMs = 10;
     private const int AuditTrailDelayMs = 5;
@@ -831,15 +837,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Precision: True Positives / (True Positives + False Positives)
             // For trading: profitable trades / total trades taken
             var hitRate = CalculateTradeHitRate(tradeRecord);
-            return Math.Max(0.4, Math.Min(0.8, hitRate + 0.1)); // Bound between 0.4-0.8
+            return Math.Max(MinPrecisionBound, Math.Min(MaxPrecisionBound, hitRate + PrecisionBoostFactor)); // Bound between 0.4-0.8
         }
         catch (ArgumentException)
         {
-            return 0.6; // Default precision
+            return DefaultPrecision; // Default precision
         }
         catch (OverflowException)
         {
-            return 0.6; // Default precision
+            return DefaultPrecision; // Default precision
         }
     }
 
