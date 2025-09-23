@@ -31,6 +31,7 @@ public partial class CloudFlowService
     {
         _logger = logger;
         _httpClient = httpClient;
+        ArgumentNullException.ThrowIfNull(cloudFlowOptions);
         _cloudFlowOptions = cloudFlowOptions.Value;
         
         // Configure HTTP client for cloud endpoints
@@ -187,7 +188,8 @@ public partial class CloudFlowService
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
                 var url = $"{_cloudFlowOptions.CloudEndpoint}/{endpoint}";
-                using var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
+                var uri = new Uri(url);
+                using var response = await _httpClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {

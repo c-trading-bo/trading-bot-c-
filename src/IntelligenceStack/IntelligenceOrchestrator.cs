@@ -44,8 +44,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double DefaultMarketDataClose = 4501.0;
     private const double DefaultMarketDataBid = 4500.75;
     private const double DefaultMarketDataAsk = 4501.25;
-    private const int HttpClientErrorStart = 400;
-    private const int HttpServerErrorStart = 500;
 
 
 
@@ -204,52 +202,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(4029, "OnlinePredictionFailed"),
             "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}");
             
-    // Cloud flow LoggerMessage delegates
-    private static readonly Action<ILogger, Exception?> CloudFlowDisabledDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4030, "CloudFlowDisabledDebug"),
-            "[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
-            
-    private static readonly Action<ILogger, string, Exception?> TradeRecordPushedInfo =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4031, "TradeRecordPushedInfo"),
-            "[INTELLIGENCE] Trade record pushed to cloud: {TradeId}");
-            
-    private static readonly Action<ILogger, string, Exception?> TradeRecordPushFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "TradeRecordPushFailed"),
-            "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}");
-            
-    private static readonly Action<ILogger, Exception?> CloudFlowDisabledMetricsDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4033, "CloudFlowDisabledMetricsDebug"),
-            "[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
-            
-    private static readonly Action<ILogger, Exception?> MetricsPushedDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4034, "MetricsPushedDebug"),
-            "[INTELLIGENCE] Service metrics pushed to cloud");
-            
-    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4035, "MetricsPushFailed"),
-            "[INTELLIGENCE] Failed to push service metrics to cloud");
-            
-    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushedDebug =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "DecisionIntelligencePushedDebug"),
-            "[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}");
-            
-    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "DecisionIntelligencePushFailed"),
-            "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}");
-            
-    private static readonly Action<ILogger, int, string, Exception?> CloudPushFailedWarning =
-        LoggerMessage.Define<int, string>(LogLevel.Warning, new EventId(4038, "CloudPushFailedWarning"),
-            "[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}");
-            
-    private static readonly Action<ILogger, int, Exception?> CloudPushTimeoutWarning =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4039, "CloudPushTimeoutWarning"),
-            "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}");
-            
-    private static readonly Action<ILogger, int, Exception?> CloudPushNetworkErrorWarning =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4040, "CloudPushNetworkErrorWarning"),
-            "[INTELLIGENCE] Network error on cloud push attempt {Attempt}");
-            
-
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
