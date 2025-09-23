@@ -1212,7 +1212,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
             Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
             Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000)),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume)),
             Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
             Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
             Timestamp = DateTime.UtcNow

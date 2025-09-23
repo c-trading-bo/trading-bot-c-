@@ -26,6 +26,9 @@ public class RLAdvisorSystem
     private const double DefaultRsi = 50.0;
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
+    private const int BuyActionType = 1;
+    private const int SellActionType = 2;
+    private const int HoldActionType = 0;
     
     // LoggerMessage delegates for CA1848 performance compliance
     private static readonly Action<ILogger, Exception?> LogFailedToSaveTrainingResult =
@@ -970,11 +973,11 @@ public class RLAdvisorSystem
         var priceChange = next.Price - current.Price;
         int actionType = 0;
         if (priceChange > 0)
-            actionType = 1; // Buy
+            actionType = BuyActionType; // Buy
         else if (priceChange < 0)
-            actionType = 2; // Sell
+            actionType = SellActionType; // Sell
         else
-            actionType = 0; // Hold
+            actionType = HoldActionType; // Hold
             
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         

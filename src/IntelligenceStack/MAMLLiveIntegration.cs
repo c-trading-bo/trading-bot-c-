@@ -37,6 +37,9 @@ public class MamlLiveIntegration
     private const int MinExamplesRequired = 10;
     private const double MinPerformanceGainThreshold = -0.1;
     private const double MaxWeightChangeThreshold = 0.5;
+    private const double MinWeightBound = 0.1;
+    private const double MaxWeightBound = 2.0;
+    private const int MaxAdaptationHistoryCount = 100;
     
     // LoggerMessage delegates for CA1848 compliance - MamlLiveIntegration
     private static readonly Action<ILogger, Exception?> PeriodicUpdatesStarted =
@@ -567,7 +570,7 @@ public class MamlLiveIntegration
                         modelState.CurrentWeights[key] += change;
                         
                         // Ensure weights stay in reasonable bounds
-                        modelState.CurrentWeights[key] = Math.Max(0.1, Math.Min(2.0, modelState.CurrentWeights[key]));
+                        modelState.CurrentWeights[key] = Math.Max(MinWeightBound, Math.Min(MaxWeightBound, modelState.CurrentWeights[key]));
                     }
                 }
 
@@ -585,7 +588,7 @@ public class MamlLiveIntegration
                 _adaptationHistory[modelState.RegimeKey].Add(step);
                 
                 // Keep only recent history
-                if (_adaptationHistory[modelState.RegimeKey].Count > 100)
+                if (_adaptationHistory[modelState.RegimeKey].Count > MaxAdaptationHistoryCount)
                 {
                     _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
                 }

@@ -67,6 +67,11 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double DefaultF1Score = 0.6;
     private const double EpsilonForDivisionCheck = 1e-10;
     
+    // Additional S109 constants for confidence calculations and bounds
+    private const double RiskRewardNormalizationFactor = 3.0;
+    private const double MinConfidenceBound = 0.1;
+    private const double MaxConfidenceBound = 0.95;
+    
     // Additional S109 constants for SLO breach thresholds and timing
     private const int ModelPersistenceDelayMs = 10;
     private const int AuditTrailDelayMs = 5;
@@ -758,7 +763,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (tradeRecord.Metadata.TryGetValue("risk_reward_ratio", out var rrRatio))
             {
                 var rr = Convert.ToDouble(rrRatio);
-                factors.Add(Math.Min(1.0, rr / 3.0)); // Normalize 3:1 RR to confidence 1.0
+                factors.Add(Math.Min(1.0, rr / RiskRewardNormalizationFactor)); // Normalize 3:1 RR to confidence 1.0
             }
             
             // Factor 3: Market condition alignment
@@ -771,7 +776,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             if (factors.Count > 0)
             {
                 var avgConfidence = factors.Average();
-                return Math.Max(0.1, Math.Min(0.95, avgConfidence)); // Bound between 0.1-0.95
+                return Math.Max(MinConfidenceBound, Math.Min(MaxConfidenceBound, avgConfidence)); // Bound between 0.1-0.95
             }
             
             // Fallback: calculate from trade timing and market conditions
