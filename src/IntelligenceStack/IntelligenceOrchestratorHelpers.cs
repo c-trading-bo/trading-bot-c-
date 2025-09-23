@@ -120,7 +120,15 @@ public partial class IntelligenceOrchestratorHelpers
                 var correlationCount = 4; // Number of correlation features analyzed
                 CorrelationAnalysisCompleted(_logger, correlationCount, null);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                CorrelationAnalysisFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                CorrelationAnalysisFailed(_logger, ex);
+            }
+            catch (TimeoutException ex)
             {
                 CorrelationAnalysisFailed(_logger, ex);
             }

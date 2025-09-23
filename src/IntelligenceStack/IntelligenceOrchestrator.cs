@@ -574,7 +574,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                     RLWeightsUpdated(_logger, regimeType, currentWeights.Count, null);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                RLTrainingUpdateFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                RLTrainingUpdateFailed(_logger, ex);
+            }
+            catch (TimeoutException ex)
             {
                 RLTrainingUpdateFailed(_logger, ex);
             }
@@ -603,7 +611,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                 _logger.LogInformation("[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}", 
                     symbol, decision.Action, decision.Confidence);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+            }
+            catch (FormatException ex)
             {
                 _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
             }
