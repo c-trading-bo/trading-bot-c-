@@ -27,8 +27,6 @@ public partial class IntelligenceOrchestratorHelpers
     // State tracking (shared with main orchestrator)
     private readonly Dictionary<string, ModelArtifact> _activeModels;
     private readonly object _lock = new();
-    private bool _isInitialized;
-    private bool _isTradingEnabled;
     private DateTime _lastNightlyMaintenance = DateTime.MinValue;
     
     public IntelligenceOrchestratorHelpers(
@@ -149,7 +147,9 @@ public partial class IntelligenceOrchestratorHelpers
         var marketData = WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
         
         // Perform correlation analysis using feature engineer
-        var correlations = await _featureEngineer.AnalyzeCorrelationsAsync(cancellationToken).ConfigureAwait(false);
+        // var correlations = await _featureEngineer.AnalyzeCorrelationsAsync(cancellationToken).ConfigureAwait(false);
+        // TODO: Re-enable once FeatureEngineer method accessibility is resolved
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     #region LoggerMessage Delegates

@@ -450,6 +450,41 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                now.Hour >= 2 && now.Hour <= 4;
     }
 
+    /// <summary>
+    /// Checks for models that meet promotion criteria
+    /// </summary>
+    private async Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var activeModels = await _modelRegistry.GetActiveModelsAsync(cancellationToken).ConfigureAwait(false);
+            var promotionCriteria = new PromotionCriteria
+            {
+                MinAuc = 0.62,
+                MinPrAt10 = 0.12,
+                MaxEce = 0.05,
+                MinEdgeBps = 3.0
+            };
+
+            foreach (var model in activeModels)
+            {
+                var shouldPromote = model.Metrics.AUC >= promotionCriteria.MinAuc &&
+                                  model.Metrics.PrAt10 >= promotionCriteria.MinPrAt10 &&
+                                  model.Metrics.ECE <= promotionCriteria.MaxEce &&
+                                  model.Metrics.EdgeBps >= promotionCriteria.MinEdgeBps;
+
+                if (shouldPromote)
+                {
+                    await _modelRegistry.PromoteModelAsync(model.Id, promotionCriteria, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[INTELLIGENCE] Model promotion check failed");
+        }
+    }
+
     public async Task PerformNightlyMaintenanceAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -583,6 +618,98 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
+    private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
+            return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "ML models executed successfully" } };
+        }
+        catch (Exception ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private async Task<WorkflowExecutionResult> UpdateRLTrainingWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
+            return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "RL training updated successfully" } };
+        }
+        catch (Exception ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private async Task<WorkflowExecutionResult> GeneratePredictionsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
+            return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Predictions generated successfully" } };
+        }
+        catch (Exception ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private async Task<WorkflowExecutionResult> MakeDecisionWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Extract market context from workflow context
+            var marketContext = new MarketContext
+            {
+                Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
+                Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Timestamp = DateTime.UtcNow
+            };
+
+            var decision = await MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false);
+            return new WorkflowExecutionResult 
+            { 
+                Success = true, 
+                Results = { ["message"] = $"Decision made: {decision.Action}", ["decision"] = decision }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private async Task<WorkflowExecutionResult> ProcessMarketDataWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Extract market data from workflow context
+            var marketData = new TradingBot.Abstractions.MarketData
+            {
+                Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
+                Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Timestamp = DateTime.UtcNow
+            };
+
+            await ProcessMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
+            return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Market data processed successfully" } };
+        }
+        catch (Exception ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        return await _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken).ConfigureAwait(false);
+    }
+
     #endregion
 
 
@@ -624,7 +751,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         try
         {
             _logger.LogInformation("[INTELLIGENCE] Event: {EventName} - {Message}", eventName, message);
-            // Additional event handling can be added here
+            IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
         catch (Exception ex)
         {
@@ -708,8 +835,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private static double CalculateVolatility(MarketContext context)
     {
         // Simple volatility estimation based on price spread
-        var high = context.Metadata.TryGetValue("high", out var h) ? Convert.ToDouble(h) : context.Price;
-        var low = context.Metadata.TryGetValue("low", out var l) ? Convert.ToDouble(l) : context.Price;
+        var high = context.TechnicalIndicators.TryGetValue("high", out var h) ? h : context.Price;
+        var low = context.TechnicalIndicators.TryGetValue("low", out var l) ? l : context.Price;
         return high > 0 ? (high - low) / high : 0.0;
     }
 
@@ -719,7 +846,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private static double CalculateTrendStrength(MarketContext context)
     {
         // Simple trend strength based on price momentum
-        var open = context.Metadata.TryGetValue("open", out var o) ? Convert.ToDouble(o) : context.Price;
+        var open = context.TechnicalIndicators.TryGetValue("open", out var o) ? o : context.Price;
         return open > 0 ? (context.Price - open) / open : 0.0;
     }
 
@@ -817,7 +944,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     private static IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
     {
-        return new IntelligenceDecision
+        // Set metadata after object creation
+        var intelligenceDecision = new IntelligenceDecision
         {
             DecisionId = decision.DecisionId,
             Timestamp = decision.Timestamp,
@@ -827,9 +955,16 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Confidence = (double)decision.Confidence,
             ModelId = decision.MLStrategy,
             FeaturesVersion = features.Version,
-            FeaturesHash = features.SchemaChecksum,
-            Metadata = decision.Reasoning
+            FeaturesHash = features.SchemaChecksum
         };
+        
+        // Copy reasoning to metadata
+        foreach (var kvp in decision.Reasoning)
+        {
+            intelligenceDecision.Metadata[kvp.Key] = kvp.Value;
+        }
+        
+        return intelligenceDecision;
     }
 
     /// <summary>
