@@ -383,16 +383,14 @@ public class FeatureStore : IFeatureStore
     private static string CalculateChecksum(FeatureSet features)
     {
         var content = JsonSerializer.Serialize(features.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static string CalculateSchemaChecksum(FeatureSchema schema)
     {
         var content = JsonSerializer.Serialize(schema.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
