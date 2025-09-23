@@ -775,10 +775,10 @@ public class LineageTrackingSystem
         }
     }
 
-    private static async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
+    private static Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
         // Build processing chain asynchronously to avoid blocking lineage recording
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Build processing chain for the decision
             return new List<ProcessingStep>
@@ -811,7 +811,7 @@ public class LineageTrackingSystem
                     ProcessingTime = TimeSpan.FromMilliseconds(CalibrationTimeMs)
                 }
             };
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
@@ -837,11 +837,11 @@ public class LineageTrackingSystem
         await SaveLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
+    private Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
     {
         var snapshotFile = Path.Combine(_lineagePath, "snapshots", $"{snapshot.SnapshotId}.json");
         var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(snapshotFile, json, cancellationToken).ConfigureAwait(false);
+        return File.WriteAllTextAsync(snapshotFile, json, cancellationToken);
     }
 
     private async Task SaveDecisionLineageAsync(

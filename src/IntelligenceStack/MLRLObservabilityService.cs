@@ -244,7 +244,7 @@ public class MlrlObservabilityService : IDisposable
 
     public void RecordEnsembleVariance(double variance, int modelCount)
     {
-        _ensembleVariance.Record(variance, new TagList { { "model_count", modelCount.ToString() } });
+        _ensembleVariance.Record(variance, new TagList { { "model_count", modelCount.ToString(CultureInfo.InvariantCulture) } });
         UpdateMetricValue($"ensemble_prediction_variance{{model_count=\"{modelCount}\"}}", variance, MetricType.Histogram);
 
         if (variance > HighEnsembleVarianceThreshold) // Configurable threshold
@@ -471,7 +471,7 @@ public class MlrlObservabilityService : IDisposable
         {
             foreach (var (name, metric) in _metricsStorage)
             {
-                sb.AppendLine($"# TYPE {metric.Name.Split('{')[0]} {metric.Type.ToString().ToLower()}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"# TYPE {metric.Name.Split('{')[0]} {metric.Type.ToString().ToLower()}");
                 sb.AppendLine($"{name} {metric.Value}");
             }
         }

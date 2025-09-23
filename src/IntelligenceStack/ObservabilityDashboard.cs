@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -213,7 +214,7 @@ public class ObservabilityDashboard : IDisposable
                 ToRegime = m.Tags.GetValueOrDefault("to_regime", "Unknown"),
                 Confidence = m.Value,
                 Duration = TimeSpan.FromMinutes(m.Tags.ContainsKey("duration_min") ? 
-                    double.Parse(m.Tags["duration_min"]) : DefaultDurationMin)
+                    double.Parse(m.Tags["duration_min"], CultureInfo.InvariantCulture) : DefaultDurationMin)
             })
             .ToList();
 
