@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Security.Cryptography;
+using System.Security;
 using System.Text;
 using System.IO;
 using System.Globalization;
@@ -474,9 +475,17 @@ public class ModelRegistry : IModelRegistry
                 }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to cleanup expired models");
+            _logger.LogError(ex, "[REGISTRY] IO error during cleanup of expired models");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[REGISTRY] Access denied during cleanup of expired models");
+        }
+        catch (SecurityException ex)
+        {
+            _logger.LogError(ex, "[REGISTRY] Security error during cleanup of expired models");
         }
     }
 

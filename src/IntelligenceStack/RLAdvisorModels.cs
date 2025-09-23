@@ -165,6 +165,10 @@ public class RLAdvisorModel
     private const double MinExplorationRate = 0.01;
     private const double ExplorationDecayFactor = 0.9999;
     private const double DefaultExplorationConfidence = 0.3;
+    private const double MaxConfidence = 0.95;
+    private const double MinConfidence = 0.1;
+    private const double ConfidenceOffset = 1.0;
+    private const double ConfidenceDivisor = 2.0;
     
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
@@ -217,7 +221,7 @@ public class RLAdvisorModel
             }
             
             actionType = bestAction;
-            confidence = Math.Min(0.95, Math.Max(0.1, (bestValue + 1.0) / 2.0));
+            confidence = Math.Min(MaxConfidence, Math.Max(MinConfidence, (bestValue + ConfidenceOffset) / ConfidenceDivisor));
         }
         
         return new RLActionResult
