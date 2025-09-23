@@ -691,9 +691,33 @@ public class LineageTrackingSystem
                 RuntimeSignature = model.RuntimeSignature
             };
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (IOException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             return null;
         }
     }
@@ -720,9 +744,33 @@ public class LineageTrackingSystem
             
             return featureLineageInfo;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (IOException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             return null;
         }
     }

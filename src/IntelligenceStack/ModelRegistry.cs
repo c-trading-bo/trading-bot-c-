@@ -161,7 +161,27 @@ public class ModelRegistry : IModelRegistry
 
             return model;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            FailedToGetModel(_logger, familyName, version, ex);
+            throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
+        }
+        catch (InvalidDataException ex)
+        {
+            FailedToGetModel(_logger, familyName, version, ex);
+            throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
+        }
+        catch (JsonException ex)
+        {
+            FailedToGetModel(_logger, familyName, version, ex);
+            throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
+        }
+        catch (IOException ex)
+        {
+            FailedToGetModel(_logger, familyName, version, ex);
+            throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             FailedToGetModel(_logger, familyName, version, ex);
             throw new InvalidOperationException($"Model retrieval failed for {familyName}:{version}", ex);
@@ -218,7 +238,22 @@ public class ModelRegistry : IModelRegistry
 
             return model;
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            FailedToRegisterModel(_logger, registration.FamilyName, ex);
+            throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
+        }
+        catch (JsonException ex)
+        {
+            FailedToRegisterModel(_logger, registration.FamilyName, ex);
+            throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToRegisterModel(_logger, registration.FamilyName, ex);
+            throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
+        }
+        catch (ArgumentException ex)
         {
             FailedToRegisterModel(_logger, registration.FamilyName, ex);
             throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
@@ -305,9 +340,28 @@ public class ModelRegistry : IModelRegistry
             var model = await GetModelByIdAsync(modelId, cancellationToken).ConfigureAwait(false);
             return model?.Metrics ?? new ModelMetrics();
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             FailedToGetMetrics(_logger, modelId, ex);
+            return new ModelMetrics();
+        }
+        catch (IOException ex)
+        {
+            FailedToGetMetrics(_logger, modelId, ex);
+            return new ModelMetrics();
+        }
+        catch (JsonException ex)
+        {
+            FailedToGetMetrics(_logger, modelId, ex);
+            return new ModelMetrics();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToGetMetrics(_logger, modelId, ex);
+            return new ModelMetrics();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             return new ModelMetrics();
         }
     }
@@ -351,9 +405,21 @@ public class ModelRegistry : IModelRegistry
                     latestId = model.Id;
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 FailedToParseModelMetadata(_logger, file, ex);
+            }
+            catch (JsonException ex)
+            {
+                FailedToParseModelMetadata(_logger, file, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                FailedToParseModelMetadata(_logger, file, ex);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break; // Stop processing files on cancellation
             }
         }
 

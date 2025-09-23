@@ -325,7 +325,23 @@ public class MlrlObservabilityService : IDisposable
             // Export to local file for development
             await ExportToFileAsync().ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogFailedToExportMetrics(_logger, ex);
+        }
+        catch (TimeoutException ex)
+        {
+            LogFailedToExportMetrics(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            LogFailedToExportMetrics(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToExportMetrics(_logger, ex);
+        }
+        catch (InvalidOperationException ex)
         {
             LogFailedToExportMetrics(_logger, ex);
         }
@@ -349,7 +365,15 @@ public class MlrlObservabilityService : IDisposable
                 LogFailedPrometheusExport(_logger, (int)response.StatusCode, null);
             }
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogPrometheusExportError(_logger, ex);
+        }
+        catch (TimeoutException ex)
+        {
+            LogPrometheusExportError(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
         {
             LogPrometheusExportError(_logger, ex);
         }
@@ -376,7 +400,15 @@ public class MlrlObservabilityService : IDisposable
                 LogFailedGrafanaExport(_logger, (int)response.StatusCode, null);
             }
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogGrafanaExportError(_logger, ex);
+        }
+        catch (TimeoutException ex)
+        {
+            LogGrafanaExportError(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
         {
             LogGrafanaExportError(_logger, ex);
         }
@@ -413,7 +445,19 @@ public class MlrlObservabilityService : IDisposable
             
             LogFileExportSuccess(_logger, allMetrics.Count, filePath, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            LogFileExportError(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFileExportError(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFileExportError(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
         {
             LogFileExportError(_logger, ex);
         }

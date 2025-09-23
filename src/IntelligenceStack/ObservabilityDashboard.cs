@@ -621,7 +621,23 @@ public class ObservabilityDashboard : IDisposable
             await CollectMetricsAsync().ConfigureAwait(false);
             await GenerateDashboardFilesAsync().ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogDashboardUpdateFailed(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            LogDashboardUpdateFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogDashboardUpdateFailed(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogDashboardUpdateFailed(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             LogDashboardUpdateFailed(_logger, ex);
         }

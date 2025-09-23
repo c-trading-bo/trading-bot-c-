@@ -770,7 +770,15 @@ public class RLAdvisorSystem
                     }
                 }
             }
-            catch (Exception ex)
+            catch (ArgumentNullException ex)
+            {
+                ProvenUpliftCheckFailed(_logger, ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                ProvenUpliftCheckFailed(_logger, ex);
+            }
+            catch (OverflowException ex)
             {
                 ProvenUpliftCheckFailed(_logger, ex);
             }
@@ -893,7 +901,23 @@ public class RLAdvisorSystem
                         dataPoints.Add(dataPoint);
                     }
                 }
-                catch (Exception ex)
+                catch (FormatException ex)
+                {
+                    BarDataParseFailed(_logger, ex.Message, null);
+                }
+                catch (OverflowException ex)
+                {
+                    BarDataParseFailed(_logger, ex.Message, null);
+                }
+                catch (ArgumentNullException ex)
+                {
+                    BarDataParseFailed(_logger, ex.Message, null);
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    BarDataParseFailed(_logger, ex.Message, null);
+                }
+                catch (InvalidCastException ex)
                 {
                     BarDataParseFailed(_logger, ex.Message, null);
                 }
@@ -903,7 +927,22 @@ public class RLAdvisorSystem
             DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
             return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
         }
-        catch (Exception ex)
+        catch (JsonException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (HttpRequestException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (TimeoutException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (InvalidOperationException ex)
         {
             HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
             return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
@@ -1070,9 +1109,21 @@ public class RLAdvisorSystem
             var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             LogFailedToSaveTrainingResult(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToSaveTrainingResult(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToSaveTrainingResult(_logger, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 
@@ -1096,9 +1147,25 @@ public class RLAdvisorSystem
                 }
             }
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LogFailedToLoadState(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            LogFailedToLoadState(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToLoadState(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToLoadState(_logger, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 }
