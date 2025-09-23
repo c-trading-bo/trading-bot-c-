@@ -110,6 +110,79 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         LoggerMessage.Define(LogLevel.Information, new EventId(4016, "AnalyzingCorrelations"),
             "[INTELLIGENCE] Analyzing correlations...");
     
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> ModelPromotionInvalidOperation =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4017, "ModelPromotionInvalidOperation"),
+            "[INTELLIGENCE] Invalid operation during model promotion check");
+            
+    private static readonly Action<ILogger, Exception?> ModelPromotionInvalidArgument =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4018, "ModelPromotionInvalidArgument"),
+            "[INTELLIGENCE] Invalid argument during model promotion check");
+            
+    private static readonly Action<ILogger, Exception?> ModelPromotionTimeout =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4019, "ModelPromotionTimeout"),
+            "[INTELLIGENCE] Timeout during model promotion check");
+            
+    private static readonly Action<ILogger, int, Exception?> MLModelsProcessed =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4020, "MLModelsProcessed"),
+            "[ML] Processed {ModelCount} active models");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionTaskCanceled =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4021, "MLExecutionTaskCanceled"),
+            "[ML] ML model execution task was canceled");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionCanceled =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4022, "MLExecutionCanceled"),
+            "[ML] ML model execution was canceled");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionInvalidOperation =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4023, "MLExecutionInvalidOperation"),
+            "[ML] Invalid operation during ML model execution");
+            
+    private static readonly Action<ILogger, string, int, Exception?> RLWeightsUpdated =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4024, "RLWeightsUpdated"),
+            "[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}");
+            
+    private static readonly Action<ILogger, Exception?> RLTrainingUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4025, "RLTrainingUpdateFailed"),
+            "[RL] RL training update failed");
+            
+    private static readonly Action<ILogger, Exception?> PredictionGenerationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4026, "PredictionGenerationFailed"),
+            "[PREDICTION] Prediction generation failed");
+            
+    private static readonly Action<ILogger, Exception?> FeatureCorrelationAnalysisStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4027, "FeatureCorrelationAnalysisStarted"),
+            "[CORRELATION] Performing feature correlation analysis");
+            
+    private static readonly Action<ILogger, string, double, Exception?> FeatureCorrelation =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4028, "FeatureCorrelation"),
+            "[CORRELATION] {Feature}: {Correlation:F3}");
+            
+    private static readonly Action<ILogger, Exception?> CorrelationAnalysisFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4029, "CorrelationAnalysisFailed"),
+            "[CORRELATION] Correlation analysis failed");
+            
+    private static readonly Action<ILogger, string, string, Exception?> IntelligenceEventLogged =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(4030, "IntelligenceEvent"),
+            "[INTELLIGENCE] Event: {EventName} - {Message}");
+            
+    private static readonly Action<ILogger, string, Exception?> EventRaiseFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "EventRaiseFailed"),
+            "[INTELLIGENCE] Failed to raise event: {EventName}");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelRetrievalFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "ModelRetrievalFailed"),
+            "[INTELLIGENCE] Failed to get model for regime: {RegimeType}");
+            
+    private static readonly Action<ILogger, Exception?> PredictionFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4033, "PredictionFailed"),
+            "[INTELLIGENCE] Prediction failed");
+            
+    private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4034, "RealPredictionCalculationFailed"),
+            "[INTELLIGENCE] Real prediction calculation failed");
+    
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IntelligenceStackConfig _config;
     
@@ -385,15 +458,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Invalid operation during model promotion check");
+            ModelPromotionInvalidOperation(_logger, ex);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Invalid argument during model promotion check");
+            ModelPromotionInvalidArgument(_logger, ex);
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Timeout during model promotion check");
+            ModelPromotionTimeout(_logger, ex);
         }
     }
 
@@ -494,20 +567,20 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 if (_modelRegistry != null)
                 {
                     var activeModels = await _modelRegistry.GetActiveModelsAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("[ML] Processed {ModelCount} active models", activeModels.Count());
+                    MLModelsProcessed(_logger, activeModels.Count(), null);
                 }
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogError(ex,  "[ML] ML model execution task was canceled");
+                MLExecutionTaskCanceled(_logger, ex);
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex,  "[ML] ML model execution was canceled");
+                MLExecutionCanceled(_logger, ex);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex,  "[ML] Invalid operation during ML model execution");
+                MLExecutionInvalidOperation(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -526,12 +599,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 {
                     var regimeType = context.Parameters.GetValueOrDefault("regime", "Range").ToString() ?? "Range";
                     var currentWeights = await _onlineLearningSystem.GetCurrentWeightsAsync(regimeType, cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}", regimeType, currentWeights.Count);
+                    RLWeightsUpdated(_logger, regimeType, currentWeights.Count, null);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,  "[RL] RL training update failed");
+                RLTrainingUpdateFailed(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -746,12 +819,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            _logger.LogInformation("[INTELLIGENCE] Event: {EventName} - {Message}", eventName, message);
+            IntelligenceEventLogged(_logger, eventName, message, null);
             IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
+            EventRaiseFailed(_logger, eventName, ex);
         }
     }
 
