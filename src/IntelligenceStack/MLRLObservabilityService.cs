@@ -24,6 +24,71 @@ public class MlrlObservabilityService : IDisposable
     private readonly HttpClient _httpClient;
     private readonly Timer _exportTimer;
     
+    // LoggerMessage delegates for CA1848 performance compliance
+    private static readonly Action<ILogger, string, double, Exception?> LogHighPolicyNormDetected =
+        LoggerMessage.Define<string, double>(LogLevel.Warning, new EventId(3001, nameof(LogHighPolicyNormDetected)),
+            "High policy norm detected for {AgentId}: {PolicyNorm:F3}");
+    
+    private static readonly Action<ILogger, double, int, Exception?> LogHighEnsembleVarianceDetected =
+        LoggerMessage.Define<double, int>(LogLevel.Warning, new EventId(3002, nameof(LogHighEnsembleVarianceDetected)),
+            "High ensemble variance detected: {Variance:F3} with {ModelCount} models");
+    
+    private static readonly Action<ILogger, Exception?> LogMetricsExportFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3003, nameof(LogMetricsExportFailed)),
+            "Failed to export metrics to Prometheus endpoint");
+    
+    private static readonly Action<ILogger, string, Exception?> LogMetricUpdateDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3004, nameof(LogMetricUpdateDebug)),
+            "Updated metric: {MetricName}");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToResetMetrics =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3005, nameof(LogFailedToResetMetrics)),
+            "Failed to reset metrics storage");
+    
+    private static readonly Action<ILogger, string, Exception?> LogFailedToUpdateRLMetric =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3006, nameof(LogFailedToUpdateRLMetric)),
+            "Failed to update RL metric: {MetricName}");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToRecordReward =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(3007, nameof(LogFailedToRecordReward)),
+            "Failed to record RL reward due to validation error");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToExportMetrics =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3008, nameof(LogFailedToExportMetrics)),
+            "Failed to export metrics");
+    
+    private static readonly Action<ILogger, Exception?> LogSuccessfulPrometheusExport =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3009, nameof(LogSuccessfulPrometheusExport)),
+            "Successfully exported metrics to Prometheus gateway");
+    
+    private static readonly Action<ILogger, int, Exception?> LogFailedPrometheusExport =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(3010, nameof(LogFailedPrometheusExport)),
+            "Failed to export metrics to Prometheus: {StatusCode}");
+    
+    private static readonly Action<ILogger, Exception?> LogPrometheusExportError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3011, nameof(LogPrometheusExportError)),
+            "Error exporting to Prometheus");
+    
+    private static readonly Action<ILogger, Exception?> LogSuccessfulGrafanaExport =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(3012, nameof(LogSuccessfulGrafanaExport)),
+            "Successfully exported metrics to Grafana Cloud");
+    
+    private static readonly Action<ILogger, int, Exception?> LogFailedGrafanaExport =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(3013, nameof(LogFailedGrafanaExport)),
+            "Failed to export metrics to Grafana: {StatusCode}");
+    
+    private static readonly Action<ILogger, Exception?> LogGrafanaExportError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3014, nameof(LogGrafanaExportError)),
+            "Error exporting to Grafana");
+    
+    private static readonly Action<ILogger, int, string, Exception?> LogFileExportSuccess =
+        LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(3015, nameof(LogFileExportSuccess)),
+            "Exported {MetricCount} metrics to {FilePath}");
+    
+    private static readonly Action<ILogger, Exception?> LogFileExportError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3016, nameof(LogFileExportError)),
+            "Error exporting metrics to file");
+    
     // Metrics collection
     private readonly Meter _meter;
     private readonly Counter<int> _predictionCounter;
@@ -171,7 +236,7 @@ public class MlrlObservabilityService : IDisposable
 
         if (policyNorm > HighPolicyNormThreshold) // Configurable threshold
         {
-            _logger.LogWarning("High policy norm detected for {AgentId}: {PolicyNorm:F3}", agentId, policyNorm);
+            LogHighPolicyNormDetected(_logger, agentId, policyNorm, null);
         }
     }
 
@@ -186,8 +251,7 @@ public class MlrlObservabilityService : IDisposable
 
         if (variance > HighEnsembleVarianceThreshold) // Configurable threshold
         {
-            _logger.LogWarning("High ensemble variance detected: {Variance:F3} with {ModelCount} models", 
-                variance, modelCount);
+            LogHighEnsembleVarianceDetected(_logger, variance, modelCount, null);
         }
     }
 
@@ -265,7 +329,7 @@ public class MlrlObservabilityService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to export metrics");
+            LogFailedToExportMetrics(_logger, ex);
         }
     }
 
@@ -280,16 +344,16 @@ public class MlrlObservabilityService : IDisposable
             
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogDebug("Successfully exported metrics to Prometheus gateway");
+                LogSuccessfulPrometheusExport(_logger, null);
             }
             else
             {
-                _logger.LogWarning("Failed to export metrics to Prometheus: {StatusCode}", response.StatusCode);
+                LogFailedPrometheusExport(_logger, (int)response.StatusCode, null);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting to Prometheus");
+            LogPrometheusExportError(_logger, ex);
         }
     }
 
@@ -307,16 +371,16 @@ public class MlrlObservabilityService : IDisposable
             
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogDebug("Successfully exported metrics to Grafana Cloud");
+                LogSuccessfulGrafanaExport(_logger, null);
             }
             else
             {
-                _logger.LogWarning("Failed to export metrics to Grafana: {StatusCode}", response.StatusCode);
+                LogFailedGrafanaExport(_logger, (int)response.StatusCode, null);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting to Grafana");
+            LogGrafanaExportError(_logger, ex);
         }
     }
 
@@ -349,11 +413,11 @@ public class MlrlObservabilityService : IDisposable
             var json = JsonSerializer.Serialize(allMetrics, new JsonSerializerOptions { WriteIndented = true });
             await System.IO.File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             
-            _logger.LogDebug("Exported {MetricCount} metrics to {FilePath}", allMetrics.Count, filePath);
+            LogFileExportSuccess(_logger, allMetrics.Count, filePath, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting metrics to file");
+            LogFileExportError(_logger, ex);
         }
     }
 

@@ -27,6 +27,19 @@ public class RLAdvisorSystem
     private const double RsiNormalizationFactor = 100.0;
     private const double DefaultBollingerPosition = 0.5;
     
+    // LoggerMessage delegates for CA1848 performance compliance
+    private static readonly Action<ILogger, Exception?> LogFailedToSaveTrainingResult =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(1001, nameof(LogFailedToSaveTrainingResult)),
+            "[RL_ADVISOR] Failed to save training result");
+    
+    private static readonly Action<ILogger, bool, Exception?> LogLoadedState =
+        LoggerMessage.Define<bool>(LogLevel.Information, new EventId(1002, nameof(LogLoadedState)),
+            "[RL_ADVISOR] Loaded state - order influence: {Enabled}");
+    
+    private static readonly Action<ILogger, Exception?> LogFailedToLoadState =
+        LoggerMessage.Define(LogLevel.Warning, new EventId(1003, nameof(LogFailedToLoadState)),
+            "[RL_ADVISOR] Failed to load state");
+    
     // Additional S109 constants for RL advisor operations
     private const int MaxDecisionHistoryCount = 1000;
     private const double QuickExitThresholdMinutes = 30;
@@ -1040,7 +1053,7 @@ public class RLAdvisorSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[RL_ADVISOR] Failed to save training result");
+            LogFailedToSaveTrainingResult(_logger, ex);
         }
     }
 
@@ -1060,13 +1073,13 @@ public class RLAdvisorSystem
                     _orderInfluenceEnabled = state.OrderInfluenceEnabled;
                     _lastUpliftCheck = state.LastUpliftCheck;
                     
-                    _logger.LogInformation("[RL_ADVISOR] Loaded state - order influence: {Enabled}", _orderInfluenceEnabled);
+                    LogLoadedState(_logger, _orderInfluenceEnabled, null);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[RL_ADVISOR] Failed to load state");
+            LogFailedToLoadState(_logger, ex);
         }
     }
 }
