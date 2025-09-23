@@ -779,7 +779,7 @@ public class FeatureImportanceTracker
         return Task.CompletedTask;
     }
 
-    public List<double> GetRecentPredictions()
+    public IReadOnlyList<double> GetRecentPredictions()
     {
         lock (_lock)
         {
@@ -787,7 +787,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetRecentOutcomes()
+    public IReadOnlyList<double> GetRecentOutcomes()
     {
         lock (_lock)
         {
@@ -803,7 +803,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetFeatureHistory(string featureName)
+    public IReadOnlyList<double> GetFeatureHistory(string featureName)
     {
         lock (_lock)
         {

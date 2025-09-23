@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
@@ -25,16 +26,18 @@ public static class WorkflowHelpers
     /// </summary>
     public static MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         return new MarketData
         {
             Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", DefaultMarketDataOpen)),
-            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
-            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
-            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume)),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
+            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", DefaultMarketDataOpen), CultureInfo.InvariantCulture),
+            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh), CultureInfo.InvariantCulture),
+            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow), CultureInfo.InvariantCulture),
+            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose), CultureInfo.InvariantCulture),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume), CultureInfo.InvariantCulture),
+            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid), CultureInfo.InvariantCulture),
+            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk), CultureInfo.InvariantCulture),
             Timestamp = DateTime.UtcNow
         };
     }
