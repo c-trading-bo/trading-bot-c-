@@ -59,8 +59,6 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const double ProfitableAccuracy = 0.75;
     private const double UnprofitableAccuracy = 0.25;
     private const double F1ScoreMultiplier = 2.0;
-    private const double SevereBreachThreshold = 2.0;
-    private const double PercentileP99 = 0.99;
     private const int MarketHoursStart = 9;
     private const int MarketHoursEnd = 16;
     private const int OvernightStart = 18;
@@ -907,6 +905,8 @@ public class SloMonitor
     private const int DefaultRetryCount = 10;
     private const double DefaultRetryCount3 = 3.0;
     private const double PercentageDivisor = 100.0;
+    private const double SevereBreachThreshold = 2.0;
+    private const double PercentileP99 = 0.99;
     
     // LoggerMessage delegates for CA1848 compliance - SloMonitor
     private static readonly Action<ILogger, string, Exception?> SloObjectDisposedError =
