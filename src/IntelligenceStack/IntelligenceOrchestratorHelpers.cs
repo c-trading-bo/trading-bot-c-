@@ -72,7 +72,7 @@ public partial class IntelligenceOrchestratorHelpers
             await _modelRegistry.CleanupExpiredModelsAsync(cancellationToken).ConfigureAwait(false);
             
             // Log maintenance completion
-            _logger.LogInformation("[INTELLIGENCE] Nightly maintenance completed successfully");
+            MaintenanceCompletedSuccessfully(_logger, null);
             
             MaintenanceCompleted(_logger, null);
         }
@@ -114,15 +114,15 @@ public partial class IntelligenceOrchestratorHelpers
             // Perform correlation analysis using feature engineer
             try
             {
-                _logger.LogInformation("[CORRELATION] Executing correlation analysis workflow");
+                CorrelationAnalysisStarted(_logger, null);
                 
                 // Implement correlation analysis functionality
                 var correlationCount = 4; // Number of correlation features analyzed
-                _logger.LogInformation("[CORRELATION] Analysis completed with {CorrelationCount} features", correlationCount);
+                CorrelationAnalysisCompleted(_logger, correlationCount, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed in helper method");
+                CorrelationAnalysisFailed(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -143,6 +143,18 @@ public partial class IntelligenceOrchestratorHelpers
 
     [LoggerMessage(EventId = 3005, Level = LogLevel.Error, Message = "[INTELLIGENCE] Maintenance error: {ErrorMessage}")]
     private static partial void MaintenanceError(ILogger logger, string errorMessage, Exception ex);
+
+    [LoggerMessage(EventId = 3006, Level = LogLevel.Information, Message = "[INTELLIGENCE] Nightly maintenance completed successfully")]
+    private static partial void MaintenanceCompletedSuccessfully(ILogger logger, Exception? ex);
+
+    [LoggerMessage(EventId = 3007, Level = LogLevel.Information, Message = "[CORRELATION] Executing correlation analysis workflow")]
+    private static partial void CorrelationAnalysisStarted(ILogger logger, Exception? ex);
+
+    [LoggerMessage(EventId = 3008, Level = LogLevel.Information, Message = "[CORRELATION] Analysis completed with {CorrelationCount} features")]
+    private static partial void CorrelationAnalysisCompleted(ILogger logger, int correlationCount, Exception? ex);
+
+    [LoggerMessage(EventId = 3009, Level = LogLevel.Error, Message = "[CORRELATION] Correlation analysis failed in helper method")]
+    private static partial void CorrelationAnalysisFailed(ILogger logger, Exception ex);
 
     #endregion
 }
