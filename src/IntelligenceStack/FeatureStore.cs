@@ -26,6 +26,10 @@ public class FeatureStore : IFeatureStore
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
     private const int ChecksumLength = 16;
+    
+    // S109 Magic Number Constants
+    private const int MinimumFilesForOptimization = 100;
+    private const int CompactionBatchSize = 50;
 
     // LoggerMessage delegates for CA1848 compliance - FeatureStore  
     private static readonly Action<ILogger, string, Exception?> NoFeatureDataFound =
@@ -43,6 +47,22 @@ public class FeatureStore : IFeatureStore
     private static readonly Action<ILogger, int, string, DateTime, Exception?> FeaturesSaved =
         LoggerMessage.Define<int, string, DateTime>(LogLevel.Debug, new EventId(3004, "FeaturesSaved"),
             "[FEATURES] Saved {Count} features for {Symbol} at {Timestamp}");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationCompleted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(3005, "StorageOptimizationCompleted"),
+            "[FEATURES] Storage optimization completed");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationDirectoryNotFound =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3006, "StorageOptimizationDirectoryNotFound"),
+            "[FEATURES] Storage optimization failed due to directory not found");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationAccessDenied =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3007, "StorageOptimizationAccessDenied"),
+            "[FEATURES] Storage optimization failed due to access denied");
+            
+    private static readonly Action<ILogger, Exception?> StorageOptimizationIOError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(3008, "StorageOptimizationIOError"),
+            "[FEATURES] Storage optimization failed due to I/O error");
             
     private static readonly Action<ILogger, string, DateTime, Exception?> FeatureSavingFailed =
         LoggerMessage.Define<string, DateTime>(LogLevel.Error, new EventId(3005, "FeatureSavingFailed"),
@@ -331,17 +351,25 @@ public class FeatureStore : IFeatureStore
                     .Where(f => IsOldFile(f, cutoffDate))
                     .ToArray();
                 
-                if (files.Length > 100) // Only optimize if we have many files
+                if (files.Length > MinimumFilesForOptimization) // Only optimize if we have many files
                 {
                     await CompactFeatureFilesAsync(symbolDir, files, cancellationToken).ConfigureAwait(false);
                 }
             }
             
-            _logger.LogInformation("[FEATURES] Storage optimization completed");
+            StorageOptimizationCompleted(_logger, null);
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Storage optimization failed");
+            StorageOptimizationDirectoryNotFound(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            StorageOptimizationAccessDenied(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            StorageOptimizationIOError(_logger, ex);
         }
     }
 
@@ -349,10 +377,9 @@ public class FeatureStore : IFeatureStore
     {
         try
         {
-            var symbol = Path.GetFileName(symbolDir);
             var compactedFeatures = new List<FeatureSet>();
             
-            foreach (var file in files.Take(50)) // Compact in batches
+            foreach (var file in files.Take(CompactionBatchSize)) // Compact in batches
             {
                 try
                 {
@@ -363,7 +390,11 @@ public class FeatureStore : IFeatureStore
                         compactedFeatures.Add(features);
                     }
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
+                }
+                catch (IOException ex)
                 {
                     _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
                 }
@@ -376,20 +407,32 @@ public class FeatureStore : IFeatureStore
                 await File.WriteAllTextAsync(compactedFile, json, cancellationToken).ConfigureAwait(false);
                 
                 // Remove individual files after successful compaction
-                foreach (var file in files.Take(50))
+                foreach (var file in files.Take(CompactionBatchSize))
                 {
                     try
                     {
                         File.Delete(file);
                     }
-                    catch (Exception ex)
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
+                    }
+                    catch (UnauthorizedAccessException ex)
                     {
                         _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
                     }
                 }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+        }
+        catch (UnauthorizedAccessException ex)
         {
             _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
         }
@@ -400,7 +443,7 @@ public class FeatureStore : IFeatureStore
         try
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
-            if (fileName.StartsWith("compacted_"))
+            if (fileName.StartsWith("compacted_", StringComparison.OrdinalIgnoreCase))
             {
                 return false; // Don't re-compact already compacted files
             }
@@ -410,12 +453,19 @@ public class FeatureStore : IFeatureStore
                 return fileTime < cutoffDate;
             }
         }
-        catch
+        catch (ArgumentException)
         {
-            // If we can't parse the date, consider it old
+            // If we can't parse the file path, consider it old
             return true;
         }
-        return false;
+        catch (PathTooLongException)
+        {
+            // If path is too long, consider it old
+            return true;
+        }
+        
+        // If we can't parse the date from filename, consider it old for cleanup
+        return true;
     }
 
     private static ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
@@ -495,16 +545,14 @@ public class FeatureStore : IFeatureStore
     private static string CalculateChecksum(FeatureSet features)
     {
         var content = JsonSerializer.Serialize(features.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
     private static string CalculateSchemaChecksum(FeatureSchema schema)
     {
         var content = JsonSerializer.Serialize(schema.Features);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(content));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(hash)[..ChecksumLength]; // First 16 chars
     }
 
@@ -516,54 +564,6 @@ public class FeatureStore : IFeatureStore
             return fileTime >= fromTime && fileTime <= toTime;
         }
         return false;
-    }
-
-    private string[] GetFeatureFilesInRange(string featuresPath, DateTime fromTime, DateTime toTime)
-    {
-        return Directory.GetFiles(featuresPath, "*.json")
-            .Where(file => IsFileInTimeRange(file, fromTime, toTime))
-            .OrderBy(file => file)
-            .ToArray();
-    }
-
-    private async Task<FeatureSet> LoadFeaturesFromFiles(string[] featureFiles, string symbol, CancellationToken cancellationToken)
-    {
-        var features = new Dictionary<string, double>();
-        string? version = null;
-        string? checksum = null;
-
-        foreach (var file in featureFiles)
-        {
-            var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
-            var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
-            
-            if (featureSet != null)
-            {
-                // Merge features (later timestamps override earlier ones)
-                foreach (var kvp in featureSet.Features)
-                {
-                    features[kvp.Key] = kvp.Value;
-                }
-                
-                version = featureSet.Version;
-                checksum = featureSet.SchemaChecksum;
-            }
-        }
-
-        var result = new FeatureSet
-        {
-            Symbol = symbol,
-            Version = version ?? "unknown",
-            SchemaChecksum = checksum ?? "unknown"
-        };
-
-        // Populate the read-only Features dictionary
-        foreach (var kvp in features)
-        {
-            result.Features[kvp.Key] = kvp.Value;
-        }
-
-        return result;
     }
 
     private sealed class ValidationResult

@@ -25,7 +25,7 @@ internal static class NeuralNetworkConstants
 /// Soft Actor-Critic (SAC) algorithm implementation for continuous control
 /// Designed for position sizing and entry/exit timing in trading systems
 /// </summary>
-public class SoftActorCritic : IDisposable
+public sealed class SoftActorCritic : IDisposable
 {
     private readonly ILogger<SoftActorCritic> _logger;
     private readonly Models.SacConfig _config;
@@ -384,7 +384,7 @@ public class SoftActorCritic : IDisposable
     /// <summary>
     /// Dispose pattern implementation
     /// </summary>
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (disposing)
         {

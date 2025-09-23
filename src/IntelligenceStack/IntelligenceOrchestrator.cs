@@ -26,6 +26,25 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BullishThreshold = 0.55;
     private const double BearishThreshold = 0.45;
     
+    // Maintenance window hours (UTC)
+    private const int MaintenanceStartHour = 2;  // 2 AM UTC
+    private const int MaintenanceEndHour = 4;    // 4 AM UTC
+    
+    // Default values for safe decision creation
+    private const decimal DefaultQuantity = 0.0m;
+    private const decimal DefaultConfidence = 0.0m;
+    private const decimal DefaultMLConfidence = 0.0m;
+    
+    // Decision ID generation
+    private const int DecisionIdLength = 8;
+    
+    // Feature analysis thresholds
+    private const double VolatilityThreshold = 0.02;
+    private const double BaseConfidenceLevel = 0.5;
+    private const double ConfidenceBoost = 0.1;
+    private const double VolumeThreshold = 1000.0;
+    private const double MaxConfidence = 1.0;
+    
     // LoggerMessage delegates for CA1848 compliance - IntelligenceOrchestrator
     private static readonly Action<ILogger, string, Exception?> OrchestratorInitialized =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "OrchestratorInitialized"),
@@ -332,7 +351,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         
         // Perform maintenance once per day, preferably during off-hours (UTC 2-4 AM)
         return timeSinceLastMaintenance > TimeSpan.FromHours(20) && 
-               now.Hour >= 2 && now.Hour <= 4;
+               now.Hour >= MaintenanceStartHour && now.Hour <= MaintenanceEndHour;
     }
 
     /// <summary>
@@ -723,7 +742,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Creates a safe fallback decision when normal processing fails
     /// </summary>
-    private TradingDecision CreateSafeDecision(string reason)
+    private static TradingDecision CreateSafeDecision(string reason)
     {
         return new TradingDecision
         {
@@ -731,9 +750,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Timestamp = DateTime.UtcNow,
             Action = TradingAction.Hold,
             Side = TradeSide.Hold,
-            Quantity = 0.0m,
-            Confidence = 0.0m,
-            MLConfidence = 0.0m,
+            Quantity = DefaultQuantity,
+            Confidence = DefaultConfidence,
+            MLConfidence = DefaultMLConfidence,
             Reasoning = { ["failsafe_reason"] = reason }
         };
     }
@@ -743,13 +762,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     private static string GenerateDecisionId()
     {
-        return $"DEC_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..8]}";
+        return $"DEC_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..DecisionIdLength]}";
     }
 
     /// <summary>
     /// Extracts features from market context for decision making
     /// </summary>
-    private async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
+    private static async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
     {
         // Create a basic feature set from market context
         var features = new FeatureSet
@@ -819,16 +838,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         try
         {
             // Simple prediction logic - this would be replaced with actual ML model inference
-            var priceFeature = features.Features.GetValueOrDefault("price", 0.0);
             var volumeFeature = features.Features.GetValueOrDefault("volume", 0.0);
             var volatilityFeature = features.Features.GetValueOrDefault("volatility", 0.0);
             
             // Basic confidence calculation based on feature values
-            var baseConfidence = 0.5;
-            if (volatilityFeature > 0.02) baseConfidence += 0.1; // Higher volatility = higher confidence
-            if (volumeFeature > 1000) baseConfidence += 0.1; // Higher volume = higher confidence
+            var baseConfidence = BaseConfidenceLevel;
+            if (volatilityFeature > VolatilityThreshold) baseConfidence += ConfidenceBoost; // Higher volatility = higher confidence
+            if (volumeFeature > VolumeThreshold) baseConfidence += ConfidenceBoost; // Higher volume = higher confidence
             
-            return await Task.FromResult(Math.Min(baseConfidence, 1.0)).ConfigureAwait(false);
+            return await Task.FromResult(Math.Min(baseConfidence, MaxConfidence)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -851,7 +869,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// <summary>
     /// Creates a trading decision from intelligence analysis
     /// </summary>
-    private TradingDecision CreateTradingDecision(
+    private static TradingDecision CreateTradingDecision(
         string decisionId,
         MarketContext context,
         RegimeState regime,

@@ -232,7 +232,7 @@ public class RealTradingMetricsService : BackgroundService
     {
         // Production implementation - actual latency tracking from inference operations
         var recentInferences = _recentInferences.Where(i => i.Timestamp > DateTime.UtcNow.AddMinutes(-5)).ToList();
-        if (!recentInferences.Any())
+        if (recentInferences.Count == 0)
         {
             return 0.0; // No recent inferences
         }
@@ -259,7 +259,7 @@ public class RealTradingMetricsService : BackgroundService
         var recentFeatures = _recentFeatures.Where(f => f.Timestamp > DateTime.UtcNow.AddHours(-1)).ToList();
         var baselineFeatures = _recentFeatures.Where(f => f.Timestamp <= DateTime.UtcNow.AddHours(-1) && f.Timestamp > DateTime.UtcNow.AddHours(-2)).ToList();
 
-        if (!recentFeatures.Any() || !baselineFeatures.Any())
+        if (recentFeatures.Count == 0 || baselineFeatures.Count == 0)
         {
             return 0.0; // Insufficient data for drift calculation
         }
