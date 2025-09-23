@@ -462,12 +462,12 @@ public sealed class MamlLiveIntegration : IDisposable
         return step;
     }
 
-    private static async Task<ValidationResult> ValidateAdaptationAsync(
+    private static Task<ValidationResult> ValidateAdaptationAsync(
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
         // Perform validation asynchronously to avoid blocking adaptation pipeline
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Check if performance gain is reasonable
             if (step.PerformanceGain < MinPerformanceGainThreshold)
@@ -483,7 +483,7 @@ public sealed class MamlLiveIntegration : IDisposable
             }
 
             return new ValidationResult { IsValid = true };
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private AdaptationStep ApplyBoundedUpdates(AdaptationStep step)

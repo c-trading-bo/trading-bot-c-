@@ -432,7 +432,7 @@ public class NightlyParameterTuner
 
         // Initialize population
         var populationSize = Math.Min(MaxPopulationSize, _config.Trials / PopulationDivisor);
-        var population = await InitializePopulationAsync(session.ModelFamily, populationSize, cancellationToken).ConfigureAwait(false);
+        var population = await InitializePopulationAsync(populationSize, cancellationToken).ConfigureAwait(false);
         
         var generations = _config.Trials / populationSize;
         var bestIndividual = population.OrderByDescending(ind => ind.Fitness).First();
@@ -562,28 +562,22 @@ public class NightlyParameterTuner
 
     private async Task<Dictionary<string, double>> GetBaselineParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        // Load baseline parameters asynchronously from multiple sources
-        var baselineTask = Task.Run(async () =>
+        // Step 1: Try to load from historical tuning results
+        var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+        if (historicalParams != null)
         {
-            // Step 1: Try to load from historical tuning results
-            var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-            if (historicalParams != null)
-            {
-                return historicalParams;
-            }
+            return historicalParams;
+        }
 
-            // Step 2: Load from model registry if available
-            var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-            if (registryParams != null)
-            {
-                return registryParams;
-            }
+        // Step 2: Load from model registry if available
+        var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+        if (registryParams != null)
+        {
+            return registryParams;
+        }
 
-            // Step 3: Use intelligent defaults based on model family
-            return GetIntelligentDefaultsAsync(modelFamily, cancellationToken).Result;
-        }, cancellationToken);
-
-        return await baselineTask.ConfigureAwait(false);
+        // Step 3: Use intelligent defaults based on model family
+        return await GetIntelligentDefaultsAsync(modelFamily, cancellationToken).ConfigureAwait(false);
     }
 
     private Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
@@ -747,7 +741,6 @@ public class NightlyParameterTuner
     }
 
     private async Task<List<Individual>> InitializePopulationAsync(
-        string modelFamily,
         int populationSize,
         CancellationToken cancellationToken)
     {
@@ -928,7 +921,7 @@ public class NightlyParameterTuner
         return improvements > total / ImprovementThresholdDivisor;
     }
 
-    private Task PromoteImprovedModelAsync(
+    private Task<ModelArtifact> PromoteImprovedModelAsync(
         string modelFamily,
         OptimizationResult result,
         CancellationToken cancellationToken)
