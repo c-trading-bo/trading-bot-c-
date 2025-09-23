@@ -913,12 +913,12 @@ public class PolicyNetwork : IDisposable
         var hidden = new double[_hiddenSize];
         for (int i = 0; i < _hiddenSize; i++)
         {
-            hidden[i] = _bias1[i];
+            var hiddenValue = _bias1[i];
             for (int j = 0; j < _stateSize; j++)
             {
-                hidden[i] += state[j] * _weights1[j][i];
+                hiddenValue += state[j] * _weights1[j][i];
             }
-            hidden[i] = Math.Tanh(hidden[i]); // Activation
+            hidden[i] = Math.Tanh(hiddenValue); // Activation
         }
         
         // Output layer
@@ -1050,12 +1050,12 @@ public class ValueNetwork : IDisposable
         var hidden = new double[_hiddenSize];
         for (int i = 0; i < _hiddenSize; i++)
         {
-            hidden[i] = _bias1[i];
+            var hiddenValue = _bias1[i];
             for (int j = 0; j < _stateSize; j++)
             {
-                hidden[i] += state[j] * _weights1[j][i];
+                hiddenValue += state[j] * _weights1[j][i];
             }
-            hidden[i] = Math.Tanh(hidden[i]);
+            hidden[i] = Math.Tanh(hiddenValue);
         }
         
         // Output (single value)

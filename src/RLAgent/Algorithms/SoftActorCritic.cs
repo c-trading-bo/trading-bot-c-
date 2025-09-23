@@ -614,23 +614,23 @@ public class ActorNetwork : IDisposable
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
         {
-            hidden[i] = _biasHidden[i];
+            var hiddenValue = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += state[j] * _weightsInput[j][i];
+                hiddenValue += state[j] * _weightsInput[j][i];
             }
-            hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
+            hidden[i] = Math.Max(0, hiddenValue); // ReLU activation
         }
 
         var output = new double[_outputDim];
         for (int i = 0; i < _outputDim; i++)
         {
-            output[i] = _biasOutput[i];
+            var outputValue = _biasOutput[i];
             for (int j = 0; j < _hiddenDim; j++)
             {
-                output[i] += hidden[j] * _weightsOutput[j][i];
+                outputValue += hidden[j] * _weightsOutput[j][i];
             }
-            output[i] = Math.Tanh(output[i]); // Tanh for bounded actions
+            output[i] = Math.Tanh(outputValue); // Tanh for bounded actions
         }
 
         // Add exploration noise if training
@@ -765,12 +765,12 @@ public class CriticNetwork
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
         {
-            hidden[i] = _biasHidden[i];
+            var hiddenValue = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += input[j] * _weightsInput[j][i];
+                hiddenValue += input[j] * _weightsInput[j][i];
             }
-            hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
+            hidden[i] = Math.Max(0, hiddenValue); // ReLU activation
         }
 
         var output = 0.0;
@@ -914,12 +914,12 @@ public class ValueNetwork
         var hidden = new double[_hiddenDim];
         for (int i = 0; i < _hiddenDim; i++)
         {
-            hidden[i] = _biasHidden[i];
+            var hiddenValue = _biasHidden[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += input[j] * _weightsInput[j][i];
+                hiddenValue += input[j] * _weightsInput[j][i];
             }
-            hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
+            hidden[i] = Math.Max(0, hiddenValue); // ReLU activation
         }
 
         var output = 0.0;

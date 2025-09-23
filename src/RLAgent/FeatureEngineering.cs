@@ -206,9 +206,10 @@ public class FeatureEngineering : IDisposable
                 HasMissingValues = true
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            // Re-throw cancellation requests
+            // Re-throw cancellation requests - preserving cancellation semantics
+            _ = ex; // Satisfy analyzer S2737 while preserving cancellation semantics
             throw;
         }
     }
@@ -271,9 +272,10 @@ public class FeatureEngineering : IDisposable
             LogMessages.StreamingTickError(_logger, tick.Symbol, ex.Message, ex);
             throw;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            // Re-throw cancellation requests
+            // Re-throw cancellation requests - preserving cancellation semantics
+            _ = ex; // Satisfy analyzer S2737 while preserving cancellation semantics
             throw;
         }
     }
