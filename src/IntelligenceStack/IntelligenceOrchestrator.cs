@@ -19,7 +19,7 @@ namespace TradingBot.IntelligenceStack;
 /// Coordinates regime detection, model inference, calibration, decision making, and cloud flow
 /// Merged cloud flow functionality from UnifiedOrchestrator.Services.CloudFlowService
 /// </summary>
-public class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
+public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
 {
     // Constants for magic number violations
     // Intelligence thresholds for decision making

@@ -820,9 +820,10 @@ public class LineageTrackingSystem
         lock (_lock)
         {
             var key = lineageEvent.EntityType;
-            if (!_eventHistory.ContainsKey(key))
+            if (!_eventHistory.TryGetValue(key, out var events))
             {
-                _eventHistory[key] = new List<LineageEvent>();
+                events = new List<LineageEvent>();
+                _eventHistory[key] = events;
             }
             
             _eventHistory[key].Add(lineageEvent);
@@ -898,7 +899,7 @@ public class LineageTrackingSystem
         var modelLineage = new CompleteModelLineage
         {
             ModelId = modelId,
-            CreationEvent = modelEvents.FirstOrDefault(e => e.EventType == LineageEventType.ModelRegistered)
+            CreationEvent = modelEvents.Find(e => e.EventType == LineageEventType.ModelRegistered)
         };
         
         // Add promotion events to read-only collection

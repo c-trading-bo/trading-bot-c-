@@ -448,7 +448,7 @@ public class FeatureStore : IFeatureStore
                 return false; // Don't re-compact already compacted files
             }
             
-            if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var fileTime))
+            if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var fileTime))
             {
                 return fileTime < cutoffDate;
             }
@@ -559,7 +559,7 @@ public class FeatureStore : IFeatureStore
     private static bool IsFileInTimeRange(string filePath, DateTime fromTime, DateTime toTime)
     {
         var fileName = Path.GetFileNameWithoutExtension(filePath);
-        if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var fileTime))
+        if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var fileTime))
         {
             return fileTime >= fromTime && fileTime <= toTime;
         }
