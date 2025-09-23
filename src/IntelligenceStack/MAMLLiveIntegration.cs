@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// MAML (Model-Agnostic Meta-Learning) integration for live trading
 /// Implements adaptive learning with bounded updates and rollback capabilities
 /// </summary>
-public class MamlLiveIntegration
+public sealed class MamlLiveIntegration : IDisposable
 {
     private readonly ILogger<MamlLiveIntegration> _logger;
     private readonly MetaLearningConfig _config;
@@ -165,6 +165,12 @@ public class MamlLiveIntegration
         _updateTimer?.Dispose();
         _updateTimer = null;
         PeriodicUpdatesStopped(_logger, null);
+    }
+
+    public void Dispose()
+    {
+        StopPeriodicUpdates();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -660,7 +666,7 @@ public class MamlLiveIntegration
     private static double GetStrategyPrediction(TrainingExample example, string strategyKey)
     {
         // Get deterministic prediction based on actual features without random noise
-        var basePrediction = example.Features.Values[0];
+        var basePrediction = example.Features.Values.FirstOrDefault();
         
         // Apply strategy-specific scaling based on strategy type
         var strategyMultiplier = strategyKey switch
@@ -727,6 +733,11 @@ public class MamlLiveIntegration
     {
         try
         {
+            // Parameters intentionally unused in placeholder implementation
+            _ = regime;
+            _ = count;
+            _ = cancellationToken;
+            
             // Check if trading database is available
             var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trading.db");
             if (!File.Exists(dbPath))
@@ -766,6 +777,10 @@ public class MamlLiveIntegration
     {
         try
         {
+            // Parameters intentionally unused in placeholder implementation
+            _ = regime;
+            _ = count;
+            
             await Task.Yield(); // Placeholder for async operation
             
             // In a full implementation, this would integrate with:

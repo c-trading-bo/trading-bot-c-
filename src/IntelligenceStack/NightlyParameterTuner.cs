@@ -595,7 +595,7 @@ public class NightlyParameterTuner
                 var bestResult = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.BestMetrics?.AUC ?? DefaultAucFallback)
-                    [0];
+                    .FirstOrDefault();
 
                 return bestResult?.BestParameters;
             }
@@ -904,10 +904,29 @@ public class NightlyParameterTuner
         var improvements = InitialImprovementsCount;
         var total = InitialTotalCount;
         
-        if (candidate.AUC > baseline.AUC) improvements++; total++;
-        if (candidate.PrAt10 > baseline.PrAt10) improvements++; total++;
-        if (candidate.ECE < baseline.ECE) improvements++; total++;
-        if (candidate.EdgeBps > baseline.EdgeBps) improvements++; total++;
+        if (candidate.AUC > baseline.AUC)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.PrAt10 > baseline.PrAt10)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.ECE < baseline.ECE)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.EdgeBps > baseline.EdgeBps)
+        {
+            improvements++;
+        }
+        total++;
         
         return improvements > total / ImprovementThresholdDivisor;
     }
@@ -998,7 +1017,7 @@ public class NightlyParameterTuner
                 var stableVersion = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.StartTime)
-                    [0];
+                    .FirstOrDefault();
 
                 if (stableVersion == null)
                 {

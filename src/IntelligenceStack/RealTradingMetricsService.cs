@@ -171,7 +171,27 @@ public class RealTradingMetricsService : BackgroundService
     /// Collect and push real trading metrics to cloud
     /// Called by timer every minute
     /// </summary>
-    private async void CollectAndPushMetrics(object? state)
+    private void CollectAndPushMetrics(object? state)
+    {
+        // Use Task.Run to avoid async void issues
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await CollectAndPushMetricsAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log and swallow exceptions to prevent crashes
+                _logger?.LogError(ex, "Error collecting metrics");
+            }
+        });
+    }
+    
+    /// <summary>
+    /// Async implementation of metrics collection
+    /// </summary>
+    private async Task CollectAndPushMetricsAsync()
     {
         if (_intelligenceOrchestrator == null)
         {
@@ -244,13 +264,13 @@ public class RealTradingMetricsService : BackgroundService
     {
         // Production implementation - calculate accuracy from actual trade outcomes
         var completedTrades = _recentTrades.Where(t => t.IsCompleted && t.CompletedAt > DateTime.UtcNow.AddHours(-24)).ToList();
-        if (!completedTrades.Any())
+        if (completedTrades.Count == 0)
         {
             return 0.0; // No completed trades to measure accuracy
         }
 
         var correctPredictions = completedTrades.Count(t => t.WasPredictionCorrect);
-        return (double)correctPredictions / completedTrades.Count();
+        return (double)correctPredictions / completedTrades.Count;
     }
 
     private double CalculateFeatureDrift()
@@ -317,20 +337,20 @@ public class RealTradingMetricsService : BackgroundService
     {
         // Production implementation - calculate from actual P&L of closed trades
         var completedTrades = _recentTrades.Where(t => t.IsCompleted && t.CompletedAt > DateTime.UtcNow.AddDays(-7)).ToList();
-        if (!completedTrades.Any())
+        if (completedTrades.Count == 0)
         {
             return 0.0; // No completed trades
         }
 
         var winningTrades = completedTrades.Count(t => t.PnL > 0);
-        return (double)winningTrades / completedTrades.Count();
+        return (double)winningTrades / completedTrades.Count;
     }
 
     private double CalculateSharpeRatio()
     {
         // Production implementation - calculate Sharpe ratio from actual trading performance
         var completedTrades = _recentTrades.Where(t => t.IsCompleted && t.CompletedAt > DateTime.UtcNow.AddDays(-30)).ToList();
-        if (!completedTrades.Any())
+        if (completedTrades.Count == 0)
         {
             return 0.0; // No completed trades for calculation
         }

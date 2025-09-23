@@ -19,7 +19,7 @@ namespace TradingBot.IntelligenceStack;
 /// Coordinates regime detection, model inference, calibration, decision making, and cloud flow
 /// Merged cloud flow functionality from UnifiedOrchestrator.Services.CloudFlowService
 /// </summary>
-public class IntelligenceOrchestrator : IIntelligenceOrchestrator
+public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
 {
     // Constants for magic number violations
     // Intelligence thresholds for decision making
@@ -109,6 +109,51 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private static readonly Action<ILogger, Exception?> AnalyzingCorrelations =
         LoggerMessage.Define(LogLevel.Information, new EventId(4016, "AnalyzingCorrelations"),
             "[INTELLIGENCE] Analyzing correlations...");
+    
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, Exception?> ModelPromotionInvalidOperation =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4017, "ModelPromotionInvalidOperation"),
+            "[INTELLIGENCE] Invalid operation during model promotion check");
+            
+    private static readonly Action<ILogger, Exception?> ModelPromotionInvalidArgument =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4018, "ModelPromotionInvalidArgument"),
+            "[INTELLIGENCE] Invalid argument during model promotion check");
+            
+    private static readonly Action<ILogger, Exception?> ModelPromotionTimeout =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4019, "ModelPromotionTimeout"),
+            "[INTELLIGENCE] Timeout during model promotion check");
+            
+    private static readonly Action<ILogger, int, Exception?> MLModelsProcessed =
+        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4020, "MLModelsProcessed"),
+            "[ML] Processed {ModelCount} active models");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionTaskCanceled =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4021, "MLExecutionTaskCanceled"),
+            "[ML] ML model execution task was canceled");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionCanceled =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4022, "MLExecutionCanceled"),
+            "[ML] ML model execution was canceled");
+            
+    private static readonly Action<ILogger, Exception?> MLExecutionInvalidOperation =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4023, "MLExecutionInvalidOperation"),
+            "[ML] Invalid operation during ML model execution");
+            
+    private static readonly Action<ILogger, string, int, Exception?> RLWeightsUpdated =
+        LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4024, "RLWeightsUpdated"),
+            "[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}");
+            
+    private static readonly Action<ILogger, Exception?> RLTrainingUpdateFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4025, "RLTrainingUpdateFailed"),
+            "[RL] RL training update failed");
+    
+    private static readonly Action<ILogger, string, string, Exception?> IntelligenceEventLogged =
+        LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(4030, "IntelligenceEvent"),
+            "[INTELLIGENCE] Event: {EventName} - {Message}");
+            
+    private static readonly Action<ILogger, string, Exception?> EventRaiseFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "EventRaiseFailed"),
+            "[INTELLIGENCE] Failed to raise event: {EventName}");
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IntelligenceStackConfig _config;
@@ -385,15 +430,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Invalid operation during model promotion check");
+            ModelPromotionInvalidOperation(_logger, ex);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Invalid argument during model promotion check");
+            ModelPromotionInvalidArgument(_logger, ex);
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Timeout during model promotion check");
+            ModelPromotionTimeout(_logger, ex);
         }
     }
 
@@ -494,20 +539,20 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 if (_modelRegistry != null)
                 {
                     var activeModels = await _modelRegistry.GetActiveModelsAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("[ML] Processed {ModelCount} active models", activeModels.Count());
+                    MLModelsProcessed(_logger, activeModels.Count(), null);
                 }
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogError(ex,  "[ML] ML model execution task was canceled");
+                MLExecutionTaskCanceled(_logger, ex);
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex,  "[ML] ML model execution was canceled");
+                MLExecutionCanceled(_logger, ex);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex,  "[ML] Invalid operation during ML model execution");
+                MLExecutionInvalidOperation(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -526,12 +571,20 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 {
                     var regimeType = context.Parameters.GetValueOrDefault("regime", "Range").ToString() ?? "Range";
                     var currentWeights = await _onlineLearningSystem.GetCurrentWeightsAsync(regimeType, cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}", regimeType, currentWeights.Count);
+                    RLWeightsUpdated(_logger, regimeType, currentWeights.Count, null);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex,  "[RL] RL training update failed");
+                RLTrainingUpdateFailed(_logger, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                RLTrainingUpdateFailed(_logger, ex);
+            }
+            catch (TimeoutException ex)
+            {
+                RLTrainingUpdateFailed(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -558,7 +611,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 _logger.LogInformation("[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}", 
                     symbol, decision.Action, decision.Confidence);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+            }
+            catch (FormatException ex)
             {
                 _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
             }
@@ -746,12 +807,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            _logger.LogInformation("[INTELLIGENCE] Event: {EventName} - {Message}", eventName, message);
+            IntelligenceEventLogged(_logger, eventName, message, null);
             IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
+            EventRaiseFailed(_logger, eventName, ex);
         }
     }
 
@@ -1008,6 +1069,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             _logger.LogError(ex,  "[INTELLIGENCE] Real prediction calculation failed");
             return (BaseConfidenceLevel, "error_fallback");
         }
+    }
+
+    public void Dispose()
+    {
+        _featureEngineer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     #endregion

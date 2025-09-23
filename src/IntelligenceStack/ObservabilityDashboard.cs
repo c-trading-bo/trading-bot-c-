@@ -339,7 +339,7 @@ public class ObservabilityDashboard : IDisposable
     /// <summary>
     /// Get slippage vs spread analysis
     /// </summary>
-    private async Task<SlippageVsSpread> GetSlippageVsSpreadAsync(CancellationToken cancellationToken)
+    private static async Task<SlippageVsSpread> GetSlippageVsSpreadAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);

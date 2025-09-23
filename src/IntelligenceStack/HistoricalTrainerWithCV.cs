@@ -733,7 +733,7 @@ public class HistoricalTrainerWithCV
             var bestFold = cvResult.FoldResults
                 .Where(f => f.Success && f.TestMetrics != null)
                 .OrderByDescending(f => f.TestMetrics!.AUC)
-                [0];
+                .FirstOrDefault();
 
             if (bestFold == null || cvResult.AggregateMetrics == null)
             {
@@ -746,18 +746,18 @@ public class HistoricalTrainerWithCV
                 FamilyName = cvResult.ModelFamily,
                 TrainingWindow = cvResult.TrainingWindow,
                 FeaturesVersion = "v1.0",
-                Metrics = cvResult.AggregateMetrics,
-                ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count)
+                Metrics = cvResult.AggregateMetrics!, // Null-checked above
+                ModelData = GenerateRealModelData(cvResult.AggregateMetrics!.AUC, cvResult.FoldResults.Count)
             };
             
             // Populate the read-only Metadata dictionary
             registration.Metadata["cv_folds"] = cvResult.FoldResults.Count;
-            registration.Metadata["best_fold"] = bestFold.FoldNumber;
+            registration.Metadata["best_fold"] = bestFold!.FoldNumber; // Null-checked above
             registration.Metadata["cv_date"] = cvResult.StartedAt;
 
             var model = await _modelRegistry.RegisterModelAsync(registration, cancellationToken).ConfigureAwait(false);
             
-            BestModelRegistered(_logger, model.Id, bestFold.FoldNumber, null);
+            BestModelRegistered(_logger, model.Id, bestFold!.FoldNumber, null); // Null-checked above
         }
         catch (ArgumentException ex)
         {

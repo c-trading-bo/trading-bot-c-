@@ -724,7 +724,7 @@ public class RLAdvisorSystem
         {
             foreach (var decisions in _decisionHistory.Values)
             {
-                var decision = decisions.FirstOrDefault(d => d.DecisionId == decisionId);
+                var decision = decisions.Find(d => d.DecisionId == decisionId);
                 if (decision != null)
                 {
                     return decision;
@@ -881,7 +881,7 @@ public class RLAdvisorSystem
                 {
                 try
                 {
-                    var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow;
+                    var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ts) ? ts : DateTime.UtcNow;
                     if (timestamp >= startDate && timestamp <= endDate)
                     {
                         var dataPoint = new RLMarketDataPoint

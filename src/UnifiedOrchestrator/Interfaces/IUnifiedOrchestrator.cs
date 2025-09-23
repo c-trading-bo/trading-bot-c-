@@ -1,5 +1,7 @@
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.Abstractions;
+using System.Collections.ObjectModel;
+using static TradingBot.Abstractions.OrchestratorDefaults;
 
 namespace TradingBot.UnifiedOrchestrator.Interfaces;
 
@@ -46,7 +48,7 @@ public interface IUnifiedOrchestrator
     /// <summary>
     /// Get execution history for a workflow
     /// </summary>
-    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = 100);
+    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit);
     
     /// <summary>
     /// Get current system status
@@ -182,19 +184,4 @@ public interface IWorkflowScheduler
     /// Stop the scheduler
     /// </summary>
     Task StopAsync(CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Overall orchestrator status
-/// </summary>
-public class OrchestratorStatus
-{
-    public bool IsRunning { get; set; }
-    public bool IsConnectedToTopstep { get; set; }
-    public int ActiveWorkflows { get; set; }
-    public int TotalWorkflows { get; set; }
-    public DateTime StartTime { get; set; }
-    public TimeSpan Uptime { get; set; }
-    public Dictionary<string, object> ComponentStatus { get; } = new();
-    public List<string> RecentErrors { get; } = new();
 }
