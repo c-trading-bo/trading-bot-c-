@@ -697,7 +697,7 @@ public class ActorNetwork : IDisposable
 /// <summary>
 /// Simple neural network for critic (Q-function)
 /// </summary>
-public class CriticNetwork
+public class CriticNetwork : IDisposable
 {
     private readonly int _inputDim;
     private readonly int _outputDim;
@@ -841,12 +841,26 @@ public class CriticNetwork
         _rng.GetBytes(bytes);
         return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
     }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _rng?.Dispose();
+        }
+    }
 }
 
 /// <summary>
 /// Simple neural network for value function
 /// </summary>
-public class ValueNetwork
+public class ValueNetwork : IDisposable
 {
     private readonly int _inputDim;
     private readonly int _outputDim;
@@ -948,6 +962,20 @@ public class ValueNetwork
         var bytes = new byte[8];
         _rng.GetBytes(bytes);
         return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _rng?.Dispose();
+        }
     }
 }
 
