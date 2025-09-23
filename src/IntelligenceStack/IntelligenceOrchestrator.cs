@@ -981,6 +981,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
+            // Validate input data
+            if (data.Volume <= 0)
+            {
+                return (BaseConfidenceLevel, "low_volume_fallback");
+            }
+            
             // Get current regime
             var regime = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
             
@@ -989,7 +995,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             
             if (model == null)
             {
-                return (0.5, "fallback"); // Neutral confidence with fallback model
+                return (BaseConfidenceLevel, "fallback"); // Neutral confidence with fallback model
             }
 
             // Make prediction (this would be replaced with actual ML inference)
@@ -1000,7 +1006,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "[INTELLIGENCE] Real prediction calculation failed");
-            return (0.5, "error_fallback");
+            return (BaseConfidenceLevel, "error_fallback");
         }
     }
 
