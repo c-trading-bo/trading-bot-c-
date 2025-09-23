@@ -99,6 +99,9 @@ public class NightlyParameterTuner
     private const double MetricsValidityThreshold = 0.0;
     private const int MaxTuningHistoryCount = 30;
     
+    // JsonSerializerOptions for consistent JSON serialization - CA1869 compliance
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     // LoggerMessage delegates for CA1848 compliance - NightlyParameterTuner
     private static readonly Action<ILogger, string, Exception?> StartingNightlyTuning =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "StartingNightlyTuning"), 

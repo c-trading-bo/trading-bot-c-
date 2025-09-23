@@ -339,9 +339,17 @@ public class FeatureStore : IFeatureStore
             
             _logger.LogInformation("[FEATURES] Storage optimization completed");
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException ex)
         {
-            _logger.LogError(ex, "[FEATURES] Storage optimization failed");
+            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to directory not found");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to access denied");
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Storage optimization failed due to I/O error");
         }
     }
 
@@ -410,12 +418,19 @@ public class FeatureStore : IFeatureStore
                 return fileTime < cutoffDate;
             }
         }
-        catch
+        catch (ArgumentException)
         {
-            // If we can't parse the date, consider it old
+            // If we can't parse the file path, consider it old
             return true;
         }
-        return false;
+        catch (PathTooLongException)
+        {
+            // If path is too long, consider it old
+            return true;
+        }
+        
+        // If we can't parse the date from filename, consider it old for cleanup
+        return true;
     }
 
     private static ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
