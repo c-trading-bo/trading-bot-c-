@@ -19,7 +19,7 @@ namespace TradingBot.IntelligenceStack;
 /// Coordinates regime detection, model inference, calibration, decision making, and cloud flow
 /// Merged cloud flow functionality from UnifiedOrchestrator.Services.CloudFlowService
 /// </summary>
-public class IntelligenceOrchestrator : IIntelligenceOrchestrator
+public class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
 {
     // Constants for magic number violations
     // Intelligence thresholds for decision making
@@ -1081,6 +1081,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             _logger.LogError(ex,  "[INTELLIGENCE] Real prediction calculation failed");
             return (BaseConfidenceLevel, "error_fallback");
         }
+    }
+
+    public void Dispose()
+    {
+        _featureEngineer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     #endregion

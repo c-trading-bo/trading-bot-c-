@@ -904,10 +904,29 @@ public class NightlyParameterTuner
         var improvements = InitialImprovementsCount;
         var total = InitialTotalCount;
         
-        if (candidate.AUC > baseline.AUC) improvements++; total++;
-        if (candidate.PrAt10 > baseline.PrAt10) improvements++; total++;
-        if (candidate.ECE < baseline.ECE) improvements++; total++;
-        if (candidate.EdgeBps > baseline.EdgeBps) improvements++; total++;
+        if (candidate.AUC > baseline.AUC)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.PrAt10 > baseline.PrAt10)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.ECE < baseline.ECE)
+        {
+            improvements++;
+        }
+        total++;
+        
+        if (candidate.EdgeBps > baseline.EdgeBps)
+        {
+            improvements++;
+        }
+        total++;
         
         return improvements > total / ImprovementThresholdDivisor;
     }

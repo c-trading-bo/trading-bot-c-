@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// MAML (Model-Agnostic Meta-Learning) integration for live trading
 /// Implements adaptive learning with bounded updates and rollback capabilities
 /// </summary>
-public class MamlLiveIntegration
+public class MamlLiveIntegration : IDisposable
 {
     private readonly ILogger<MamlLiveIntegration> _logger;
     private readonly MetaLearningConfig _config;
@@ -165,6 +165,12 @@ public class MamlLiveIntegration
         _updateTimer?.Dispose();
         _updateTimer = null;
         PeriodicUpdatesStopped(_logger, null);
+    }
+
+    public void Dispose()
+    {
+        StopPeriodicUpdates();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
