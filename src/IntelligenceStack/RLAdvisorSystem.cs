@@ -234,6 +234,8 @@ public class RLAdvisorSystem
         ExitDecisionContext context,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         try
         {
             if (!_config.Enabled)
@@ -322,6 +324,8 @@ public class RLAdvisorSystem
         ExitOutcome outcome,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(outcome);
+        
         try
         {
             // Find the corresponding decision
@@ -1142,6 +1146,8 @@ public class RLAgent
         double[] nextState,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(action);
+        
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         

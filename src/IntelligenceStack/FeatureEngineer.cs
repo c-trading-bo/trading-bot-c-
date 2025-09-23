@@ -710,6 +710,8 @@ public class FeatureImportanceTracker
 
     public Task UpdateAsync(FeatureSet features, double prediction, double outcome, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(features);
+        
         lock (_lock)
         {
             // Update feature history

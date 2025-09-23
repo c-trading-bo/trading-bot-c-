@@ -198,6 +198,8 @@ public class LineageTrackingSystem
         IntelligenceDecision decision,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(decision);
+        
         try
         {
             var stamp = new LineageStamp
@@ -300,6 +302,8 @@ public class LineageTrackingSystem
         List<string> changedFeatures,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(changedFeatures);
+        
         var featureUpdateEvent = new LineageEvent
         {
             EventId = Guid.NewGuid().ToString(),
