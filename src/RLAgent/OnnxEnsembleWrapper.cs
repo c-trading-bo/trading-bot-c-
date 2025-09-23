@@ -471,7 +471,7 @@ public class OnnxEnsembleWrapper : IDisposable
         else
         {
             // Fallback to simple average
-            prediction.EnsembleResult = (float)prediction.Predictions.Values.Average(p => p.Value);
+            prediction.EnsembleResult = prediction.Predictions.Values.Average(p => p.Value);
             prediction.Confidence = _options.DefaultEnsembleConfidence;
         }
 

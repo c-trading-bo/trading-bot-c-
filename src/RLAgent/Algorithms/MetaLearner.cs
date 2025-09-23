@@ -683,12 +683,12 @@ public class PolicyNetwork
         // Input to hidden
         for (int i = 0; i < _hiddenDim; i++)
         {
-            hidden[i] = hiddenBias[i];
+            var hiddenValue = hiddenBias[i];
             for (int j = 0; j < _inputDim; j++)
             {
-                hidden[i] += input[j] * inputWeights[j * _hiddenDim + i];
+                hiddenValue += input[j] * inputWeights[j * _hiddenDim + i];
             }
-            hidden[i] = Math.Max(0, hidden[i]); // ReLU activation
+            hidden[i] = Math.Max(0, hiddenValue); // ReLU activation
         }
         
         // Hidden to output
@@ -698,12 +698,12 @@ public class PolicyNetwork
         
         for (int i = 0; i < _outputDim; i++)
         {
-            output[i] = outputBias[i];
+            var outputValue = outputBias[i];
             for (int j = 0; j < _hiddenDim; j++)
             {
-                output[i] += hidden[j] * outputWeights[j * _outputDim + i];
+                outputValue += hidden[j] * outputWeights[j * _outputDim + i];
             }
-            output[i] = Math.Tanh(output[i]); // Tanh for bounded actions
+            output[i] = Math.Tanh(outputValue); // Tanh for bounded actions
         }
         
         return output;
