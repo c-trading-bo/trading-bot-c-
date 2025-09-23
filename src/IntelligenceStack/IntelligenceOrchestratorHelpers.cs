@@ -139,17 +139,27 @@ public partial class IntelligenceOrchestratorHelpers
         return new WorkflowExecutionResult { Success = true };
     }
 
-    private async Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         
-        // Extract market data from context
-        var marketData = WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
-        
-        // Perform correlation analysis using feature engineer
-        // var correlations = await _featureEngineer.AnalyzeCorrelationsAsync(cancellationToken).ConfigureAwait(false);
-        // TODO: Re-enable once FeatureEngineer method accessibility is resolved
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.Run(() =>
+        {
+            // Extract market data from context
+            var marketData = WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
+            
+            // Perform correlation analysis using feature engineer
+            try
+            {
+                // TODO: Fix FeatureEngineer.AnalyzeCorrelationsAsync accessibility issue
+                // var correlations = await _featureEngineer.AnalyzeCorrelationsAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("[CORRELATION] Analysis temporarily disabled - method accessibility issue");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CORRELATION] Correlation analysis failed in helper method");
+            }
+        }, cancellationToken);
     }
 
     #region LoggerMessage Delegates

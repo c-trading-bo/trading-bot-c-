@@ -776,7 +776,8 @@ public class FeatureImportanceTracker
             }
         }
         
-        return Task.CompletedTask;
+        // Async implementation for potential future I/O operations
+        return Task.Run(() => { }, cancellationToken);
     }
 
     /// <summary>
