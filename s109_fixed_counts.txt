@@ -1,0 +1,60 @@
+     24 CA1869
+     20 S1172
+     16 CA1850
+     16 CA1305
+     12 S138
+     12 CA1860
+     10 CA1854
+      8 S3358
+      8 S2681
+      8 S1541
+      8 CA1307
+      8 CA1002
+      6 S1854
+      6 S1066
+      6 CA2234
+      6 CA2000
+      4 S6608
+      4 S6602
+      4 S6580
+      4 S3267
+      4 S2971
+      4 S2589
+      4 S104
+      4 CA1829
+      4 CA1822
+      4 CA1311
+      4 CA1304
+      4 CA1024
+      4 CA1001
+      2 S6605
+      2 S4158
+      2 S3923
+      2 S2325
+      2 S1696
+      2 CA2016
+      2 CA1862
+      2 CA1849
+      2 CA1816
+      2 CA1724
+      2 CA1508
+      2 CA1308
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/RealTradingMetricsService.cs(171,19): error AsyncFixer03: Avoid unsupported fire-and-forget async-void methods or delegates. Unhandled exceptions will crash the process. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/ObservabilityDashboard.cs(630,19): error AsyncFixer03: Avoid unsupported fire-and-forget async-void methods or delegates. Unhandled exceptions will crash the process. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(913,5): error AsyncFixer01: The method 'PromoteImprovedModelAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(644,5): error AsyncFixer01: The method 'GetIntelligentDefaultsAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(603,5): error AsyncFixer01: The method 'LoadParametersFromRegistryAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(586,5): error AsyncFixer01: The method 'LoadHistoricalBestParametersAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(580,20): error AsyncFixer02: await should be used instead of GetIntelligentDefaultsAsync(modelFamily, cancellationToken). (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/NightlyParameterTuner.cs(560,5): error AsyncFixer01: The method 'GetBaselineParametersAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MLRLObservabilityService.cs(306,19): error AsyncFixer03: Avoid unsupported fire-and-forget async-void methods or delegates. Unhandled exceptions will crash the process. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MAMLLiveIntegration.cs(598,5): error AsyncFixer01: The method 'UpdateEnsembleWeightsAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MAMLLiveIntegration.cs(554,5): error AsyncFixer01: The method 'ApplyAdaptationAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MAMLLiveIntegration.cs(533,5): error AsyncFixer01: The method 'PerformRollbackAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MAMLLiveIntegration.cs(504,5): error AsyncFixer01: The method 'ShouldRollbackAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/MAMLLiveIntegration.cs(459,5): error AsyncFixer01: The method 'ValidateAdaptationAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/LineageTrackingSystem.cs(978,5): error AsyncFixer01: The method 'GetRelatedEventsAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/LineageTrackingSystem.cs(873,5): error AsyncFixer01: The method 'GetEventsInPeriodAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/LineageTrackingSystem.cs(866,5): error AsyncFixer01: The method 'SaveLineageEventAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/LineageTrackingSystem.cs(847,5): error AsyncFixer01: The method 'SaveDecisionLineageAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]
+      2 /home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/LineageTrackingSystem.cs(817,5): error AsyncFixer01: The method 'RecordLineageEventAsync' does not need to use async/await. (https://github.com/semihokur/AsyncFixer) [/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj]

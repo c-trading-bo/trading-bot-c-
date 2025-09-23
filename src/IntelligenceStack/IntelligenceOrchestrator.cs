@@ -316,6 +316,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         
         // Initialize cloud flow components (merged from CloudFlowService)
         _httpClient = httpClient;
+        ArgumentNullException.ThrowIfNull(cloudFlowOptions);
         _cloudFlowOptions = cloudFlowOptions.Value;
         
         // Configure HTTP client for cloud endpoints
@@ -1249,6 +1250,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(tradeRecord);
         if (!_cloudFlowOptions.Enabled)
         {
             CloudFlowDisabledDebug(_logger, null);
@@ -1331,6 +1333,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(decision);
         if (!_cloudFlowOptions.Enabled)
         {
             return;

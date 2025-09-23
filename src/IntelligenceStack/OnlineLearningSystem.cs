@@ -28,6 +28,12 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private const int MaxHistoryCount = 100;
     private const int MinVarianceCalculationPeriod = 20;
     
+    // Recall calculation constants
+    private const double MinRecallThreshold = 0.5;
+    private const double MaxRecallThreshold = 0.9;
+    private const double RecallBoost = 0.15;
+    private const double DefaultRecall = 0.65;
+    
     // Additional S109 constants
     private const double DriftDetectionThreshold = 0.1;
     private const double DefaultLatency = 0.0;
@@ -195,6 +201,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(weights);
         // Brief async operation for proper async pattern
         await Task.Delay(DelayMs, cancellationToken).ConfigureAwait(false);
         
@@ -294,6 +301,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task AdaptToPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(performance);
         if (!_config.Enabled)
         {
             return;
@@ -364,6 +372,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task DetectDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(features);
         // Simple drift detection based on feature distribution changes
         // In production, would use more sophisticated methods like ADWIN
         
@@ -434,6 +443,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
     public async Task UpdateModelAsync(TradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(tradeRecord);
         if (!_config.Enabled)
         {
             return;
@@ -857,15 +867,15 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Recall: True Positives / (True Positives + False Negatives)
             // For trading: profitable trades / total profitable opportunities
             var hitRate = CalculateTradeHitRate(tradeRecord);
-            return Math.Max(0.5, Math.Min(0.9, hitRate + 0.15)); // Slightly higher than precision
+            return Math.Max(MinRecallThreshold, Math.Min(MaxRecallThreshold, hitRate + RecallBoost)); // Slightly higher than precision
         }
         catch (ArgumentException)
         {
-            return 0.65; // Default recall
+            return DefaultRecall; // Default recall
         }
         catch (OverflowException)
         {
-            return 0.65; // Default recall
+            return DefaultRecall; // Default recall
         }
     }
 

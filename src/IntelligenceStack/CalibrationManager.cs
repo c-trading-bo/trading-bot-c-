@@ -334,7 +334,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             
             if (binEnd > binStart)
             {
-                var binPoints = sortedPoints.Skip(binStart).Take(binEnd - binStart);
+                var binPoints = sortedPoints.Skip(binStart).Take(binEnd - binStart).ToList();
                 var avgRawConf = binPoints.Average(p => p.RawConfidence);
                 var empiricalRate = binPoints.Average(p => p.Outcome ? 1.0 : 0.0);
                 
