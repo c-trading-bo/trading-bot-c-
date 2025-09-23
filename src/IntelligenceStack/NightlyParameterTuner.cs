@@ -438,7 +438,7 @@ public class NightlyParameterTuner
         var bestIndividual = population.OrderByDescending(ind => ind.Fitness).First();
         
         result.BaselineMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
-        var bestMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
+        var bestMetrics = bestIndividual.Metrics;
         var bestParameters = bestIndividual.Parameters;
 
         // Evolution loop
@@ -676,7 +676,13 @@ public class NightlyParameterTuner
         var dropoutRate = parameters.GetValueOrDefault("dropout_rate", DefaultDropoutRate);
         
         // Learning rate impact
-        var lrScore = learningRate > HighLearningRateThreshold ? HighLearningRatePenalty : (learningRate < LowLearningRateThreshold ? LowLearningRatePenalty : GoodLearningRateBonus);
+        double lrScore;
+        if (learningRate > HighLearningRateThreshold)
+            lrScore = HighLearningRatePenalty;
+        else if (learningRate < LowLearningRateThreshold)
+            lrScore = LowLearningRatePenalty;
+        else
+            lrScore = GoodLearningRateBonus;
         
         // Hidden size impact
         double hsScore;

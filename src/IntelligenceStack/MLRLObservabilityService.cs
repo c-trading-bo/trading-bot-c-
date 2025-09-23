@@ -303,48 +303,52 @@ public class MlrlObservabilityService : IDisposable
         }
     }
 
-    private async void ExportMetricsAsync(object? state)
+    private void ExportMetricsAsync(object? state)
     {
-        try
+        // Fire and forget with proper exception handling
+        _ = Task.Run(async () =>
         {
-            // Export to Prometheus gateway if configured
-            var prometheusGateway = Environment.GetEnvironmentVariable("PROMETHEUS_GATEWAY_URL");
-            if (!string.IsNullOrEmpty(prometheusGateway))
+            try
             {
-                await ExportToPrometheusAsync(prometheusGateway).ConfigureAwait(false);
-            }
+                // Export to Prometheus gateway if configured
+                var prometheusGateway = Environment.GetEnvironmentVariable("PROMETHEUS_GATEWAY_URL");
+                if (!string.IsNullOrEmpty(prometheusGateway))
+                {
+                    await ExportToPrometheusAsync(prometheusGateway).ConfigureAwait(false);
+                }
 
-            // Export to Grafana Cloud if configured
-            var grafanaUrl = Environment.GetEnvironmentVariable("GRAFANA_CLOUD_URL");
-            var grafanaApiKey = Environment.GetEnvironmentVariable("GRAFANA_API_KEY");
-            if (!string.IsNullOrEmpty(grafanaUrl) && !string.IsNullOrEmpty(grafanaApiKey))
+                // Export to Grafana Cloud if configured
+                var grafanaUrl = Environment.GetEnvironmentVariable("GRAFANA_CLOUD_URL");
+                var grafanaApiKey = Environment.GetEnvironmentVariable("GRAFANA_API_KEY");
+                if (!string.IsNullOrEmpty(grafanaUrl) && !string.IsNullOrEmpty(grafanaApiKey))
+                {
+                    await ExportToGrafanaAsync(grafanaUrl, grafanaApiKey).ConfigureAwait(false);
+                }
+
+                // Export to local file for development
+                await ExportToFileAsync().ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex)
             {
-                await ExportToGrafanaAsync(grafanaUrl, grafanaApiKey).ConfigureAwait(false);
+                LogFailedToExportMetrics(_logger, ex);
             }
-
-            // Export to local file for development
-            await ExportToFileAsync().ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            LogFailedToExportMetrics(_logger, ex);
-        }
-        catch (TimeoutException ex)
-        {
-            LogFailedToExportMetrics(_logger, ex);
-        }
-        catch (IOException ex)
-        {
-            LogFailedToExportMetrics(_logger, ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            LogFailedToExportMetrics(_logger, ex);
-        }
-        catch (InvalidOperationException ex)
-        {
-            LogFailedToExportMetrics(_logger, ex);
-        }
+            catch (TimeoutException ex)
+            {
+                LogFailedToExportMetrics(_logger, ex);
+            }
+            catch (IOException ex)
+            {
+                LogFailedToExportMetrics(_logger, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogFailedToExportMetrics(_logger, ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogFailedToExportMetrics(_logger, ex);
+            }
+        });
     }
 
     private async Task ExportToPrometheusAsync(string gatewayUrl)
