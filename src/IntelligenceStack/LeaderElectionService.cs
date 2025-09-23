@@ -299,7 +299,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             
             return true;
         }
-        catch (IOException ex)
+        catch (DirectoryNotFoundException ex)
         {
             FailedToCreateLockFile(_logger, ex);
             return false;
@@ -309,7 +309,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             FailedToCreateLockFile(_logger, ex);
             return false;
         }
-        catch (DirectoryNotFoundException ex)
+        catch (IOException ex)
         {
             FailedToCreateLockFile(_logger, ex);
             return false;
@@ -344,7 +344,22 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
             return false;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            ErrorCheckingExistingLock(_logger, ex);
+            return true;
+        }
+        catch (IOException ex)
+        {
+            ErrorCheckingExistingLock(_logger, ex);
+            return true;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ErrorCheckingExistingLock(_logger, ex);
+            return true;
+        }
+        catch (JsonException ex)
         {
             ErrorCheckingExistingLock(_logger, ex);
             return true;
@@ -377,7 +392,15 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 {
                     await RenewLeadershipAsync(CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                FailedToRenewLeadershipInTimer(_logger, ex);
+            }
+            catch (IOException ex)
+            {
+                FailedToRenewLeadershipInTimer(_logger, ex);
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 FailedToRenewLeadershipInTimer(_logger, ex);
             }
@@ -428,7 +451,15 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                     ReleaseLeadershipAsync(CancellationToken.None).GetAwaiter().GetResult();
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                ErrorDuringDispose(_logger, ex);
+            }
+            catch (IOException ex)
+            {
+                ErrorDuringDispose(_logger, ex);
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 ErrorDuringDispose(_logger, ex);
             }
@@ -654,7 +685,15 @@ public class QuarantineManager : IQuarantineManager
                 await EvaluateModelHealthAsync(modelId, historyToEvaluate, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            FailedToUpdatePerformance(_logger, modelId, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FailedToUpdatePerformance(_logger, modelId, ex);
+        }
+        catch (OperationCanceledException ex)
         {
             FailedToUpdatePerformance(_logger, modelId, ex);
         }

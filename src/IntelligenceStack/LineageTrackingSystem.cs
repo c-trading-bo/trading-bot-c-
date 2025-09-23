@@ -64,7 +64,6 @@ public class LineageTrackingSystem
     private const int MaxDataSampleSize = 10000;
     private const int ModelInferenceTimeMs = 100;
     private const int CalibrationTimeMs = 20;
-    private const int MinDelayMs = 1;
     
     // LoggerMessage delegates for CA1848 compliance
     private static readonly Action<ILogger, string, Exception?> CreatingLineageSnapshot =

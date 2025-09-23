@@ -112,11 +112,6 @@ public class MlrlObservabilityService : IDisposable
     private const double HighDriftScoreThreshold = 0.7;
     private const double HighPolicyNormThreshold = 10.0;
     private const double HighEnsembleVarianceThreshold = 0.1;
-    private const int MaxModelCountThreshold = 10;
-    private const int MetricsExportIntervalMs = 1000;
-    private const int HashIdLength = 16;
-    private const int StringIdLength = 8;
-    private const int MaxHashValue = 10000;
     private const int MaxHistogramSamples = 1000;
     private const int HistogramPruneSize = 500;
 

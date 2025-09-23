@@ -167,7 +167,17 @@ public class ModelQuarantineManager : IQuarantineManager
                 };
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            ModelHealthCheckFailed(_logger, modelId, ex);
+            return new QuarantineStatus
+            {
+                State = HealthState.Quarantine,
+                ModelId = modelId,
+                Reason = QuarantineReason.ExceptionRateTooHigh
+            };
+        }
+        catch (InvalidOperationException ex)
         {
             ModelHealthCheckFailed(_logger, modelId, ex);
             return new QuarantineStatus
@@ -263,7 +273,17 @@ public class ModelQuarantineManager : IQuarantineManager
                 return true;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            RestoreModelFailed(_logger, modelId, ex);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            RestoreModelFailed(_logger, modelId, ex);
+            return false;
+        }
+        catch (IOException ex)
         {
             RestoreModelFailed(_logger, modelId, ex);
             return false;

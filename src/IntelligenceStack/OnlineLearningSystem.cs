@@ -596,7 +596,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 StateLoaded(_logger, state.RegimeWeights.Count, null);
             }
         }
-        catch (IOException ex)
+        catch (DirectoryNotFoundException ex)
         {
             StateLoadFailed(_logger, ex);
         }
@@ -604,7 +604,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         {
             StateLoadFailed(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
+        catch (IOException ex)
         {
             StateLoadFailed(_logger, ex);
         }
@@ -638,7 +638,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var json = JsonSerializer.Serialize(state, JsonOptions);
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (IOException ex)
+        catch (DirectoryNotFoundException ex)
         {
             StateSaveFailed(_logger, ex);
         }
@@ -646,7 +646,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         {
             StateSaveFailed(_logger, ex);
         }
-        catch (DirectoryNotFoundException ex)
+        catch (IOException ex)
         {
             StateSaveFailed(_logger, ex);
         }
