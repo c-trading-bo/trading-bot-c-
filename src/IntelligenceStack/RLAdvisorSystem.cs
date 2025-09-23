@@ -588,7 +588,7 @@ public class RLAdvisorSystem
         return string.Join(", ", reasons);
     }
 
-    private async Task LogRLDecisionAsync(
+    private Task LogRLDecisionAsync(
         string agentKey,
         RLAdvisorRecommendation recommendation,
         ExitDecisionContext context,
@@ -637,7 +637,7 @@ public class RLAdvisorSystem
         intelligenceDecision.Metadata["is_advise_only"] = recommendation.IsAdviseOnly;
         intelligenceDecision.Metadata["reasoning"] = recommendation.Reasoning;
 
-        await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken).ConfigureAwait(false);
+        return _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken);
     }
 
     private async Task IncrementShadowDecisionCountAsync(string agentKey)
@@ -731,10 +731,10 @@ public class RLAdvisorSystem
         return null;
     }
 
-    private async Task CheckForProvenUpliftAsync(CancellationToken cancellationToken)
+    private Task CheckForProvenUpliftAsync(CancellationToken cancellationToken)
     {
         // Perform uplift analysis asynchronously to avoid blocking the main RL loop
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -782,7 +782,7 @@ public class RLAdvisorSystem
             {
                 ProvenUpliftCheckFailed(_logger, ex);
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private bool IsEligibleForLive(string agentKey, PerformanceTracker tracker)
@@ -798,26 +798,23 @@ public class RLAdvisorSystem
         CancellationToken cancellationToken)
     {
         // Production-grade episode generation from historical market data
-        return await Task.Run(async () =>
+        var episodes = new List<TrainingEpisode>();
+        
+        // Step 1: Load historical market data asynchronously via SDK adapter
+        var marketData = await LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate).ConfigureAwait(false);
+        
+        // Step 2: Generate episodes based on market regimes and volatility clusters
+        var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false);
+        
+        foreach (var window in episodeWindows)
         {
-            var episodes = new List<TrainingEpisode>();
-            
-            // Step 1: Load historical market data asynchronously via SDK adapter
-            var marketData = await LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate).ConfigureAwait(false);
-            
-            // Step 2: Generate episodes based on market regimes and volatility clusters
-            var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false);
-            
-            foreach (var window in episodeWindows)
-            {
-                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false);
-                episodes.Add(episode);
-            }
-            
-            TrainingEpisodesGenerated(_logger, episodes.Count, null);
-            
-            return episodes;
-        }, cancellationToken).ConfigureAwait(false);
+            var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false);
+            episodes.Add(episode);
+        }
+        
+        TrainingEpisodesGenerated(_logger, episodes.Count, null);
+        
+        return episodes;
     }
     
     private async Task<List<RLMarketDataPoint>> LoadHistoricalMarketDataViaSdkAsync(string symbol, DateTime startDate, DateTime endDate)
@@ -972,9 +969,9 @@ public class RLAdvisorSystem
         return dataPoints;
     }
     
-    private static async Task<List<EpisodeWindow>> GenerateEpisodeWindowsAsync(List<RLMarketDataPoint> marketData, CancellationToken cancellationToken)
+    private static Task<List<EpisodeWindow>> GenerateEpisodeWindowsAsync(List<RLMarketDataPoint> marketData, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var windows = new List<EpisodeWindow>();
             
@@ -993,15 +990,15 @@ public class RLAdvisorSystem
             }
             
             return windows;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
     
-    private static async Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
+    private static Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
         EpisodeWindow window, 
         List<RLMarketDataPoint> marketData, 
         CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             var episode = new TrainingEpisode
             {
@@ -1026,7 +1023,7 @@ public class RLAdvisorSystem
             }
             
             return episode;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
     
     private static double[] ExtractMarketFeatures(RLMarketDataPoint dataPoint)
