@@ -117,7 +117,11 @@ public class RealTradingMetricsService : BackgroundService
         {
             ServiceStopping(_logger, ex);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            ServiceError(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             ServiceError(_logger, ex);
         }
@@ -212,7 +216,15 @@ public class RealTradingMetricsService : BackgroundService
             
             MetricsPushedSuccess(_logger, _dailyPnL, _totalPositions, _totalFills, null);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            MetricsCollectionFailed(_logger, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            MetricsCollectionFailed(_logger, ex);
+        }
+        catch (TimeoutException ex)
         {
             MetricsCollectionFailed(_logger, ex);
         }

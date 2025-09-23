@@ -205,7 +205,15 @@ public class ModelQuarantineManager : IQuarantineManager
 
             await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            QuarantineModelFailed(_logger, modelId, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            QuarantineModelFailed(_logger, modelId, ex);
+        }
+        catch (InvalidOperationException ex)
         {
             QuarantineModelFailed(_logger, modelId, ex);
         }
