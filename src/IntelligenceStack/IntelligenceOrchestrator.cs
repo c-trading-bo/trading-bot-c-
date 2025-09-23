@@ -90,22 +90,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private static readonly Action<ILogger, Exception?> AnalyzingCorrelations =
         LoggerMessage.Define(LogLevel.Information, new EventId(4016, "AnalyzingCorrelations"),
             "[INTELLIGENCE] Analyzing correlations...");
-            
-    private static readonly Action<ILogger, string, string, Exception?> ModelLoaded =
-        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(4017, "ModelLoaded"),
-            "[INTELLIGENCE] Loaded model for {Regime}: {ModelId}");
-            
-    private static readonly Action<ILogger, string, Exception?> NoModelFound =
-        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4018, "NoModelFound"),
-            "[INTELLIGENCE] No model found for regime: {Regime}");
-            
-    private static readonly Action<ILogger, int, Exception?> ActiveModelsLoaded =
-        LoggerMessage.Define<int>(LogLevel.Information, new EventId(4019, "ActiveModelsLoaded"),
-            "[INTELLIGENCE] Loaded {Count} active models");
-            
-    private static readonly Action<ILogger, Exception?> LoadActiveModelsFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4020, "LoadActiveModelsFailed"),
-            "[INTELLIGENCE] Failed to load active models");
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IntelligenceStackConfig _config;
@@ -162,12 +146,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         
         // Initialize FeatureEngineer with online learning system
         _featureEngineer = new FeatureEngineer(
-            logger.CreateLogger<FeatureEngineer>(),
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(),
             onlineLearningSystem);
         
         // Initialize helpers for extracted methods
         _helpers = new IntelligenceOrchestratorHelpers(
-            _logger, _modelRegistry, _featureEngineer, _activeModels);
+            _logger, _modelRegistry, _activeModels);
         
         OrchestratorInitialized(_logger, "IntelligenceOrchestrator", null);
     }

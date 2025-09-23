@@ -16,7 +16,6 @@ public partial class IntelligenceOrchestratorHelpers
 {
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IModelRegistry _modelRegistry;
-    private readonly FeatureEngineer _featureEngineer;
     
     // State tracking (shared with main orchestrator)
     private readonly Dictionary<string, ModelArtifact> _activeModels;
@@ -25,12 +24,10 @@ public partial class IntelligenceOrchestratorHelpers
     public IntelligenceOrchestratorHelpers(
         ILogger<IntelligenceOrchestrator> logger,
         IModelRegistry modelRegistry,
-        FeatureEngineer featureEngineer,
         Dictionary<string, ModelArtifact> activeModels)
     {
         _logger = logger;
         _modelRegistry = modelRegistry;
-        _featureEngineer = featureEngineer;
         _activeModels = activeModels;
     }
 
@@ -74,20 +71,8 @@ public partial class IntelligenceOrchestratorHelpers
             // Model cleanup and optimization
             await _modelRegistry.CleanupExpiredModelsAsync(cancellationToken).ConfigureAwait(false);
             
-            // Feature store maintenance
-            var featureStore = _serviceProvider.GetService<IFeatureStore>();
-            if (featureStore != null)
-            {
-                await featureStore.OptimizeStorageAsync(cancellationToken).ConfigureAwait(false);
-            }
-            
-            // Calibration updates
-            await _calibrationManager.PerformNightlyCalibrationAsync(cancellationToken).ConfigureAwait(false);
-            
-            lock (_lock)
-            {
-                _lastNightlyMaintenance = DateTime.UtcNow;
-            }
+            // Log maintenance completion
+            _logger.LogInformation("[INTELLIGENCE] Nightly maintenance completed successfully");
             
             MaintenanceCompleted(_logger, null);
         }

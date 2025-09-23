@@ -156,7 +156,7 @@ public class EpisodeWindow
     public DateTime EndTime { get; set; }
 }
 
-public class RLAgent
+public class RLAdvisorModel
 {
     // Constants for magic number violations (S109)
     private const int DefaultPercentage = 100;
@@ -172,7 +172,7 @@ public class RLAgent
 
     private readonly Dictionary<string, double> _qTable = new();
 
-    public RLAgent(ILogger logger, RLAgentType agentType, string agentKey, object config)
+    public RLAdvisorModel(ILogger logger, RLAgentType agentType, string agentKey, object config)
     {
         AgentType = agentType;
         AgentKey = agentKey;

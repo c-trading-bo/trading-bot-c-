@@ -527,7 +527,7 @@ public class NightlyParameterTuner
                 ParameterCount = session.ParameterSpace.Count
             };
             
-            var metadataJson = JsonSerializer.Serialize(sessionMetadata, new JsonSerializerOptions { WriteIndented = true });
+            var metadataJson = JsonSerializer.Serialize(sessionMetadata, JsonOptions);
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
             
             CreatedTuningSession(_logger, session.SessionId, session.ModelFamily, null);
@@ -783,7 +783,7 @@ public class NightlyParameterTuner
         return population;
     }
 
-    private async Task<List<Individual>> EvolvePopulationAsync(
+    private static async Task<List<Individual>> EvolvePopulationAsync(
         List<Individual> population,
         CancellationToken cancellationToken)
     {
@@ -1020,7 +1020,7 @@ public class NightlyParameterTuner
                     TargetVersion = "stable"
                 };
 
-                var configJson = JsonSerializer.Serialize(rollbackConfig, new JsonSerializerOptions { WriteIndented = true });
+                var configJson = JsonSerializer.Serialize(rollbackConfig, JsonOptions);
                 await File.WriteAllTextAsync(configPath, configJson, cancellationToken).ConfigureAwait(false);
                 
                 return configPath;
@@ -1096,18 +1096,19 @@ public class NightlyParameterTuner
         try
         {
             var resultFile = Path.Combine(_statePath, "results", $"tuning_{result.ModelFamily}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-            var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(result, JsonOptions);
             await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
             
             // Update history
             lock (_lock)
             {
-                if (!_tuningHistory.ContainsKey(result.ModelFamily))
+                if (!_tuningHistory.TryGetValue(result.ModelFamily, out var history))
                 {
-                    _tuningHistory[result.ModelFamily] = new List<TuningResult>();
+                    history = new List<TuningResult>();
+                    _tuningHistory[result.ModelFamily] = history;
                 }
                 
-                _tuningHistory[result.ModelFamily].Add(new TuningResult
+                history.Add(new TuningResult
                 {
                     Date = result.StartTime.Date,
                     Success = result.Success,
