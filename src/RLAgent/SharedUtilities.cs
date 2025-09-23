@@ -46,7 +46,7 @@ public class CircularBuffer<T>
         {
             var item = GetFromEnd(i);
             if (!EqualityComparer<T>.Default.Equals(item, default(T)))
-                result[count - 1 - i] = item;
+                result[count - 1 - i] = item!;
         }
         
         return result;

@@ -616,7 +616,7 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Calculate correlation coefficient between two series
     /// </summary>
-    private static double CalculateCorrelation(List<double> x, List<double> y)
+    private static double CalculateCorrelation(IReadOnlyList<double> x, IReadOnlyList<double> y)
     {
         if (x.Count != y.Count || x.Count < 2)
         {
@@ -779,7 +779,7 @@ public class FeatureImportanceTracker
         return Task.CompletedTask;
     }
 
-    public List<double> GetRecentPredictions()
+    public IReadOnlyList<double> GetRecentPredictions()
     {
         lock (_lock)
         {
@@ -787,7 +787,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetRecentOutcomes()
+    public IReadOnlyList<double> GetRecentOutcomes()
     {
         lock (_lock)
         {
@@ -803,7 +803,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetFeatureHistory(string featureName)
+    public IReadOnlyList<double> GetFeatureHistory(string featureName)
     {
         lock (_lock)
         {
