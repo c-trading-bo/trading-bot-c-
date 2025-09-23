@@ -309,6 +309,115 @@ public class FeatureStore : IFeatureStore
         }
     }
 
+    /// <summary>
+    /// Optimizes storage by compacting old feature files and removing duplicates
+    /// </summary>
+    public async Task OptimizeStorageAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var featureDir = Path.Combine(_basePath, "features");
+            if (!Directory.Exists(featureDir))
+            {
+                return;
+            }
+
+            var cutoffDate = DateTime.UtcNow.AddDays(-7); // Keep last 7 days uncompacted
+            var symbolDirs = Directory.GetDirectories(featureDir);
+            
+            foreach (var symbolDir in symbolDirs)
+            {
+                var files = Directory.GetFiles(symbolDir, "*.json")
+                    .Where(f => IsOldFile(f, cutoffDate))
+                    .ToArray();
+                
+                if (files.Length > 100) // Only optimize if we have many files
+                {
+                    await CompactFeatureFilesAsync(symbolDir, files, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            
+            _logger.LogInformation("[FEATURES] Storage optimization completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Storage optimization failed");
+        }
+    }
+
+    private async Task CompactFeatureFilesAsync(string symbolDir, string[] files, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var symbol = Path.GetFileName(symbolDir);
+            var compactedFeatures = new List<FeatureSet>();
+            
+            foreach (var file in files.Take(50)) // Compact in batches
+            {
+                try
+                {
+                    var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
+                    var features = JsonSerializer.Deserialize<FeatureSet>(content);
+                    if (features != null)
+                    {
+                        compactedFeatures.Add(features);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
+                }
+            }
+            
+            if (compactedFeatures.Count > 0)
+            {
+                var compactedFile = Path.Combine(symbolDir, $"compacted_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+                var json = JsonSerializer.Serialize(compactedFeatures, JsonOptions);
+                await File.WriteAllTextAsync(compactedFile, json, cancellationToken).ConfigureAwait(false);
+                
+                // Remove individual files after successful compaction
+                foreach (var file in files.Take(50))
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+        }
+    }
+
+    private static bool IsOldFile(string filePath, DateTime cutoffDate)
+    {
+        try
+        {
+            var fileName = Path.GetFileNameWithoutExtension(filePath);
+            if (fileName.StartsWith("compacted_"))
+            {
+                return false; // Don't re-compact already compacted files
+            }
+            
+            if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var fileTime))
+            {
+                return fileTime < cutoffDate;
+            }
+        }
+        catch
+        {
+            // If we can't parse the date, consider it old
+            return true;
+        }
+        return false;
+    }
+
     private static ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
     {
         var totalFeatures = schema.Features.Count;

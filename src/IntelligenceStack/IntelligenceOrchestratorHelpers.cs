@@ -149,11 +149,7 @@ public partial class IntelligenceOrchestratorHelpers
         var marketData = WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
         
         // Perform correlation analysis using feature engineer
-        await _featureEngineer.AnalyzeCorrelationsAsync(
-            marketData.Symbol, 
-            DateTime.UtcNow.AddDays(-30), 
-            DateTime.UtcNow, 
-            cancellationToken).ConfigureAwait(false);
+        var correlations = await _featureEngineer.AnalyzeCorrelationsAsync(cancellationToken).ConfigureAwait(false);
     }
 
     #region LoggerMessage Delegates

@@ -779,6 +779,70 @@ public class FeatureImportanceTracker
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Analyzes correlations between features and with outcomes
+    /// </summary>
+    public async Task<Dictionary<string, double>> AnalyzeCorrelationsAsync(CancellationToken cancellationToken = default)
+    {
+        return await Task.Run(() =>
+        {
+            var correlations = new Dictionary<string, double>();
+            
+            lock (_lock)
+            {
+                if (!HasSufficientData())
+                {
+                    return correlations;
+                }
+
+                var outcomes = _outcomeHistory.ToArray();
+                
+                foreach (var (featureName, history) in _featureValueHistory)
+                {
+                    if (history.Count != outcomes.Length)
+                    {
+                        continue; // Skip if lengths don't match
+                    }
+
+                    var featureValues = history.ToArray();
+                    var correlation = CalculatePearsonCorrelation(featureValues, outcomes);
+                    
+                    if (!double.IsNaN(correlation))
+                    {
+                        correlations[featureName] = Math.Abs(correlation); // Use absolute correlation
+                    }
+                }
+            }
+            
+            return correlations;
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Calculates Pearson correlation coefficient between two arrays
+    /// </summary>
+    private static double CalculatePearsonCorrelation(double[] x, double[] y)
+    {
+        if (x.Length != y.Length || x.Length == 0)
+        {
+            return double.NaN;
+        }
+
+        var n = x.Length;
+        var sumX = x.Sum();
+        var sumY = y.Sum();
+        var sumXSquared = x.Sum(xi => xi * xi);
+        var sumYSquared = y.Sum(yi => yi * yi);
+        var sumXY = x.Zip(y, (xi, yi) => xi * yi).Sum();
+
+        var numerator = n * sumXY - sumX * sumY;
+        var denominatorX = n * sumXSquared - sumX * sumX;
+        var denominatorY = n * sumYSquared - sumY * sumY;
+        var denominator = Math.Sqrt(denominatorX * denominatorY);
+
+        return denominator == 0 ? double.NaN : numerator / denominator;
+    }
+
     public IReadOnlyList<double> GetRecentPredictions()
     {
         lock (_lock)
