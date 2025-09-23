@@ -660,7 +660,7 @@ public class MamlLiveIntegration
     private static double GetStrategyPrediction(TrainingExample example, string strategyKey)
     {
         // Get deterministic prediction based on actual features without random noise
-        var basePrediction = example.Features.Values.FirstOrDefault();
+        var basePrediction = example.Features.Values[0];
         
         // Apply strategy-specific scaling based on strategy type
         var strategyMultiplier = strategyKey switch

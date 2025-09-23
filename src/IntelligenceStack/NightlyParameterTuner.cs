@@ -595,7 +595,7 @@ public class NightlyParameterTuner
                 var bestResult = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.BestMetrics?.AUC ?? DefaultAucFallback)
-                    .FirstOrDefault();
+                    [0];
 
                 return bestResult?.BestParameters;
             }
@@ -998,7 +998,7 @@ public class NightlyParameterTuner
                 var stableVersion = history
                     .Where(r => r.Success && !r.RolledBack)
                     .OrderByDescending(r => r.StartTime)
-                    .FirstOrDefault();
+                    [0];
 
                 if (stableVersion == null)
                 {

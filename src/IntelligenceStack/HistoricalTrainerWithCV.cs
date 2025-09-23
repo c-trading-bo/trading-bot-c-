@@ -733,7 +733,7 @@ public class HistoricalTrainerWithCV
             var bestFold = cvResult.FoldResults
                 .Where(f => f.Success && f.TestMetrics != null)
                 .OrderByDescending(f => f.TestMetrics!.AUC)
-                .FirstOrDefault();
+                [0];
 
             if (bestFold == null || cvResult.AggregateMetrics == null)
             {

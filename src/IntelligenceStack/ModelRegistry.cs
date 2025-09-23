@@ -420,11 +420,11 @@ public class ModelRegistry : IModelRegistry
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Failed to read models directory");
+            _logger.LogError(ex,  "[REGISTRY] Failed to read models directory");
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Access denied to models directory");
+            _logger.LogError(ex,  "[REGISTRY] Access denied to models directory");
         }
         
         return activeModels;
@@ -467,25 +467,25 @@ public class ModelRegistry : IModelRegistry
                 }
                 catch (IOException ex)
                 {
-                    _logger.LogError(ex, "[REGISTRY] Failed to cleanup model: {ModelId}", model.Id);
+                    _logger.LogError(ex,  "[REGISTRY] Failed to cleanup model: {ModelId}", model.Id);
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    _logger.LogError(ex, "[REGISTRY] Access denied when cleaning up model: {ModelId}", model.Id);
+                    _logger.LogError(ex,  "[REGISTRY] Access denied when cleaning up model: {ModelId}", model.Id);
                 }
             }
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] IO error during cleanup of expired models");
+            _logger.LogError(ex,  "[REGISTRY] IO error during cleanup of expired models");
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Access denied during cleanup of expired models");
+            _logger.LogError(ex,  "[REGISTRY] Access denied during cleanup of expired models");
         }
         catch (SecurityException ex)
         {
-            _logger.LogError(ex, "[REGISTRY] Security error during cleanup of expired models");
+            _logger.LogError(ex,  "[REGISTRY] Security error during cleanup of expired models");
         }
     }
 

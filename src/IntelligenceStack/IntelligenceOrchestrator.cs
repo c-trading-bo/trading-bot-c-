@@ -385,15 +385,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Invalid operation during model promotion check");
+            _logger.LogError(ex,  "[INTELLIGENCE] Invalid operation during model promotion check");
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Invalid argument during model promotion check");
+            _logger.LogError(ex,  "[INTELLIGENCE] Invalid argument during model promotion check");
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Timeout during model promotion check");
+            _logger.LogError(ex,  "[INTELLIGENCE] Timeout during model promotion check");
         }
     }
 
@@ -499,15 +499,15 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogError(ex, "[ML] ML model execution task was canceled");
+                _logger.LogError(ex,  "[ML] ML model execution task was canceled");
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "[ML] ML model execution was canceled");
+                _logger.LogError(ex,  "[ML] ML model execution was canceled");
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML] Invalid operation during ML model execution");
+                _logger.LogError(ex,  "[ML] Invalid operation during ML model execution");
             }
         }, cancellationToken);
     }
@@ -531,7 +531,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RL] RL training update failed");
+                _logger.LogError(ex,  "[RL] RL training update failed");
             }
         }, cancellationToken);
     }
@@ -560,7 +560,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[PREDICTION] Prediction generation failed");
+                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
             }
         }, cancellationToken);
     }
@@ -595,7 +595,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CORRELATION] Correlation analysis failed");
+                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
             }
         }, cancellationToken);
     }
@@ -751,7 +751,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
+            _logger.LogError(ex,  "[INTELLIGENCE] Failed to raise event: {EventName}", eventName);
         }
     }
 
@@ -812,7 +812,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     {
         try
         {
-            var familyName = $"regime_{regimeType.ToString().ToLowerInvariant()}";
+            var familyName = $"regime_{regimeType.ToString().ToUpperInvariant()}";
             return await _modelRegistry.GetModelAsync(familyName, "latest", cancellationToken).ConfigureAwait(false);
         }
         catch (FileNotFoundException)
@@ -822,7 +822,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Failed to get model for regime: {RegimeType}", regimeType);
+            _logger.LogError(ex,  "[INTELLIGENCE] Failed to get model for regime: {RegimeType}", regimeType);
             return null;
         }
     }
@@ -870,7 +870,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Prediction failed");
+            _logger.LogError(ex,  "[INTELLIGENCE] Prediction failed");
             return 0.0;
         }
     }
@@ -1005,7 +1005,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INTELLIGENCE] Real prediction calculation failed");
+            _logger.LogError(ex,  "[INTELLIGENCE] Real prediction calculation failed");
             return (BaseConfidenceLevel, "error_fallback");
         }
     }
