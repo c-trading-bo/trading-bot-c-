@@ -8,7 +8,7 @@ namespace TradingBot.BotCore.Services
     /// Service to replace hardcoded ML/AI values with configuration-driven ones
     /// Addresses Comment #3304685224: Hardcoded Values in AI/ML Core Systems
     /// </summary>
-    public class MLConfigurationService
+    public class MLConfigurationService : IMLConfigurationService
     {
         private readonly TradingConfiguration _config;
 

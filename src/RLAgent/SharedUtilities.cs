@@ -45,7 +45,7 @@ public class CircularBuffer<T>
         for (int i = 0; i < count; i++)
         {
             var item = GetFromEnd(i);
-            if (!EqualityComparer<T>.Default.Equals(item, default(T)))
+            if (!EqualityComparer<T>.Default.Equals(item, default(T)) && item is not null)
                 result[count - 1 - i] = item;
         }
         

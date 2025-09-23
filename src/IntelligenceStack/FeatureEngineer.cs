@@ -526,10 +526,10 @@ public class FeatureEngineer : IDisposable
             }
 
             // Step 3: Calculate correlation coefficient asynchronously
-            var correlation = await Task.Run(() => CalculateCorrelation(featureHistory, predictions), cancellationToken).ConfigureAwait(false);
+            var correlation = await Task.Run(() => CalculateCorrelation(featureHistory.ToList(), predictions.ToList()), cancellationToken).ConfigureAwait(false);
             
             // Step 4: Calculate contribution as correlation weighted by recent performance
-            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(MaxFeatureCount).Average(), cancellationToken).ConfigureAwait(false);
+            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(MaxFeatureCount).DefaultIfEmpty(0.0).Average(), cancellationToken).ConfigureAwait(false);
             var marginalContribution = correlation * recentAccuracy * featureValue;
 
             return marginalContribution;
@@ -779,7 +779,7 @@ public class FeatureImportanceTracker
         return Task.CompletedTask;
     }
 
-    public List<double> GetRecentPredictions()
+    public IReadOnlyList<double> GetRecentPredictions()
     {
         lock (_lock)
         {
@@ -787,7 +787,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetRecentOutcomes()
+    public IReadOnlyList<double> GetRecentOutcomes()
     {
         lock (_lock)
         {
@@ -803,7 +803,7 @@ public class FeatureImportanceTracker
         }
     }
 
-    public List<double> GetFeatureHistory(string featureName)
+    public IReadOnlyList<double> GetFeatureHistory(string featureName)
     {
         lock (_lock)
         {

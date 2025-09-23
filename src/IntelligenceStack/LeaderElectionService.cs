@@ -135,21 +135,19 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
             
             // Check if we can take over from expired leader
-            if (await CanTakeoverLeadershipAsync(cancellationToken).ConfigureAwait(false))
+            if (await CanTakeoverLeadershipAsync(cancellationToken).ConfigureAwait(false) && 
+                await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
             {
-                if (await TryCreateLockFileAsync(lockData, cancellationToken).ConfigureAwait(false))
+                lock (_lock)
                 {
-                    lock (_lock)
-                    {
-                        _isLeader = true;
-                    }
-                    
-                    StartRenewalTimer();
-                    OnLeadershipChanged(true, "Took over expired leadership");
-                    
-                    LeadershipTakenOver(_logger, _nodeId, null);
-                    return true;
+                    _isLeader = true;
                 }
+                    
+                StartRenewalTimer();
+                OnLeadershipChanged(true, "Took over expired leadership");
+                    
+                LeadershipTakenOver(_logger, _nodeId, null);
+                return true;
             }
 
             FailedToAcquireLeadershipDebug(_logger, null);
@@ -386,7 +384,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         var renewalInterval = TimeSpan.FromSeconds(_config.RenewSeconds);
         _renewalTimer = new Timer(_ =>
         {
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {

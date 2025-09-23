@@ -516,7 +516,7 @@ public class HistoricalTrainerWithCV
         }
 
         // Calculate future return with proper time delay
-        var futureReturn = (futureData.Last().Close - dataPoint.Close) / dataPoint.Close;
+        var futureReturn = (futureData[futureData.Count - 1].Close - dataPoint.Close) / dataPoint.Close;
         
         var example = new TrainingExample
         {

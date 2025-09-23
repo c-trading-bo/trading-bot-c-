@@ -129,13 +129,19 @@ public class FeatureStore : IFeatureStore
             };
             
             // Populate read-only collections
-            foreach (var kvp in features)
+            if (features.Count > 0)
             {
-                result.Features[kvp.Key] = kvp.Value;
+                foreach (var kvp in features)
+                {
+                    result.Features[kvp.Key] = kvp.Value;
+                }
             }
-            foreach (var kvp in metadata)
+            if (metadata.Count > 0)
             {
-                result.Metadata[kvp.Key] = kvp.Value;
+                foreach (var kvp in metadata)
+                {
+                    result.Metadata[kvp.Key] = kvp.Value;
+                }
             }
 
             FeaturesRetrieved(_logger, features.Count, symbol, fromTime, toTime, null);
@@ -322,13 +328,10 @@ public class FeatureStore : IFeatureStore
             }
 
             // Type validation
-            if (schemaFeature.DataType == typeof(double))
+            if (schemaFeature.DataType == typeof(double) && !double.IsFinite(value))
             {
-                if (!double.IsFinite(value))
-                {
-                    typeErrorCount++;
-                    continue;
-                }
+                typeErrorCount++;
+                continue;
             }
 
             // Range validation

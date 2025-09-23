@@ -44,8 +44,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double DefaultMarketDataClose = 4501.0;
     private const double DefaultMarketDataBid = 4500.75;
     private const double DefaultMarketDataAsk = 4501.25;
-    private const int HttpClientErrorStart = 400;
-    private const int HttpServerErrorStart = 500;
 
 
 
@@ -204,52 +202,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(4029, "OnlinePredictionFailed"),
             "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}");
             
-    // Cloud flow LoggerMessage delegates
-    private static readonly Action<ILogger, Exception?> CloudFlowDisabledDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4030, "CloudFlowDisabledDebug"),
-            "[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
-            
-    private static readonly Action<ILogger, string, Exception?> TradeRecordPushedInfo =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4031, "TradeRecordPushedInfo"),
-            "[INTELLIGENCE] Trade record pushed to cloud: {TradeId}");
-            
-    private static readonly Action<ILogger, string, Exception?> TradeRecordPushFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "TradeRecordPushFailed"),
-            "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}");
-            
-    private static readonly Action<ILogger, Exception?> CloudFlowDisabledMetricsDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4033, "CloudFlowDisabledMetricsDebug"),
-            "[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
-            
-    private static readonly Action<ILogger, Exception?> MetricsPushedDebug =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4034, "MetricsPushedDebug"),
-            "[INTELLIGENCE] Service metrics pushed to cloud");
-            
-    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4035, "MetricsPushFailed"),
-            "[INTELLIGENCE] Failed to push service metrics to cloud");
-            
-    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushedDebug =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "DecisionIntelligencePushedDebug"),
-            "[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}");
-            
-    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "DecisionIntelligencePushFailed"),
-            "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}");
-            
-    private static readonly Action<ILogger, int, string, Exception?> CloudPushFailedWarning =
-        LoggerMessage.Define<int, string>(LogLevel.Warning, new EventId(4038, "CloudPushFailedWarning"),
-            "[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}");
-            
-    private static readonly Action<ILogger, int, Exception?> CloudPushTimeoutWarning =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4039, "CloudPushTimeoutWarning"),
-            "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}");
-            
-    private static readonly Action<ILogger, int, Exception?> CloudPushNetworkErrorWarning =
-        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4040, "CloudPushNetworkErrorWarning"),
-            "[INTELLIGENCE] Network error on cloud push attempt {Attempt}");
-            
-
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -262,11 +214,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private readonly IDecisionLogger _decisionLogger;
     private readonly TradingBot.Abstractions.IStartupValidator _startupValidator;
     private readonly FeatureEngineer _featureEngineer;
-    
-    // Cloud flow components (merged from CloudFlowService)
-    private readonly HttpClient _httpClient;
-    private readonly CloudFlowOptions _cloudFlowOptions;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly CloudFlowService _cloudFlowService;
+    private readonly IntelligenceOrchestratorHelpers _helpers;
     
     // State tracking
     private bool _isInitialized;
@@ -296,8 +245,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         TradingBot.Abstractions.IStartupValidator startupValidator,
         IIdempotentOrderService idempotentOrderService,
         IOnlineLearningSystem onlineLearningSystem,
-        HttpClient httpClient,
-        IOptions<CloudFlowOptions> cloudFlowOptions)
+        CloudFlowService cloudFlowService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -307,6 +255,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         _calibrationManager = calibrationManager;
         _decisionLogger = decisionLogger;
         _startupValidator = startupValidator;
+        _cloudFlowService = cloudFlowService;
         
         // Initialize FeatureEngineer with online learning system
         _featureEngineer = new FeatureEngineer(
@@ -314,22 +263,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(),
             onlineLearningSystem);
         
-        // Initialize cloud flow components (merged from CloudFlowService)
-        _httpClient = httpClient;
-        ArgumentNullException.ThrowIfNull(cloudFlowOptions);
-        _cloudFlowOptions = cloudFlowOptions.Value;
+        // Initialize helpers for extracted methods
+        _helpers = new IntelligenceOrchestratorHelpers(
+            _logger, _serviceProvider, _config, _regimeDetector, _modelRegistry,
+            _calibrationManager, _decisionLogger, _featureEngineer, _cloudFlowService, _activeModels);
         
-        // Configure HTTP client for cloud endpoints
-        _httpClient.Timeout = TimeSpan.FromSeconds(_cloudFlowOptions.TimeoutSeconds);
-        
-        // Configure JSON serialization
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
-        
-        OrchestratorInitialized(_logger, _cloudFlowOptions.CloudEndpoint, null);
+        OrchestratorInitialized(_logger, "IntelligenceOrchestrator", null);
     }
 
     #region IIntelligenceOrchestrator Implementation
@@ -485,7 +424,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             // Check if nightly maintenance is due
             if (ShouldPerformNightlyMaintenance())
             {
-                _ = Task.Run(async () => await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+                Task.Run(async () => await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             }
         }
         catch (InvalidOperationException ex)
@@ -609,682 +548,39 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     #endregion
 
-    #region Private Helper Methods
+    #region Private Helper Methods (delegated to IntelligenceOrchestratorHelpers)
 
     private async Task LoadActiveModelsAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            lock (_lock)
-            {
-                _activeModels.Clear();
-            }
-
-            // Load models for each regime type
-            foreach (var regimeType in Enum.GetValues<RegimeType>())
-            {
-                try
-                {
-                    var familyName = $"regime_{regimeType}";
-                    var model = await _modelRegistry.GetModelAsync(familyName, "latest", cancellationToken).ConfigureAwait(false);
-                    
-                    lock (_lock)
-                    {
-                        _activeModels[$"{regimeType}"] = model;
-                    }
-                    
-                    ModelLoaded(_logger, regimeType.ToString(), model.Id, null);
-                }
-                catch (FileNotFoundException ex)
-                {
-                    NoModelFound(_logger, regimeType.ToString(), ex);
-                }
-            }
-
-            ActiveModelsLoaded(_logger, _activeModels.Count, null);
-        }
-        catch (InvalidOperationException ex)
-        {
-            LoadActiveModelsFailed(_logger, ex);
-        }
-        catch (JsonException ex)
-        {
-            LoadActiveModelsFailed(_logger, ex);
-        }
-        catch (FileNotFoundException ex)
-        {
-            LoadActiveModelsFailed(_logger, ex);
-        }
+        await _helpers.LoadActiveModelsAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<ModelArtifact?> GetModelForRegimeAsync(RegimeType regime, CancellationToken cancellationToken)
+    private async Task<WorkflowExecutionResult> LoadModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        lock (_lock)
-        {
-            if (_activeModels.TryGetValue($"{regime}", out var model))
-            {
-                return model;
-            }
-        }
-
-        // Fallback to default model
-        try
-        {
-            return await _modelRegistry.GetModelAsync("default", "latest", cancellationToken).ConfigureAwait(false);
-        }
-        catch (FileNotFoundException ex)
-        {
-            NoFallbackModelWarning(_logger, ex);
-            return null;
-        }
+        return await _helpers.LoadModelsWrapperAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<FeatureSet> ExtractFeaturesAsync(MarketContext context, CancellationToken cancellationToken)
+    private async Task<WorkflowExecutionResult> PerformMaintenanceWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        // Perform async feature extraction with external data enrichment
-        await Task.Run(async () =>
-        {
-            // Simulate async feature computation with external APIs
-            await Task.Delay(MinimumSampleSize, cancellationToken).ConfigureAwait(false);
-        }, cancellationToken).ConfigureAwait(false);
-        
-        // Simple feature extraction - in production would be more sophisticated
-        var featureSet = new FeatureSet
-        {
-            Symbol = context.Symbol,
-            Timestamp = context.Timestamp,
-            Version = "v1"
-        };
-        
-        // Populate read-only Features collection
-        featureSet.Features["price"] = context.Price;
-        featureSet.Features["volume"] = context.Volume;
-        featureSet.Features["bid"] = context.Bid;
-        featureSet.Features["ask"] = context.Ask;
-        featureSet.Features["spread"] = context.Ask - context.Bid;
-        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * DefaultTimeout : 0;
-        
-        return featureSet;
-    }
-
-    private static async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
-    {
-        // Simulate async model inference with ONNX runtime
-        await Task.Delay(DefaultDelayMs, cancellationToken).ConfigureAwait(false);
-        
-        // Simplified prediction - in production would use ONNX runtime
-        // Return a sample confidence based on spread and volume
-        var spread = features.Features.GetValueOrDefault("spread", 0);
-        var volume = features.Features.GetValueOrDefault("volume", 0);
-        
-        // Tighter spreads and higher volume = higher confidence
-        var baseConfidence = 0.5;
-        var spreadFactor = Math.Max(0, 1 - (spread * 0.1));
-        var volumeFactor = Math.Min(1, volume / 10000.0);
-        
-        return Math.Min(HighConfidenceThreshold, Math.Max(LowConfidenceThreshold, baseConfidence + (spreadFactor * volumeFactor * VolumeImpactFactor)));
-    }
-
-    private async Task<MLPrediction> CalculateRealPredictionAsync(FeatureSet features, MarketData data, CancellationToken cancellationToken)
-    {
-        // Real ensemble prediction using active models and regime detection
-        var regimeState = _regimeDetector != null ? 
-            await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false) : 
-            new RegimeState { Type = RegimeType.Range, Confidence = DefaultRegimeConfidence };
-        var regimeScore = regimeState.Confidence;
-        var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
-        
-        // Adjust confidence based on regime detection
-        var adjustedConfidence = confidence * regimeScore;
-        
-        // Determine direction based on feature trends
-        var priceFeature = features.Features.GetValueOrDefault("price", DefaultPriceFeature);
-        var volumeFeature = features.Features.GetValueOrDefault("volume", DefaultVolumeFeature);
-        var direction = priceFeature > DirectionThreshold && volumeFeature > VolumeDirectionThreshold ? "BUY" : 
-                       priceFeature < DirectionThreshold && volumeFeature > VolumeDirectionThreshold ? "SELL" : "HOLD";
-        
-        return new MLPrediction
-        {
-            Symbol = data.Symbol,
-            Confidence = adjustedConfidence,
-            Direction = direction,
-            ModelId = "ensemble_production",
-            Timestamp = DateTime.UtcNow,
-            IsValid = true
-        };
-    }
-
-    /// <summary>
-    /// Get latest ML prediction for requirement 2: Use ML Predictions in Trading Decisions
-    /// </summary>
-    public async Task<MLPrediction> GetLatestPredictionAsync(string symbol, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (!_isInitialized || !_isTradingEnabled)
-            {
-                return new MLPrediction
-                {
-                    Symbol = symbol,
-                    Confidence = NeutralThreshold,
-                    Direction = "HOLD",
-                    ModelId = "disabled",
-                    Timestamp = DateTime.UtcNow,
-                    IsValid = false
-                };
-            }
-
-            // Get active model for symbol
-            var modelKey = $"{symbol}_latest";
-            if (!_activeModels.TryGetValue(modelKey, out var model))
-            {
-                // Fallback to any available model
-                model = _activeModels.Values.FirstOrDefault() ?? new ModelArtifact
-                {
-                    Id = "fallback",
-                    Version = "1.0",
-                    CreatedAt = DateTime.UtcNow
-                };
-            }
-
-            // Create a simple market context for prediction
-            var context = new MarketContext
-            {
-                Symbol = symbol,
-                Price = DefaultMarketPrice, // Will be updated by real market data
-                Volume = DefaultMarketVolume,
-                Timestamp = DateTime.UtcNow
-            };
-
-            var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
-            var confidence = await MakePredictionAsync(features, cancellationToken).ConfigureAwait(false);
-            
-            var prediction = new MLPrediction
-            {
-                Symbol = symbol,
-                Confidence = confidence,
-                Direction = GetDirectionFromConfidence(confidence),
-                ModelId = model.Id,
-                Timestamp = DateTime.UtcNow,
-                IsValid = true
-            };
-            
-            // Helper method
-            string GetDirectionFromConfidence(double conf)
-            {
-                if (conf > BullishThreshold) return "BUY";
-                if (conf < BearishThreshold) return "SELL";
-                return "HOLD";
-            }
-
-            PredictionGenerated(_logger, symbol, prediction.Direction.ToString(), confidence, null);
-
-            return prediction;
-        }
-        catch (InvalidOperationException ex)
-        {
-            LatestPredictionFailed(_logger, symbol, ex);
-            return new MLPrediction
-            {
-                Symbol = symbol,
-                Confidence = NeutralThreshold,
-                Direction = "HOLD",
-                ModelId = "error",
-                Timestamp = DateTime.UtcNow,
-                IsValid = false
-            };
-        }
-    }
-
-    /// <summary>
-    /// Get live/online ML prediction for requirement 1: Wire Live Market Data → ML Pipeline
-    /// This method provides real-time predictions using ONNX models or online learners
-    /// </summary>
-    public async Task<MLPrediction?> GetOnlinePredictionAsync(string symbol, string strategyId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (!_isInitialized || !_isTradingEnabled)
-            {
-                SystemNotInitializedDebug(_logger, null);
-                return null;
-            }
-
-            // Try to get OnnxEnsembleWrapper from service provider if available
-            var onnxEnsemble = _serviceProvider.GetService<TradingBot.RLAgent.OnnxEnsembleWrapper>();
-            
-            if (onnxEnsemble != null)
-            {
-                // Create feature vector for the symbol and strategy
-                var context = new MarketContext
-                {
-                    Symbol = symbol,
-                    Price = DefaultMarketPrice, // This would typically come from current market data
-                    Volume = DefaultMarketVolume,
-                    Timestamp = DateTime.UtcNow
-                };
-
-                var features = await ExtractFeaturesAsync(context, cancellationToken).ConfigureAwait(false);
-                
-                // Apply updated feature weights from FeatureEngineer immediately
-                var currentWeights = await _featureEngineer.GetCurrentWeightsAsync(strategyId, cancellationToken).ConfigureAwait(false);
-                var weightedFeatures = ApplyFeatureWeights(features, currentWeights);
-                
-                // Convert weighted features to float array for ONNX input
-                var featureArray = new float[weightedFeatures.Features.Count];
-                int i = LoopCounterStart;
-                foreach (var feature in weightedFeatures.Features.Values)
-                {
-                    featureArray[i++] = (float)feature;
-                }
-
-                // Validate feature vector shape before calling PredictAsync
-                if (featureArray.Length > 0 && featureArray.Length <= FeatureArrayMaxLength) // Reasonable bounds check
-                {
-                    var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken).ConfigureAwait(false);
-                    
-                    string direction;
-                    if (ensemblePrediction.EnsembleResult > EnsembleBullishThreshold)
-                        direction = "BUY";
-                    else if (ensemblePrediction.EnsembleResult < EnsembleBearishThreshold)
-                        direction = "SELL";
-                    else
-                        direction = "HOLD";
-                    
-                    // Convert EnsemblePrediction to MLPrediction
-                    var prediction = new MLPrediction
-                    {
-                        Symbol = symbol,
-                        Confidence = ensemblePrediction.Confidence,
-                        Direction = direction,
-                        ModelId = $"ensemble_{strategyId}",
-                        Timestamp = DateTime.UtcNow,
-                        IsValid = !ensemblePrediction.IsAnomaly
-                    };
-                    
-                    prediction.Metadata["ensemble_result"] = ensemblePrediction.EnsembleResult;
-                    prediction.Metadata["latency_ms"] = ensemblePrediction.LatencyMs;
-                    prediction.Metadata["is_anomaly"] = ensemblePrediction.IsAnomaly;
-                    prediction.Metadata["strategy_id"] = strategyId;
-                    prediction.Metadata["model_count"] = ensemblePrediction.Predictions.Count;
-
-                    ONNXPredictionDebug(_logger, symbol, strategyId, prediction.Confidence, ensemblePrediction.EnsembleResult, null);
-                    
-                    return prediction;
-                }
-                else
-                {
-                    InvalidFeatureVectorWarning(_logger, featureArray.Length, symbol, strategyId, null);
-                }
-            }
-            else
-            {
-                ONNXWrapperNotAvailableDebug(_logger, null);
-            }
-
-            // Fallback to simplified prediction logic if ONNX not available
-            var fallbackPrediction = await GetLatestPredictionAsync(symbol, cancellationToken).ConfigureAwait(false);
-            FallbackPredictionDebug(_logger, symbol, strategyId, fallbackPrediction.Confidence, null);
-            
-            return fallbackPrediction;
-        }
-        catch (InvalidOperationException ex)
-        {
-            OnlinePredictionFailed(_logger, symbol, strategyId, ex);
-            return null;
-        }
-        catch (ArgumentException ex)
-        {
-            OnlinePredictionFailed(_logger, symbol, strategyId, ex);
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Alternative method name for backwards compatibility
-    /// </summary>
-    public Task<MLPrediction?> GetLivePredictionAsync(string symbol, string strategyId, CancellationToken cancellationToken = default)
-    {
-        return GetOnlinePredictionAsync(symbol, strategyId, cancellationToken);
-    }
-
-    private double CalculatePositionSize(double confidence)
-    {
-        // Apply Kelly criterion with clip using configurable parameters
-        var edge = (confidence - _config.ML.Confidence.EdgeConversionOffset) * _config.ML.Confidence.EdgeConversionMultiplier; // Convert to [-1, 1] range
-        var kellyFraction = edge / KellyDivisor; // Simplified Kelly calculation
-        var clippedKelly = Math.Min(_config.ML.Confidence.KellyClip, Math.Max(-_config.ML.Confidence.KellyClip, kellyFraction));
-        
-        // Apply confidence multiplier using configurable parameters
-        var confidenceMultiplier = Math.Min(1.0, Math.Max(0.0, (confidence - _config.ML.Confidence.ConfidenceMultiplierOffset) * _config.ML.Confidence.ConfidenceMultiplierScale));
-        
-        return clippedKelly * confidenceMultiplier;
-    }
-
-    private static TradingDecision CreateTradingDecision(
-        string decisionId, MarketContext context, RegimeState regime, 
-        ModelArtifact model, double confidence, double size, double latencyMs)
-    {
-        string direction;
-        if (size > SignificantSizeThreshold)
-            direction = "LONG";
-        else if (size < -SignificantSizeThreshold)
-            direction = "SHORT";
-        else
-            direction = "HOLD";
-
-        TradingAction action;
-        if (size > SignificantSizeThreshold)
-            action = TradingAction.Buy;
-        else if (size < -SignificantSizeThreshold)
-            action = TradingAction.Sell;
-        else
-            action = TradingAction.Hold;
-
-        var decision = new TradingDecision
-        {
-            DecisionId = decisionId,
-            Signal = new TradingSignal
-            {
-                Symbol = context.Symbol,
-                Direction = direction,
-                Strength = (decimal)Math.Abs(confidence),
-                Timestamp = DateTime.UtcNow
-            },
-            Action = action,
-            Confidence = (decimal)confidence,
-            MLConfidence = (decimal)confidence,
-            MLStrategy = model.Id,
-            RiskScore = (decimal)(1.0 - confidence),
-            MaxPositionSize = (decimal)Math.Abs(size),
-            MarketRegime = regime.Type.ToString(),
-            RegimeConfidence = (decimal)regime.Confidence,
-            Timestamp = DateTime.UtcNow
-        };
-        
-        // Populate read-only Reasoning collection
-        decision.Reasoning["model_id"] = model.Id;
-        decision.Reasoning["regime"] = regime.Type.ToString();
-        decision.Reasoning["latency_ms"] = latencyMs;
-        decision.Reasoning["kelly_size"] = size;
-        
-        return decision;
-    }
-
-    private static TradingDecision CreateSafeDecision(string reason)
-    {
-        var decision = new TradingDecision
-        {
-            DecisionId = GenerateDecisionId(),
-            Signal = new TradingSignal
-            {
-                Symbol = "UNKNOWN",
-                Direction = "HOLD",
-                Strength = 0m,
-                Timestamp = DateTime.UtcNow
-            },
-            Action = TradingAction.Hold,
-            Confidence = 0m
-        };
-        
-        // Populate read-only Reasoning collection
-        decision.Reasoning["reason"] = reason;
-        
-        return decision;
-    }
-
-    private static IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
-    {
-        var intelligenceDecision = new IntelligenceDecision
-        {
-            DecisionId = decision.DecisionId,
-            Timestamp = decision.Timestamp,
-            Symbol = decision.Signal.Symbol,
-            Confidence = (double)decision.Confidence,
-            Action = decision.Action.ToString(),
-            FeaturesVersion = features.Version,
-            FeaturesHash = features.SchemaChecksum
-        };
-        
-        // Populate read-only Metadata collection
-        foreach (var kvp in decision.Reasoning)
-        {
-            intelligenceDecision.Metadata[kvp.Key] = kvp.Value;
-        }
-        
-        return intelligenceDecision;
-    }
-
-    private static string GenerateDecisionId()
-    {
-        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(RandomIdMin, RandomIdMax)}";
-    }
-
-    private bool ShouldPerformNightlyMaintenance()
-    {
-        var now = DateTime.UtcNow;
-        var lastMaintenance = _lastNightlyMaintenance;
-        
-        // Perform maintenance if it's after 2:30 AM and we haven't done it today
-        return now.Hour >= MaintenanceHour && now.Minute >= MaintenanceMinute && 
-               (lastMaintenance.Date < now.Date || lastMaintenance == DateTime.MinValue);
-    }
-
-    private static Task CheckModelPromotionsAsync(CancellationToken cancellationToken)
-    {
-        // Check for models that should be promoted
-        // Implementation would check recent performance metrics
-        return Task.CompletedTask;
-    }
-
-    private void RaiseEvent(string eventType, string message)
-    {
-        IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs
-        {
-            EventType = eventType,
-            Message = message,
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    /// <summary>
-    /// Apply feature weights to features, immediately using updated weights from FeatureEngineer
-    /// </summary>
-    private static FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
-    {
-        var weightedFeatures = new FeatureSet
-        {
-            Symbol = originalFeatures.Symbol,
-            Timestamp = originalFeatures.Timestamp,
-            Version = originalFeatures.Version,
-            SchemaChecksum = originalFeatures.SchemaChecksum
-        };
-
-        // Copy original metadata to read-only collection
-        foreach (var kvp in originalFeatures.Metadata)
-        {
-            weightedFeatures.Metadata[kvp.Key] = kvp.Value;
-        }
-
-        // Apply weights to each feature
-        foreach (var (featureName, featureValue) in originalFeatures.Features)
-        {
-            var weight = weights.GetValueOrDefault(featureName, 1.0);
-            var weightedValue = featureValue * weight;
-            
-            weightedFeatures.Features[featureName] = weightedValue;
-        }
-
-        // Add metadata about feature weighting
-        weightedFeatures.Metadata["feature_weights_applied"] = true;
-        weightedFeatures.Metadata["weights_count"] = weights.Count;
-        weightedFeatures.Metadata["low_value_features"] = weights.Count(kvp => kvp.Value < LowValueFeatureThreshold);
-
-        return weightedFeatures;
-    }
-
-    // Workflow adapter methods
-    private async Task<WorkflowExecutionResult> MakeDecisionWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Extract market context from workflow context
-            var marketContext = ExtractMarketContextFromWorkflow(context);
-            var decision = await MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false);
-            
-            var result = new WorkflowExecutionResult { Success = true };
-            result.Results["decision"] = decision;
-            return result;
-        }
-        catch (InvalidOperationException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-    }
-
-    private async Task<WorkflowExecutionResult> ProcessMarketDataWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var marketData = ExtractMarketDataFromWorkflow(context);
-            await ProcessMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
-            
-            return new WorkflowExecutionResult { Success = true };
-        }
-        catch (InvalidOperationException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-    }
-
-    private async Task<WorkflowExecutionResult> PerformMaintenanceWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await PerformNightlyMaintenanceAsync(cancellationToken).ConfigureAwait(false);
-            return new WorkflowExecutionResult { Success = true };
-        }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (InvalidOperationException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (TimeoutException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-    }
-
-    private static MarketContext ExtractMarketContextFromWorkflow(WorkflowExecutionContext context)
-    {
-        // Extract from workflow context - simplified
-        return new MarketContext
-        {
-            Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", DefaultESPrice), CultureInfo.InvariantCulture),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume), CultureInfo.InvariantCulture),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultBidOffset), CultureInfo.InvariantCulture),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultAskOffset), CultureInfo.InvariantCulture),
-            Timestamp = DateTime.UtcNow
-        };
-    }
-
-    private static MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
-    {
-        return new MarketData
-        {
-            Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
-            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", DefaultMarketDataOpen)),
-            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
-            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
-            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
-            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume)),
-            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
-            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
-            Timestamp = DateTime.UtcNow
-        };
-    }
-
-    // Wrapper methods for workflow execution
-    private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
-        return new WorkflowExecutionResult { Success = true };
-    }
-
-    private async Task<WorkflowExecutionResult> UpdateRLTrainingWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
-        return new WorkflowExecutionResult { Success = true };
-    }
-
-    private async Task<WorkflowExecutionResult> GeneratePredictionsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
-        return new WorkflowExecutionResult { Success = true };
+        return await _helpers.PerformMaintenanceWrapperAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await AnalyzeCorrelationsAsync(context, cancellationToken).ConfigureAwait(false);
-        return new WorkflowExecutionResult { Success = true };
+        return await _helpers.AnalyzeCorrelationsWrapperAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
 
-    #region Cloud Flow Methods (merged from CloudFlowService)
+
+    #region Cloud Flow Methods (delegated to CloudFlowService)
 
     /// <summary>
     /// Push trade record to cloud after decision execution
     /// </summary>
     public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(tradeRecord);
-        if (!_cloudFlowOptions.Enabled)
-        {
-            CloudFlowDisabledDebug(_logger, null);
-            return;
-        }
-
-        try
-        {
-            var payload = new
-            {
-                type = "trade_record",
-                timestamp = DateTime.UtcNow,
-                trade = tradeRecord,
-                instanceId = _cloudFlowOptions.InstanceId
-            };
-
-            await PushToCloudWithRetryAsync("trades", payload, cancellationToken).ConfigureAwait(false);
-            TradeRecordPushedInfo(_logger, tradeRecord.TradeId, null);
-        }
-        catch (HttpRequestException ex)
-        {
-            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
-            // Don't throw - cloud push failures shouldn't stop trading
-        }
-        catch (TaskCanceledException ex)
-        {
-            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
-            // Don't throw - cloud push failures shouldn't stop trading
-        }
-        catch (JsonException ex)
-        {
-            TradeRecordPushFailed(_logger, tradeRecord.TradeId, ex);
-            // Don't throw - cloud push failures shouldn't stop trading
-        }
+        await _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1292,40 +588,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     public async Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
     {
-        if (!_cloudFlowOptions.Enabled)
-        {
-            CloudFlowDisabledMetricsDebug(_logger, null);
-            return;
-        }
-
-        try
-        {
-            var payload = new
-            {
-                type = "service_metrics",
-                timestamp = DateTime.UtcNow,
-                metrics = metrics,
-                instanceId = _cloudFlowOptions.InstanceId
-            };
-
-            await PushToCloudWithRetryAsync("metrics", payload, cancellationToken).ConfigureAwait(false);
-            MetricsPushedDebug(_logger, null);
-        }
-        catch (HttpRequestException ex)
-        {
-            MetricsPushFailed(_logger, ex);
-            // Don't throw - metrics push failures shouldn't stop trading
-        }
-        catch (TaskCanceledException ex)
-        {
-            MetricsPushFailed(_logger, ex);
-            // Don't throw - metrics push failures shouldn't stop trading
-        }
-        catch (ArgumentException ex)
-        {
-            MetricsPushFailed(_logger, ex);
-            // Don't throw - metrics push failures shouldn't stop trading
-        }
+        await _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1333,157 +596,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(decision);
-        if (!_cloudFlowOptions.Enabled)
-        {
-            return;
-        }
-
-        try
-        {
-            var intelligenceData = new
-            {
-                type = "decision_intelligence",
-                timestamp = DateTime.UtcNow,
-                decisionId = decision.DecisionId,
-                symbol = decision.Signal?.Symbol,
-                action = decision.Action.ToString(),
-                confidence = decision.Confidence,
-                mlStrategy = decision.MLStrategy,
-                marketRegime = decision.MarketRegime,
-                reasoning = decision.Reasoning,
-                instanceId = _cloudFlowOptions.InstanceId
-            };
-
-            await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken).ConfigureAwait(false);
-            DecisionIntelligencePushedDebug(_logger, decision.DecisionId, null);
-        }
-        catch (HttpRequestException ex)
-        {
-            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
-        }
-        catch (TaskCanceledException ex)
-        {
-            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
-        }
-        catch (ArgumentException ex)
-        {
-            DecisionIntelligencePushFailed(_logger, decision.DecisionId, ex);
-        }
-    }
-
-    /// <summary>
-    /// Push to cloud with exponential backoff retry logic
-    /// </summary>
-    private async Task PushToCloudWithRetryAsync(string endpoint, object payload, CancellationToken cancellationToken)
-    {
-        const int maxRetries = 3;
-        var baseDelay = TimeSpan.FromSeconds(1);
-
-        for (int attempt = 0; attempt < maxRetries; attempt++)
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(payload, _jsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                
-                var url = $"{_cloudFlowOptions.CloudEndpoint}/{endpoint}";
-                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return; // Success
-                }
-
-                // Log non-success response
-                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                CloudPushFailedWarning(_logger, (int)response.StatusCode, responseContent, null);
-
-                // Don't retry on client errors (4xx)
-                if ((int)response.StatusCode >= HttpClientErrorStart && (int)response.StatusCode < HttpServerErrorStart)
-                {
-                    throw new InvalidOperationException($"Client error from cloud endpoint: {response.StatusCode}");
-                }
-            }
-            catch (TaskCanceledException ex)
-            {
-                CloudPushTimeoutWarning(_logger, attempt + 1, ex);
-            }
-            catch (HttpRequestException ex)
-            {
-                CloudPushNetworkErrorWarning(_logger, attempt + 1, ex);
-            }
-
-            // Wait before retry (exponential backoff)
-            if (attempt < maxRetries - 1)
-            {
-                var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        throw new InvalidOperationException($"Failed to push to cloud after {maxRetries} attempts");
+        await _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
 }
-
-#region Cloud Flow Classes (merged from CloudFlowService)
-
-/// <summary>
-/// Configuration options for cloud flow service (merged from CloudFlowService)
-/// </summary>
-public class CloudFlowOptions
-{
-    public bool Enabled { get; set; } = true;
-    public string CloudEndpoint { get; set; } = string.Empty;
-    public string InstanceId { get; set; } = Environment.MachineName;
-    public int TimeoutSeconds { get; set; } = 30;
-}
-
-/// <summary>
-/// Trade record for cloud push (merged from CloudFlowService)
-/// </summary>
-public class CloudTradeRecord
-{
-    public string TradeId { get; set; } = string.Empty;
-    public string Symbol { get; set; } = string.Empty;
-    public string Side { get; set; } = string.Empty;
-    public decimal Quantity { get; set; }
-    public decimal EntryPrice { get; set; }
-    public decimal ExitPrice { get; set; }
-    public decimal PnL { get; set; }
-    public DateTime EntryTime { get; set; }
-    public DateTime ExitTime { get; set; }
-    public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; } = new();
-}
-
-/// <summary>
-/// Service metrics for cloud push (merged from CloudFlowService)
-/// </summary>
-public class CloudServiceMetrics
-{
-    public double InferenceLatencyMs { get; set; }
-    public double PredictionAccuracy { get; set; }
-    public double FeatureDrift { get; set; }
-    public int ActiveModels { get; set; }
-    public long MemoryUsageMB { get; set; }
-    public Dictionary<string, double> CustomMetrics { get; } = new();
-}
-
-/// <summary>
-/// ML prediction result for requirement 2: Use ML Predictions in Trading Decisions
-/// </summary>
-public class MLPrediction
-{
-    public string Symbol { get; set; } = string.Empty;
-    public double Confidence { get; set; }
-    public string Direction { get; set; } = string.Empty; // BUY, SELL, HOLD
-    public string ModelId { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public bool IsValid { get; set; }
-    public Dictionary<string, object> Metadata { get; } = new();
-}
-
-#endregion
