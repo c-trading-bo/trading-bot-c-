@@ -297,10 +297,10 @@ public class ModelQuarantineManager : IQuarantineManager
         }
     }
 
-    public async Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
+    public Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
     {
         // Retrieve quarantined models asynchronously to avoid blocking quarantine operations
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             try
             {
@@ -317,7 +317,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 GetQuarantinedModelsFailed(_logger, ex);
                 return new List<string>();
             }
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     /// <summary>

@@ -418,18 +418,15 @@ public class MamlLiveIntegration
         List<TrainingExample> examples,
         CancellationToken cancellationToken)
     {
-        // Perform async MAML inner loop adaptation with real gradient computation
-        return await Task.Run(async () =>
+        // Simulate async gradient computation with external ML compute services
+        await Task.Delay(GradientComputationDelayMs, cancellationToken).ConfigureAwait(false);
+        
+        // Simplified MAML inner loop - in production would use actual gradient computation
+        var step = new AdaptationStep
         {
-            // Simulate async gradient computation with external ML compute services
-            await Task.Delay(GradientComputationDelayMs, cancellationToken).ConfigureAwait(false);
-            
-            // Simplified MAML inner loop - in production would use actual gradient computation
-            var step = new AdaptationStep
-            {
-                Timestamp = DateTime.UtcNow,
-                ExampleCount = examples.Count
-            };
+            Timestamp = DateTime.UtcNow,
+            ExampleCount = examples.Count
+        };
 
         // Calculate performance on current weights
         var currentPerformance = CalculatePerformance(examples, modelState.CurrentWeights);
@@ -454,7 +451,6 @@ public class MamlLiveIntegration
         step.PerformanceGain = newPerformance - currentPerformance;
 
         return step;
-        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<ValidationResult> ValidateAdaptationAsync(
