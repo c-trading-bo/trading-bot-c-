@@ -183,7 +183,7 @@ public class RealTradingMetricsService : BackgroundService
             catch (Exception ex)
             {
                 // Log and swallow exceptions to prevent crashes
-                _logger?.LogError(ex, "Error collecting metrics");
+                MetricsCollectionFailed(_logger, ex);
             }
         });
     }

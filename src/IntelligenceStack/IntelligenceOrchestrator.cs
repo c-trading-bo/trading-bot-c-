@@ -139,6 +139,40 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         LoggerMessage.Define(LogLevel.Error, new EventId(4023, "MLExecutionInvalidOperation"),
             "[ML] Invalid operation during ML model execution");
             
+    // Additional delegates for prediction workflow
+    private static readonly Action<ILogger, string, string, decimal, Exception?> PredictionGenerated =
+        LoggerMessage.Define<string, string, decimal>(LogLevel.Information, new EventId(4024, "PredictionGenerated"),
+            "[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}");
+            
+    private static readonly Action<ILogger, Exception?> PredictionGenerationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4025, "PredictionGenerationFailed"),
+            "[PREDICTION] Prediction generation failed");
+            
+    private static readonly Action<ILogger, Exception?> CorrelationAnalysisStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4026, "CorrelationAnalysisStarted"),
+            "[CORRELATION] Performing feature correlation analysis");
+            
+    private static readonly Action<ILogger, string, double, Exception?> CorrelationResult =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4027, "CorrelationResult"),
+            "[CORRELATION] {Feature}: {Correlation:F3}");
+            
+    private static readonly Action<ILogger, Exception?> CorrelationAnalysisFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4028, "CorrelationAnalysisFailed"),
+            "[CORRELATION] Correlation analysis failed");
+            
+    // Additional CA1848 compliance delegates for remaining violations
+    private static readonly Action<ILogger, string, Exception?> ModelRetrievalFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4029, "ModelRetrievalFailed"),
+            "[INTELLIGENCE] Failed to get model for regime: {RegimeType}");
+            
+    private static readonly Action<ILogger, Exception?> PredictionFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4030, "PredictionFailed"),
+            "[INTELLIGENCE] Prediction failed");
+            
+    private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4031, "RealPredictionCalculationFailed"),
+            "[INTELLIGENCE] Real prediction calculation failed");
+            
     private static readonly Action<ILogger, string, int, Exception?> RLWeightsUpdated =
         LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4024, "RLWeightsUpdated"),
             "[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}");
@@ -610,20 +644,19 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                 };
                 
                 var decision = await MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}", 
-                    symbol, decision.Action, decision.Confidence);
+                PredictionGenerated(_logger, symbol, decision.Action.ToString(), decision.Confidence, null);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+                PredictionGenerationFailed(_logger, ex);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+                PredictionGenerationFailed(_logger, ex);
             }
             catch (FormatException ex)
             {
-                _logger.LogError(ex,  "[PREDICTION] Prediction generation failed");
+                PredictionGenerationFailed(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -638,7 +671,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             try
             {
                 // Analyze feature correlations using feature engineer
-                _logger.LogInformation("[CORRELATION] Performing feature correlation analysis");
+                CorrelationAnalysisStarted(_logger, null);
                 
                 // Implement correlation analysis with available data
                 var correlations = new Dictionary<string, double> 
@@ -653,20 +686,20 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                 var topCorrelations = correlations.OrderByDescending(kvp => kvp.Value).Take(5);
                 foreach (var correlation in topCorrelations)
                 {
-                    _logger.LogDebug("[CORRELATION] {Feature}: {Correlation:F3}", correlation.Key, correlation.Value);
+                    CorrelationResult(_logger, correlation.Key, correlation.Value, null);
                 }
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+                CorrelationAnalysisFailed(_logger, ex);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+                CorrelationAnalysisFailed(_logger, ex);
             }
             catch (TimeoutException ex)
             {
-                _logger.LogError(ex,  "[CORRELATION] Correlation analysis failed");
+                CorrelationAnalysisFailed(_logger, ex);
             }
         }, cancellationToken);
     }
@@ -917,7 +950,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Failed to get model for regime: {RegimeType}", regimeType);
+            ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
             return null;
         }
     }
@@ -965,7 +998,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Prediction failed");
+            PredictionFailed(_logger, ex);
             return 0.0;
         }
     }
@@ -1100,7 +1133,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,  "[INTELLIGENCE] Real prediction calculation failed");
+            RealPredictionCalculationFailed(_logger, ex);
             return (BaseConfidenceLevel, "error_fallback");
         }
     }
