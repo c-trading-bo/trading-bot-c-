@@ -26,6 +26,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double BullishThreshold = 0.55;
     private const double BearishThreshold = 0.45;
     
+    // Maintenance window hours (UTC)
+    private const int MaintenanceStartHour = 2;  // 2 AM UTC
+    private const int MaintenanceEndHour = 4;    // 4 AM UTC
+    
     // LoggerMessage delegates for CA1848 compliance - IntelligenceOrchestrator
     private static readonly Action<ILogger, string, Exception?> OrchestratorInitialized =
         LoggerMessage.Define<string>(LogLevel.Information, new EventId(4001, "OrchestratorInitialized"),
@@ -332,7 +336,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         
         // Perform maintenance once per day, preferably during off-hours (UTC 2-4 AM)
         return timeSinceLastMaintenance > TimeSpan.FromHours(20) && 
-               now.Hour >= 2 && now.Hour <= 4;
+               now.Hour >= MaintenanceStartHour && now.Hour <= MaintenanceEndHour;
     }
 
     /// <summary>

@@ -26,6 +26,10 @@ public class FeatureStore : IFeatureStore
     private const double MaxMissingnessPct = 0.5;
     private const double MaxOutOfRangePct = 1.0;
     private const int ChecksumLength = 16;
+    
+    // S109 Magic Number Constants
+    private const int MinimumFilesForOptimization = 100;
+    private const int CompactionBatchSize = 50;
 
     // LoggerMessage delegates for CA1848 compliance - FeatureStore  
     private static readonly Action<ILogger, string, Exception?> NoFeatureDataFound =
@@ -331,7 +335,7 @@ public class FeatureStore : IFeatureStore
                     .Where(f => IsOldFile(f, cutoffDate))
                     .ToArray();
                 
-                if (files.Length > 100) // Only optimize if we have many files
+                if (files.Length > MinimumFilesForOptimization) // Only optimize if we have many files
                 {
                     await CompactFeatureFilesAsync(symbolDir, files, cancellationToken).ConfigureAwait(false);
                 }
@@ -359,7 +363,7 @@ public class FeatureStore : IFeatureStore
         {
             var compactedFeatures = new List<FeatureSet>();
             
-            foreach (var file in files.Take(50)) // Compact in batches
+            foreach (var file in files.Take(CompactionBatchSize)) // Compact in batches
             {
                 try
                 {
@@ -383,7 +387,7 @@ public class FeatureStore : IFeatureStore
                 await File.WriteAllTextAsync(compactedFile, json, cancellationToken).ConfigureAwait(false);
                 
                 // Remove individual files after successful compaction
-                foreach (var file in files.Take(50))
+                foreach (var file in files.Take(CompactionBatchSize))
                 {
                     try
                     {
@@ -407,7 +411,7 @@ public class FeatureStore : IFeatureStore
         try
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
-            if (fileName.StartsWith("compacted_"))
+            if (fileName.StartsWith("compacted_", StringComparison.OrdinalIgnoreCase))
             {
                 return false; // Don't re-compact already compacted files
             }
