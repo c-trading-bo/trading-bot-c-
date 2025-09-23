@@ -704,7 +704,17 @@ public class MamlLiveIntegration
             NoTrainingDataSources(_logger, regime.ToString(), null);
             return examples;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LoadTrainingExamplesFailed(_logger, regime.ToString(), ex);
+            return new List<TrainingExample>();
+        }
+        catch (ArgumentException ex)
+        {
+            LoadTrainingExamplesFailed(_logger, regime.ToString(), ex);
+            return new List<TrainingExample>();
+        }
+        catch (TimeoutException ex)
         {
             LoadTrainingExamplesFailed(_logger, regime.ToString(), ex);
             return new List<TrainingExample>();
@@ -733,7 +743,17 @@ public class MamlLiveIntegration
             // This prevents MAML from training on synthetic data when real data is unavailable
             return Task.FromResult(new List<TrainingExample>());
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            TradingDatabaseAccessError(_logger, ex);
+            return Task.FromResult(new List<TrainingExample>());
+        }
+        catch (TimeoutException ex)
+        {
+            TradingDatabaseAccessError(_logger, ex);
+            return Task.FromResult(new List<TrainingExample>());
+        }
+        catch (ArgumentException ex)
         {
             TradingDatabaseAccessError(_logger, ex);
             return Task.FromResult(new List<TrainingExample>());
@@ -759,7 +779,22 @@ public class MamlLiveIntegration
             // Returning empty list to enforce "no synthetic data" policy
             return new List<TrainingExample>();
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            ExternalDataLoadError(_logger, ex);
+            return new List<TrainingExample>();
+        }
+        catch (TimeoutException ex)
+        {
+            ExternalDataLoadError(_logger, ex);
+            return new List<TrainingExample>();
+        }
+        catch (InvalidOperationException ex)
+        {
+            ExternalDataLoadError(_logger, ex);
+            return new List<TrainingExample>();
+        }
+        catch (JsonException ex)
         {
             ExternalDataLoadError(_logger, ex);
             return new List<TrainingExample>();

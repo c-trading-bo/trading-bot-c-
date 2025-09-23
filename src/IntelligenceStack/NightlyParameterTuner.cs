@@ -619,7 +619,19 @@ public class NightlyParameterTuner
                     }
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
+            {
+                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+            }
+            catch (JsonException ex)
+            {
+                FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
+            }
+            catch (InvalidOperationException ex)
             {
                 FailedToLoadParametersFromRegistry(_logger, modelFamily, ex);
             }
@@ -1060,7 +1072,17 @@ public class NightlyParameterTuner
 
             CompletedRollback(_logger, modelFamily, stableVersion.StartTime, null);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            RollbackFailed(_logger, modelFamily, ex);
+            throw new InvalidOperationException($"Parameter rollback failed for model family {modelFamily}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            RollbackFailed(_logger, modelFamily, ex);
+            throw new InvalidOperationException($"Parameter rollback failed for model family {modelFamily}", ex);
+        }
+        catch (ArgumentException ex)
         {
             RollbackFailed(_logger, modelFamily, ex);
             throw new InvalidOperationException($"Parameter rollback failed for model family {modelFamily}", ex);
@@ -1100,9 +1122,25 @@ public class NightlyParameterTuner
                 }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             FailedToSaveTuningResult(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FailedToSaveTuningResult(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            FailedToSaveTuningResult(_logger, ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            FailedToSaveTuningResult(_logger, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 }

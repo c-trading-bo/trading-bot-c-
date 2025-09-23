@@ -312,7 +312,12 @@ public class ModelQuarantineManager : IQuarantineManager
                         .ToList();
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                GetQuarantinedModelsFailed(_logger, ex);
+                return new List<string>();
+            }
+            catch (ArgumentNullException ex)
             {
                 GetQuarantinedModelsFailed(_logger, ex);
                 return new List<string>();
@@ -350,9 +355,17 @@ public class ModelQuarantineManager : IQuarantineManager
             // Increment shadow decision count if in quarantine
             await IncrementShadowDecisionCountAsync(modelId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (ArgumentNullException ex)
         {
             RecordPerformanceFailed(_logger, modelId, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            RecordPerformanceFailed(_logger, modelId, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 
@@ -392,9 +405,17 @@ public class ModelQuarantineManager : IQuarantineManager
                 await QuarantineModelAsync(modelId, QuarantineReason.ExceptionRateTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception ex)
+        catch (ArgumentNullException ex)
         {
             RecordExceptionFailed(_logger, modelId, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            RecordExceptionFailed(_logger, modelId, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 
@@ -633,9 +654,21 @@ public class ModelQuarantineManager : IQuarantineManager
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             SaveStateFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            SaveStateFailed(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            SaveStateFailed(_logger, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 
@@ -672,9 +705,25 @@ public class ModelQuarantineManager : IQuarantineManager
                 StateLoaded(_logger, state.ModelHealth.Count, null);
             }
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LoadStateFailed(_logger, ex);
+        }
+        catch (IOException ex)
+        {
+            LoadStateFailed(_logger, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LoadStateFailed(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LoadStateFailed(_logger, ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected cancellation
         }
     }
 }

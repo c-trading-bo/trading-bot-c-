@@ -691,9 +691,33 @@ public class LineageTrackingSystem
                 RuntimeSignature = model.RuntimeSignature
             };
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (IOException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToGetModelLineage(_logger, modelId, ex);
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             return null;
         }
     }
@@ -720,17 +744,41 @@ public class LineageTrackingSystem
             
             return featureLineageInfo;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
             LogFailedToGetFeatureLineage(_logger, version, ex);
             return null;
         }
+        catch (InvalidDataException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (IOException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogFailedToGetFeatureLineage(_logger, version, ex);
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
     }
 
-    private static async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
+    private static Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
         // Build processing chain asynchronously to avoid blocking lineage recording
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Build processing chain for the decision
             return new List<ProcessingStep>
@@ -763,7 +811,7 @@ public class LineageTrackingSystem
                     ProcessingTime = TimeSpan.FromMilliseconds(CalibrationTimeMs)
                 }
             };
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private async Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
@@ -789,11 +837,11 @@ public class LineageTrackingSystem
         await SaveLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
+    private Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
     {
         var snapshotFile = Path.Combine(_lineagePath, "snapshots", $"{snapshot.SnapshotId}.json");
         var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(snapshotFile, json, cancellationToken).ConfigureAwait(false);
+        return File.WriteAllTextAsync(snapshotFile, json, cancellationToken);
     }
 
     private async Task SaveDecisionLineageAsync(

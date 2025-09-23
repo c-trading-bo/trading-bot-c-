@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -456,7 +457,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 Precision = CalculatePrecision(tradeRecord),
                 Recall = CalculateRecall(tradeRecord),
                 F1Score = CalculateF1Score(tradeRecord),
-                Latency = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("order_latency_ms", DefaultLatency)),
+                Latency = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("order_latency_ms", DefaultLatency), CultureInfo.InvariantCulture),
                 SampleSize = DefaultSampleSize,
                 WindowStart = tradeRecord.FillTime.AddMinutes(WindowStartMinutesOffset),
                 WindowEnd = tradeRecord.FillTime,
@@ -670,7 +671,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Simple hit rate calculation based on trade direction and immediate market movement
             // In a real implementation, this would compare against actual PnL after position close
             var side = tradeRecord.Side.ToUpperInvariant();
-            var marketMovement = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("market_movement_bps", DefaultLatency));
+            var marketMovement = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("market_movement_bps", DefaultLatency), CultureInfo.InvariantCulture);
             
             // Assume positive market movement means the trade direction was correct
             if (side == "BUY" && marketMovement > 0) return GoodDirectionScore;
@@ -725,7 +726,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // First, try to extract real confidence from metadata
             if (tradeRecord.Metadata.TryGetValue("prediction_confidence", out var storedConfidence))
             {
-                var confidence = Convert.ToDouble(storedConfidence);
+                var confidence = Convert.ToDouble(storedConfidence, CultureInfo.InvariantCulture);
                 if (confidence >= ValidConfidenceMin && confidence <= ValidConfidenceMax)
                 {
                     return confidence;
@@ -762,20 +763,20 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Factor 1: Position size relative to max (larger size = higher confidence)
             if (tradeRecord.Metadata.TryGetValue("position_size_ratio", out var sizeRatio))
             {
-                factors.Add(Convert.ToDouble(sizeRatio));
+                factors.Add(Convert.ToDouble(sizeRatio, CultureInfo.InvariantCulture));
             }
             
             // Factor 2: Risk-reward ratio (better R = higher confidence)
             if (tradeRecord.Metadata.TryGetValue("risk_reward_ratio", out var rrRatio))
             {
-                var rr = Convert.ToDouble(rrRatio);
+                var rr = Convert.ToDouble(rrRatio, CultureInfo.InvariantCulture);
                 factors.Add(Math.Min(1.0, rr / RiskRewardNormalizationFactor)); // Normalize 3:1 RR to confidence 1.0
             }
             
             // Factor 3: Market condition alignment
             if (tradeRecord.Metadata.TryGetValue("market_alignment", out var alignment))
             {
-                factors.Add(Convert.ToDouble(alignment));
+                factors.Add(Convert.ToDouble(alignment, CultureInfo.InvariantCulture));
             }
             
             // Calculate weighted average confidence
@@ -813,7 +814,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         try
         {
             // Simplified accuracy calculation based on trade profitability
-            var entryPrice = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("entry_price", tradeRecord.FillPrice));
+            var entryPrice = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("entry_price", tradeRecord.FillPrice), CultureInfo.InvariantCulture);
             var exitPrice = tradeRecord.FillPrice;
             var side = tradeRecord.Side.ToUpper();
             

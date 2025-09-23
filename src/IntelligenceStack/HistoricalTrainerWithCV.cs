@@ -636,9 +636,9 @@ public class HistoricalTrainerWithCV
     }
     
     
-    private async Task<List<MarketDataPoint>> ApplyDataQualityChecksAsync(List<MarketDataPoint> dataPoints, CancellationToken cancellationToken)
+    private Task<List<MarketDataPoint>> ApplyDataQualityChecksAsync(List<MarketDataPoint> dataPoints, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Remove invalid data points
             var validDataPoints = dataPoints.Where(dp => 
@@ -656,7 +656,7 @@ public class HistoricalTrainerWithCV
             }
             
             return validDataPoints;
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     private static ModelMetrics CalculateAggregateMetrics(IEnumerable<CVFoldResult> foldResults)
