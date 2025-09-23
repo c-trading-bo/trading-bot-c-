@@ -880,10 +880,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     /// </summary>
     private static decimal CalculatePositionSize(double confidence, MarketContext context)
     {
-        // Simple position sizing based on confidence and market volatility
+        // Simple position sizing based on confidence and market conditions
         var baseSize = 100m; // Base position size
         var confidenceMultiplier = (decimal)Math.Max(0.0, confidence);
-        var volatilityAdjustment = (decimal)(1.0 / Math.Max(0.1, context.Volatility)); // Reduce size in high volatility
+        
+        // Use available volatility from technical indicators or default
+        var volatility = context.TechnicalIndicators.GetValueOrDefault("volatility", 0.1);
+        var volatilityAdjustment = (decimal)(1.0 / Math.Max(0.1, volatility)); // Reduce size in high volatility
+        
         return baseSize * confidenceMultiplier * volatilityAdjustment;
     }
 

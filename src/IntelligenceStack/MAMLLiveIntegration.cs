@@ -664,8 +664,8 @@ public class MamlLiveIntegration
         // Apply strategy-specific scaling based on strategy type
         var strategyMultiplier = strategyKey switch
         {
-            var key when key.Contains("Conservative") => 0.8,
-            var key when key.Contains("Aggressive") => 1.2,
+            var key when key.Contains("Conservative", StringComparison.Ordinal) => 0.8,
+            var key when key.Contains("Aggressive", StringComparison.Ordinal) => 1.2,
             _ => 1.0
         };
         
