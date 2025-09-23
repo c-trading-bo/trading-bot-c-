@@ -267,7 +267,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private double CalculateSpreadRatio()
     {
         // Simplified spread calculation - would use actual bid/ask data
-        return _spreadMedian > 0 ? 1.0 : 1.0; // Placeholder
+        return _spreadMedian > 0 ? _spreadMedian : 1.0; // Return actual spread or default
     }
 
     public void UpdateMarketData(MarketData data)

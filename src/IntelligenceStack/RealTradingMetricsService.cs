@@ -171,7 +171,27 @@ public class RealTradingMetricsService : BackgroundService
     /// Collect and push real trading metrics to cloud
     /// Called by timer every minute
     /// </summary>
-    private async void CollectAndPushMetrics(object? state)
+    private void CollectAndPushMetrics(object? state)
+    {
+        // Use Task.Run to avoid async void issues
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await CollectAndPushMetricsAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log and swallow exceptions to prevent crashes
+                _logger?.LogError(ex, "Error collecting metrics");
+            }
+        });
+    }
+    
+    /// <summary>
+    /// Async implementation of metrics collection
+    /// </summary>
+    private async Task CollectAndPushMetricsAsync()
     {
         if (_intelligenceOrchestrator == null)
         {
@@ -356,7 +376,6 @@ public class RealTradingMetricsService : BackgroundService
     {
         _metricsTimer?.Dispose();
         base.Dispose();
-        GC.SuppressFinalize(this);
         ServiceDisposed(_logger, null);
     }
 }

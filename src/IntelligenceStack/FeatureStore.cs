@@ -92,6 +92,19 @@ public class FeatureStore : IFeatureStore
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(3011, "SchemaRetrievalFailed"),
             "[FEATURES] Failed to get schema for version: {Version}");
 
+    // Additional LoggerMessage delegates for compaction operations
+    private static readonly Action<ILogger, string, Exception?> FeatureFileReadFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3012, "FeatureFileReadFailed"),
+            "[FEATURES] Failed to read feature file for compaction: {File}");
+            
+    private static readonly Action<ILogger, string, Exception?> CompactedFileDeleteFailed =
+        LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3013, "CompactedFileDeleteFailed"),
+            "[FEATURES] Failed to delete compacted file: {File}");
+            
+    private static readonly Action<ILogger, string, Exception?> FeatureCompactionFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(3014, "FeatureCompactionFailed"),
+            "[FEATURES] Failed to compact feature files in {SymbolDir}");
+
     public FeatureStore(ILogger<FeatureStore> logger, string basePath = "data/features")
     {
         _logger = logger;
@@ -392,11 +405,11 @@ public class FeatureStore : IFeatureStore
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
+                    FeatureFileReadFailed(_logger, file, ex);
                 }
                 catch (IOException ex)
                 {
-                    _logger.LogWarning(ex, "[FEATURES] Failed to read feature file for compaction: {File}", file);
+                    FeatureFileReadFailed(_logger, file, ex);
                 }
             }
             
@@ -415,26 +428,26 @@ public class FeatureStore : IFeatureStore
                     }
                     catch (IOException ex)
                     {
-                        _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
+                        CompactedFileDeleteFailed(_logger, file, ex);
                     }
                     catch (UnauthorizedAccessException ex)
                     {
-                        _logger.LogWarning(ex, "[FEATURES] Failed to delete compacted file: {File}", file);
+                        CompactedFileDeleteFailed(_logger, file, ex);
                     }
                 }
             }
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            FeatureCompactionFailed(_logger, symbolDir, ex);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            FeatureCompactionFailed(_logger, symbolDir, ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex,  "[FEATURES] Failed to compact feature files in {SymbolDir}", symbolDir);
+            FeatureCompactionFailed(_logger, symbolDir, ex);
         }
     }
 
