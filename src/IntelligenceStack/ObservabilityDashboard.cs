@@ -228,8 +228,8 @@ public class ObservabilityDashboard : IDisposable
                 FromRegime = m.Tags.GetValueOrDefault("from_regime", "Unknown"),
                 ToRegime = m.Tags.GetValueOrDefault("to_regime", "Unknown"),
                 Confidence = m.Value,
-                Duration = TimeSpan.FromMinutes(m.Tags.ContainsKey("duration_min") ? 
-                    double.Parse(m.Tags["duration_min"], CultureInfo.InvariantCulture) : DefaultDurationMin)
+                Duration = TimeSpan.FromMinutes(m.Tags.TryGetValue("duration_min", out var duration) ? 
+                    double.Parse(duration, CultureInfo.InvariantCulture) : DefaultDurationMin)
             })
             .ToList();
 
@@ -722,9 +722,10 @@ public class ObservabilityDashboard : IDisposable
     {
         lock (_lock)
         {
-            if (!_metrics.ContainsKey(name))
+            if (!_metrics.TryGetValue(name, out var timeSeries))
             {
-                _metrics[name] = new MetricTimeSeries { Name = name };
+                timeSeries = new MetricTimeSeries { Name = name };
+                _metrics[name] = timeSeries;
             }
             
             var point = new MetricPoint
@@ -742,7 +743,7 @@ public class ObservabilityDashboard : IDisposable
                 }
             }
             
-            _metrics[name].Points.Add(point);
+            timeSeries.Points.Add(point);
             
             // Keep only recent points
             if (_metrics[name].Points.Count > MaxMetricPoints)

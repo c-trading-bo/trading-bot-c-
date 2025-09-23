@@ -579,17 +579,18 @@ public class MamlLiveIntegration
                 modelState.IsStable = true;
 
                 // Store adaptation history
-                if (!_adaptationHistory.ContainsKey(modelState.RegimeKey))
+                if (!_adaptationHistory.TryGetValue(modelState.RegimeKey, out var history))
                 {
-                    _adaptationHistory[modelState.RegimeKey] = new List<AdaptationStep>();
+                    history = new List<AdaptationStep>();
+                    _adaptationHistory[modelState.RegimeKey] = history;
                 }
                 
-                _adaptationHistory[modelState.RegimeKey].Add(step);
+                history.Add(step);
                 
                 // Keep only recent history
-                if (_adaptationHistory[modelState.RegimeKey].Count > MaxAdaptationHistoryCount)
+                if (history.Count > MaxAdaptationHistoryCount)
                 {
-                    _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
+                    history.RemoveAt(0);
                 }
             }
         }, cancellationToken).ConfigureAwait(false);

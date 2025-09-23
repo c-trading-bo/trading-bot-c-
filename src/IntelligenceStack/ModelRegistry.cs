@@ -584,22 +584,19 @@ public class ModelRegistry : IModelRegistry
     private static string CalculateModelChecksum(ModelArtifact model)
     {
         var data = model.ModelData ?? Array.Empty<byte>();
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(data);
+        var hash = SHA256.HashData(data);
         return Convert.ToHexString(hash)[..ChecksumHashLength];
     }
 
     private static string CalculateSchemaChecksum(string featuresVersion)
     {
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(featuresVersion));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(featuresVersion));
         return Convert.ToHexString(hash)[..ChecksumHashLength];
     }
 
     private static string CalculateRuntimeSignature(byte[] modelData)
     {
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(modelData);
+        var hash = SHA256.HashData(modelData);
         return Convert.ToBase64String(hash)[..RuntimeSignatureLength];
     }
 

@@ -560,8 +560,7 @@ public class LineageTrackingSystem
         };
         
         var configJson = JsonSerializer.Serialize(configData);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(configJson));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(configJson));
         return Convert.ToHexString(hash)[..HashIdLength];
     }
 
@@ -664,8 +663,7 @@ public class LineageTrackingSystem
         };
         
         var inputJson = JsonSerializer.Serialize(inputData);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(inputJson));
         return Convert.ToHexString(hash)[..HashIdLength];
     }
 

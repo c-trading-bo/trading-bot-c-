@@ -549,8 +549,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 var marketContext = new MarketContext
                 {
                     Symbol = symbol,
-                    Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                    Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                    Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                    Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                     Timestamp = DateTime.UtcNow
                 };
                 
@@ -666,8 +666,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketContext = new MarketContext
             {
                 Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
-                Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Price = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                 Timestamp = DateTime.UtcNow
             };
 
@@ -692,8 +692,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketData = new TradingBot.Abstractions.MarketData
             {
                 Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
-                Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0)),
-                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0)),
+                Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("price", 4500.0), CultureInfo.InvariantCulture),
+                Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", 1000.0), CultureInfo.InvariantCulture),
                 Timestamp = DateTime.UtcNow
             };
 
