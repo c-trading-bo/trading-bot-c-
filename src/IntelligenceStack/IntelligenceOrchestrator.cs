@@ -38,6 +38,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private const double DefaultVolume = 1000.0;
     private const double DefaultBidOffset = 4499.75;
     private const double DefaultAskOffset = 4500.25;
+    private const double DefaultMarketDataOpen = 4500.0;
+    private const double DefaultMarketDataHigh = 4502.0;
+    private const double DefaultMarketDataLow = 4498.0;
+    private const double DefaultMarketDataClose = 4501.0;
+    private const double DefaultMarketDataBid = 4500.75;
+    private const double DefaultMarketDataAsk = 4501.25;
+    private const int HttpClientErrorStart = 400;
+    private const int HttpServerErrorStart = 500;
 
 
 
@@ -196,6 +204,53 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(4029, "OnlinePredictionFailed"),
             "[ONLINE_PREDICTION] Failed to get online prediction for {Symbol}/{Strategy}");
             
+    // Cloud flow LoggerMessage delegates
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabledDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4030, "CloudFlowDisabledDebug"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushedInfo =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(4031, "TradeRecordPushedInfo"),
+            "[INTELLIGENCE] Trade record pushed to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, string, Exception?> TradeRecordPushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4032, "TradeRecordPushFailed"),
+            "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}");
+            
+    private static readonly Action<ILogger, Exception?> CloudFlowDisabledMetricsDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4033, "CloudFlowDisabledMetricsDebug"),
+            "[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
+            
+    private static readonly Action<ILogger, Exception?> MetricsPushedDebug =
+        LoggerMessage.Define(LogLevel.Debug, new EventId(4034, "MetricsPushedDebug"),
+            "[INTELLIGENCE] Service metrics pushed to cloud");
+            
+    private static readonly Action<ILogger, Exception?> MetricsPushFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4035, "MetricsPushFailed"),
+            "[INTELLIGENCE] Failed to push service metrics to cloud");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushedDebug =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4036, "DecisionIntelligencePushedDebug"),
+            "[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, string, Exception?> DecisionIntelligencePushFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "DecisionIntelligencePushFailed"),
+            "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}");
+            
+    private static readonly Action<ILogger, int, string, Exception?> CloudPushFailedWarning =
+        LoggerMessage.Define<int, string>(LogLevel.Warning, new EventId(4038, "CloudPushFailedWarning"),
+            "[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}");
+            
+    private static readonly Action<ILogger, int, Exception?> CloudPushTimeoutWarning =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4039, "CloudPushTimeoutWarning"),
+            "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}");
+            
+    private static readonly Action<ILogger, int, Exception?> CloudPushNetworkErrorWarning =
+        LoggerMessage.Define<int>(LogLevel.Warning, new EventId(4040, "CloudPushNetworkErrorWarning"),
+            "[INTELLIGENCE] Network error on cloud push attempt {Attempt}");
+            
+
+    
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IntelligenceStackConfig _config;
@@ -207,6 +262,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private readonly IDecisionLogger _decisionLogger;
     private readonly TradingBot.Abstractions.IStartupValidator _startupValidator;
     private readonly FeatureEngineer _featureEngineer;
+    private readonly CloudFlowService _cloudFlowService;
+    
     // State tracking
     private bool _isInitialized;
     private bool _isTradingEnabled;
@@ -234,7 +291,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         IDecisionLogger decisionLogger,
         TradingBot.Abstractions.IStartupValidator startupValidator,
         IIdempotentOrderService idempotentOrderService,
-        IOnlineLearningSystem onlineLearningSystem)
+        IOnlineLearningSystem onlineLearningSystem,
+        CloudFlowService cloudFlowService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -244,6 +302,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         _calibrationManager = calibrationManager;
         _decisionLogger = decisionLogger;
         _startupValidator = startupValidator;
+        _cloudFlowService = cloudFlowService;
         
         // Initialize FeatureEngineer with online learning system
         _featureEngineer = new FeatureEngineer(
@@ -1124,63 +1183,71 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private static MarketData ExtractMarketDataFromWorkflow(WorkflowExecutionContext context)
     {
-        return WorkflowHelpers.ExtractMarketDataFromWorkflow(context);
+        return new MarketData
+        {
+            Symbol = context.Parameters.GetValueOrDefault("symbol", "ES")?.ToString() ?? "ES",
+            Open = Convert.ToDouble(context.Parameters.GetValueOrDefault("open", DefaultMarketDataOpen)),
+            High = Convert.ToDouble(context.Parameters.GetValueOrDefault("high", DefaultMarketDataHigh)),
+            Low = Convert.ToDouble(context.Parameters.GetValueOrDefault("low", DefaultMarketDataLow)),
+            Close = Convert.ToDouble(context.Parameters.GetValueOrDefault("close", DefaultMarketDataClose)),
+            Volume = Convert.ToDouble(context.Parameters.GetValueOrDefault("volume", DefaultVolume)),
+            Bid = Convert.ToDouble(context.Parameters.GetValueOrDefault("bid", DefaultMarketDataBid)),
+            Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", DefaultMarketDataAsk)),
+            Timestamp = DateTime.UtcNow
+        };
     }
 
     // Wrapper methods for workflow execution
     private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
-        return WorkflowHelpers.CreateSuccessResult();
+        return new WorkflowExecutionResult { Success = true };
     }
 
     private async Task<WorkflowExecutionResult> UpdateRLTrainingWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
-        return WorkflowHelpers.CreateSuccessResult();
+        return new WorkflowExecutionResult { Success = true };
     }
 
     private async Task<WorkflowExecutionResult> GeneratePredictionsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
-        return WorkflowHelpers.CreateSuccessResult();
+        return new WorkflowExecutionResult { Success = true };
     }
 
     private async Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await AnalyzeCorrelationsAsync(context, cancellationToken).ConfigureAwait(false);
-        return WorkflowHelpers.CreateSuccessResult();
+        return new WorkflowExecutionResult { Success = true };
     }
 
     #endregion
 
-    #region Cloud Flow Methods (merged from CloudFlowService)
+    #region Cloud Flow Methods (delegated to CloudFlowService)
 
     /// <summary>
     /// Push trade record to cloud after decision execution
     /// </summary>
-    public Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
     {
-        // Simplified cloud push - implementation moved to reduce file size
-        return Task.CompletedTask;
+        await _cloudFlowService.PushTradeRecordAsync(tradeRecord, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Push service metrics to cloud
     /// </summary>
-    public Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
+    public async Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
     {
-        // Simplified cloud push - implementation moved to reduce file size
-        return Task.CompletedTask;
+        await _cloudFlowService.PushServiceMetricsAsync(metrics, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Push decision intelligence data to cloud
     /// </summary>
-    public Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
+    public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
     {
-        // Simplified cloud push - implementation moved to reduce file size
-        return Task.CompletedTask;
+        await _cloudFlowService.PushDecisionIntelligenceAsync(decision, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion

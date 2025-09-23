@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.IntelligenceStack;
+using TradingBot.Abstractions;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -16,11 +17,9 @@ public class RealTradingMetricsService : BackgroundService
 {
     private readonly ILogger<RealTradingMetricsService> _logger;
     private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
+    private readonly IMLConfigurationService _mlConfig;
     private readonly Timer _metricsTimer;
     private readonly TimeSpan _pushInterval = TimeSpan.FromMinutes(1); // Push metrics every minute
-
-    // Configuration constants - avoiding circular dependency
-    private const double DefaultPositionSizeMultiplier = 2.5;
 
     // Real trading metrics tracking
     private decimal _dailyPnL;
@@ -84,9 +83,11 @@ public class RealTradingMetricsService : BackgroundService
 
     public RealTradingMetricsService(
         ILogger<RealTradingMetricsService> logger,
+        IMLConfigurationService mlConfig,
         IntelligenceOrchestrator? intelligenceOrchestrator = null)
     {
         _logger = logger;
+        _mlConfig = mlConfig ?? throw new ArgumentNullException(nameof(mlConfig));
         _intelligenceOrchestrator = intelligenceOrchestrator;
 
         // Initialize timer for regular metrics collection
@@ -301,7 +302,7 @@ public class RealTradingMetricsService : BackgroundService
         }
 
         // Simplified calculation - in production would track actual position sizes
-        return DefaultPositionSizeMultiplier;
+        return _mlConfig.GetPositionSizeMultiplier();
     }
 
     private double GetDailyTradeCount()
