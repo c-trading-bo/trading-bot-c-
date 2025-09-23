@@ -154,10 +154,6 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDisposable
     private static readonly Action<ILogger, string, Exception?> EventRaiseFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "EventRaiseFailed"),
             "[INTELLIGENCE] Failed to raise event: {EventName}");
-            
-    private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4034, "RealPredictionCalculationFailed"),
-            "[INTELLIGENCE] Real prediction calculation failed");
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IntelligenceStackConfig _config;

@@ -733,6 +733,11 @@ public class MamlLiveIntegration : IDisposable
     {
         try
         {
+            // Parameters intentionally unused in placeholder implementation
+            _ = regime;
+            _ = count;
+            _ = cancellationToken;
+            
             // Check if trading database is available
             var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trading.db");
             if (!File.Exists(dbPath))
@@ -772,6 +777,10 @@ public class MamlLiveIntegration : IDisposable
     {
         try
         {
+            // Parameters intentionally unused in placeholder implementation
+            _ = regime;
+            _ = count;
+            
             await Task.Yield(); // Placeholder for async operation
             
             // In a full implementation, this would integrate with:
