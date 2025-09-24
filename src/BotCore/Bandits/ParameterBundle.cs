@@ -155,7 +155,7 @@ public record ParameterBundle
     /// Bracket mode for order management (replaces hardcoded bracket settings)
     /// Enables learning optimal stop/target combinations
     /// </summary>
-    public BracketMode BracketMode { get; init; } = BracketMode.Conservative;
+    public BracketMode BracketMode { get; init; } = BracketMode.Presets.Conservative;
     
     /// <summary>
     /// Unique bundle identifier: Strategy-Multiplier-Threshold-BracketMode

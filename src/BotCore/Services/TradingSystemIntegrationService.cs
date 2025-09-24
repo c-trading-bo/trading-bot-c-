@@ -519,7 +519,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // PHASE 1: Feature Engineering - Transform raw market data into ML-ready features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 
                 // PHASE 2: Time-Optimized Strategy Selection - Use existing optimization
                 // Note: Simplifying to use available methods
@@ -548,10 +548,10 @@ namespace TopstepX.Bot.Core.Services
                     brainDecision.PriceDirection, brainDecision.PriceProbability, brainDecision.OptimalPositionMultiplier);
                 
                 // PHASE 6: AllStrategies Signal Generation - Generate high-confidence signals using existing sophisticated strategies
-                var marketSnapshot = CreateMarketSnapshot(symbol, marketData, bars);
+                var marketSnapshot = CreateMarketSnapshot(symbol, marketData);
                 
                 // Use AllStrategies for signal generation - this is what the user wants!
-                var allStrategiesSignals = ConvertCandidatesToSignals(mlEnhancedCandidates, symbol);
+                var allStrategiesSignals = ConvertCandidatesToSignals(mlEnhancedCandidates);
 
                 _logger.LogInformation("[ML/RL-STRATEGY] Generated {CandidateCount} base candidates, {EnhancedCount} ML-enhanced, {SignalCount} AllStrategies signals for {Symbol}", 
                     candidates.Count, mlEnhancedCandidates.Count, allStrategiesSignals.Count, symbol);
@@ -689,11 +689,11 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Convert AllStrategies candidates to signals
-                var baseSignals = ConvertCandidatesToSignals(allStrategiesCandidates, symbol);
+                var baseSignals = ConvertCandidatesToSignals(allStrategiesCandidates);
                 aggregatedSignals.AddRange(baseSignals);
 
                 // Add ML-enhanced candidates with higher confidence
-                var enhancedSignals = ConvertCandidatesToSignals(mlEnhancedCandidates, symbol);
+                var enhancedSignals = ConvertCandidatesToSignals(mlEnhancedCandidates);
                 foreach (var signal in enhancedSignals)
                 {
                     var enhancedSignal = signal with { Score = 0.85m, QScore = 0.85m, ProfileName = "ML-Enhanced" };
@@ -1506,7 +1506,7 @@ namespace TopstepX.Bot.Core.Services
                 var levels = new Levels();
                 var positionManagementCandidates = new List<Candidate>(); // Simplified - no position management candidates for now
                 
-                var positionSignals = ConvertCandidatesToSignals(positionManagementCandidates, symbol);
+                var positionSignals = ConvertCandidatesToSignals(positionManagementCandidates);
 
                 // Process any immediate position management actions (stops, targets, scaling)
                 foreach (var signal in positionSignals.Where(s => s.Score > 0.7m))

@@ -670,7 +670,7 @@ namespace TradingBot.Critical
                     await ReconcilePositions(state).ConfigureAwait(false);
                     
                     // Reattach stop losses
-                    await ReattachProtectiveOrders(state).ConfigureAwait(false);
+                    await ReattachProtectiveOrders().ConfigureAwait(false);
                     
                     // Resume strategies
                     await ResumeStrategies(state).ConfigureAwait(false);
@@ -1044,11 +1044,11 @@ namespace TradingBot.Critical
         private void LogCriticalError(string message, Exception? ex) => _logger.LogError(ex, message);
         private Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
-        private Task<bool> CheckOrderExists() => Task.FromResult(false);
+        private Task<bool> CheckOrderExists(string orderId) => Task.FromResult(false);
         private decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
         private decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
-        private Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
-        private Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceStopLossOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceTakeProfitOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);
         private async Task ExecuteEmergencyOrder(Order order) 
         {
