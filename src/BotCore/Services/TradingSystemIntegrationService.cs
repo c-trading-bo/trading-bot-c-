@@ -1657,7 +1657,7 @@ namespace TopstepX.Bot.Core.Services
         private void OnEmergencyStopTriggered(object? sender, EmergencyStopEventArgs e)
         {
             _logger.LogCritical("🚨 EMERGENCY STOP TRIGGERED - All trading halted. Reason: {Reason}", e.Reason);
-            _isTradingEnabled;
+            _isTradingEnabled = false;
         }
 
         private async Task CleanupAsync()
@@ -1888,7 +1888,7 @@ namespace TopstepX.Bot.Core.Services
             // Additional validations
             if (context.TimeSinceLastData.TotalSeconds > _readinessConfig.MarketDataTimeoutSeconds)
             {
-                result.IsReady;
+                result.IsReady = false;
                 result.Reason += " (stale data)";
                 score *= 0.5;
                 recommendations.Add("Check market data flow");
@@ -1896,7 +1896,7 @@ namespace TopstepX.Bot.Core.Services
 
             if (!context.HubsConnected)
             {
-                result.IsReady;
+                result.IsReady = false;
                 result.Reason += " (hubs disconnected)";
                 score *= 0.3;
                 recommendations.Add("Check SignalR connections");
