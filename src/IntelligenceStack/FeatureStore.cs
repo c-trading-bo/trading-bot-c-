@@ -148,6 +148,12 @@ public class FeatureStore : IFeatureStore
                         features[kvp.Key] = kvp.Value;
                     }
                     
+                    // Merge metadata
+                    foreach (var kvp in featureSet.Metadata)
+                    {
+                        metadata[kvp.Key] = kvp.Value;
+                    }
+                    
                     version = featureSet.Version;
                     checksum = featureSet.SchemaChecksum;
                 }

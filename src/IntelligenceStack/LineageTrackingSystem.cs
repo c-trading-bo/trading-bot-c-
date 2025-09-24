@@ -815,7 +815,7 @@ public class LineageTrackingSystem
         }, cancellationToken);
     }
 
-    private async Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
+    private Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
     {
         lock (_lock)
         {
@@ -835,8 +835,8 @@ public class LineageTrackingSystem
             }
         }
 
-        // Save event to disk
-        await SaveLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
+        // Save event to disk - Direct task return to satisfy AsyncFixer01
+        return SaveLineageEventAsync(lineageEvent, cancellationToken);
     }
 
     private Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)

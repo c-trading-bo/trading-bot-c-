@@ -180,11 +180,13 @@ public class RealTradingMetricsService : BackgroundService
             {
                 await CollectAndPushMetricsAsync().ConfigureAwait(false);
             }
+#pragma warning disable CA1031 // Do not catch general exception types - Background service safety requires catching all exceptions
             catch (Exception ex)
             {
                 // Log and swallow exceptions to prevent crashes
-                _logger?.LogError(ex, "Error collecting metrics");
+                MetricsCollectionFailed(_logger, ex);
             }
+#pragma warning restore CA1031
         });
     }
     
@@ -375,8 +377,9 @@ public class RealTradingMetricsService : BackgroundService
     public override void Dispose()
     {
         _metricsTimer?.Dispose();
-        base.Dispose();
         ServiceDisposed(_logger, null);
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 

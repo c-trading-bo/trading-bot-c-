@@ -77,6 +77,39 @@ public class ModelRegistry : IModelRegistry
     private static readonly Action<ILogger, string, Exception?> FailedToParseModelMetadata =
         LoggerMessage.Define<string>(LogLevel.Warning, new EventId(5011, "FailedToParseModelMetadata"),
             "[REGISTRY] Failed to parse model metadata: {File}");
+            
+    // Additional CA1848 compliance delegates for cleanup operations
+    private static readonly Action<ILogger, Exception?> FailedToReadModelsDirectory =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5012, "FailedToReadModelsDirectory"),
+            "[REGISTRY] Failed to read models directory");
+            
+    private static readonly Action<ILogger, Exception?> AccessDeniedToModelsDirectory =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5013, "AccessDeniedToModelsDirectory"),
+            "[REGISTRY] Access denied to models directory");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelCleanedUp =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(5014, "ModelCleanedUp"),
+            "[REGISTRY] Cleaned up expired model: {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> FailedToCleanupModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5015, "FailedToCleanupModel"),
+            "[REGISTRY] Failed to cleanup model: {ModelId}");
+            
+    private static readonly Action<ILogger, string, Exception?> AccessDeniedWhenCleaningUpModel =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(5016, "AccessDeniedWhenCleaningUpModel"),
+            "[REGISTRY] Access denied when cleaning up model: {ModelId}");
+            
+    private static readonly Action<ILogger, Exception?> IOErrorDuringCleanup =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5017, "IOErrorDuringCleanup"),
+            "[REGISTRY] IO error during cleanup of expired models");
+            
+    private static readonly Action<ILogger, Exception?> AccessDeniedDuringCleanup =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5018, "AccessDeniedDuringCleanup"),
+            "[REGISTRY] Access denied during cleanup of expired models");
+            
+    private static readonly Action<ILogger, Exception?> SecurityErrorDuringCleanup =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5019, "SecurityErrorDuringCleanup"),
+            "[REGISTRY] Security error during cleanup of expired models");
 
     public ModelRegistry(
         ILogger<ModelRegistry> logger, 
@@ -420,11 +453,11 @@ public class ModelRegistry : IModelRegistry
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex,  "[REGISTRY] Failed to read models directory");
+            FailedToReadModelsDirectory(_logger, ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex,  "[REGISTRY] Access denied to models directory");
+            AccessDeniedToModelsDirectory(_logger, ex);
         }
         
         return activeModels;
@@ -441,7 +474,9 @@ public class ModelRegistry : IModelRegistry
             var retentionPeriod = TimeSpan.FromDays(30); // Keep models for 30 days
             var cutoffDate = DateTime.UtcNow - retentionPeriod;
             
+#pragma warning disable S3267 // Loops should be simplified by calling SelectMany when possible - False positive: performing side effects (file deletion), not data transformation
             foreach (var model in activeModels.Where(m => m.CreatedAt < cutoffDate))
+#pragma warning restore S3267
             {
                 try
                 {
@@ -463,29 +498,29 @@ public class ModelRegistry : IModelRegistry
                         _modelCache.Remove(model.Id);
                     }
                     
-                    _logger.LogInformation("[REGISTRY] Cleaned up expired model: {ModelId}", model.Id);
+                    ModelCleanedUp(_logger, model.Id, null);
                 }
                 catch (IOException ex)
                 {
-                    _logger.LogError(ex,  "[REGISTRY] Failed to cleanup model: {ModelId}", model.Id);
+                    FailedToCleanupModel(_logger, model.Id, ex);
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    _logger.LogError(ex,  "[REGISTRY] Access denied when cleaning up model: {ModelId}", model.Id);
+                    AccessDeniedWhenCleaningUpModel(_logger, model.Id, ex);
                 }
             }
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex,  "[REGISTRY] IO error during cleanup of expired models");
+            IOErrorDuringCleanup(_logger, ex);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex,  "[REGISTRY] Access denied during cleanup of expired models");
+            AccessDeniedDuringCleanup(_logger, ex);
         }
         catch (SecurityException ex)
         {
-            _logger.LogError(ex,  "[REGISTRY] Security error during cleanup of expired models");
+            SecurityErrorDuringCleanup(_logger, ex);
         }
     }
 

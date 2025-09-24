@@ -22,7 +22,9 @@ public partial class IntelligenceOrchestratorHelpers
     private readonly object _lock = new();
     
     public IntelligenceOrchestratorHelpers(
+#pragma warning disable S6672 // Generic logging dependency should use enclosing type - Helper class shares logger with main orchestrator
         ILogger<IntelligenceOrchestrator> logger,
+#pragma warning restore S6672
         IModelRegistry modelRegistry,
         Dictionary<string, ModelArtifact> activeModels)
     {
