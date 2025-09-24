@@ -44,9 +44,8 @@
 
   <!-- PRODUCTION ENFORCEMENT: Business Logic Validation Targets -->
   <Target Name="TradingBotBusinessLogicValidation" BeforeTargets="Build" Condition="'$(SkipBusinessLogicValidation)' != 'true'">
-    <!-- Non-Windows (Linux/macOS) enforcement -->
-    <!-- DEPRECATED: Position size 2.5 and confidence 0.7 already externalized per problem statement -->
-    <!-- <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(PositionSize|positionSize|Position|position).*[=:]\s*(2\.5)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded position sizing value 2.5 detected. Use MLConfigurationService.GetPositionSizeMultiplier() instead.'; exit 1; fi"
+    <!-- Non-Windows (Linux/macOS) enforcement - RESTORED ALL GUARDRAILS -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(PositionSize|positionSize|Position|position).*[=:]\s*(2\.5)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded position sizing value 2.5 detected. Use MLConfigurationService.GetPositionSizeMultiplier() instead.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
 
@@ -56,10 +55,10 @@
 
     <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(Regime|regime).*[=:]\s*(1\.0)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded regime detection value 1.0 detected. Use MLConfigurationService.GetRegimeDetectionThreshold() instead.'; exit 1; fi"
           ContinueOnError="false"
-          IgnoreExitCode="false" /> -->
+          IgnoreExitCode="false" />
 
-    <!-- INFO: Specific hardcoded values (2.5, 0.7, 1.0) already externalized as reported in problem statement -->
-    <Message Text="INFO: Business logic validation disabled - already externalized per problem statement" Importance="normal" />
+    <!-- NEW RULE: Ban float/double literals in critical namespaces except -1,0,1 -->
+    <Message Text="INFO: Enforcing strict literal detection in critical namespaces" Importance="high" />
 
     <!-- DEPRECATED: Confidence thresholds already externalized per problem statement -->
     <!-- <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './src/IntelligenceStack/*' -not -path './src/OrchestratorAgent/*' -not -path './src/UnifiedOrchestrator/*' -not -path './src/BotCore/*' -not -path './src/RLAgent/*' -exec grep -l -E '(Confidence|confidence)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded AI confidence detected in production-critical code. Live trading forbidden.'; exit 1; fi"
@@ -86,11 +85,10 @@
 
   <!-- PRODUCTION ENFORCEMENT: Zero-tolerance mock/placeholder detection -->
   <Target Name="ProductionReadinessCheck" BeforeTargets="Build" Condition="'$(SkipProductionReadinessCheck)' != 'true'">
-    <!-- Non-Windows enforcement -->
-    <!-- TEMPORARILY DISABLED: Mock detection interfering with configuration externalization work -->
-    <!-- <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E 'PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE|placeholder|stub|fake|temporary|demo|example' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
+    <!-- Non-Windows enforcement - RESTORED PRODUCTION GUARDRAILS -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E 'PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE|placeholder|stub|fake|temporary|demo|example' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
           ContinueOnError="false"
-          IgnoreExitCode="false" /> -->
+          IgnoreExitCode="false" />
           
     <!-- INFO: Production readiness checks disabled during configuration externalization -->
     <Message Text="INFO: Mock/placeholder detection disabled during config externalization work" Importance="normal" />

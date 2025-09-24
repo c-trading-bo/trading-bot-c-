@@ -65,5 +65,35 @@ namespace TradingBot.BotCore.Services
 
         public int GetConfidenceCalibrationLookbackHours() => 
             _config.GetValue("Controller:ConfidenceCalibrationLookbackHours", 24);
+
+        public double GetVixMaxValue() => 
+            _config.GetValue("Controller:VixMaxValue", 100.0);
+
+        public double GetVolumeRatioMaxValue() => 
+            _config.GetValue("Controller:VolumeRatioMaxValue", 10.0);
+
+        public double GetRsiMaxValue() => 
+            _config.GetValue("Controller:RsiMaxValue", 100.0);
+
+        public double GetMomentumScaleFactor() => 
+            _config.GetValue("Controller:MomentumScaleFactor", 0.05);
+
+        public double GetVolatilityMaxValue() => 
+            _config.GetValue("Controller:VolatilityMaxValue", 5.0);
+
+        public double GetVixNeutralLevel() => 
+            _config.GetValue("Controller:VixNeutralLevel", 0.3);
+
+        public double GetVixImpactFactor() => 
+            _config.GetValue("Controller:VixImpactFactor", 0.3);
+
+        public double GetVolumeImpactFactor() => 
+            _config.GetValue("Controller:VolumeImpactFactor", 0.2);
+
+        public double GetMomentumImpactFactor() => 
+            _config.GetValue("Controller:MomentumImpactFactor", 0.25);
+
+        public double GetNoiseAmplitude() => 
+            _config.GetValue("Controller:NoiseAmplitude", 0.05);
     }
 }

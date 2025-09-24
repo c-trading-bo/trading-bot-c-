@@ -50,5 +50,55 @@ namespace TradingBot.Abstractions
         /// Lookback period for confidence calibration in hours
         /// </summary>
         int GetConfidenceCalibrationLookbackHours();
+
+        /// <summary>
+        /// VIX maximum value for normalization
+        /// </summary>
+        double GetVixMaxValue();
+
+        /// <summary>
+        /// Volume ratio maximum value for normalization
+        /// </summary>
+        double GetVolumeRatioMaxValue();
+
+        /// <summary>
+        /// RSI maximum value for normalization
+        /// </summary>
+        double GetRsiMaxValue();
+
+        /// <summary>
+        /// Momentum scale factor for feature normalization
+        /// </summary>
+        double GetMomentumScaleFactor();
+
+        /// <summary>
+        /// Volatility maximum value for normalization
+        /// </summary>
+        double GetVolatilityMaxValue();
+
+        /// <summary>
+        /// VIX neutral level for analysis
+        /// </summary>
+        double GetVixNeutralLevel();
+
+        /// <summary>
+        /// VIX impact factor for confidence calculation
+        /// </summary>
+        double GetVixImpactFactor();
+
+        /// <summary>
+        /// Volume impact factor for confidence calculation
+        /// </summary>
+        double GetVolumeImpactFactor();
+
+        /// <summary>
+        /// Momentum impact factor for confidence calculation
+        /// </summary>
+        double GetMomentumImpactFactor();
+
+        /// <summary>
+        /// Noise amplitude for model simulation
+        /// </summary>
+        double GetNoiseAmplitude();
     }
 }

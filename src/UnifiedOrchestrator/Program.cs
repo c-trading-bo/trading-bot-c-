@@ -971,6 +971,14 @@ Stack Trace:
         services.AddSingleton<TradingBot.BotCore.Services.ConfigurationSchemaService>();
         services.AddHostedService<TradingBot.BotCore.Services.StateDurabilityService>();
         
+        // Register Last-Mile Production Safety Services
+        services.AddSingleton<TradingBot.BotCore.Services.OnnxModelCompatibilityService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ClockHygieneService>();
+        services.AddSingleton<TradingBot.BotCore.Services.DeterminismService>();
+        services.AddSingleton<TradingBot.BotCore.Services.SecretsValidationService>();
+        services.AddSingleton<TradingBot.BotCore.Services.IntegritySigningService>();
+        services.AddSingleton<TradingBot.BotCore.Services.SuppressionLedgerService>();
+        
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));
         services.AddSingleton<BotCore.Services.ProductionResilienceService>();
