@@ -379,6 +379,7 @@ public class RealTradingMetricsService : BackgroundService
         _metricsTimer?.Dispose();
         ServiceDisposed(_logger, null);
         base.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 
