@@ -340,11 +340,9 @@ namespace OrchestratorAgent
                     {
                         logging.AddFilter("Microsoft", LogLevel.Warning);
                         logging.AddFilter("System", LogLevel.Warning);
-                        logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
                         logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
                     }
-                    // Always suppress verbose client transport logs that can echo access_token in URLs
-                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+                    // Suppress verbose client transport logs
                     logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
                     logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
                 })
@@ -421,28 +419,7 @@ namespace OrchestratorAgent
             }
         }
 #nullable enable
-        private async Task ReliableInvokeAsync(HubConnection conn, Func<HubConnection, CancellationToken, Task> call, CancellationToken ct)
-        {
-            var delay = TimeSpan.FromMilliseconds(300);
-            for (int attempt = 1; attempt <= 5; attempt++)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                if (conn.State == HubConnectionState.Connected)
-                {
-                    try { await call(conn, ct).ConfigureAwait(false); return; }
-                    catch (Exception ex) { _log.LogWarning(ex, $"Invoke attempt {attempt} failed: {ex.Message}"); }
-                }
-                else
-                {
-                    _log.LogWarning($"Connection state is {conn.State}, waiting before retry...");
-                }
-
-                await Task.Delay(delay, ct).ConfigureAwait(false);
-                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
-            }
-            throw new InvalidOperationException("UserHub invoke could not complete after multiple retries.");
-        }
+        // Method removed - TopstepX SDK handles connections and retries internally
 
         private bool IsTokenExpired(string token)
         {
@@ -523,9 +500,25 @@ using System.Globalization;
 
         public async ValueTask DisposeAsync()
         {
-            if (_conn is not null)
+            try
             {
-                try { await _conn.DisposeAsync().ConfigureAwait(false); } catch { }
+                _log.LogInformation("[TOPSTEPX-SDK] Disposing TopstepX user agent");
+
+                // Unsubscribe from events
+                if (_topstepXClient != null)
+                {
+                    _topstepXClient.OnOrderUpdate -= HandleOrderUpdate;
+                    _topstepXClient.OnTradeUpdate -= HandleTradeUpdate;
+                }
+
+                // Cancel any ongoing operations
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+                _subscribed = false;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[TOPSTEPX-SDK] Error during disposal");
             }
         }
     }
