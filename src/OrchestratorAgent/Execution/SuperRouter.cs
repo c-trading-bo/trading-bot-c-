@@ -138,7 +138,7 @@ namespace OrchestratorAgent.Execution
             }
         }
 
-        Task<Signal> EnhanceSignalAsync(Signal sig, CancellationToken ct)
+        Task<Signal> EnhanceSignalAsync(Signal sig)
         {
             try
             {

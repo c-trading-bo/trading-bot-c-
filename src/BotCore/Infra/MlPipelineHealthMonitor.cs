@@ -45,7 +45,7 @@ namespace BotCore.Infra
 
             // Check health every 30 minutes
             var interval = TimeSpan.FromMinutes(30);
-            _checkTimer = new Timer(CheckHealthAsync, null, TimeSpan.Zero, interval);
+            _checkTimer = new Timer(_ => _ = CheckHealthAsync(), null, (int)TimeSpan.Zero.TotalMilliseconds, (int)interval.TotalMilliseconds);
 
             _log.LogInformation("[ML-Health] Started monitoring pipeline health every {Interval}", interval);
         }

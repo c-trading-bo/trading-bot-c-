@@ -859,5 +859,12 @@ using System.Globalization;
     public interface IMarketDataService
     {
         // Interface definition for market data service
+        Task<OrderBook?> GetOrderBookAsync(string symbol);
+    }
+
+    public class OrderBook
+    {
+        public decimal BidSize { get; set; }
+        public decimal AskSize { get; set; }
     }
 }

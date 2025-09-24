@@ -178,7 +178,7 @@ namespace OrchestratorAgent.Execution
             return finalProbability;
         }
 
-        private double ApplyContextualFilters(double winProb, EntrySignal signal, MarketContext context)
+        private double ApplyContextualFilters(double winProb, MarketContext context)
         {
             var filtered = winProb;
 

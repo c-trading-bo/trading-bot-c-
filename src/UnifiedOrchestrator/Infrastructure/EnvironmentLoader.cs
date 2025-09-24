@@ -50,7 +50,7 @@ public static class EnvironmentLoader
             foreach (var raw in File.ReadAllLines(filePath))
             {
                 var line = raw.Trim();
-                if (line.Length == 0 || line.StartsWith("#")) continue;
+                if (line.Length == 0 || line.StartsWith('#')) continue;
                 
                 var idx = line.IndexOf('=');
                 if (idx <= 0 || idx >= line.Length - 1) continue;
@@ -59,8 +59,8 @@ public static class EnvironmentLoader
                 var val = line.Substring(idx + 1).Trim();
                 
                 // Remove quotes if present
-                if ((val.StartsWith("\"") && val.EndsWith("\"")) || 
-                    (val.StartsWith("'") && val.EndsWith("'")))
+                if ((val.StartsWith('"') && val.EndsWith('"')) || 
+                    (val.StartsWith('\'') && val.EndsWith('\'')))
                 {
                     // Defensive bounds checking for quote removal
                     if (val.Length >= 2)

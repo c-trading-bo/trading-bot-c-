@@ -35,7 +35,7 @@ namespace OrchestratorAgent.Execution
             return (pick.Strat, pick.Cfg, CurrentWeights(strats, cfgMap, riskW));
         }
 
-        static Dictionary<(string Strat, string Cfg), double> CurrentWeights(string[] strats, Dictionary<string, string[]> cfgMap, Func<string, double> riskW)
+        static Dictionary<(string Strat, string Cfg), double> CurrentWeights(string[] strats, Dictionary<string, string[]> cfgMap)
         {
             var w = new Dictionary<(string Strat, string Cfg), double>();
             foreach (var s in strats)

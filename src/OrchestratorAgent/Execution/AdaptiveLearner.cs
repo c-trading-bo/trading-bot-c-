@@ -99,7 +99,7 @@ public static class AdaptiveLearner
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private static void ProposeS2(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
+    private static void ProposeS2(string root, int trades, decimal wr, decimal net, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
         var extra = new Dictionary<string, JsonElement>(); bool write;
@@ -120,7 +120,7 @@ public static class AdaptiveLearner
         if (write) { ParamStore.SaveS2(root, extra, life); log.LogInformation("[Learn] S2 override TTL={TTL}d for {Root}", life.TotalDays, root); }
     }
 
-    private static void ProposeS3(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
+    private static void ProposeS3(string root, int trades, decimal wr, decimal net, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
         if (trades == 0)
@@ -137,7 +137,7 @@ public static class AdaptiveLearner
         }
     }
 
-    private static void ProposeS6(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
+    private static void ProposeS6(string root, int trades, decimal wr, decimal net, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
         var extra = new Dictionary<string, JsonElement>(); bool write;
@@ -152,7 +152,7 @@ public static class AdaptiveLearner
         if (write) { ParamStore.SaveS6(root, extra, life); log.LogInformation("[Learn] S6 override TTL={TTL}d for {Root}", life.TotalDays, root); }
     }
 
-    private static void ProposeS11(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
+    private static void ProposeS11(string root, int trades, decimal wr, decimal net, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
         var extra = new Dictionary<string, JsonElement>(); bool write;

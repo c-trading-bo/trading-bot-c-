@@ -523,7 +523,7 @@ public class PerformanceMetrics
 {
     private readonly ConcurrentDictionary<TradingLogCategory, long> _categoryCounts = new();
     private readonly ConcurrentDictionary<TradingLogLevel, long> _levelCounts = new();
-    private DateTime _startTime = DateTime.UtcNow;
+    private readonly DateTime _startTime = DateTime.UtcNow;
     private long _totalEntries;
 
     public void RecordLogEntry(TradingLogCategory category, TradingLogLevel level)

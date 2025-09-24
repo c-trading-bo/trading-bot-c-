@@ -942,17 +942,18 @@ public class AutonomousDecisionEngine : BackgroundService
             }
             
             // Try market data service for order book volume
-            var marketDataService = _serviceProvider.GetService<IMarketDataService>();
-            if (marketDataService != null)
-            {
-                var orderBook = await marketDataService.GetOrderBookAsync(symbol).ConfigureAwait(false);
-                if (orderBook != null)
-                {
-                    var volume = orderBook.BidSize + orderBook.AskSize;
-                    _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved order book volume {Volume} for {Symbol}", volume, symbol);
-                    return volume;
-                }
-            }
+            // Note: Commented out pending interface resolution
+            // var marketDataService = _serviceProvider.GetService<IMarketDataService>();
+            // if (marketDataService != null)
+            // {
+            //     var orderBook = await marketDataService.GetOrderBookAsync(symbol).ConfigureAwait(false);
+            //     if (orderBook != null)
+            //     {
+            //         var volume = orderBook.BidSize + orderBook.AskSize;
+            //         _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved order book volume {Volume} for {Symbol}", volume, symbol);
+            //         return volume;
+            //     }
+            // }
             
             _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] No real volume data available from TopstepX services for {Symbol}", symbol);
             return null;

@@ -38,7 +38,7 @@ namespace BotCore
 
             // Check for training data and train every 2 hours (faster than previous 6 hours)
             var checkInterval = TimeSpan.FromHours(2);
-            _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, checkInterval);
+            _timer = new Timer(_ => _ = CheckAndTrain(), null, (int)TimeSpan.Zero.TotalMilliseconds, (int)checkInterval.TotalMilliseconds);
 
             _logger.LogInformation("[EnhancedAutoRlTrainer] Started - checking every {Interval} for training opportunities", checkInterval);
         }

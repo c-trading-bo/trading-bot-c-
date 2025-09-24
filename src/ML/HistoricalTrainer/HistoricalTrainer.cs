@@ -29,8 +29,8 @@ public class HistoricalTrainer
     private readonly HistoricalDatasetBuilder _datasetBuilder;
     private readonly HistoricalWalkForwardTrainer _walkForwardTrainer;
     private readonly HistoricalRegistryWriter _registryWriter;
-    private readonly string _historicalDataPath = null!;
-    private readonly string _modelsOutputPath = null!;
+    private readonly string _historicalDataPath;
+    private readonly string _modelsOutputPath;
 
     public HistoricalTrainer(
         ILogger<HistoricalTrainer> logger,
@@ -637,7 +637,7 @@ public class HistoricalWalkForwardTrainer
 public class HistoricalRegistryWriter
 {
     private readonly ILogger _logger;
-    private readonly string _modelsOutputPath = null!;
+    private readonly string _modelsOutputPath;
 
     public HistoricalRegistryWriter(ILogger logger, string modelsOutputPath)
     {
