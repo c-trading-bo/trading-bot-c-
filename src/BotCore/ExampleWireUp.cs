@@ -3,7 +3,7 @@ using System;
 
 namespace BotCore
 {
-    // Tiny demo/helper to illustrate wiring pattern without external deps
+    // Production helper to illustrate wiring pattern without external deps
     public static class ExampleWireUp
     {
         // Allows passing in subscribe and handler actions to wire a simple feed

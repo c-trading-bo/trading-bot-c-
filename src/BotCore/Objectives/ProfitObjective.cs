@@ -10,7 +10,7 @@ namespace BotCore.Objectives;
 /// </summary>
 public static class ProfitObjective
 {
-    public sealed record Metrics(decimal NetUsd, decimal MaxDrawdownUsd, int Trades, decimal WinRate, decimal AvgR);
+    public sealed record ProfitMetrics(decimal NetUsd, decimal MaxDrawdownUsd, int Trades, decimal WinRate, decimal AvgR);
 
     public sealed record Weights(
         decimal NetUsdWeight,
@@ -49,7 +49,7 @@ public static class ProfitObjective
         return w;
     }
 
-    public static decimal Score(Metrics m, Weights w)
+    public static decimal Score(ProfitMetrics m, Weights w)
     {
         if (m.Trades < w.MinTrades) return decimal.MinusOne; // unviable
         if (m.MaxDrawdownUsd > w.MaxDrawdownLimitUsd) return decimal.MinusOne; // violates risk cap

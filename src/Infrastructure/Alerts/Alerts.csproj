@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyName>TradingBot.Infrastructure.Alerts</AssemblyName>
     <RootNamespace>TradingBot.Infrastructure.Alerts</RootNamespace>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>

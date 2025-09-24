@@ -11,7 +11,7 @@ namespace BotCore.TestApp;
 /// <summary>
 /// Simple console app to test production guardrails
 /// </summary>
-class Program
+internal sealed class Program
 {
     static async Task<int> Main(string[] args)
     {

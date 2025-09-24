@@ -341,8 +341,8 @@ namespace TopstepX.S11
                 int mod15 = bar.TimeET.Minute % 15;
                 if (mod15 == 14 && Min1.Count >= 15)
                 {
-                    long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15;
-                    for (int i; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
+                    long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15 = 0;
+                    for (int i = 0; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
                     Min15.Add(new Bar1m(bar.TimeET, o15, h15, l15, c15, v15));
                 }
 

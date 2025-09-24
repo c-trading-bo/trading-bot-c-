@@ -100,44 +100,47 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public async Task RestoreFromBackupAsync(string backupFileName)
         {
-            try
+            await Task.Run(() =>
             {
-                _logger.LogWarning("🔄 [STATE-DURABILITY] Starting restore from backup: {BackupFile}", backupFileName);
-
-                var backupDir = Path.Combine(_pathConfig.GetDataRootPath(), "backups");
-                var backupFile = Path.Combine(backupDir, backupFileName);
-                var statePath = _pathConfig.GetStatePath();
-
-                if (!File.Exists(backupFile))
+                try
                 {
-                    throw new FileNotFoundException($"Backup file not found: {backupFile}");
+                    _logger.LogWarning("🔄 [STATE-DURABILITY] Starting restore from backup: {BackupFile}", backupFileName);
+
+                    var backupDir = Path.Combine(_pathConfig.GetDataRootPath(), "backups");
+                    var backupFile = Path.Combine(backupDir, backupFileName);
+                    var statePath = _pathConfig.GetStatePath();
+
+                    if (!File.Exists(backupFile))
+                    {
+                        throw new FileNotFoundException($"Backup file not found: {backupFile}");
+                    }
+
+                    // Create restore directory
+                    var restoreTemp = Path.Combine(_pathConfig.GetTempPath(), $"restore_{DateTime.UtcNow:yyyyMMdd_HHmmss}");
+                    Directory.CreateDirectory(restoreTemp);
+
+                    // Extract backup
+                    ZipFile.ExtractToDirectory(backupFile, restoreTemp);
+
+                    // Move current state to backup
+                    var currentStateBackup = Path.Combine(backupDir, $"state_pre_restore_{DateTime.UtcNow:yyyyMMdd_HHmmss}");
+                    if (Directory.Exists(statePath))
+                    {
+                        Directory.Move(statePath, currentStateBackup);
+                        _logger.LogInformation("📂 [STATE-DURABILITY] Current state backed up to: {BackupPath}", currentStateBackup);
+                    }
+
+                    // Restore from backup
+                    Directory.Move(Path.Combine(restoreTemp, "state"), statePath);
+
+                    _logger.LogInformation("✅ [STATE-DURABILITY] Restore completed from: {BackupFile}", backupFileName);
                 }
-
-                // Create restore directory
-                var restoreTemp = Path.Combine(_pathConfig.GetTempPath(), $"restore_{DateTime.UtcNow:yyyyMMdd_HHmmss}");
-                Directory.CreateDirectory(restoreTemp);
-
-                // Extract backup
-                ZipFile.ExtractToDirectory(backupFile, restoreTemp);
-
-                // Move current state to backup
-                var currentStateBackup = Path.Combine(backupDir, $"state_pre_restore_{DateTime.UtcNow:yyyyMMdd_HHmmss}");
-                if (Directory.Exists(statePath))
+                catch (Exception ex)
                 {
-                    Directory.Move(statePath, currentStateBackup);
-                    _logger.LogInformation("📂 [STATE-DURABILITY] Current state backed up to: {BackupPath}", currentStateBackup);
+                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] Restore failed from backup: {BackupFile}", backupFileName);
+                    throw;
                 }
-
-                // Restore from backup
-                Directory.Move(Path.Combine(restoreTemp, "state"), statePath);
-
-                _logger.LogInformation("✅ [STATE-DURABILITY] Restore completed from: {BackupFile}", backupFileName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "🚨 [STATE-DURABILITY] Restore failed from backup: {BackupFile}", backupFileName);
-                throw;
-            }
+            }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -155,7 +158,7 @@ namespace TradingBot.BotCore.Services
                 Array.Sort(backupFiles, StringComparer.OrdinalIgnoreCase);
                 Array.Reverse(backupFiles); // Most recent first
 
-                return Array.ConvertAll(backupFiles, Path.GetFileName);
+                return Array.ConvertAll(backupFiles, file => Path.GetFileName(file) ?? "unknown");
             }
             catch (Exception ex)
             {

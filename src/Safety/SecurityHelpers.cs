@@ -97,10 +97,10 @@ public static class SecurityHelpers
     }
     
     /// <summary>
-    /// Completely removes sensitive identifiers from logs - returns generic placeholder
+    /// Completely removes sensitive identifiers from logs - returns generic token
     /// </summary>
     /// <param name="sensitiveValue">Any sensitive value that should not appear in logs</param>
-    /// <returns>A generic placeholder that reveals no information</returns>
+    /// <returns>A generic token that reveals no information</returns>
     public static string RedactSensitiveValue(string? sensitiveValue)
     {
         return "[REDACTED]";

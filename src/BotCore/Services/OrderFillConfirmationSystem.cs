@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TopstepX.Bot.Abstractions;
-using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TopstepX.Bot.Core.Services
 {

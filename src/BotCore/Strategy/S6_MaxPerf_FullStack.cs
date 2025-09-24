@@ -69,7 +69,7 @@ namespace TopstepX.S6
     {
         private readonly T[] _buf;
         private int _idx, _count;
-        public Ring(int capacity) { _buf = new T[capacity]; _idx; _count; }
+        public Ring(int capacity) { _buf = new T[capacity]; _idx = 0; _count = 0; }
         public int Count => _count; public int Capacity => _buf.Length;
         public void Add(in T x) { _buf[_idx] = x; _idx = (_idx + 1) % _buf.Length; if (_count < _buf.Length) _count++; }
         public ref readonly T Last(int back = 0)
@@ -78,7 +78,7 @@ namespace TopstepX.S6
             int pos = (_idx - 1 - back); if (pos < 0) pos += _buf.Length; return ref _buf[pos];
         }
         public void ForEachNewest(int n, Action<T> f) { for (int i = Math.Max(0,_count - n); i < _count; i++) { int pos = ( (_idx - _count + i) % _buf.Length + _buf.Length ) % _buf.Length; f(_buf[pos]); } }
-        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
+        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i = 0; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
     }
 
     // --- ROLLING INDICATORS (O(1)) ---
@@ -103,7 +103,7 @@ namespace TopstepX.S6
             double up = curH - prevH, dn = prevL - curL;
             double dmP = (up > dn && up > 0) ? up : 0; double dmN = (dn > up && dn > 0) ? dn : 0;
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
-            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; Value; }
+            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; _ = Value; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
             if (_tr <= 1e-12) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
@@ -512,8 +512,9 @@ namespace TopstepX.S6
         public async void Run(Func<T, bool> onEvent, CancellationToken ct)
         {
             var r = _ch.Reader;
-            while (await r.WaitToReadAsync(ct))
-                while (r.TryRead(out var ev)) onEvent(ev).ConfigureAwait(false);
+            while (await r.WaitToReadAsync(ct).ConfigureAwait(false))
+                while (r.TryRead(out var ev)) 
+                    _ = onEvent(ev);
         }
     }
 }
