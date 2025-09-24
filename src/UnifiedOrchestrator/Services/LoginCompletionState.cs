@@ -34,7 +34,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
     private volatile bool _isDisposed;
     private DateTime _loginStartTime = DateTime.MinValue;
     private DateTime _loginCompletedTime = DateTime.MinValue;
-    private string _loginSessionId = string.Empty;
+    private string _loginSessionId;
     private int _loginAttemptCount;
     
     // Production-grade configuration

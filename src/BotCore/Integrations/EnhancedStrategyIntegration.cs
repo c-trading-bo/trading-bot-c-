@@ -178,7 +178,6 @@ namespace BotCore.Integrations
         private static decimal CalculateRsi() => 50m; // Neutral RSI - could be calculated from price history
         private static decimal CalculateMomentum(Bar bar) => (bar.Close - bar.Open) / bar.Open;
         private static decimal CalculateTrendStrength(Bar bar) => Math.Abs(bar.Close - bar.Open) / bar.Open;
-        private static decimal CalculateVolume(Bar bar) => (decimal)bar.Volume;
     }
 
     /// <summary>

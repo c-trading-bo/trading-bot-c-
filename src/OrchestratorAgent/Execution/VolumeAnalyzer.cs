@@ -8,7 +8,7 @@ namespace OrchestratorAgent.Execution
     /// </summary>
     public class VolumeAnalyzer
     {
-        private decimal[] _recentVolumes = new decimal[20];
+        private readonly decimal[] _recentVolumes = new decimal[20];
         private int _index;
 
         public void UpdateVolume(decimal volume)

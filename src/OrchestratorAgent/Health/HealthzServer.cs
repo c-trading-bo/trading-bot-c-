@@ -21,7 +21,7 @@ namespace OrchestratorAgent.Health
             try
             {
                 var listener = new HttpListener();
-                if (!prefix.EndsWith("/")) prefix += "/";
+                if (!prefix.EndsWith('/')) prefix += "/";
                 listener.Prefixes.Add(prefix);
                 listener.Start();
                 var startedUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();

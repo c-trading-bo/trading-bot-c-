@@ -24,11 +24,6 @@ namespace BotCore
         private readonly string? _modelDir;
         private readonly string? _pythonScriptDir;
         private bool _disposed;
-        private DateTime _lastTrainingAttempt = DateTime.MinValue;
-        private int _consecutiveFailures;
-
-        private const int MaxConsecutiveFailures = 3;
-        private const int MinTrainingDays = 7;
 
         public AutoRlTrainer(ILogger logger)
         {
@@ -45,49 +40,6 @@ namespace BotCore
             _dataDir = null;
             _modelDir = null;
             _pythonScriptDir = null;
-        }
-
-        private bool HasSufficientTrainingData()
-        {
-            try
-            {
-                var dataDir = _dataDir ?? "data";
-                if (!Directory.Exists(dataDir)) return false;
-
-                var files = Directory.GetFiles(dataDir, "*.jsonl");
-                if (!files.Any()) return false;
-
-                // Check if we have data spanning at least MinTrainingDays
-                var oldestFile = files.Min(f => File.GetCreationTime(f));
-                var dataSpan = DateTime.Now - oldestFile;
-
-                return dataSpan.TotalDays >= MinTrainingDays;
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "[AutoRlTrainer] Error checking training data sufficiency");
-                return false;
-            }
-        }
-
-        private async Task RunTrainingPipelineAsync()
-        {
-            // Step 1: Export training data
-            var csvFile = await ExportTrainingDataAsync().ConfigureAwait(false);
-            if (string.IsNullOrEmpty(csvFile))
-            {
-                throw new InvalidOperationException("Failed to export training data");
-            }
-
-            // Step 2: Train new model via Python
-            var modelFile = await TrainModelAsync(csvFile).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(modelFile))
-            {
-                throw new InvalidOperationException("Failed to train new model");
-            }
-
-            // Step 3: Deploy model hot
-            await DeployModelAsync(modelFile).ConfigureAwait(false);
         }
 
         private async Task<string> ExportTrainingDataAsync()

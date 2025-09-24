@@ -75,28 +75,6 @@ namespace BotCore.ML
             _logger.LogInformation("[ML-Manager] Initialized - RL enabled: {Enabled}, Memory management: {MemoryEnabled}", 
                 IsEnabled, _memoryManager != null);
         }
-
-        /// <summary>
-        /// Load ML model using memory manager if available
-        /// </summary>
-        private async Task<T?> LoadModelWithMemoryManagementAsync<T>(string modelPath, string modelType) where T : class
-        {
-            if (_memoryManager != null)
-            {
-                try
-                {
-                    var version = GetModelVersion(modelPath);
-                    return await _memoryManager.LoadModelAsync<T>(modelPath, version).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[ML-Manager] Memory manager failed to load {ModelType}, falling back to direct loading", modelType);
-                }
-            }
-            
-            // Fallback to direct loading
-            return await LoadModelDirectAsync<T>(modelPath).ConfigureAwait(false);
-        }
         
         /// <summary>
         /// Load real ONNX model using OnnxModelLoader instead of fake data
@@ -384,73 +362,6 @@ namespace BotCore.ML
                 _logger.LogError(ex, "[ML-Manager] Error calculating execution quality for {Symbol}", symbol);
                 return 0.8m; // Default score
             }
-        }
-
-        private SimpleFeatureSnapshot CreateFeatureSnapshot(
-            string strategyId,
-            string symbol,
-            decimal price,
-            decimal atr,
-            decimal score,
-                        IList<Bar> bars)
-        {
-            var features = new SimpleFeatureSnapshot
-            {
-                Symbol = symbol,
-                Strategy = strategyId,
-                Timestamp = DateTime.UtcNow,
-                Price = (float)price,
-                Atr = (float)atr,
-                SignalStrength = (float)score
-            };
-
-            if (bars.Any())
-            {
-                var latest = bars.Last();
-                features.Volume = (float)latest.Volume;
-
-                // Calculate technical indicators
-                if (bars.Count >= 14)
-                {
-                    features.Rsi = (float)CalculateRsi(bars, 14);
-                }
-
-                if (bars.Count >= 20)
-                {
-                    features.Ema20 = (float)CalculateEma(bars, 20);
-                }
-
-                if (bars.Count >= 50)
-                {
-                    features.Ema50 = (float)CalculateEma(bars, 50);
-                }
-
-                // Calculate volatility
-                if (bars.Count >= 10)
-                {
-                    var returns = bars.Skip(1).Select((b, i) =>
-                        Math.Log((double)(b.Close / bars[i].Close))).ToList();
-                    features.Volatility = (float)(returns.StandardDeviation() * Math.Sqrt(252));
-                }
-            }
-
-            return features;
-        }
-
-        private static decimal CalculateAverageAtr(IList<Bar> bars, int period)
-        {
-            if (bars.Count < period + 1) return 1m;
-
-            var trs = new List<decimal>();
-            for (int i = 1; i < bars.Count; i++)
-            {
-                var tr = Math.Max(bars[i].High - bars[i].Low,
-                    Math.Max(Math.Abs(bars[i].High - bars[i - 1].Close),
-                        Math.Abs(bars[i].Low - bars[i - 1].Close)));
-                trs.Add(tr);
-            }
-
-            return trs.TakeLast(period).Average();
         }
 
         private static decimal CalculateEma(IList<Bar> bars, int period)

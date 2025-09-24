@@ -736,37 +736,6 @@ public class MasterDecisionOrchestrator : BackgroundService
         return _rolloverManager.CheckRolloverNeedsAsync(cancellationToken);
     }
     
-    private Task TrackDecisionForLearningAsync(
-        UnifiedTradingDecision decision,
-        MarketContext marketContext,
-        CancellationToken cancellationToken)
-    {
-        // Track decision for later learning
-        var trackingInfo = new DecisionTrackingInfo
-        {
-            DecisionId = decision.DecisionId,
-            Symbol = decision.Symbol,
-            Action = decision.Action,
-            Confidence = decision.Confidence,
-            Strategy = decision.Strategy,
-            DecisionSource = decision.DecisionSource,
-            MarketContext = marketContext,
-            Timestamp = decision.Timestamp
-        };
-
-        return _learningManager.TrackDecisionAsync(trackingInfo, cancellationToken);
-    }
-    
-    private void LogDecision(UnifiedTradingDecision decision, DateTime startTime)
-    {
-        var processingTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
-        
-        _logger.LogInformation("🎯 [MASTER-DECISION] Decision: {Action} {Symbol} " +
-                             "confidence={Confidence:P1} source={Source} strategy={Strategy} time={Time:F0}ms",
-            decision.Action, decision.Symbol, decision.Confidence, 
-            decision.DecisionSource, decision.Strategy, processingTime);
-    }
-    
     private UnifiedTradingDecision CreateEmergencyDecision(
         string symbol,
                 string decisionId, 

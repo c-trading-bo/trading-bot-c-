@@ -19,8 +19,6 @@ namespace BotCore.Resilience;
 /// </summary>
 public class EnhancedProductionResilienceService
 {
-    private const int MaxTimeoutMs = 30000;
-    private const int ThousandMs = 1000;
 
     private readonly ILogger<EnhancedProductionResilienceService> _logger;
     private readonly ResilienceConfiguration _config;
@@ -197,14 +195,6 @@ public class EnhancedProductionResilienceService
     private static bool IsServerError(HttpStatusCode statusCode)
     {
         return statusCode >= HttpStatusCode.InternalServerError;
-    }
-
-    private static bool IsTransientException(Exception exception)
-    {
-        return exception is HttpRequestException ||
-               exception is TaskCanceledException ||
-               exception is TimeoutRejectedException ||
-               exception is SocketException;
     }
 
     #endregion

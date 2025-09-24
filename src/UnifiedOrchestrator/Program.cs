@@ -42,7 +42,6 @@ public static class Program
     // API Configuration Constants
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
     private const string TopstepXUserAgent = "TopstepX-TradingBot/1.0";
-    private const string BotModeEnvVar = "BOT_MODE";
 
     public static async Task Main(string[] args)
     {

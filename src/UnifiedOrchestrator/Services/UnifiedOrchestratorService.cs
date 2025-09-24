@@ -539,7 +539,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         }
     }
 
-    public IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = 100)
+    public IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit)
     {
         // Implementation would return actual execution history
         return new List<WorkflowExecutionContext>();
