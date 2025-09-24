@@ -5,9 +5,26 @@ using System.Linq;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace OrchestratorAgent.ML
 {
+    /// <summary>
+    /// Default sizer configuration with fallback values
+    /// Used when no ISizerConfig is provided to RlSizer
+    /// </summary>
+    internal class DefaultSizerConfig : ISizerConfig
+    {
+        public double GetPpoLearningRate() => 3e-4;
+        public double GetCqlAlpha() => 0.2;
+        public double GetMetaCostWeight(string costType) => 0.2;
+        public double GetPositionSizeMultiplierBaseline() => 1.0;
+        public double GetMinPositionSizeMultiplier() => 0.1;
+        public double GetMaxPositionSizeMultiplier() => 2.5;
+        public double GetExplorationRate() => 0.05;
+        public double GetWeightFloor() => 0.10;
+        public int GetModelRefreshIntervalMinutes() => 120;
+    }
     /// <summary>
     /// Feature snapshot for ML model inference. Contains market data features
     /// extracted at a point in time for a specific symbol and strategy.
@@ -147,6 +164,7 @@ namespace OrchestratorAgent.ML
     public sealed class RlSizer : IDisposable
     {
         private readonly ILogger<RlSizer> _logger;
+        private readonly ISizerConfig _sizerConfig;
         private InferenceSession? _session;
         private readonly float[] _actions = null!;
         private readonly bool _sampleAction;
@@ -162,15 +180,17 @@ namespace OrchestratorAgent.ML
         public RlSizer(
             string onnxPath,
             float[] actions,
+            ISizerConfig? sizerConfig = null,
             bool sampleAction = false,
-            int maxAgeMinutes = 120,
+            int maxAgeMinutes = -1, // -1 means use config default
             ILogger<RlSizer>? logger = null)
         {
             _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<RlSizer>.Instance;
+            _sizerConfig = sizerConfig ?? new DefaultSizerConfig();
             _modelPath = onnxPath;
             _actions = actions.ToArray();
             _sampleAction = sampleAction;
-            _maxAgeMinutes = maxAgeMinutes;
+            _maxAgeMinutes = maxAgeMinutes > 0 ? maxAgeMinutes : _sizerConfig.GetModelRefreshIntervalMinutes();
             _inputNames = Array.Empty<string>();
 
             LoadModel();
@@ -232,8 +252,9 @@ namespace OrchestratorAgent.ML
         {
             if (_session == null)
             {
-                _logger.LogWarning("[RlSizer] Model not loaded, returning default size 1.0");
-                return 1.0;
+                var defaultSize = _sizerConfig.GetPositionSizeMultiplierBaseline();
+                _logger.LogWarning("[RlSizer] Model not loaded, returning configured default size {DefaultSize}", defaultSize);
+                return defaultSize;
             }
 
             try
@@ -269,8 +290,9 @@ using System.Globalization;
 
                 if (logits == null)
                 {
-                    _logger.LogWarning("[RlSizer] No logits output found, returning default size 1.0");
-                    return 1.0;
+                    var defaultSize = _sizerConfig.GetPositionSizeMultiplierBaseline();
+                    _logger.LogWarning("[RlSizer] No logits output found, returning configured default size {DefaultSize}", defaultSize);
+                    return defaultSize;
                 }
 
                 var logitsArray = logits.ToArray();
@@ -290,8 +312,9 @@ using System.Globalization;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RlSizer] Inference failed, returning default size 1.0");
-                return 1.0;
+                var defaultSize = _sizerConfig.GetPositionSizeMultiplierBaseline();
+                _logger.LogError(ex, "[RlSizer] Inference failed, returning configured default size {DefaultSize}", defaultSize);
+                return defaultSize;
             }
         }
 

@@ -17,6 +17,88 @@ namespace OrchestratorAgent.Execution;
 
 public static class TuningRunner
 {
+    // Default parameter grid values - CONFIGURABLE via environment variables
+    // These arrays are fallback values when environment variables are not set
+    // Use environment variables for production configuration:
+    // S2_GRID_SIGMA_ENTER, S2_GRID_ATR_ENTER, etc.
+    private static class S2DefaultGrid
+    {
+        // Sigma threshold levels for mean-reversion entry logic
+        public static readonly decimal[] SigmaEnterLevels = GetDefaultSigmaLevels();
+        // ATR multiplier levels for entry distance calculations
+        public static readonly decimal[] AtrEnterMultipliers = GetDefaultAtrLevels();
+        // Retest tick values for entry confirmation
+        public static readonly int[] RetestTickValues = GetDefaultRetestTicks();
+        // VWAP slope guard maximum values
+        public static readonly decimal[] VwapSlopeMaxValues = GetDefaultVwapSlopeLevels();
+        // ADR usage maximum thresholds (0 disables guard)
+        public static readonly decimal[] AdrUsedMaxValues = GetDefaultAdrLevels();
+        
+        private static decimal[] GetDefaultSigmaLevels() => new[] { 1.8m, 2.0m, 2.2m };
+        private static decimal[] GetDefaultAtrLevels() => new[] { 0.8m, 1.0m, 1.2m };
+        private static int[] GetDefaultRetestTicks() => new[] { 0, 1, 2 };
+        private static decimal[] GetDefaultVwapSlopeLevels() => new[] { 0.10m, 0.12m, 0.15m };
+        private static decimal[] GetDefaultAdrLevels() => new[] { 0.0m, 0.60m, 0.75m };
+    }
+    
+    private static class S3DefaultGrid
+    {
+        // Bollinger Band width rank levels for squeeze detection
+        public static readonly decimal[] WidthRankEnterLevels = GetDefaultWidthRankLevels();
+        // Minimum squeeze duration in bars
+        public static readonly int[] MinSqueezeBarsValues = GetDefaultMinSqueezeBars();
+        // Breakout confirmation multiplier levels
+        public static readonly decimal[] ConfirmBreakMultValues = GetDefaultConfirmBreakLevels();
+        // Stop loss ATR multiplier levels
+        public static readonly decimal[] StopAtrMultValues = GetDefaultStopAtrLevels();
+        // Retest backoff tick values
+        public static readonly int[] RetestBackoffTickValues = GetDefaultRetestBackoffTicks();
+        // Regime strength threshold values
+        public static readonly decimal[] RsThresholdValues = GetDefaultRsThresholds();
+        
+        private static decimal[] GetDefaultWidthRankLevels() => new[] { 0.10m, 0.15m, 0.20m };
+        private static int[] GetDefaultMinSqueezeBars() => new[] { 5, 6, 8 };
+        private static decimal[] GetDefaultConfirmBreakLevels() => new[] { 0.10m, 0.15m, 0.20m };
+        private static decimal[] GetDefaultStopAtrLevels() => new[] { 1.0m, 1.1m, 1.2m };
+        private static int[] GetDefaultRetestBackoffTicks() => new[] { 1, 2 };
+    private static class S6DefaultGrid
+    {
+        // Minimum ATR levels for trend detection
+        public static readonly decimal[] MinAtrLevels = GetDefaultMinAtrLevels();
+        // Stop loss multiplier levels
+        public static readonly decimal[] StopMultipliers = GetDefaultStopMultipliers();
+        // Target profit multiplier levels
+        public static readonly decimal[] TargetMultipliers = GetDefaultTargetMultipliers();
+        
+        private static decimal[] GetDefaultMinAtrLevels() => new[] { 0.6m, 0.8m, 1.0m };
+        private static decimal[] GetDefaultStopMultipliers() => new[] { 2.0m, 2.5m, 3.0m };
+        private static decimal[] GetDefaultTargetMultipliers() => new[] { 3.5m, 4.0m, 5.0m };
+    }
+
+    private static class S11DefaultGrid
+    {
+        // Volume profile levels for entry logic
+        public static readonly decimal[] VolumeProfileLevels = GetDefaultVolumeProfileLevels();
+        // Momentum threshold levels
+        public static readonly decimal[] MomentumThresholds = GetDefaultMomentumThresholds();
+        // Confluence score requirements
+        public static readonly decimal[] ConfluenceScores = GetDefaultConfluenceScores();
+        
+        private static decimal[] GetDefaultVolumeProfileLevels() => new[] { 0.4m, 0.5m, 0.6m };
+        private static decimal[] GetDefaultMomentumThresholds() => new[] { 1.2m, 1.5m, 1.8m };
+    private static class S11DefaultGrid  
+    {
+        // Minimum ATR levels for S11 trend analysis
+        public static readonly decimal[] MinAtrLevels = GetDefaultMinAtrLevels();
+        // Stop loss multiplier levels for S11
+        public static readonly decimal[] StopMultipliers = GetDefaultStopMultipliers();
+        // Target profit multiplier levels for S11
+        public static readonly decimal[] TargetMultipliers = GetDefaultTargetMultipliers();
+        
+        private static decimal[] GetDefaultMinAtrLevels() => new[] { 0.8m, 1.0m, 1.2m };
+        private static decimal[] GetDefaultStopMultipliers() => new[] { 3.0m, 3.5m, 4.0m };
+        private static decimal[] GetDefaultTargetMultipliers() => new[] { 5.0m, 6.0m, 7.0m };
+    }
     public sealed record Param(string Key, decimal? D = null, int? I = null, bool? B = null, string? S = null)
     {
         public void Apply(Dictionary<string, JsonElement> extra)
@@ -87,7 +169,8 @@ public static class TuningRunner
             }
             if (Params.Any(p => p.Key.StartsWith("z_decelerate.") || p.Key.Equals("z_decelerate")))
             {
-                int need = 2;
+                const int defaultNeed = 2; // Default deceleration requirement
+                int need = defaultNeed;
                 var p = Params.FirstOrDefault(x => x.Key == "z_decelerate.need");
                 if (p?.I is int i) need = i;
                 def.Extra["z_decelerate"] = JsonSerializer.SerializeToElement(new { need });
@@ -125,11 +208,11 @@ public static class TuningRunner
 
         // 3) Parameter grid (keep small for speed; expand later)
         var grids = new List<TrialConfig>();
-        decimal[] sigmaEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_SIGMA_ENTER"), [1.8m, 2.0m, 2.2m]);
-        decimal[] atrEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ATR_ENTER"), [0.8m, 1.0m, 1.2m]);
-        int[] retestTicks = ParseIntArray(Environment.GetEnvironmentVariable("S2_GRID_RETEST_TICKS"), [0, 1, 2]);
-        decimal[] vwapSlopeMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_VWAP_SLOPE_MAX"), [0.10m, 0.12m, 0.15m]);
-        decimal[] adrUsedMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ADR_USED_MAX"), [0.0m, 0.60m, 0.75m]); // 0 disables guard
+        decimal[] sigmaEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_SIGMA_ENTER"), S2DefaultGrid.SigmaEnterLevels);
+        decimal[] atrEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ATR_ENTER"), S2DefaultGrid.AtrEnterMultipliers);
+        int[] retestTicks = ParseIntArray(Environment.GetEnvironmentVariable("S2_GRID_RETEST_TICKS"), S2DefaultGrid.RetestTickValues);
+        decimal[] vwapSlopeMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_VWAP_SLOPE_MAX"), S2DefaultGrid.VwapSlopeMaxValues);
+        decimal[] adrUsedMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ADR_USED_MAX"), S2DefaultGrid.AdrUsedMaxValues);
 
         foreach (var se in sigmaEnter)
             foreach (var ae in atrEnter)
@@ -423,12 +506,12 @@ public static class TuningRunner
 
         // 3) Parameter grid for S3 (keep compact for speed)
         var grids = new List<TrialConfig>();
-        decimal[] widthRankEnter = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_WIDTH_RANK"), [0.10m, 0.15m, 0.20m]);
-        int[] minSqueezeBars = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_MIN_SQZ_BARS"), [5, 6, 8]);
-        decimal[] confirmBreakMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_CONFIRM_MULT"), [0.10m, 0.15m, 0.20m]);
-        decimal[] stopAtrMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_STOP_ATR_MULT"), [1.0m, 1.1m, 1.2m]);
-        int[] retestBackoffTicks = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_RETEST_BACKOFF"), [1, 2]);
-        decimal[] rsThreshold = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_RS_THRESHOLD"), [0.05m, 0.10m]);
+        decimal[] widthRankEnter = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_WIDTH_RANK"), S3DefaultGrid.WidthRankEnterLevels);
+        int[] minSqueezeBars = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_MIN_SQZ_BARS"), S3DefaultGrid.MinSqueezeBarsValues);
+        decimal[] confirmBreakMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_CONFIRM_MULT"), S3DefaultGrid.ConfirmBreakMultValues);
+        decimal[] stopAtrMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_STOP_ATR_MULT"), S3DefaultGrid.StopAtrMultValues);
+        int[] retestBackoffTicks = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_RETEST_BACKOFF"), S3DefaultGrid.RetestBackoffTickValues);
+        decimal[] rsThreshold = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_RS_THRESHOLD"), S3DefaultGrid.RsThresholdValues);
 
         foreach (var wre in widthRankEnter)
             foreach (var msb in minSqueezeBars)
@@ -706,9 +789,9 @@ public static class TuningRunner
         try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
 
         var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
-        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_MIN_ATR"), [0.6m, 0.8m, 1.0m]);
-        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_STOP_MULT"), [2.0m, 2.5m, 3.0m]);
-        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_TGT_MULT"), [3.5m, 4.0m, 5.0m]);
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_MIN_ATR"), S6DefaultGrid.MinAtrLevels);
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_STOP_MULT"), S6DefaultGrid.StopMultipliers);
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_TGT_MULT"), S6DefaultGrid.TargetMultipliers);
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
@@ -792,9 +875,9 @@ public static class TuningRunner
         try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
 
         var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
-        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_MIN_ATR"), [0.8m, 1.0m, 1.2m]);
-        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_STOP_MULT"), [3.0m, 3.5m, 4.0m]);
-        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_TGT_MULT"), [5.0m, 6.0m, 7.0m]);
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_MIN_ATR"), S11DefaultGrid.MinAtrLevels);
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_STOP_MULT"), S11DefaultGrid.StopMultipliers);
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_TGT_MULT"), S11DefaultGrid.TargetMultipliers);
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);

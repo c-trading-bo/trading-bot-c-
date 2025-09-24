@@ -109,4 +109,17 @@
           IgnoreExitCode="false" />
   </Target>
 
+  <!-- PRODUCTION ENFORCEMENT: Ban hardcoded literals in critical namespaces -->
+  <Target Name="BanHardcodedLiteralsInCriticalNamespaces" BeforeTargets="Build">
+    <!-- Ban hardcoded trading parameter arrays in critical namespaces -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -path '*/Strategies/*' -o -name '*.cs' -path '*/Execution/*' | grep -v -E '/(bin|obj|Test|Mock)/' | xargs grep -E '\[[0-9.mf]+.*,.*[0-9.mf]+.*,.*[0-9.mf]+.*\]' 2>/dev/null | head -1; then echo 'CRITICAL: Hardcoded trading parameter arrays detected. Use configuration services instead.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+
+    <!-- Windows enforcement -->
+    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;if (Get-ChildItem -Path . -Recurse -Include *.cs | Where-Object { $_.FullName -match '(Strategies|Sizer|Controller|Execution)' -and $_.FullName -notmatch '(bin|obj|Test|Mock)' } | Select-String -Pattern '\b[0-9]*\.[0-9]+[fd]?\b|\b[2-9][0-9]*\b' | Select-Object -First 1) { Write-Host 'CRITICAL: Hardcoded numeric literals detected in critical namespaces. Use configuration services instead.'; exit 1 }&quot;"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+
 </Project>

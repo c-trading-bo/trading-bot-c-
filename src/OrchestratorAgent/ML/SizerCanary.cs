@@ -18,7 +18,10 @@ public sealed class SizerCanary
     {
         _log = log;
         _enabled = EnvFlag("RL_SIZER_CANARY_ENABLED", true);
-        _rlTrafficFraction = Math.Clamp(EnvDouble("RL_SIZER_CANARY_RL_FRACTION", 0.5), 0.0, 1.0);
+        const double defaultRlFraction = 0.5; // Default 50/50 split between RL and baseline
+        const double minFraction = 0.0; // No RL traffic
+        const double maxFraction = 1.0; // All RL traffic
+        _rlTrafficFraction = Math.Clamp(EnvDouble("RL_SIZER_CANARY_RL_FRACTION", defaultRlFraction), minFraction, maxFraction);
 
         _log.LogInformation("[SizerCanary] Enabled={Enabled} RLFraction={Fraction:F2}",
             _enabled, _rlTrafficFraction);
