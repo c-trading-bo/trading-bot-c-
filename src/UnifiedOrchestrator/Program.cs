@@ -942,6 +942,43 @@ Stack Trace:
         services.AddProductionConfigurationValidation(configuration);
         services.AddScoped<TradingBot.BotCore.Services.MLConfigurationService>();
         
+        // Register Execution Configuration Services - Replace hardcoded execution parameters
+        services.AddScoped<TradingBot.Abstractions.IExecutionGuardsConfig, TradingBot.BotCore.Services.ExecutionGuardsConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IExecutionCostConfig, TradingBot.BotCore.Services.ExecutionCostConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IExecutionPolicyConfig, TradingBot.BotCore.Services.ExecutionPolicyConfigService>();
+        
+        // Register Risk and Sizing Configuration Services - Replace hardcoded risk/sizing parameters
+        services.AddScoped<TradingBot.Abstractions.IRiskConfig, TradingBot.BotCore.Services.RiskConfigService>();
+        services.AddScoped<TradingBot.Abstractions.ISizerConfig, TradingBot.BotCore.Services.SizerConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IMetaCostConfig, TradingBot.BotCore.Services.MetaCostConfigService>();
+        
+        // Register Trading Flow Configuration Services - Replace hardcoded trading flow parameters
+        services.AddScoped<TradingBot.Abstractions.IBracketConfig, TradingBot.BotCore.Services.BracketConfigService>();
+        services.AddScoped<TradingBot.Abstractions.ISessionConfig, TradingBot.BotCore.Services.SessionConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IControllerOptionsService, TradingBot.BotCore.Services.ControllerOptionsService>();
+        
+        // Register Event and Calendar Configuration Services - Replace hardcoded event handling
+        services.AddScoped<TradingBot.Abstractions.IEventTemperingConfig, TradingBot.BotCore.Services.EventTemperingConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IRollConfig, TradingBot.BotCore.Services.RollConfigService>();
+        
+        // Register Infrastructure Configuration Services - Replace hardcoded paths and endpoints
+        services.AddScoped<TradingBot.Abstractions.IEndpointConfig, TradingBot.BotCore.Services.EndpointConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IPathConfig, TradingBot.BotCore.Services.PathConfigService>();
+        
+        // Register Configuration Safety and Management Services
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationFailureSafetyService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationSnapshotService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationSchemaService>();
+        services.AddHostedService<TradingBot.BotCore.Services.StateDurabilityService>();
+        
+        // Register Last-Mile Production Safety Services
+        services.AddSingleton<TradingBot.BotCore.Services.OnnxModelCompatibilityService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ClockHygieneService>();
+        services.AddSingleton<TradingBot.BotCore.Services.DeterminismService>();
+        services.AddSingleton<TradingBot.BotCore.Services.SecretsValidationService>();
+        services.AddSingleton<TradingBot.BotCore.Services.IntegritySigningService>();
+        services.AddSingleton<TradingBot.BotCore.Services.SuppressionLedgerService>();
+        
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));
         services.AddSingleton<BotCore.Services.ProductionResilienceService>();

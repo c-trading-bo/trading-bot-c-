@@ -382,7 +382,7 @@ public class EnsembleMetaLearner
         {
             try
             {
-                var prediction = await GetModelPredictionAsync(model, context, cancellationToken).ConfigureAwait(false);
+                var prediction = await GetModelPredictionAsync(model, context, _mlConfig, cancellationToken).ConfigureAwait(false);
                 predictions[modelId] = prediction;
             }
             catch (InvalidOperationException ex)
@@ -405,6 +405,7 @@ public class EnsembleMetaLearner
     private static async Task<ModelPrediction> GetModelPredictionAsync(
         ModelArtifact model,
         MarketContext context,
+        IMLConfigurationService mlConfig,
         CancellationToken cancellationToken)
     {
         // Production-grade model inference with async execution
@@ -417,7 +418,7 @@ public class EnsembleMetaLearner
             var features = await ProcessFeaturesAsync(context).ConfigureAwait(false);
             
             // Step 3: Model inference
-            var rawPrediction = await RunModelInferenceAsync(features, cancellationToken).ConfigureAwait(false);
+            var rawPrediction = await RunModelInferenceAsync(features, mlConfig, cancellationToken).ConfigureAwait(false);
             
             // Step 4: Post-processing and calibration
             var calibratedPrediction = await CalibrateModelOutputAsync(rawPrediction, cancellationToken).ConfigureAwait(false);
@@ -460,7 +461,8 @@ public class EnsembleMetaLearner
     }
     
     private static async Task<(double Confidence, double Direction)> RunModelInferenceAsync(
-        Dictionary<string, double> features, 
+        Dictionary<string, double> features,
+        IMLConfigurationService mlConfig,
         CancellationToken cancellationToken)
     {
         return await Task.Run(() =>
@@ -473,7 +475,7 @@ public class EnsembleMetaLearner
             
             // Weighted prediction based on multiple indicators
             var direction = (momentum * 0.4) + ((rsi - 50) / 50 * 0.3) + ((volatility - 1) * 0.3);
-            var confidence = Math.Min(_mlConfig.GetAIConfidenceThreshold(), 0.5 + Math.Abs(direction) * 0.3);
+            var confidence = Math.Min(mlConfig.GetAIConfidenceThreshold(), 0.5 + Math.Abs(direction) * 0.3);
             
             return (confidence, Math.Tanh(direction)); // Tanh to bound direction between -1 and 1
         }, cancellationToken).ConfigureAwait(false);

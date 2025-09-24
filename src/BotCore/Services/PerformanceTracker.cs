@@ -208,7 +208,6 @@ public class PerformanceTracker
 
             // Use CloudDataUploader service for professional upload
             using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-using System.Globalization;
             var cloudLogger = loggerFactory.CreateLogger<CloudDataUploader>();
             var cloudUploader = new CloudDataUploader(cloudLogger);
             var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData).ConfigureAwait(false);

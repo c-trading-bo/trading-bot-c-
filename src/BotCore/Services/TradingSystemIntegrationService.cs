@@ -212,7 +212,6 @@ namespace TopstepX.Bot.Core.Services
                 // Setup SignalR connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
                 using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, timeoutCts.Token);
-using System.Globalization;
                 
                 try
                 {
@@ -476,7 +475,7 @@ using System.Globalization;
             {
                 // Check preconditions
                 if (!await PerformTradingPrechecksAsync())
-                    return.ConfigureAwait(false);
+                    return;
 
                 // Get symbols to evaluate using initialized contracts (filters out micro contracts)
                 var symbols = _chosenContracts;

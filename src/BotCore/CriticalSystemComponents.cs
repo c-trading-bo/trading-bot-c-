@@ -836,7 +836,6 @@ namespace TradingBot.Critical
             const string sql = @"INSERT INTO UnknownPositions (Timestamp, Symbol, Quantity, Source) 
                                VALUES (@Timestamp, @Symbol, @Quantity, @Source)";
             using var cmd = new SQLiteCommand(sql, _database);
-using System.Globalization;
             cmd.Parameters.AddWithValue("@Timestamp", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@Symbol", brokerPos.Symbol);
             cmd.Parameters.AddWithValue("@Quantity", brokerPos.Quantity);

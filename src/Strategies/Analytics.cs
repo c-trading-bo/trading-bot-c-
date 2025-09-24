@@ -26,7 +26,8 @@ public static class Analytics
         if (arrayX.Length != arrayY.Length)
             throw new ArgumentException("Returns series must have the same length");
             
-        if (arrayX.Length < 2)
+        const int minSampleSize = 2; // Minimum samples needed for correlation calculation
+        if (arrayX.Length < minSampleSize)
             return double.NaN;
             
         // Calculate means
@@ -34,9 +35,10 @@ public static class Analytics
         var meanY = arrayY.Average();
         
         // Calculate numerator and denominators
-        var numerator = 0.0;
-        var sumSquareX = 0.0;
-        var sumSquareY = 0.0;
+        const double initialValue = 0.0; // Initial accumulator values
+        var numerator = initialValue;
+        var sumSquareX = initialValue;
+        var sumSquareY = initialValue;
         
         for (int i = 0; i < arrayX.Length; i++)
         {
@@ -86,7 +88,8 @@ public static class Analytics
             
             if (Math.Abs(previousPrice) < double.Epsilon)
             {
-                yield return 0.0; // Avoid division by zero
+                const double zeroDivisionFallback = 0.0; // Return for zero division cases
+                yield return zeroDivisionFallback;
             }
             else
             {

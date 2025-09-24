@@ -46,26 +46,26 @@ public static class S2RuntimeConfig
     public static decimal AdrExhaustionCap { get; private set; } = 1.20m; // block if today range > 1.2×ADR
 
     // Patch C extras (optional; default-off semantics where reasonable)
-    public static bool AdrGuardEnabled { get; private set; };
+    public static bool AdrGuardEnabled { get; private set; }
     public static int AdrGuardLen { get; private set; } = 14;
     public static decimal AdrGuardMaxUsed { get; private set; } = 0.0m; // fraction of ADR used today to block, 0 = ignore
     public static decimal AdrGuardWarnUsed { get; private set; } = 0.0m; // not used in logic; reserved for logging/UI
 
-    public static bool PdExtremeGuardEnabled { get; private set; };
+    public static bool PdExtremeGuardEnabled { get; private set; }
     public static decimal PdExtremeMinRoomAtr { get; private set; } = 0.40m;
 
-    public static bool VwapSlopeGuardEnabled { get; private set; };
+    public static bool VwapSlopeGuardEnabled { get; private set; }
     public static decimal VwapMaxSigmaPerMin { get; private set; } = 0.12m;
 
-    public static bool ZDecelerateEnabled { get; private set; };
+    public static bool ZDecelerateEnabled { get; private set; }
     public static int ZDecelNeed { get; private set; } = 2;
 
     // Patch C: optional day PnL kill-switch (in R units) and curfew helper
-    public static bool DayPnlKillEnabled { get; private set; };
-    public static decimal DayPnlStopGainR { get; private set; }; // e.g., 8.0
-    public static decimal DayPnlStopLossR { get; private set; }; // e.g., -6.0
+    public static bool DayPnlKillEnabled { get; private set; }
+    public static decimal DayPnlStopGainR { get; private set; } // e.g., 8.0
+    public static decimal DayPnlStopLossR { get; private set; } // e.g., -6.0
 
-    public static bool CurfewEnabled { get; private set; };
+    public static bool CurfewEnabled { get; private set; }
     public static string CurfewNoNewHHMM { get; private set; } = "";      // e.g., 09:15
     public static string CurfewForceFlatHHMM { get; private set; } = "";  // e.g., 09:23:30
 
