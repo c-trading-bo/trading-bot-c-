@@ -836,7 +836,9 @@ public class LineageTrackingSystem
         }
 
         // Save event to disk
+#pragma warning disable AsyncFixer01 // Unnecessary async/await usage - ConfigureAwait(false) is required for library code
         await SaveLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
+#pragma warning restore AsyncFixer01
     }
 
     private Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
