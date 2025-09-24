@@ -473,7 +473,7 @@ public class EnsembleMetaLearner
             
             // Weighted prediction based on multiple indicators
             var direction = (momentum * 0.4) + ((rsi - 50) / 50 * 0.3) + ((volatility - 1) * 0.3);
-            var confidence = Math.Min(0.95, 0.5 + Math.Abs(direction) * 0.3);
+            var confidence = Math.Min(_mlConfig.GetAIConfidenceThreshold(), 0.5 + Math.Abs(direction) * 0.3);
             
             return (confidence, Math.Tanh(direction)); // Tanh to bound direction between -1 and 1
         }, cancellationToken).ConfigureAwait(false);
