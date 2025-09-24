@@ -334,7 +334,7 @@ namespace BotCore.Strategy
             if (orderService == null || logger == null)
             {
                 // Fallback to basic implementation without real broker integration
-                return GetS6CandidatesBasic(symbol, env, levels, bars, risk);
+                return GetS6CandidatesBasic(symbol, env, bars);
             }
             
             return GetS6Candidates(symbol, env, levels, bars, risk, orderService, logger);
@@ -362,7 +362,7 @@ namespace BotCore.Strategy
                 if (bars?.Count > 0)
                 {
                     var lastBar = bars.Last();
-                    var s6Bar = ToS6Bar1m(lastBar, instrument, tickSize);
+                    var s6Bar = ToS6Bar1m(lastBar, tickSize);
                     
                     // For this bridge implementation, we'll simulate the strategy logic
                     // In a full implementation, you'd maintain state and process all bars
@@ -426,7 +426,7 @@ namespace BotCore.Strategy
             if (orderService == null || logger == null)
             {
                 // Fallback to basic implementation without real broker integration
-                return GetS11CandidatesBasic(symbol, env, levels, bars, risk);
+                return GetS11CandidatesBasic(symbol, env, bars);
             }
             
             return GetS11Candidates(symbol, env, levels, bars, risk, orderService, logger);
@@ -451,7 +451,7 @@ namespace BotCore.Strategy
                 if (bars?.Count > 0)
                 {
                     var lastBar = bars.Last();
-                    var s11Bar = ToS11Bar1m(lastBar, instrument, tickSize);
+                    var s11Bar = ToS11Bar1m(lastBar, tickSize);
                     
                     // Simple time window check (S11 operates 13:30-15:30 ET)
                     var barTime = s11Bar.TimeET.TimeOfDay;

@@ -281,7 +281,7 @@ internal sealed class LinUcbArm
 
         if (_AInverse == null) return 1m;
 
-        var trace = 0.0;
+        var trace = 0m;
         for (int i = 0; i < _dimension; i++)
         {
             trace += _AInverse[i, i];
@@ -310,7 +310,7 @@ internal sealed class LinUcbArm
         try
         {
             _AInverse = InvertMatrix(_A);
-            _inverseNeedsUpdate;
+            _inverseNeedsUpdate = false;
         }
         catch
         {
@@ -331,7 +331,7 @@ internal sealed class LinUcbArm
         // Create augmented matrix [A | I]
         for (int i = 0; i < n; i++)
         {
-            for (int j; j < n; j++)
+            for (int j = 0; j < n; j++)
             {
                 augmented[i, j] = matrix[i, j];
                 augmented[i, j + n] = i == j ? 1m : 0m;
@@ -354,7 +354,7 @@ internal sealed class LinUcbArm
             // Swap rows
             if (maxRow != i)
             {
-                for (int j; j < 2 * n; j++)
+                for (int j = 0; j < 2 * n; j++)
                 {
                     (augmented[i, j], augmented[maxRow, j]) = (augmented[maxRow, j], augmented[i, j]);
                 }
@@ -368,18 +368,18 @@ internal sealed class LinUcbArm
 
             // Scale pivot row
             var pivot = augmented[i, i];
-            for (int j; j < 2 * n; j++)
+            for (int j = 0; j < 2 * n; j++)
             {
                 augmented[i, j] /= pivot;
             }
 
             // Eliminate column
-            for (int k; k < n; k++)
+            for (int k = 0; k < n; k++)
             {
                 if (k != i)
                 {
                     var factor = augmented[k, i];
-                    for (int j; j < 2 * n; j++)
+                    for (int j = 0; j < 2 * n; j++)
                     {
                         augmented[k, j] -= factor * augmented[i, j];
                     }
@@ -391,7 +391,7 @@ internal sealed class LinUcbArm
         var inverse = new decimal[n, n];
         for (int i = 0; i < n; i++)
         {
-            for (int j; j < n; j++)
+            for (int j = 0; j < n; j++)
             {
                 inverse[i, j] = augmented[i, j + n];
             }
@@ -408,7 +408,7 @@ internal sealed class LinUcbArm
 
         for (int i = 0; i < rows; i++)
         {
-            for (int j; j < cols && j < vector.Length; j++)
+            for (int j = 0; j < cols && j < vector.Length; j++)
             {
                 result[i] += matrix[i, j] * vector[j];
             }
@@ -419,7 +419,7 @@ internal sealed class LinUcbArm
 
     private static decimal VectorDotProduct(decimal[] a, decimal[] b)
     {
-        var result;
+        var result = 0m;
         var length = Math.Min(a.Length, b.Length);
 
         for (int i = 0; i < length; i++)

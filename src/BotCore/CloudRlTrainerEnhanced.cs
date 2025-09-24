@@ -44,7 +44,7 @@ namespace BotCore
             var pollInterval = TimeSpan.FromSeconds(
                 int.Parse(Environment.GetEnvironmentVariable("MODEL_POLL_SEC") ?? "7200"));
 
-            _timer = new Timer(CheckForModelUpdates, null, TimeSpan.Zero, pollInterval);
+            _timer = new Timer(_ => CheckForModelUpdates(), null, (int)TimeSpan.Zero.TotalMilliseconds, (int)pollInterval.TotalMilliseconds);
             _log.LogInformation("[CloudRlTrainerEnhanced] Started - checking manifest every {Interval}", pollInterval);
         }
 

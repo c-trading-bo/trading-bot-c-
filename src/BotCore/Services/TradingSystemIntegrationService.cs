@@ -1199,7 +1199,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate real-time features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1243,7 +1243,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Simplified trigger logic using available properties
-                if (featureVector.Features.Length > 0)
+                if (featureVector.Features.Count > 0)
                 {
                     // Check for high activity indicators
                     var avgFeatureValue = featureVector.Features.Average();
@@ -1488,7 +1488,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate features for position management decision
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
