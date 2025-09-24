@@ -957,6 +957,14 @@ Stack Trace:
         services.AddScoped<TradingBot.Abstractions.ISessionConfig, TradingBot.BotCore.Services.SessionConfigService>();
         services.AddScoped<TradingBot.Abstractions.IControllerOptionsService, TradingBot.BotCore.Services.ControllerOptionsService>();
         
+        // Register Event and Calendar Configuration Services - Replace hardcoded event handling
+        services.AddScoped<TradingBot.Abstractions.IEventTemperingConfig, TradingBot.BotCore.Services.EventTemperingConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IRollConfig, TradingBot.BotCore.Services.RollConfigService>();
+        
+        // Register Infrastructure Configuration Services - Replace hardcoded paths and endpoints
+        services.AddScoped<TradingBot.Abstractions.IEndpointConfig, TradingBot.BotCore.Services.EndpointConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IPathConfig, TradingBot.BotCore.Services.PathConfigService>();
+        
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));
         services.AddSingleton<BotCore.Services.ProductionResilienceService>();

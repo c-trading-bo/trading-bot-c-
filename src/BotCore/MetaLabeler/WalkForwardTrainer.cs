@@ -286,7 +286,6 @@ public class WalkForwardTrainer
 
             // Run sophisticated ONNX inference
             using var results = session.Run(inputs);
-using System.Globalization;
             var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0.5f;
             
             // Apply sigmoid activation for probability output

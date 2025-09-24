@@ -214,7 +214,6 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Training: {Command} {Args}", processInfo.FileName, processInfo.Arguments);
 
                 using var process = Process.Start(processInfo);
-using System.Globalization;
                 if (process == null)
                 {
                     throw new InvalidOperationException("Failed to start Python training process");

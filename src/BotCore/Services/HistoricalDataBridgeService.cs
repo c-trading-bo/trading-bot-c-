@@ -383,7 +383,6 @@ namespace BotCore.Services
             try
             {
                 using var document = System.Text.Json.JsonDocument.Parse(responseContent);
-using System.Globalization;
                 var root = document.RootElement;
                 
                 // Check for success field

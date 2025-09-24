@@ -559,17 +559,6 @@ public class NeuralUcbExtended : IDisposable
         // Combine VIX and event risk (0 = low risk, 1 = high risk)
         return Math.Min((vixLevel * 0.6m) + (eventRisk * 0.4m), 1m);
     }
-        }
-        else
-        {
-            features["volatility"] = 0.5m; // Default moderate volatility
-        }
-        
-        // Calculate trend indicator (simplified)
-        features["trend"] = (decimal)marketContext.SignalStrength;
-        
-        return new ContextVector { Features = features };
-    }
     
     /// <summary>
     /// Track bundle selection for local performance monitoring
