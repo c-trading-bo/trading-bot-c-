@@ -20,5 +20,12 @@ namespace TradingBot.Abstractions
         Task<bool> IsConnectedAsync();
         Task<string> GetAccountStatusAsync();
         event EventHandler<StatusChangedEventArgs>? StatusChanged;
+        
+        // Additional methods needed by consuming code
+        Task<bool> IsHealthyAsync();
+        bool IsConnected { get; }
+        string ConnectionHealth { get; }
+        Task InitializeAsync();
+        Task<double> GetHealthScoreAsync();
     }
 }

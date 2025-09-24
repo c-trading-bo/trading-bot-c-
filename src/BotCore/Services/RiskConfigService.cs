@@ -51,5 +51,18 @@ namespace TradingBot.BotCore.Services
             "volatile" => _config.GetValue("Risk:RegimeMultipliers:Volatile", 0.7),
             _ => _config.GetValue("Risk:RegimeMultipliers:Default", 0.85)
         };
+
+        // Additional methods needed by consuming code
+        public decimal GetMaxPositionSize() =>
+            _config.GetValue("Risk:MaxPositionSize", 5.0m);
+
+        public decimal GetDailyLossLimit() =>
+            _config.GetValue("Risk:DailyLossLimit", 1000.0m);
+
+        public decimal GetPerTradeRisk() =>
+            _config.GetValue("Risk:PerTradeRisk", 100.0m);
+
+        public decimal GetMaxDrawdownPercentage() =>
+            _config.GetValue("Risk:MaxDrawdownPercentage", 0.15m);
     }
 }

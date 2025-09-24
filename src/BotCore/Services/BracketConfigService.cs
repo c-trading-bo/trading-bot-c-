@@ -45,5 +45,18 @@ namespace TradingBot.BotCore.Services
 
         public string GetPartialFillHandling() => 
             _config.GetValue("Bracket:PartialFillHandling", "SCALE_BRACKET");
+
+        // Additional methods needed by consuming code
+        public double GetDefaultStopAtrMultiple() =>
+            _config.GetValue("Bracket:DefaultStopAtrMultiple", 1.0);
+
+        public double GetDefaultTargetAtrMultiple() =>
+            _config.GetValue("Bracket:DefaultTargetAtrMultiple", 2.0);
+
+        public bool EnableTrailingStop => 
+            _config.GetValue("Bracket:EnableTrailingStop", false);
+
+        public bool ReduceOnlyMode => 
+            _config.GetValue("Bracket:ReduceOnlyMode", true);
     }
 }
