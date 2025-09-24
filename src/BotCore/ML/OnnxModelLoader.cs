@@ -71,7 +71,7 @@ public sealed class OnnxModelLoader : IDisposable
         Directory.CreateDirectory(_registryPath);
 
         // Start hot-reload timer (60s polling as per requirement)
-        _hotReloadTimer = new Timer(CheckForModelUpdates, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        _hotReloadTimer = new Timer(_ => _ = CheckForModelUpdates(), null, (int)TimeSpan.FromSeconds(60).TotalMilliseconds, (int)TimeSpan.FromSeconds(60).TotalMilliseconds);
 
         _logger.LogInformation("[ONNX-Loader] Initialized with models directory: {ModelsDir}, registry: {RegistryPath}, hot-reload enabled", 
             _modelsDirectory, _registryPath);

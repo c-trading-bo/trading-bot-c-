@@ -50,7 +50,7 @@ public class BatchedOnnxInferenceService : IDisposable
         InitializeHardwareDetection();
 
         // Start batch processor
-        _batchProcessor = new Timer(ProcessBatchesAsync, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+        _batchProcessor = new Timer(_ => _ = ProcessBatchesAsync(), null, (int)TimeSpan.FromMilliseconds(100).TotalMilliseconds, (int)TimeSpan.FromMilliseconds(100).TotalMilliseconds);
 
         _logger.LogInformation("Batched ONNX inference service initialized - GPU: {GpuAvailable}, Quantization: {QuantizationSupported}, BatchSize: {BatchSize}",
             _gpuAvailable, _quantizedModelsSupported, _batchConfig.ModelInferenceBatchSize);

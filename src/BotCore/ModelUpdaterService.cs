@@ -62,7 +62,7 @@ namespace BotCore
             Directory.CreateDirectory(_modelsPath);
 
             // Create timer for periodic updates
-            _updateTimer = new Timer(OnTimerElapsed, null, TimeSpan.Zero, TimeSpan.FromSeconds(_pollIntervalSeconds));
+            _updateTimer = new Timer(_ => _ = OnTimerElapsed(), null, (int)TimeSpan.Zero.TotalMilliseconds, (int)TimeSpan.FromSeconds(_pollIntervalSeconds).TotalMilliseconds);
         }
 
         public void Start()
