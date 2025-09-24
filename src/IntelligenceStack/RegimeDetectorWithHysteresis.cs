@@ -50,14 +50,18 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private readonly Queue<double> _atrHistory = new();
     private readonly Queue<double> _priceHistory = new();
     private double _medianAtr;
+    private readonly IMLConfigurationService _mlConfig;
+
     private readonly double _spreadMedian;
 
     public RegimeDetectorWithHysteresis(
         ILogger<RegimeDetectorWithHysteresis> logger,
-        HysteresisConfig config)
+        HysteresisConfig config,
+        IMLConfigurationService mlConfig)
     {
         _logger = logger;
         _config = config;
+        _mlConfig = mlConfig;
         _spreadMedian = DefaultTickSize; // Initialize with default ES/NQ tick size
     }
 
@@ -205,7 +209,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         }
         
         // Default to range/chop regime
-        var rangeConfidence = 1.0 - Math.Max(
+        var rangeConfidence = _mlConfig.GetRegimeDetectionThreshold() - Math.Max(
             Math.Max(volRatio - 1.0, 0.0),
             Math.Max(trendZScore - TrendThresholdOffset, 0.0)
         );

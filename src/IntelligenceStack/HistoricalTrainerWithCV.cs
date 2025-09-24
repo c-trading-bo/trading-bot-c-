@@ -177,6 +177,31 @@ public class HistoricalTrainerWithCV
         TimeSpan testWindow,
         CancellationToken cancellationToken = default)
     {
+        ValidateWalkForwardCVParameters(modelFamily, startDate, endDate, trainingWindow, testWindow);
+        
+        try
+        {
+            WalkForwardCVStarted(_logger, modelFamily, startDate, endDate, null);
+
+            var cvResult = InitializeCVResult(modelFamily, startDate, endDate, trainingWindow, testWindow);
+            var splits = GenerateTimeSeriesSplits(startDate, endDate, trainingWindow, testWindow);
+            
+            FoldsGenerated(_logger, splits.Count, null);
+
+            await ExecuteAllFoldsAsync(cvResult, modelFamily, splits, cancellationToken).ConfigureAwait(false);
+            await FinalizeCVResultAsync(cvResult, cancellationToken).ConfigureAwait(false);
+
+            return cvResult;
+        }
+        catch (Exception ex)
+        {
+            WalkForwardCVFailed(_logger, modelFamily, ex);
+            throw new InvalidOperationException($"Cross-validation failed for model family {modelFamily}", ex);
+        }
+    }
+
+    private static void ValidateWalkForwardCVParameters(string modelFamily, DateTime startDate, DateTime endDate, TimeSpan trainingWindow, TimeSpan testWindow)
+    {
         if (string.IsNullOrWhiteSpace(modelFamily))
             throw new ArgumentException("Model family cannot be null or empty", nameof(modelFamily));
         
@@ -188,73 +213,64 @@ public class HistoricalTrainerWithCV
         
         if (testWindow <= TimeSpan.Zero)
             throw new ArgumentException("Test window must be positive", nameof(testWindow));
-        
-        try
+    }
+
+    private static WalkForwardCVResult InitializeCVResult(string modelFamily, DateTime startDate, DateTime endDate, TimeSpan trainingWindow, TimeSpan testWindow)
+    {
+        return new WalkForwardCVResult
         {
-            WalkForwardCVStarted(_logger, modelFamily, startDate, endDate, null);
+            ModelFamily = modelFamily,
+            StartDate = startDate,
+            EndDate = endDate,
+            TrainingWindow = trainingWindow,
+            TestWindow = testWindow,
+            StartedAt = DateTime.UtcNow
+        };
+    }
 
-            var cvResult = new WalkForwardCVResult
-            {
-                ModelFamily = modelFamily,
-                StartDate = startDate,
-                EndDate = endDate,
-                TrainingWindow = trainingWindow,
-                TestWindow = testWindow,
-                StartedAt = DateTime.UtcNow
-            };
-
-            // Generate time series splits with proper embargo and purging
-            var splits = GenerateTimeSeriesSplits(startDate, endDate, trainingWindow, testWindow);
+    private async Task ExecuteAllFoldsAsync(WalkForwardCVResult cvResult, string modelFamily, List<TimeSeriesSplit> splits, CancellationToken cancellationToken)
+    {
+        var foldNumber = 1;
+        foreach (var split in splits)
+        {
+            var foldResult = await RunSingleFoldAsync(
+                modelFamily, 
+                split, 
+                foldNumber, 
+                cancellationToken).ConfigureAwait(false);
+                
+            cvResult.FoldResults.Add(foldResult);
             
-            FoldsGenerated(_logger, splits.Count, null);
-
-            // Run each fold
-            var foldNumber = 1;
-            foreach (var split in splits)
-            {
-                var foldResult = await RunSingleFoldAsync(
-                    modelFamily, 
-                    split, 
-                    foldNumber, 
-                    cancellationToken).ConfigureAwait(false);
-                    
-                cvResult.FoldResults.Add(foldResult);
-                
-                FoldCompleted(_logger, foldNumber, splits.Count, foldResult.TestMetrics?.AUC ?? 0.0, foldResult.TestMetrics?.EdgeBps ?? 0.0, null);
-                
-                foldNumber++;
-                
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-            }
-
-            // Calculate aggregate metrics
-            cvResult.AggregateMetrics = CalculateAggregateMetrics(cvResult.FoldResults);
-            cvResult.CompletedAt = DateTime.UtcNow;
+            FoldCompleted(_logger, foldNumber, splits.Count, foldResult.TestMetrics?.AUC ?? 0.0, foldResult.TestMetrics?.EdgeBps ?? 0.0, null);
             
-            // Check if model meets promotion criteria across all folds
-            var meetsPromotionCriteria = CheckPromotionCriteria(cvResult);
-            cvResult.MeetsPromotionCriteria = meetsPromotionCriteria;
-
-            WalkForwardCVCompleted(_logger, cvResult.FoldResults.Count, cvResult.AggregateMetrics.AUC, cvResult.AggregateMetrics.EdgeBps, meetsPromotionCriteria, null);
-
-            // Save results
-            await SaveCVResultsAsync(cvResult, cancellationToken).ConfigureAwait(false);
-
-            // Register best model if criteria met
-            if (meetsPromotionCriteria)
+            foldNumber++;
+            
+            if (cancellationToken.IsCancellationRequested)
             {
-                await RegisterBestModelAsync(cvResult, cancellationToken).ConfigureAwait(false);
+                break;
             }
-
-            return cvResult;
         }
-        catch (Exception ex)
+    }
+
+    private async Task FinalizeCVResultAsync(WalkForwardCVResult cvResult, CancellationToken cancellationToken)
+    {
+        // Calculate aggregate metrics
+        cvResult.AggregateMetrics = CalculateAggregateMetrics(cvResult.FoldResults);
+        cvResult.CompletedAt = DateTime.UtcNow;
+        
+        // Check if model meets promotion criteria across all folds
+        var meetsPromotionCriteria = CheckPromotionCriteria(cvResult);
+        cvResult.MeetsPromotionCriteria = meetsPromotionCriteria;
+
+        WalkForwardCVCompleted(_logger, cvResult.FoldResults.Count, cvResult.AggregateMetrics.AUC, cvResult.AggregateMetrics.EdgeBps, meetsPromotionCriteria, null);
+
+        // Save results
+        await SaveCVResultsAsync(cvResult, cancellationToken).ConfigureAwait(false);
+
+        // Register best model if criteria met
+        if (meetsPromotionCriteria)
         {
-            WalkForwardCVFailed(_logger, modelFamily, ex);
-            throw new InvalidOperationException($"Cross-validation failed for model family {modelFamily}", ex);
+            await RegisterBestModelAsync(cvResult, cancellationToken).ConfigureAwait(false);
         }
     }
 

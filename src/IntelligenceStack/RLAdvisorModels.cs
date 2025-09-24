@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -164,11 +165,9 @@ public class RLAdvisorModel
     private const int NumActions = 4; // Q-learning action space size
     private const double MinExplorationRate = 0.01;
     private const double ExplorationDecayFactor = 0.9999;
-    private const double DefaultExplorationConfidence = 0.3;
-    private const double MaxConfidence = 0.95;
-    private const double MinConfidence = 0.1;
-    private const double ConfidenceOffset = 1.0;
-    private const double ConfidenceDivisor = 2.0;
+    private const double ConfidenceCalculationDivisor = 2.0;
+    
+    private readonly IMLConfigurationService _mlConfig;
     
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
@@ -177,10 +176,11 @@ public class RLAdvisorModel
 
     private readonly Dictionary<string, double> _qTable = new();
 
-    public RLAdvisorModel(ILogger logger, RLAgentType agentType, string agentKey, object config)
+    public RLAdvisorModel(ILogger logger, RLAgentType agentType, string agentKey, object config, IMLConfigurationService mlConfig)
     {
         AgentType = agentType;
         AgentKey = agentKey;
+        _mlConfig = mlConfig;
     }
 
     public async Task<RLActionResult> GetActionAsync(double[] state, CancellationToken cancellationToken)
@@ -200,7 +200,7 @@ public class RLAdvisorModel
         {
             // Exploration
             actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, ActionTypeCount);
-            confidence = DefaultExplorationConfidence; // Default exploration confidence
+            confidence = _mlConfig.GetMinimumConfidence(); // Use configuration service
         }
         else
         {
@@ -221,7 +221,9 @@ public class RLAdvisorModel
             }
             
             actionType = bestAction;
-            confidence = Math.Min(MaxConfidence, Math.Max(MinConfidence, (bestValue + ConfidenceOffset) / ConfidenceDivisor));
+            confidence = Math.Min(_mlConfig.GetAIConfidenceThreshold(), 
+                                Math.Max(_mlConfig.GetMinimumConfidence(), 
+                                       (bestValue + 1.0) / ConfidenceCalculationDivisor)); // Use configuration service for bounds
         }
         
         return new RLActionResult

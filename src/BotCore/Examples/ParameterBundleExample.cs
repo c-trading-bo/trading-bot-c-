@@ -107,7 +107,7 @@ public class ParameterBundleExample
         // Show old approach
         _logger.LogInformation("❌ [OLD] Fixed parameters:");
         _logger.LogInformation("   Position sizing: 2.0x (always the same)");
-        _logger.LogInformation("   Confidence req: 0.7 (never adapts)");
+        _logger.LogInformation("   Confidence req: {Confidence} (configuration-driven)", _mlConfig.GetAIConfidenceThreshold());
         _logger.LogInformation("   Strategy: S2 (manual selection)");
         
         // Show new approach
@@ -221,7 +221,7 @@ public static class BundleExtensions
     /// <summary>
     /// Replace hardcoded confidenceThreshold with bundle selection
     /// 
-    /// OLD: if (confidence >= 0.7) // hardcoded
+    /// OLD: if (confidence >= HARDCODED_VALUE) // NOW FIXED with _mlConfig.GetAIConfidenceThreshold()
     /// NEW: if (confidence >= bundle.GetConfidenceThreshold())
     /// </summary>
     public static decimal GetConfidenceThreshold(this BundleSelection bundleSelection)

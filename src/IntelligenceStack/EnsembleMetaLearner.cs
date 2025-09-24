@@ -26,7 +26,7 @@ public class EnsembleMetaLearner
     // Sigmoid and blending constants
     private const int SigmoidSteepness = 6;
     private const double SigmoidCenter = 0.5;
-    private const double HighConfidenceThreshold = 0.7;
+    private readonly IMLConfigurationService _mlConfig;
     private const double ConfidenceBoostFactor = 1.01;
     
     // JSON serializer options for CA1869 compliance
@@ -114,12 +114,14 @@ public class EnsembleMetaLearner
         EnsembleConfig config,
         IRegimeDetector regimeDetector,
         IOnlineLearningSystem onlineLearning,
+        IMLConfigurationService mlConfig,
         string statePath = "data/ensemble")
     {
         _logger = logger;
         _config = config;
         _regimeDetector = regimeDetector;
         _onlineLearning = onlineLearning;
+        _mlConfig = mlConfig;
         _statePath = statePath;
         
         Directory.CreateDirectory(_statePath);
@@ -471,7 +473,7 @@ public class EnsembleMetaLearner
             
             // Weighted prediction based on multiple indicators
             var direction = (momentum * 0.4) + ((rsi - 50) / 50 * 0.3) + ((volatility - 1) * 0.3);
-            var confidence = Math.Min(0.95, 0.5 + Math.Abs(direction) * 0.3);
+            var confidence = Math.Min(_mlConfig.GetAIConfidenceThreshold(), 0.5 + Math.Abs(direction) * 0.3);
             
             return (confidence, Math.Tanh(direction)); // Tanh to bound direction between -1 and 1
         }, cancellationToken).ConfigureAwait(false);
@@ -610,7 +612,7 @@ public class EnsembleMetaLearner
         var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeStr, cancellationToken).ConfigureAwait(false);
         
         // Boost weights for high-confidence predictions
-        if (prediction.Confidence > HighConfidenceThreshold)
+        if (prediction.Confidence > _mlConfig.GetAIConfidenceThreshold())
         {
             foreach (var key in currentWeights.Keys.ToList())
             {

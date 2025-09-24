@@ -174,9 +174,7 @@ public class RLAdvisorSystem
     private const int ActionFullExit = 2;
     private const int ActionTrailingStop = 3;
     
-    // Confidence thresholds
-    private const double HighConfidenceThreshold = 0.8;
-    private const double LowConfidenceThreshold = 0.3;
+    // Confidence thresholds - removed hardcoded values, now using IMLConfigurationService
     private const double LongTimeInPositionHours = 4.0;
     
     // Additional S109 constants for RL system
@@ -204,6 +202,7 @@ public class RLAdvisorSystem
     private readonly ILogger<RLAdvisorSystem> _logger;
     private readonly AdvisorConfig _config;
     private readonly IDecisionLogger _decisionLogger;
+    private readonly IMLConfigurationService _mlConfig;
     private readonly string _statePath;
     
     private readonly Dictionary<string, RLAdvisorModel> _agents = new();
@@ -218,11 +217,13 @@ public class RLAdvisorSystem
         ILogger<RLAdvisorSystem> logger,
         AdvisorConfig config,
         IDecisionLogger decisionLogger,
+        IMLConfigurationService mlConfig,
         string statePath = "data/rl_advisor")
     {
         _logger = logger;
         _config = config;
         _decisionLogger = decisionLogger;
+        _mlConfig = mlConfig;
         _statePath = statePath;
         
         Directory.CreateDirectory(_statePath);
@@ -512,7 +513,7 @@ public class RLAdvisorSystem
         foreach (var context in contexts)
         {
             var agentType = context.Contains("CVaR", StringComparison.Ordinal) ? RLAgentType.CVarPPO : RLAgentType.PPO;
-            _agents[context] = new RLAdvisorModel(_logger, agentType, context, _config);
+            _agents[context] = new RLAdvisorModel(_logger, agentType, context, _config, _mlConfig);
         }
     }
 
@@ -523,7 +524,7 @@ public class RLAdvisorSystem
             if (!_agents.TryGetValue(agentKey, out var agent))
             {
                 var agentType = agentKey.Contains("CVaR", StringComparison.Ordinal) ? RLAgentType.CVarPPO : RLAgentType.PPO;
-                agent = new RLAdvisorModel(_logger, agentType, agentKey, _config);
+                agent = new RLAdvisorModel(_logger, agentType, agentKey, _config, _mlConfig);
                 _agents[agentKey] = agent;
             }
             return agent;
@@ -571,13 +572,13 @@ public class RLAdvisorSystem
         };
     }
 
-    private static string GenerateReasoning(RLActionResult rlAction, ExitDecisionContext context)
+    private string GenerateReasoning(RLActionResult rlAction, ExitDecisionContext context)
     {
         var reasons = new List<string>();
         
-        if (rlAction.Confidence > HighConfidenceThreshold)
+        if (rlAction.Confidence > _mlConfig.GetAIConfidenceThreshold())
             reasons.Add("High confidence");
-        else if (rlAction.Confidence < LowConfidenceThreshold)
+        else if (rlAction.Confidence < _mlConfig.GetMinimumConfidence())
             reasons.Add("Low confidence");
             
         if (context.UnrealizedPnL > 0)
@@ -811,7 +812,7 @@ public class RLAdvisorSystem
         
         foreach (var window in episodeWindows)
         {
-            var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false);
+            var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, _mlConfig.GetAIConfidenceThreshold(), cancellationToken).ConfigureAwait(false);
             episodes.Add(episode);
         }
         
@@ -826,59 +827,105 @@ public class RLAdvisorSystem
         {
             LoadingHistoricalDataViaSDK(_logger, symbol, null);
 
-            // Call Python SDK bridge to get historical data
-            var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
-            if (!File.Exists(pythonScript))
+            var pythonScript = ValidateSdkScriptPath();
+            if (pythonScript == null)
             {
-                SDKBridgeScriptNotFound(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            // Calculate estimated number of bars needed
-            var timespan = endDate - startDate;
-            var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // 5-minute bars
-
-            var startInfo = new ProcessStartInfo
+            var output = await ExecuteSdkBridgeProcessAsync(pythonScript, symbol, startDate, endDate).ConfigureAwait(false);
+            if (output == null)
             {
-                FileName = "python3",
-                Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                SDKBridgeStartFailed(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().ConfigureAwait(false);
+            var dataPoints = ParseSdkOutputToDataPoints(output, symbol, startDate, endDate);
+            DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
+            return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
+        }
+        catch (JsonException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (HttpRequestException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (TimeoutException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (InvalidOperationException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+    }
 
-            if (process.ExitCode != 0)
+    private string? ValidateSdkScriptPath()
+    {
+        var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
+        if (!File.Exists(pythonScript))
+        {
+            SDKBridgeScriptNotFound(_logger, null);
+            return null;
+        }
+        return pythonScript;
+    }
+
+    private async Task<string?> ExecuteSdkBridgeProcessAsync(string pythonScript, string symbol, DateTime startDate, DateTime endDate)
+    {
+        var timespan = endDate - startDate;
+        var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // 5-minute bars
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "python3",
+            Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            SDKBridgeStartFailed(_logger, null);
+            return null;
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            SDKBridgeExitCode(_logger, process.ExitCode, error, null);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            SDKBridgeEmptyOutput(_logger, null);
+            return null;
+        }
+
+        return output;
+    }
+
+    private List<RLMarketDataPoint> ParseSdkOutputToDataPoints(string output, string symbol, DateTime startDate, DateTime endDate)
+    {
+        var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
+        var dataPoints = new List<RLMarketDataPoint>();
+
+        if (barData != null)
+        {
+            foreach (var bar in barData)
             {
-                SDKBridgeExitCode(_logger, process.ExitCode, error, null);
-                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-            }
-
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                SDKBridgeEmptyOutput(_logger, null);
-                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-            }
-
-            // Parse JSON response and convert to RL market data points
-            var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
-            var dataPoints = new List<RLMarketDataPoint>();
-
-            if (barData != null)
-            {
-                foreach (var bar in barData)
-                {
                 try
                 {
                     var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ts) ? ts : DateTime.UtcNow;
@@ -922,31 +969,9 @@ public class RLAdvisorSystem
                     BarDataParseFailed(_logger, ex.Message, null);
                 }
             }
-            }
+        }
 
-            DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
-            return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
-        }
-        catch (JsonException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (HttpRequestException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (TimeoutException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (InvalidOperationException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
+        return dataPoints;
     }
 
     private static List<RLMarketDataPoint> LoadHistoricalMarketDataFallback(string symbol, DateTime startDate, DateTime endDate)
@@ -998,7 +1023,8 @@ public class RLAdvisorSystem
     
     private static Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
         EpisodeWindow window, 
-        List<RLMarketDataPoint> marketData, 
+        List<RLMarketDataPoint> marketData,
+        double maxConfidenceThreshold,
         CancellationToken cancellationToken)
     {
         return Task.Run(() =>
@@ -1019,7 +1045,7 @@ public class RLAdvisorSystem
                 var nextBar = marketData[i + 1];
                 
                 var state = ExtractMarketFeatures(currentBar);
-                var action = DetermineOptimalAction(currentBar, nextBar);
+                var action = DetermineOptimalAction(currentBar, nextBar, maxConfidenceThreshold);
                 var reward = CalculateReward(currentBar, nextBar, action);
                 
                 episode.Actions.Add((state, action, reward));
@@ -1045,7 +1071,7 @@ public class RLAdvisorSystem
         };
     }
     
-    private static RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
+    private static RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next, double maxConfidenceThreshold)
     {
         var priceChange = next.Price - current.Price;
         int actionType = 0;
@@ -1056,7 +1082,7 @@ public class RLAdvisorSystem
         else
             actionType = HoldActionType; // Hold
             
-        var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
+        var confidence = Math.Min(maxConfidenceThreshold, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
         return new RLActionResult
         {

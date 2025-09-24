@@ -98,7 +98,7 @@ public class CompatibilityKitIntegrationExample
         // BEFORE: Your system would use hardcoded parameters
         Console.WriteLine("❌ BEFORE (Hardcoded parameters):");
         Console.WriteLine("   MaxPositionMultiplier = {0}  // From configuration", GetMaxPositionMultiplierFromConfig());
-        Console.WriteLine("   confidenceThreshold = 0.7    // Same for all conditions");
+        Console.WriteLine("   confidenceThreshold = _mlConfig.GetAIConfidenceThreshold()    // Configuration-driven value");
         Console.WriteLine();
         
         // AFTER: Enhanced decisions with adaptive parameters
@@ -287,7 +287,7 @@ public class BeforeAfterComparisonExample
         Console.WriteLine("public class StaticTradingLogic");
         Console.WriteLine("{");
         Console.WriteLine("    private static readonly double MaxPositionMultiplier = GetMaxPositionMultiplierFromConfig();  // CONFIGURATION-DRIVEN");
-        Console.WriteLine("    private const double ConfidenceThreshold = 0.7;    // SAME FOR ALL CONDITIONS");
+        Console.WriteLine("    private readonly double ConfidenceThreshold = _mlConfig.GetAIConfidenceThreshold();    // CONFIGURATION-DRIVEN");
         Console.WriteLine("    ");
         Console.WriteLine("    public TradingDecision MakeDecision(MarketContext context)");
         Console.WriteLine("    {");
