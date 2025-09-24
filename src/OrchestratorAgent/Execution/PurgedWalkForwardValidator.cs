@@ -233,7 +233,7 @@ namespace OrchestratorAgent.Execution
             return (mean - margin, mean + margin);
         }
 
-        private double CalculateMaxDrawdown(List<TradeRecord> trades)
+        private static double CalculateMaxDrawdown(List<TradeRecord> trades)
         {
             if (trades.Count == 0) return 0.0;
 

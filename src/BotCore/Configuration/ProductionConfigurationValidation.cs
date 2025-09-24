@@ -16,6 +16,10 @@ public static class ProductionConfigurationExtensions
     /// <summary>
     /// Add production configuration validation with fail-fast startup
     /// </summary>
+    private const int DefaultBufferSize = 100;
+
+    private const int ThousandMs = 1000;
+
     public static IServiceCollection AddProductionConfigurationValidation(
         this IServiceCollection services, 
         IConfiguration configuration)
@@ -50,6 +54,7 @@ public static class ProductionConfigurationExtensions
 /// </summary>
 public class TradingConfiguration
 {
+    private const int DefaultBufferSize = 100;
     [Required]
     [Range(1, 10)]
     public int MaxPositionSize { get; set; } = 5;
@@ -200,6 +205,10 @@ public class SecurityConfiguration
 /// </summary>
 public class ResilienceConfiguration
 {
+    private const int DefaultBufferSize = 100;
+    private const int ThousandMs = 1000;
+    private const int DefaultTimeoutMs = 5000;
+    private const int MaxTimeoutMs = 30000;
     [Required]
     [Range(1, 10)]
     public int MaxRetries { get; set; } = 3;
@@ -234,6 +243,7 @@ public class ResilienceConfiguration
 /// </summary>
 public class ObservabilityConfiguration
 {
+    private const int DefaultBufferSize = 100;
     [Required]
     public bool EnableStructuredLogging { get; set; } = true;
 
@@ -267,7 +277,7 @@ public class ObservabilityConfiguration
 public class HealthCheckConfiguration
 {
     [Required]
-    [Range(5000, 60000)]
+    [Range(DefaultTimeoutMs, 60000)]
     public int IntervalMs { get; set; } = 10000;
 
     private const int MinTimeoutMs = 1000;
@@ -286,7 +296,7 @@ public class HealthCheckConfiguration
     public int FailureThreshold { get; set; } = 3;
 
     [Required]
-    [Range(30000, 300000)]
+    [Range(MaxTimeoutMs, 300000)]
     public int RecoveryTimeoutMs { get; set; } = 60000;
 }
 

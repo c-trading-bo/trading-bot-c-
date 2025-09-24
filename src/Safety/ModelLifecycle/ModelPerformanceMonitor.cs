@@ -336,7 +336,7 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
         return stdDev == 0 ? 0 : avgReturn / stdDev;
     }
     
-    private double CalculateMaxDrawdown(List<ModelPrediction> predictions)
+    private static double CalculateMaxDrawdown(List<ModelPrediction> predictions)
     {
         // Simplified max drawdown calculation
         var cumulativeReturns = new List<double> { 0 };

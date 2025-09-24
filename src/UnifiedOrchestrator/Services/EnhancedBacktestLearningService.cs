@@ -1184,7 +1184,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Calculate maximum drawdown from decisions
     /// </summary>
-    private decimal CalculateMaxDrawdown(List<UnifiedHistoricalDecision> decisions)
+    private static decimal CalculateMaxDrawdown(List<UnifiedHistoricalDecision> decisions)
     {
         if (!decisions.Any()) return 0;
         
