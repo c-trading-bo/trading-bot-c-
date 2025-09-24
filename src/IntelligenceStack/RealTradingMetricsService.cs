@@ -377,9 +377,8 @@ public class RealTradingMetricsService : BackgroundService
     public override void Dispose()
     {
         _metricsTimer?.Dispose();
-        base.Dispose();
-        GC.SuppressFinalize(this);
         ServiceDisposed(_logger, null);
+        base.Dispose();
     }
 }
 

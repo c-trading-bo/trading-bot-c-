@@ -248,7 +248,9 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         
         // Initialize helpers for extracted methods
         _helpers = new IntelligenceOrchestratorHelpers(
-            _logger, _modelRegistry, _activeModels);
+            _logger,
+            _modelRegistry,
+            _activeModels);
         
         OrchestratorInitialized(_logger, "IntelligenceOrchestrator", null);
     }
