@@ -5,6 +5,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- MinimalDemo is allowed to have hardcoded strings for demonstration purposes -->
+    <NoWarn>$(NoWarn);CA1303</NoWarn>
   </PropertyGroup>
 
 </Project>

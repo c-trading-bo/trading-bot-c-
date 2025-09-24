@@ -12,6 +12,7 @@ using BotCore.Risk;
 using BotCore.Strategy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using TradingBot.Abstractions;
 
 namespace BotCore.Strategy
 {

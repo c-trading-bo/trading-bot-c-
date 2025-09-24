@@ -5,9 +5,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
     <!-- PRODUCTION HARDENING: ZERO TOLERANCE FOR ANY VIOLATIONS -->
-    <!-- Temporarily disabled to focus on compilation errors -->
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <!-- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> --> <!-- Will be re-enabled after successful launch -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- ALL warnings are errors - no exceptions, no suppressions -->
     <WarningsAsErrors />
     <WarningsNotAsErrors />
@@ -15,34 +13,33 @@
     <!-- Enable nullable reference types solution-wide -->
     <Nullable>enable</Nullable>
 
-    <!-- Temporarily disable ALL static code analysis for system launch -->
-    <EnableNETAnalyzers>false</EnableNETAnalyzers>
-    <!-- <EnableNETAnalyzers>true</EnableNETAnalyzers> --> <!-- Re-enable after launch -->
-    <!-- <AnalysisMode>AllEnabledByDefault</AnalysisMode> -->
-    <!-- <AnalysisLevel>latest</AnalysisLevel> -->
-    <!-- <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors> -->
+    <!-- Enable static code analysis with MAXIMUM enforcement -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
 
-    <!-- Temporarily disable all analysis and validation -->
-    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <!-- Security and reliability analyzers -->
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
 
     <!-- ENHANCED BUSINESS LOGIC ENFORCEMENT -->
-    <!-- Temporarily disabled for system launch -->
-    <EnforceBusinessLogicValidation>false</EnforceBusinessLogicValidation>
-    <!-- <EnforceBusinessLogicValidation>true</EnforceBusinessLogicValidation> --> <!-- Re-enable after launch -->
-    <FailBuildOnProductionViolations>false</FailBuildOnProductionViolations>
+    <EnforceBusinessLogicValidation>true</EnforceBusinessLogicValidation>
+    <FailBuildOnProductionViolations>true</FailBuildOnProductionViolations>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Temporarily disable all analyzers for system launch -->
-    <!--
+    <!-- Microsoft Code Analysis analyzers - Essential for production -->
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" PrivateAssets="all" />
+
+    <!-- Security analyzers - Critical for production -->
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
     <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" />
+
+    <!-- Performance and async analyzers - FULLY ENABLED -->
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
-    -->
   </ItemGroup>
 
   <!-- PRODUCTION ENFORCEMENT: Business Logic Validation Targets -->
@@ -88,39 +85,25 @@
 
   <!-- PRODUCTION ENFORCEMENT: Zero-tolerance mock/placeholder detection -->
   <Target Name="ProductionReadinessCheck" BeforeTargets="Build" Condition="'$(SkipProductionReadinessCheck)' != 'true'">
-    <!-- Temporarily disabled for system launch verification -->
-    <Message Text="INFO: Production readiness checks temporarily disabled for system launch" Importance="normal" />
-    
-    <!-- Will be re-enabled after successful launch verification -->
-    <!--
+    <!-- Production readiness checks re-enabled -->
     <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E '\bPLACEHOLDER\b|\bTEMP\b|\bDUMMY\b|\bMOCK\b|\bFAKE\b|\bSTUB\b|\bHARDCODED\b|\bSAMPLE\b|\bplaceholder\b|\bstub\b|\bfake\b|\btemporary\b' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
-    -->
           
-    <!-- INFO: Production readiness checks disabled during configuration externalization -->
-    <Message Text="INFO: Mock/placeholder detection disabled during config externalization work" Importance="normal" />
-
-    <!-- Temporarily disabled - needs refinement -->
-    <!--
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E 'throw\\s+new\\s+NotImplementedException\\s*\\(' {} \\; | grep -q .; then echo 'PRODUCTION VIOLATION: NotImplementedException placeholders detected.'; exit 1; fi"
+    <!-- NotImplementedException detection -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E 'throw\s+new\s+NotImplementedException\s*\(' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: NotImplementedException placeholders detected.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
-    -->
 
-    <!-- Temporarily disabled - needs refinement to exclude legitimate architectural notes -->
-    <!--
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E '///\\s*(TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|BUG|NOTE|REVIEW|REFACTOR|OPTIMIZE|for\\s+testing|debug\\s+only|temporary|remove\\s+this|implementation\\s+needed|production\\s+replacement|real\\s+data\\s+needed|configuration\\s+required)' {} \\; | grep -q .; then echo 'PRODUCTION VIOLATION: Development/testing comments detected.'; exit 1; fi"
+    <!-- Development comment detection -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E '///\s*(TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|BUG|NOTE|REVIEW|REFACTOR|OPTIMIZE|for\s+testing|debug\s+only|temporary|remove\s+this|implementation\s+needed|production\s+replacement|real\s+data\s+needed|configuration\s+required)' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Development/testing comments detected.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
-    -->
 
-    <!-- Temporarily disabled - requires systematic fix of weak random number generation across codebase -->
-    <!--
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\\s+Random\\(\\)|Random\\.Shared|_random\\.Next|\\.NextDouble\\(\\)' {} \\; | grep -q .; then echo 'CRITICAL: Weak random number generation detected. Security violation.'; exit 1; fi"
+    <!-- Weak random number generation detection -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\s+Random\(\)|Random\.Shared|_random\.Next|\.NextDouble\(\)' {} \; | grep -q .; then echo 'CRITICAL: Weak random number generation detected. Security violation.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
-    -->
 
     <!-- Windows enforcement (PowerShell via script) -->
     <Exec Condition="'$(OS)' == 'Windows_NT'" Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools\enforce_business_rules.ps1&quot; -Mode Production"

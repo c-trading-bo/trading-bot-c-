@@ -1,10 +1,18 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
+
+[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
 
 namespace UnifiedOrchestratorDemo
 {
-    class Program
+    /// <summary>
+    /// Minimal working demonstration of the UnifiedOrchestrator system
+    /// </summary>
+    internal static class Program
     {
+        private const int SimulationDelayMs = 800;
+
         static async Task Main(string[] args)
         {
             Console.WriteLine("================================================================================");
@@ -16,9 +24,9 @@ namespace UnifiedOrchestratorDemo
             Console.WriteLine("✅ Launch Status: SUCCESSFUL");
             Console.WriteLine();
             Console.WriteLine("📊 RUNTIME PROOF:");
-            Console.WriteLine($"   ConfigSnapshot.Id: CONFIG_{DateTime.UtcNow:yyyyMMdd_HHmmss}");
-            Console.WriteLine($"   System Version: v2.0.1-unified");
-            Console.WriteLine($"   Environment: DRY_RUN (Safe Mode)");
+            Console.WriteLine($"   ConfigSnapshot.Id: CONFIG_{DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)}");
+            Console.WriteLine("   System Version: v2.0.1-unified");
+            Console.WriteLine("   Environment: DRY_RUN (Safe Mode)");
             Console.WriteLine($"   Kill Switch: {(System.IO.File.Exists("kill.txt") ? "ACTIVE" : "INACTIVE")}");
             Console.WriteLine();
             Console.WriteLine("⚙️  RESOLVED PARAMETERS:");
@@ -36,7 +44,7 @@ namespace UnifiedOrchestratorDemo
             
             // Simulate system activity
             Console.WriteLine("🔍 SIMULATING CORE FUNCTIONALITY:");
-            await SimulateActivity();
+            await SimulateActivity().ConfigureAwait(false);
             
             Console.WriteLine();
             Console.WriteLine("✅ DEMONSTRATION COMPLETED SUCCESSFULLY");
@@ -59,7 +67,7 @@ namespace UnifiedOrchestratorDemo
             foreach (var activity in activities)
             {
                 Console.WriteLine($"   ⏳ {activity}...");
-                await Task.Delay(800);
+                await Task.Delay(SimulationDelayMs).ConfigureAwait(false);
                 Console.WriteLine($"   ✅ {activity} - COMPLETED");
             }
         }
