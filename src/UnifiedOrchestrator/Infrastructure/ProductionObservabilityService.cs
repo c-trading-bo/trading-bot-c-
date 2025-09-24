@@ -89,12 +89,12 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         _performanceCounter.RecordThroughput(operation, count);
     }
 
-    public async Task<ProductionPerformanceMetrics> GetMetricsAsync()
+    public Task<ProductionPerformanceMetrics> GetMetricsAsync()
     {
-        return await _performanceCounter.GetMetricsAsync().ConfigureAwait(false);
+        return _performanceCounter.GetMetricsAsync();
     }
 
-    private async void PerformHealthChecks(object? state)
+    private async Task PerformHealthChecks(object? state)
     {
         try
         {
@@ -138,7 +138,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         }
     }
 
-    private async void PerformReconciliation(object? state)
+    private async Task PerformReconciliation(object? state)
     {
         try
         {
@@ -172,7 +172,7 @@ public class TopstepXAdapterMonitor
         _logger = logger;
     }
 
-    public async Task InitializeAsync(IServiceProvider serviceProvider)
+    public Task InitializeAsync(IServiceProvider serviceProvider)
     {
         try
         {
@@ -191,8 +191,8 @@ public class TopstepXAdapterMonitor
         {
             _logger.LogError(ex, "❌ [TOPSTEPX-MONITOR] Failed to initialize TopstepX adapter monitor");
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 
     public async Task<HealthStatus> CheckHealthAsync()
@@ -325,9 +325,9 @@ public class TopstepXAdapterMonitor
         return 0; // Legacy method - order tracking now via TopstepX SDK adapter
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public void RecordEvent(string eventType)
@@ -350,10 +350,10 @@ public class ApiHealthMonitor
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
     }
 
-    public async Task InitializeAsync(IServiceProvider serviceProvider)
+    public Task InitializeAsync(IServiceProvider serviceProvider)
     {
         _logger.LogInformation("✅ [API-MONITOR] API health monitor initialized");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<HealthStatus> CheckHealthAsync()
@@ -388,10 +388,10 @@ public class ApiHealthMonitor
         }
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
         _httpClient.Dispose();
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
 
@@ -407,10 +407,10 @@ public class HealthMonitor
         _logger = logger;
     }
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
         _logger.LogInformation("✅ [SYSTEM-MONITOR] System health monitor initialized");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<HealthStatus> CheckSystemHealthAsync()
@@ -452,9 +452,9 @@ public class HealthMonitor
         }
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
 

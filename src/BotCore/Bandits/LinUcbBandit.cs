@@ -132,7 +132,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
         lock (_lock)
         {
             var featureImportance = new Dictionary<string, decimal>();
-            var totalWeight;
+            var totalWeight = 0m;
 
             foreach (var arm in _arms.Values)
             {
@@ -142,11 +142,11 @@ public class LinUcbBandit : IFunctionApproximationBandit
                 var armWeight = (decimal)arm.UpdateCount;
                 totalWeight += armWeight;
 
-                for (int i; i < weights.Length && i < _config.ContextDimension; i++)
+                for (int i = 0; i < weights.Length && i < _config.ContextDimension; i++)
                 {
                     var featureName = $"feature_{i}";
                     if (!featureImportance.ContainsKey(featureName))
-                        featureImportance[featureName];
+                        featureImportance[featureName] = 0;
 
                     featureImportance[featureName] += Math.Abs(weights[i]) * armWeight;
                 }
@@ -196,7 +196,7 @@ internal sealed class LinUcbArm
         _b = new decimal[dimension];
 
         // Initialize A as identity matrix
-        for (int i; i < dimension; i++)
+        for (int i = 0; i < dimension; i++)
         {
             _A[i, i] = 1m;
         }

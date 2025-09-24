@@ -63,7 +63,7 @@ public class StrategyPerformanceAnalyzer
     /// <summary>
     /// Analyze strategy performance and update metrics
     /// </summary>
-    public async Task AnalyzeStrategyPerformanceAsync(string strategy, AnalyzerTradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
+    public Task AnalyzeStrategyPerformanceAsync(string strategy, AnalyzerTradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
     {
         lock (_analysisLock)
         {
@@ -112,9 +112,9 @@ public class StrategyPerformanceAnalyzer
             _logger.LogDebug("🎯 [STRATEGY-ANALYZER] Updated analysis for {Strategy}: {Trades} trades, Score: {Score:F3}",
                 strategy, analysis.AllTrades.Count, analysis.OverallScore);
         }
-        
+
         // Generate insights outside the lock
-        await GenerateStrategyInsightsAsync(strategy, cancellationToken).ConfigureAwait(false);
+        return GenerateStrategyInsightsAsync(strategy, cancellationToken);
     }
     
     /// <summary>
@@ -495,7 +495,7 @@ public class StrategyPerformanceAnalyzer
         }
     }
     
-    private async Task GenerateStrategyInsightsAsync(string strategy, CancellationToken cancellationToken)
+    private Task GenerateStrategyInsightsAsync(string strategy)
     {
         // Generate insights based on recent performance changes
         var analysis = _strategyAnalysis[strategy];
@@ -517,8 +517,8 @@ public class StrategyPerformanceAnalyzer
                     strategy, recentPnL, recentWinRate);
             }
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
     
     private decimal GetRegimeSpecificScore(string strategy, AnalyzerMarketRegime regime)

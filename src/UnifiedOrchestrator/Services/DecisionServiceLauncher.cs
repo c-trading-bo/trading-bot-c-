@@ -80,7 +80,7 @@ public class DecisionServiceLauncher : IHostedService
     public bool IsRunning { get; private set; };
 
     // IHostedService implementation
-    Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         return LaunchAsync();
     }

@@ -83,7 +83,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         }
     }
 
-    public async Task SetConfigAsync<T>(string key, T value, string? changeReason = null) where T : class
+    public Task SetConfigAsync<T>(string key, T value, string? changeReason = null) where T : class
     {
         var correlationId = Guid.NewGuid().ToString("N")[..8];
         
@@ -145,7 +145,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<bool> GetFeatureFlagAsync(string flagName)
@@ -170,7 +170,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         }
     }
 
-    public async Task SetFeatureFlagAsync(string flagName, bool enabled, string? changeReason = null)
+    public Task SetFeatureFlagAsync(string flagName, bool enabled, string? changeReason = null)
     {
         var correlationId = Guid.NewGuid().ToString("N")[..8];
         
@@ -218,7 +218,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<RolloutStatus> GetRolloutStatusAsync(string featureName)
@@ -249,7 +249,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         }
     }
 
-    public async Task SetRolloutPercentageAsync(string featureName, double percentage, string? changeReason = null)
+    public Task SetRolloutPercentageAsync(string featureName, double percentage, string? changeReason = null)
     {
         var correlationId = Guid.NewGuid().ToString("N")[..8];
         
@@ -301,7 +301,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<List<ConfigurationChange>> GetConfigurationHistoryAsync(DateTime? from = null)
@@ -627,7 +627,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         return Convert.ToBase64String(hashBytes);
     }
 
-    private async Task ValidateCriticalConfigurationsAsync(ValidationResult result)
+    private Task ValidateCriticalConfigurationsAsync(ValidationResult result)
     {
         var criticalKeys = _config.CriticalConfigurationKeys;
         
@@ -644,10 +644,10 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task ValidateFeatureFlagsAsync(ValidationResult result)
+    private Task ValidateFeatureFlagsAsync(ValidationResult result)
     {
         // Check for orphaned feature flags or conflicting states
         foreach (var flag in _featureFlags.Values)
@@ -663,10 +663,10 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task ValidateRolloutsAsync(ValidationResult result)
+    private Task ValidateRolloutsAsync(ValidationResult result)
     {
         foreach (var rollout in _rollouts.Values)
         {
@@ -681,10 +681,10 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task CheckConfigurationDriftAsync(ValidationResult result)
+    private Task CheckConfigurationDriftAsync(ValidationResult result)
     {
         // Check for configuration changes without proper approval
         var recentChanges = _changeHistory
@@ -702,7 +702,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             });
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private async Task LoadPersistedConfigurationAsync()
@@ -740,7 +740,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await ValidateConfigurationAsync()).ConfigureAwait(false);
+            _ = Task.Run(async () => await ValidateConfigurationAsync().ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -752,7 +752,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await PersistConfigurationAsync()).ConfigureAwait(false);
+            _ = Task.Run(async () => await PersistConfigurationAsync().ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

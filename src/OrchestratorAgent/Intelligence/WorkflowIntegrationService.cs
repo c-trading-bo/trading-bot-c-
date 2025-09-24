@@ -18,7 +18,7 @@ namespace OrchestratorAgent.Intelligence
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<WorkflowIntegrationService> _logger;
-        private readonly string _baseDataPath = null!;
+        private readonly string _baseDataPath;
         private readonly string _githubToken = null!;
 
         public WorkflowIntegrationService(ILogger<WorkflowIntegrationService> logger)

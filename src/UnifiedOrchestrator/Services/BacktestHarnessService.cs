@@ -158,7 +158,7 @@ namespace UnifiedOrchestrator.Services
             }
         }
 
-        private async Task SimulateModelTrainingAsync(
+        private Task SimulateModelTrainingAsync(
             string modelName, 
             DateTime trainingStart, 
             DateTime trainingEnd, 
@@ -169,7 +169,7 @@ namespace UnifiedOrchestrator.Services
                 modelName, trainingStart, trainingEnd);
 
             // Simulate training time
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Quick simulation
+            return Task.Delay(100, cancellationToken); // Quick simulation
 
             // In a real implementation, this would:
             // 1. Load historical data for the training window

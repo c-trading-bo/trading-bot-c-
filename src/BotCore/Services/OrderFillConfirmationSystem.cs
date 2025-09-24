@@ -248,103 +248,6 @@ namespace TopstepX.Bot.Core.Services
             };
         }
 
-        private Task ProcessOrderUpdateAsync(GatewayUserOrder orderUpdate)
-        {
-            try
-            {
-                // Find tracking record by gateway order ID
-                var trackingRecord = _orderTracking.Values.FirstOrDefault(r => r.GatewayOrderId == orderUpdate.OrderId);
-                
-                if (trackingRecord != null)
-                {
-                    trackingRecord.Status = orderUpdate.Status;
-                    trackingRecord.IsVerified = true;
-                    
-                    _logger.LogInformation("ORDER UPDATE: account={AccountId} status={Status} orderId={OrderId} reason={Reason}",
-                        SecurityHelpers.MaskAccountId(orderUpdate.AccountId ?? "Unknown"), orderUpdate.Status, SecurityHelpers.MaskOrderId(orderUpdate.OrderId ?? "Unknown"), orderUpdate.Reason ?? "N/A");
-                    
-                    if (orderUpdate.Status == "FILLED" || orderUpdate.Status == "PARTIALLY_FILLED")
-                    {
-                        OrderConfirmed?.Invoke(this, new OrderConfirmedEventArgs
-                        {
-                            TrackingRecord = trackingRecord,
-                            GatewayOrderUpdate = orderUpdate
-                        });
-                    }
-                    else if (orderUpdate.Status == "REJECTED" || orderUpdate.Status == "CANCELLED")
-                    {
-                        trackingRecord.RejectReason = orderUpdate.Reason;
-                        OrderRejected?.Invoke(this, new OrderRejectedEventArgs
-                        {
-                            TrackingRecord = trackingRecord,
-                            GatewayOrderUpdate = orderUpdate
-                        });
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ Received order update for unknown order: {OrderId}", orderUpdate.OrderId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error processing order update");
-            }
-            
-            return Task.CompletedTask;
-        }
-        
-        private async Task ProcessTradeUpdateAsync(GatewayUserTrade tradeUpdate)
-        {
-            try
-            {
-                // Find tracking record by gateway order ID
-                var trackingRecord = _orderTracking.Values.FirstOrDefault(r => r.GatewayOrderId == tradeUpdate.OrderId);
-                
-                if (trackingRecord != null)
-                {
-                    var fillConfirmation = new FillConfirmation
-                    {
-                        FillId = Guid.NewGuid().ToString(),
-                        FillTime = DateTime.UtcNow,
-                        FillPrice = tradeUpdate.FillPrice,
-                        FillQuantity = trackingRecord.Side == "BUY" ? tradeUpdate.Quantity : -tradeUpdate.Quantity,
-                        Commission = tradeUpdate.Commission,
-                        Exchange = tradeUpdate.Exchange ?? "TOPSTEPX",
-                        IsVerified = true
-                    };
-                    
-                    trackingRecord.Fills.Add(fillConfirmation);
-                    
-                    _logger.LogInformation("TRADE CONFIRMED: account={AccountId} orderId={OrderId} fillPrice={FillPrice:F2} qty={Quantity} time={Time:yyyy-MM-dd HH:mm:ss}",
-                        SecurityHelpers.MaskAccountId(tradeUpdate.AccountId ?? "Unknown"), SecurityHelpers.MaskOrderId(tradeUpdate.OrderId ?? "Unknown"), tradeUpdate.FillPrice, tradeUpdate.Quantity, DateTime.UtcNow);
-                    
-                    // Update position tracker
-                    await _positionTracker.ProcessFillAsync(
-                        tradeUpdate.OrderId ?? string.Empty,
-                        trackingRecord.Symbol,
-                        tradeUpdate.FillPrice,
-                        fillConfirmation.FillQuantity,
-                        tradeUpdate.Commission).ConfigureAwait(false);
-                    
-                    FillConfirmed?.Invoke(this, new FillConfirmedEventArgs
-                    {
-                        TrackingRecord = trackingRecord,
-                        FillConfirmation = fillConfirmation,
-                        GatewayTradeUpdate = tradeUpdate
-                    });
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ Received trade update for unknown order: {OrderId}", tradeUpdate.OrderId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error processing trade update");
-            }
-        }
-        
         private void VerifyPendingOrders(object? state)
         {
             try
@@ -358,7 +261,7 @@ namespace TopstepX.Bot.Core.Services
                 foreach (var order in pendingOrders)
                 {
                     order.VerificationAttempts++;
-                    _ = Task.Run(async () => await VerifyOrderWithApiAsync(order)).ConfigureAwait(false);
+                    _ = Task.Run(async () => await VerifyOrderWithApiAsync(order).ConfigureAwait(false)).ConfigureAwait(false);
                 }
                 
                 // Clean up old tracking records (older than 1 hour)

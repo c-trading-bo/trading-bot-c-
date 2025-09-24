@@ -318,7 +318,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
         }
     }
 
-    public async Task ValidateSchemaAsync<T>(T data, string schemaVersion)
+    public Task ValidateSchemaAsync<T>(T data, string schemaVersion)
     {
         var correlationId = Guid.NewGuid().ToString("N")[..8];
         
@@ -360,37 +360,37 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             _logger.LogError(ex, "[DATA_QUALITY] Error validating schema [CorrelationId: {CorrelationId}]", correlationId);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task<DataQualityMetrics> GetQualityMetricsAsync(string symbol)
+    public Task<DataQualityMetrics> GetQualityMetricsAsync(string symbol)
     {
         if (_qualityMetrics.TryGetValue(symbol, out var metrics))
         {
-            return await Task.FromResult(metrics.Clone()).ConfigureAwait(false);
+            return Task.FromResult(metrics.Clone());
         }
 
-        return await Task.FromResult(new DataQualityMetrics { Symbol = symbol }).ConfigureAwait(false);
+        return Task.FromResult(new DataQualityMetrics { Symbol = symbol });
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _monitoringTimer.Change(TimeSpan.Zero, _config.MonitoringInterval);
         _ntpSyncTimer.Change(TimeSpan.Zero, _config.NtpSyncInterval);
         _logger.LogInformation("[DATA_QUALITY] Started monitoring with interval: {Interval}", _config.MonitoringInterval);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         _monitoringTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _ntpSyncTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _logger.LogInformation("[DATA_QUALITY] Stopped monitoring");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     // Private implementation methods
-    private async Task ValidateTimestampAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
+    private Task ValidateTimestampAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
     {
         var now = DateTime.UtcNow;
         var timeDiff = Math.Abs((now - dataPoint.Timestamp).TotalSeconds);
@@ -423,10 +423,10 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task ValidatePriceDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
+    private Task ValidatePriceDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
     {
         // Check for invalid prices
         if (dataPoint.Price <= 0)
@@ -460,10 +460,10 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task ValidateVolumeDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
+    private Task ValidateVolumeDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
     {
         // Check for negative volume
         if (dataPoint.Volume < 0)
@@ -479,10 +479,10 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task CheckDataGapsAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
+    private Task CheckDataGapsAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
     {
         if (tracker.LastDataPoint != null)
         {
@@ -503,7 +503,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private void UpdateQualityMetrics(DataQualityMetrics metrics, DataQualityReport report)
@@ -633,7 +633,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await CheckTimeSynchronizationAsync()).ConfigureAwait(false);
+            _ = Task.Run(async () => await CheckTimeSynchronizationAsync().ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

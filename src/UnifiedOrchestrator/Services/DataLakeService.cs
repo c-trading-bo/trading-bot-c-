@@ -206,7 +206,7 @@ using System.Globalization;
                     GeneratedAt = DateTime.UtcNow,
                     TotalRecords = featureSets.Count,
                     CompletenessScore = CalculateCompletenessScore(featureSets),
-                    DriftScore = await CalculateAverageDriftScoreAsync(featureSetName, featureSets, cancellationToken),
+                    DriftScore = await CalculateAverageDriftScoreAsync(featureSetName, featureSets, cancellationToken).ConfigureAwait(false),
                     Issues = new List<string>()
                 }.ConfigureAwait(false);
 

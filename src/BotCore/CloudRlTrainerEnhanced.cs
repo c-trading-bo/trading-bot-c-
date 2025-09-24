@@ -59,7 +59,7 @@ namespace BotCore
             _log.LogInformation("[CloudRlTrainerEnhanced] Disposed");
         }
 
-        private async void CheckForModelUpdates(object? state)
+        private async Task CheckForModelUpdates()
         {
             if (_disposed || string.IsNullOrEmpty(_manifestUrl))
             {
@@ -76,7 +76,7 @@ namespace BotCore
                 // Check if we have this version already
                 var currentVersionFile = Path.Combine(_modelDir, "current_version.txt");
                 var currentVersion = File.Exists(currentVersionFile) ?
-                    await File.ReadAllTextAsync(currentVersionFile) : "".ConfigureAwait(false);
+                    await File.ReadAllTextAsync(currentVersionFile).ConfigureAwait(false) : "".ConfigureAwait(false);
 
                 if (manifest.Version == currentVersion.Trim())
                 {
@@ -163,7 +163,7 @@ namespace BotCore
             }
         }
 
-        private async Task DownloadModelsFromManifest(EnhancedModelManifest manifest)
+        private Task DownloadModelsFromManifest(EnhancedModelManifest manifest)
         {
             var downloadTasks = new List<Task>();
 
@@ -172,7 +172,7 @@ namespace BotCore
                 downloadTasks.Add(DownloadModelAsync(modelType, modelInfo));
             }
 
-            await Task.WhenAll(downloadTasks).ConfigureAwait(false);
+            return Task.WhenAll(downloadTasks);
         }
 
         private async Task DownloadModelAsync(string modelType, EnhancedModelInfo modelInfo)
@@ -188,7 +188,7 @@ namespace BotCore
                 using var response = await _http.GetAsync(modelInfo.Url).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                await using var fileStream = File.Create(tempPath);
+                await using var fileStream = File.Create(tempPath).ConfigureAwait(false);
                 await response.Content.CopyToAsync(fileStream).ConfigureAwait(false);
                 await fileStream.FlushAsync().ConfigureAwait(false);
 
@@ -230,7 +230,7 @@ namespace BotCore
         private static async Task<string> ComputeFileChecksumAsync(string filePath)
         {
             using var sha256 = SHA256.Create();
-            await using var fileStream = File.OpenRead(filePath);
+            await using var fileStream = File.OpenRead(filePath).ConfigureAwait(false);
             var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }

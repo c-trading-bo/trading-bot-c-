@@ -8,7 +8,7 @@ namespace OrchestratorAgent.Ops
     /// <summary>Single-writer lease: only one process can route orders (exclusive lock on a file).</summary>
     public sealed class LiveLease : IAsyncDisposable
     {
-        private readonly string _path = null!;
+        private readonly string _path;
         private FileStream? _stream;
         public bool HasLease => _stream is not null;
         public string HolderId { get; } = $"{Environment.MachineName}:{Environment.ProcessId}";

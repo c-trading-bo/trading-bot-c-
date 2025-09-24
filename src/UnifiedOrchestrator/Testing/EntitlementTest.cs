@@ -35,8 +35,8 @@ public static class EntitlementTest
             // 4. Probe entitlements
             Console.WriteLine("[TEST] Probing contract entitlements...");
             
-            var esProbeOk = await ContractEntitlementProbe.ProbeSnapshotAsync(es, jwt, logger);
-            var nqProbeOk = await ContractEntitlementProbe.ProbeSnapshotAsync(nq, jwt, logger);
+            var esProbeOk = await ContractEntitlementProbe.ProbeSnapshotAsync(es, jwt, logger).ConfigureAwait(false);
+            var nqProbeOk = await ContractEntitlementProbe.ProbeSnapshotAsync(nq, jwt, logger).ConfigureAwait(false);
 
             Console.WriteLine($"[TEST] Results:");
             Console.WriteLine($"  ES ({es}): {(esProbeOk ? "✅ OK" : "❌ FAILED")}");

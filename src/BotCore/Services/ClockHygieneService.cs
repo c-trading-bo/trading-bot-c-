@@ -143,6 +143,26 @@ namespace TradingBot.BotCore.Services
         {
             return $"UTC:{UtcTime:yyyy-MM-dd HH:mm:ss.fff} Mono:{MonotonicTime.TotalMilliseconds:F3}ms";
         }
+
+        public override bool Equals(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(TradingTimestamp left, TradingTimestamp right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(TradingTimestamp left, TradingTimestamp right)
+        {
+            return !(left == right);
+        }
     }
 
     /// <summary>

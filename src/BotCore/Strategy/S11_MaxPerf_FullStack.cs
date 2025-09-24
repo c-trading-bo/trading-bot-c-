@@ -47,6 +47,26 @@ namespace TopstepX.S11
         public readonly double Volume;
         public Bar1m(DateTimeOffset tEt, long o, long h, long l, long c, double v)
         { TimeET = tEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
+
+        public override bool Equals(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(Bar1m left, Bar1m right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Bar1m left, Bar1m right)
+        {
+            return !(left == right);
+        }
     }
 
     public readonly struct DepthLadder
@@ -62,6 +82,26 @@ namespace TopstepX.S11
             long b = (long)BidSz1 + BidSz2 + BidSz3; long a = (long)AskSz1 + AskSz2 + AskSz3; long d = b + a;
             if (d <= 0) return 0; return (double)(b - a) / d;
         }
+
+        public override bool Equals(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(DepthLadder left, DepthLadder right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(DepthLadder left, DepthLadder right)
+        {
+            return !(left == right);
+        }
     }
 
     // --- RING BUFFER (reused from S6) ---
@@ -69,7 +109,7 @@ namespace TopstepX.S11
     {
         private readonly T[] _buf;
         private int _idx, _count;
-        public Ring(int capacity) { _buf = new T[capacity]; _idx; _count; }
+        public Ring(int capacity) { _buf = new T[capacity]; _idx = 0; _count = 0; }
         public int Count => _count; public int Capacity => _buf.Length;
         public void Add(in T x) { _buf[_idx] = x; _idx = (_idx + 1) % _buf.Length; if (_count < _buf.Length) _count++; }
         public ref readonly T Last(int back = 0)
@@ -78,7 +118,7 @@ namespace TopstepX.S11
             int pos = (_idx - 1 - back); if (pos < 0) pos += _buf.Length; return ref _buf[pos];
         }
         public void ForEachNewest(int n, Action<T> f) { for (int i = Math.Max(0,_count - n); i < _count; i++) { int pos = ( (_idx - _count + i) % _buf.Length + _buf.Length ) % _buf.Length; f(_buf[pos]); } }
-        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
+        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i = 0; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
     }
 
     // --- ROLLING INDICATORS ---
@@ -104,7 +144,7 @@ namespace TopstepX.S11
             double up = curH - prevH, dn = prevL - curL;
             double dmP = (up > dn && up > 0) ? up : 0; double dmN = (dn > up && dn > 0) ? dn : 0;
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
-            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; Value; }
+            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
             if (_tr <= 1e-12) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
@@ -202,10 +242,10 @@ namespace TopstepX.S11
         public void Warmup1m(Instrument instr, IEnumerable<(DateTimeOffset tEt,double o,double h,double l,double c,double v)> bars)
         {
             var s = Get(instr); foreach (var b in bars)
-            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar, warmup:true); }
+            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
-        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar, warmup:false); StepEngine(Get(instr)); }
+        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
         public void OnDepth(Instrument instr, DepthLadder depth) { Get(instr).LastDepth = depth; }
 
         private void StepEngine(State s)
@@ -220,7 +260,7 @@ namespace TopstepX.S11
             if (s.LastDepth.SpreadTicks > _cfg.MaxSpreadTicks) return;
 
             var regime = Classify(s);
-            ManagePosition(s, regime);
+            ManagePosition(s);
 
             if (regime == Mode.Fade) TryEnterFade(s);
         }
@@ -262,10 +302,10 @@ namespace TopstepX.S11
             // Conservative DOM imbalance check
             if (Math.Abs(s.LastDepth.Imbalance()) < _cfg.MinDomImbalance) return;
 
-            s.PlaceWithOco(fadeLong ? Side.Buy : Side.Sell, entry, stopPx, tgtPx, "S11-Fade");
+            s.PlaceWithOco(fadeLong ? Side.Buy : Side.Sell, stopPx, tgtPx, "S11-Fade");
         }
 
-        private void ManagePosition(State s, Mode regime)
+        private void ManagePosition(State s)
         {
             var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr);
             if (side == Side.Flat || qty <= 0) return;
@@ -321,7 +361,7 @@ namespace TopstepX.S11
             public long ToTicks(double px) => (long)Math.Round(px / TickPx);
             public double ToPx(long ticks) => ticks * TickPx;
 
-            public void OnBar(Bar1m bar, bool warmup)
+            public void OnBar(Bar1m bar)
             {
                 LastBarTime = bar.TimeET;
                 Min1.Add(bar);
@@ -406,7 +446,7 @@ namespace TopstepX.S11
             public bool VolumeExhaustion()
             {
                 if (Min1.Count < C.ExhaustionBars) return false;
-                double avgVol; for (int i = 1; i <= C.ExhaustionBars; i++) avgVol += Min1.Last(i).Volume; avgVol /= C.ExhaustionBars;
+                double avgVol = 0; for (int i = 1; i <= C.ExhaustionBars; i++) avgVol += Min1.Last(i).Volume; avgVol /= C.ExhaustionBars;
                 return Min1.Last(0).Volume >= (avgVol * C.ExhaustionVolMult);
             }
 
@@ -424,7 +464,7 @@ namespace TopstepX.S11
             public bool IsBelowIBLow() => LastClose < IB_Low;
             public bool IsAboveIBHigh() => LastClose > IB_High;
 
-            public void PlaceWithOco(Side side, long entryTicks, double stopPx, double targetPx, string tag)
+            public void PlaceWithOco(Side side, double stopPx, double targetPx, string tag)
             {
                 int qty = Math.Max(1, (int)Math.Round(C.BaseQty * C.MultiplierAfternoon));
                 R.PlaceMarket(Instr, side, qty, $"{tag};stop={stopPx:F2};tgt={targetPx:F2}");

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TopstepX.Bot.Abstractions;
 using TradingBot.Abstractions;
+using static TradingBot.Abstractions.Px;
 using BotCore.Models;
 using BotCore.Strategy;
 using BotCore.Risk;
@@ -48,8 +50,7 @@ namespace TopstepX.Bot.Core.Services
         
         // Account/contract selection fields
         private string[] _chosenContracts = Array.Empty<string>();
-        private readonly HashSet<string> _mktSubs = new(StringComparer.OrdinalIgnoreCase);
-        
+
         // Trading system state
         private readonly TradingSystemConfiguration _config;
         private volatile bool _isSystemReady;
@@ -207,7 +208,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("🚀 Trading System Integration Service starting...");
                 
                 // Initialize all components
-                await InitializeComponentsAsync(stoppingToken).ConfigureAwait(false);
+                await InitializeComponentsAsync().ConfigureAwait(false);
                 
                 // Setup TopstepX SDK connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -226,7 +227,7 @@ namespace TopstepX.Bot.Core.Services
                 SetupEventHandlers();
                 
                 // Initialize enhanced market data flow and historical seeding - NEW
-                await InitializeProductionReadinessAsync(stoppingToken).ConfigureAwait(false);
+                await InitializeProductionReadinessAsync().ConfigureAwait(false);
                 
                 // Perform initial system checks
                 await PerformSystemReadinessChecksAsync().ConfigureAwait(false);
@@ -474,7 +475,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Check preconditions
-                if (!await PerformTradingPrechecksAsync())
+                if (!await PerformTradingPrechecksAsync().ConfigureAwait(false))
                     return;
 
                 // Get symbols to evaluate using initialized contracts (filters out micro contracts)
@@ -491,7 +492,7 @@ namespace TopstepX.Bot.Core.Services
             }
             finally
             {
-                _isEvaluationRunning;
+                _isEvaluationRunning = false;
             }
         }
 
@@ -581,7 +582,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Generate enhanced features using FeatureEngineering for ML/RL decision making
         /// </summary>
-        private async Task<FeatureVector?> GenerateEnhancedFeaturesAsync(string symbol, MarketData marketData, List<Bar> bars)
+        private async Task<FeatureVector?> GenerateEnhancedFeaturesAsync(string symbol, MarketData marketData)
         {
             try
             {
@@ -607,7 +608,7 @@ namespace TopstepX.Bot.Core.Services
                     CancellationToken.None).ConfigureAwait(false);
 
                 _logger.LogDebug("[ML/RL-FEATURES] Generated feature vector for {Symbol} with {FeatureCount} features", 
-                    symbol, featureVector?.Features.Length ?? 0);
+                    symbol, featureVector?.Features.Count ?? 0);
 
                 return featureVector;
             }
@@ -621,7 +622,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Convert AllStrategies candidates to standardized signals
         /// </summary>
-        private List<Signal> ConvertCandidatesToSignals(List<Candidate> candidates, string symbol)
+        private List<Signal> ConvertCandidatesToSignals(List<Candidate> candidates)
         {
             var signals = new List<Signal>();
             
@@ -661,7 +662,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Create market snapshot for strategy processing
         /// </summary>
-        private MarketSnapshot CreateMarketSnapshot(string symbol, MarketData marketData, List<Bar> bars)
+        private MarketSnapshot CreateMarketSnapshot(string symbol, MarketData marketData)
         {
             return new MarketSnapshot
             {
@@ -723,7 +724,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Process ML/RL enhanced signal for order placement with sophisticated decision making
         /// </summary>
-        private async Task ProcessMlRlEnhancedSignalAsync(Signal signal, FeatureVector? featureVector)
+        private async Task ProcessMlRlEnhancedSignalAsync(Signal signal)
         {
             try
             {
@@ -1162,7 +1163,7 @@ namespace TopstepX.Bot.Core.Services
                     Interlocked.Increment(ref _barsSeen);
 
                     // ML/RL ENHANCEMENT: Real-time feature processing and strategy triggering
-                    _ = Task.Run(async () => await ProcessRealTimeMarketDataAsync(symbol, marketData)).ConfigureAwait(false);
+                    _ = Task.Run(async () => await ProcessRealTimeMarketDataAsync(symbol, marketData).ConfigureAwait(false)).ConfigureAwait(false);
 
                     _logger.LogDebug("[ML/RL-MARKET_DATA] {Symbol}: Bid={Bid} Ask={Ask} Last={Last} BarsSeen={BarsSeen}",
                         symbol, Px.F2(marketData.BidPrice), Px.F2(marketData.AskPrice), 
@@ -1426,7 +1427,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Order Update handler - completing the SignalR state machine
         /// </summary>
-        private void OnOrderUpdateReceived(object orderUpdateObj)
+        private void OnOrderUpdateReceived()
         {
             try
             {
@@ -1477,7 +1478,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Process post-fill position management using ML/RL strategies
         /// </summary>
-        private async Task ProcessPostFillPositionManagementAsync(string symbol, decimal fillPrice, decimal quantity, string side)
+        private async Task ProcessPostFillPositionManagementAsync(string symbol)
         {
             try
             {
@@ -1558,7 +1559,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Update stop loss using ML-enhanced risk management
         /// </summary>
-        private Task UpdateStopLossAsync(Signal signal, FeatureVector? featureVector)
+        private Task UpdateStopLossAsync(Signal signal)
         {
             // Implementation for ML-enhanced stop loss updates
             _logger.LogInformation("[ML/RL-STOP-LOSS] Updated stop loss for {Symbol} to {Price}", signal.Symbol, signal.Stop);
@@ -1568,7 +1569,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Update take profit using ML-enhanced profit targeting
         /// </summary>
-        private Task UpdateTakeProfitAsync(Signal signal, FeatureVector? featureVector)
+        private Task UpdateTakeProfitAsync(Signal signal)
         {
             // Implementation for ML-enhanced take profit updates
             _logger.LogInformation("[ML/RL-TAKE-PROFIT] Updated take profit for {Symbol} to {Price}", signal.Symbol, signal.Target);
@@ -1578,7 +1579,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Process position scaling using ML-enhanced risk management
         /// </summary>
-        private Task ProcessPositionScalingAsync(Signal signal, FeatureVector? featureVector)
+        private Task ProcessPositionScalingAsync(Signal signal)
         {
             // Implementation for ML-enhanced position scaling
             _logger.LogInformation("[ML/RL-SCALING] Processing position scaling for {Symbol}: {Action}", signal.Symbol, signal.Side);
@@ -1588,7 +1589,7 @@ namespace TopstepX.Bot.Core.Services
         // Rest of the existing methods would be implemented here...
         // (I'm keeping this focused on the new implementations for now)
 
-        private Task InitializeComponentsAsync(CancellationToken cancellationToken)
+        private Task InitializeComponentsAsync()
         {
             _logger.LogInformation("🔧 Initializing trading system components...");
             
@@ -1839,7 +1840,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Initialize production readiness components including historical seeding and enhanced market data flow
         /// </summary>
-        private async Task InitializeProductionReadinessAsync(CancellationToken cancellationToken)
+        private async Task InitializeProductionReadinessAsync()
         {
             try
             {

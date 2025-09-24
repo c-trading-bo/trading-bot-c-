@@ -253,7 +253,7 @@ public class TradeJournal : ITradeJournal
         _logger.LogInformation("[TRADE_JOURNAL] Integrity check passed: {TotalEntries} entries validated", totalEntries);
     }
 
-    public async Task ArchiveAsync(DateTime before)
+    public Task ArchiveAsync(DateTime before)
     {
         var archiveDir = Path.Combine(_journalDirectory, "archive");
         var journalFiles = Directory.GetFiles(_journalDirectory, "trade_journal_*.json");
@@ -269,10 +269,10 @@ public class TradeJournal : ITradeJournal
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task WriteJournalEntryAsync(TradeJournalEntry entry, string eventType)
+    private Task WriteJournalEntryAsync(TradeJournalEntry entry, string eventType)
     {
         var journalRecord = new TradeJournalRecord
         {
@@ -298,7 +298,7 @@ public class TradeJournal : ITradeJournal
             File.AppendAllText(filePath, journalLine + Environment.NewLine);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private string CalculateHash(string input)

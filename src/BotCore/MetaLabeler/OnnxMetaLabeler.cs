@@ -104,9 +104,9 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         }
     }
 
-    public async Task<CalibrationMetrics> GetCalibrationMetricsAsync(CancellationToken ct = default)
+    public Task<CalibrationMetrics> GetCalibrationMetricsAsync(CancellationToken ct = default)
     {
-        return await Task.FromResult(_calibration.GetMetrics()).ConfigureAwait(false);
+        return Task.FromResult(_calibration.GetMetrics());
     }
 
     private static float[] PrepareFeatures(TradeSignalContext signal, MarketContext marketContext)

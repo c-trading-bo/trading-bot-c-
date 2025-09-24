@@ -590,7 +590,7 @@ namespace BotCore.Services
         /// <summary>
         /// Process market data through the data flow pipeline
         /// </summary>
-        public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken = default)
+        public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken)
         {
             try
             {

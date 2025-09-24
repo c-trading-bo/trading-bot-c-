@@ -155,7 +155,7 @@ namespace BotCore.Infrastructure
             _logger.LogInformation("Token cleared");
         }
 
-        private sealed class TokenResponse
+        public sealed class TokenResponse
         {
             public string? Token { get; set; }
             public DateTime? ExpiresAt { get; set; }

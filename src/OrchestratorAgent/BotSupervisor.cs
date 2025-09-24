@@ -27,8 +27,7 @@ namespace OrchestratorAgent
 {
     public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null, BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
     {
-        private readonly SemaphoreSlim _routeLock = new(1, 1);
-        
+
         // Position epoch tracking for bracket mode locking
         private readonly Dictionary<string, PositionEpoch> _positionEpochs = new();
         private readonly object _positionLock = new();
@@ -120,7 +119,6 @@ namespace OrchestratorAgent
         private readonly TradingBot.Abstractions.IOnlineLearningSystem? _onlineLearningSystem = onlineLearningSystem;
         private readonly BotCore.Bandits.NeuralUcbExtended? _neuralUcbExtended = neuralUcbExtended;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
-        private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
         private readonly Notifier _notifier = new();
         private readonly List<LastSignal> _recentSignals = [];
@@ -450,7 +448,7 @@ namespace OrchestratorAgent
                     string contractId;
                     if (_contractService != null)
                     {
-                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol.ConfigureAwait(false);
+                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None).ConfigureAwait(false) ?? symbol.ConfigureAwait(false);
                     }
                     else
                     {
@@ -473,7 +471,7 @@ namespace OrchestratorAgent
                                 var untilUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                                 var path = $"/marketdata/bars?symbol={symbol}&tf=1m&since={sinceUnixMs}&until={untilUnixMs}";
                                 var missing = _http is not null
-                                    ? await _http.GetFromJsonAsync<List<BotCore.Models.Bar>>(path, cancellationToken: CancellationToken.None)
+                                    ? await _http.GetFromJsonAsync<List<Bar>>(path, cancellationToken: CancellationToken.None).ConfigureAwait(false)
                                     : null.ConfigureAwait(false);
                                 if (missing is { Count: > 0 })
                                 {
@@ -914,7 +912,7 @@ namespace OrchestratorAgent
                             _status.Set("broker.positions.count", pos?.Count ?? 0);
                             _status.Set("broker.orders.count", ord?.Count ?? 0);
                             await router.EnsureBracketsAsync(_accountId, ct).ConfigureAwait(false);
-                        }, ct);
+                        }, ct).ConfigureAwait(false);
                     }
                     catch { }
 

@@ -11,9 +11,9 @@ namespace OrchestratorAgent.Ops
     {
         private readonly ApiClient _api;
         private readonly long _accountId;
-        private readonly string _tzId = null!;
+        private readonly string _tzId;
         private readonly TimeSpan _settleLocal;
-        private readonly string _journalPath = null!;
+        private readonly string _journalPath;
 
         public EodReconciler(ApiClient api, long accountId, string tzId, string settleTimeLocalHHmm, string journalDir = "state")
         {

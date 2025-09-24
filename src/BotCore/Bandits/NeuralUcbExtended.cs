@@ -32,7 +32,6 @@ public class NeuralUcbExtended : IDisposable
     
     // Performance tracking
     private readonly Dictionary<string, int> _bundleSelectionCount = new();
-    private readonly Dictionary<string, decimal> _bundleRewardSum = new();
     private DateTime _lastPerformanceUpdate = DateTime.UtcNow;
     
     public NeuralUcbExtended(

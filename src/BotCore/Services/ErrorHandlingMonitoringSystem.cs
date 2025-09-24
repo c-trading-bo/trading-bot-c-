@@ -190,7 +190,7 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
-                _isSystemHealthy;
+                _isSystemHealthy = false;
                 
                 var eventArgs = new CriticalErrorEventArgs
                 {
@@ -308,9 +308,15 @@ namespace TopstepX.Bot.Core.Services
                     {
                         IsHealthy = _isSystemHealthy,
                         OverallHealthScore = overallHealth,
-                        Timestamp = DateTime.UtcNow,
-                        ComponentHealthSummary = GetComponentHealthSummary()
+                        Timestamp = DateTime.UtcNow
                     };
+                    
+                    // Add component health summary to the dictionary
+                    var componentHealthSummary = GetComponentHealthSummary();
+                    foreach (var item in componentHealthSummary)
+                    {
+                        eventArgs.ComponentHealthSummary[item.Key] = item.Value;
+                    }
                     
                     _logger.LogWarning("🏥 System health status changed: {IsHealthy} (Score: {HealthScore:F1}%)", 
                         _isSystemHealthy ? "HEALTHY" : "UNHEALTHY", overallHealth);

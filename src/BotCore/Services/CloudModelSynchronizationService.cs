@@ -389,10 +389,10 @@ public class CloudModelSynchronizationService : BackgroundService
     /// <summary>
     /// Force immediate synchronization
     /// </summary>
-    public async Task ForceSyncAsync(CancellationToken cancellationToken = default)
+    public Task ForceSyncAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🌐 [CLOUD-SYNC] Force sync requested");
-        await SynchronizeModelsAsync(cancellationToken).ConfigureAwait(false);
+        return SynchronizeModelsAsync(cancellationToken);
     }
 }
 

@@ -45,7 +45,7 @@ namespace TradingBot.BotCore.Services
                 {
                     // No migration needed
                     var result = JsonSerializer.Deserialize<T>(jsonContent);
-                    if (result == null)
+                    if (object.Equals(result, default(T)))
                         throw new InvalidOperationException($"Failed to deserialize {configType} configuration");
                         
                     _logger.LogInformation("✅ [SCHEMA] Configuration validated, no migration needed");
@@ -59,7 +59,7 @@ namespace TradingBot.BotCore.Services
                 var migratedJson = MigrateConfiguration(jsonContent, configType, currentVersion, targetVersion);
                 var migratedResult = JsonSerializer.Deserialize<T>(migratedJson);
                 
-                if (migratedResult == null)
+                if (object.Equals(migratedResult, default(T)))
                     throw new InvalidOperationException($"Failed to deserialize migrated {configType} configuration");
 
                 _logger.LogInformation("✅ [SCHEMA] Configuration migrated successfully");
@@ -85,7 +85,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Save configuration with schema version
         /// </summary>
-        public async Task SaveConfigurationAsync<T>(T configuration, string filePath) where T : IVersionedConfiguration
+        public async Task SaveConfigurationAsync<T>(T configuration, string filePath) where T : IVersionedConfiguration, new()
         {
             try
             {
@@ -98,7 +98,7 @@ namespace TradingBot.BotCore.Services
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 });
 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
                 
                 _logger.LogInformation("💾 [SCHEMA] Configuration saved: {FilePath}, version: {Version}", 
                     filePath, configuration.SchemaVersion);
@@ -158,6 +158,10 @@ namespace TradingBot.BotCore.Services
     {
         public ConfigurationSchemaException(string message) : base(message) { }
         public ConfigurationSchemaException(string message, Exception innerException) : base(message, innerException) { }
+
+        public ConfigurationSchemaException()
+        {
+        }
     }
 
     /// <summary>

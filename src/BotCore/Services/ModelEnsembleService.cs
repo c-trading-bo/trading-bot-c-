@@ -293,7 +293,7 @@ public class ModelEnsembleService
     /// <summary>
     /// Get active models for a specific prediction type
     /// </summary>
-    private Task<List<LoadedModel>> GetActiveModelsAsync(string predictionType, CancellationToken cancellationToken)
+    private Task<List<LoadedModel>> GetActiveModelsAsync(string predictionType)
     {
         var activeModels = new List<LoadedModel>();
         
@@ -575,7 +575,7 @@ public class ModelEnsembleService
         };
     }
 
-    private Task<StrategyPrediction?> GetSingleStrategyPredictionAsync(LoadedModel model, double[] contextVector, List<string> availableStrategies, CancellationToken cancellationToken)
+    private Task<StrategyPrediction?> GetSingleStrategyPredictionAsync(LoadedModel model, List<string> availableStrategies)
     {
         /// <summary>
         /// Single strategy prediction using ensemble model inference
@@ -599,7 +599,7 @@ public class ModelEnsembleService
         });
     }
 
-    private Task<PriceDirectionPrediction?> GetSinglePricePredictionAsync(LoadedModel model, double[] marketFeatures, CancellationToken cancellationToken)
+    private Task<PriceDirectionPrediction?> GetSinglePricePredictionAsync(LoadedModel model)
     {
         // Implementation would depend on model type
         // For now, return a simple prediction

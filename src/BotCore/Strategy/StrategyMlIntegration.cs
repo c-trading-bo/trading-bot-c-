@@ -294,8 +294,8 @@ namespace BotCore.Strategy
         {
             if (bars.Count < period + 1) return 50m;
 
-            var gains;
-            var losses;
+            var gains = 0m;
+            var losses = 0m;
 
             for (int i = bars.Count - period; i < bars.Count; i++)
             {
@@ -327,67 +327,6 @@ namespace BotCore.Strategy
             }
 
             return trs.TakeLast(period).Average();
-        }
-
-        private static decimal CalculateVolumeRatio(IList<Bar> bars, int period)
-        {
-            if (bars.Count < period) return 1m;
-
-            var latest = bars.Last().Volume;
-            var average = (decimal)bars.TakeLast(period).Average(b => b.Volume);
-
-            return average > 0 ? latest / average : 1m;
-        }
-
-        private static decimal CalculateBollingerPosition(IList<Bar> bars, int period)
-        {
-            if (bars.Count < period) return 0.5m;
-
-            var closes = bars.TakeLast(period).Select(b => b.Close).ToList();
-            var sma = closes.Average();
-            var stdDev = (decimal)Math.Sqrt((double)closes.Select(c => (c - sma) * (c - sma)).Average());
-
-            var latest = bars.Last().Close;
-            var upperBand = sma + (2 * stdDev);
-            var lowerBand = sma - (2 * stdDev);
-
-            if (upperBand == lowerBand) return 0.5m;
-
-            return (latest - lowerBand) / (upperBand - lowerBand);
-        }
-
-        private static decimal CalculateVwapDistance(IList<Bar> bars)
-        {
-            if (bars.Count < 2) return 0m;
-
-            var vwap = bars.Sum(b => b.Close * b.Volume) / bars.Sum(b => b.Volume);
-            var latest = bars.Last().Close;
-
-            return vwap > 0 ? (latest - vwap) / vwap : 0m;
-        }
-
-        private static decimal CalculateBreakoutStrength(IList<Bar> bars)
-        {
-            if (bars.Count < 20) return 0m;
-
-            var recent = bars.TakeLast(20).ToList();
-            var highest = recent.Max(b => b.High);
-            var lowest = recent.Min(b => b.Low);
-            var latest = bars.Last().Close;
-
-            if (highest == lowest) return 0m;
-
-            return (latest - lowest) / (highest - lowest);
-        }
-
-        private static decimal CalculateRateOfChange(IList<Bar> bars, int period)
-        {
-            if (bars.Count < period + 1) return 0m;
-
-            var current = bars.Last().Close;
-            var previous = bars[bars.Count - period - 1].Close;
-
-            return previous > 0 ? (current - previous) / previous : 0m;
         }
 
         private static decimal CalculateMomentumStrength(IList<Bar> bars)

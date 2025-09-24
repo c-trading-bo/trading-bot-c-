@@ -17,7 +17,6 @@ namespace OrchestratorAgent.Ops
     {
         private readonly Preflight _pf = pf;
         private readonly ModeController _mode = mode;
-        private readonly IStats _stats = stats;
         private readonly INotifier _notify = notify;
         private readonly string _symbol = symbol;
         private readonly int _minHealthy = minHealthyPasses, _demoteOnUnhealthy = demoteOnUnhealthy;

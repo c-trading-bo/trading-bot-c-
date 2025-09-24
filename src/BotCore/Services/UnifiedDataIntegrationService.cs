@@ -321,7 +321,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Subscribe to live data for specific contract
     /// </summary>
-    private async Task SubscribeToLiveDataAsync(string contractId, CancellationToken cancellationToken)
+    private async Task SubscribeToLiveDataAsync(string contractId)
     {
         try
         {
@@ -377,7 +377,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Monitor data integration health and readiness
     /// </summary>
-    private async Task MonitorDataIntegrationAsync(CancellationToken cancellationToken)
+    private async Task MonitorDataIntegrationAsync()
     {
         try
         {
@@ -543,7 +543,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     
     #region Helper Methods
     
-    private List<MarketBar> GenerateHistoricalBars(string symbol, string contractId, int count)
+    private List<MarketBar> GenerateHistoricalBars(string symbol, int count)
     {
         var bars = new List<MarketBar>();
         var basePrice = symbol == "ES" ? 4500m : 15000m;
@@ -665,10 +665,10 @@ public class BarCountManager
         _readinessTracker = readinessTracker;
     }
     
-    public async Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
+    public Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         // Unified bar processing logic
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
 

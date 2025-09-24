@@ -64,7 +64,7 @@ public static class EnvConfig
                     foreach (var line in lines)
                     {
                         var trimmed = line.Trim();
-                        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#"))
+                        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
                             continue;
 
                         var separatorIndex = trimmed.IndexOf('=');

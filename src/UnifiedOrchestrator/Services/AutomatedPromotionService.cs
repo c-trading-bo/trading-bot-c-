@@ -31,7 +31,6 @@ public class AutomatedPromotionService : BackgroundService
     
     // Configuration
     private readonly TimeSpan _promotionCheckInterval = TimeSpan.FromMinutes(15);
-    private readonly TimeSpan _healthCheckInterval = TimeSpan.FromMinutes(5);
     private readonly int _maxConcurrentPromotions = 2;
     private readonly decimal _initialPositionSizeLimit = 0.25m; // Start with 25% position size
     private readonly decimal _rolloutIncrementSize = 0.25m; // Increase by 25% each step
@@ -388,7 +387,7 @@ public class AutomatedPromotionService : BackgroundService
     /// <summary>
     /// Complete rollout with full position size
     /// </summary>
-    private async Task CompleteRolloutAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
+    private Task CompleteRolloutAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
     {
         try
         {
@@ -408,7 +407,7 @@ public class AutomatedPromotionService : BackgroundService
             _logger.LogError(ex, "[AUTO-PROMOTION] Failed to complete rollout for {Algorithm}", rollout.Algorithm);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>

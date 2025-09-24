@@ -226,7 +226,7 @@ namespace BotCore.Strategy
             if (cfg.RollEnabled && IsWithinRollWindow(last.Start.Date, cfg.RollDaysBefore, cfg.RollDaysAfter))
             {
                 rankThresh = Math.Max(0.05m, rankThresh - cfg.RollRankTighten);
-                if (!(widthRank <= rankThresh)) { Reject("roll_tighten"); return lst; } // re-check if adapting tightened threshold disqualifies
+                if (widthRank > rankThresh) { Reject("roll_tighten"); return lst; } // re-check if adapting tightened threshold disqualifies
             }
 
             // RS filter (optional, needs ExternalGetBars)
@@ -591,7 +591,7 @@ namespace BotCore.Strategy
             if (sym.Equals("NQ", StringComparison.OrdinalIgnoreCase)) return cfg.Peers.TryGetValue("NQ", out var v2) ? v2 : "ES";
             return null;
         }
-        private static (decimal t1, decimal t2) Targets(S3RuntimeConfig cfg, string sym, DateTime nowLocal, decimal r, decimal entry, decimal boxW, bool isLong, decimal? expOverride = null)
+        private static (decimal t1, decimal t2) Targets(S3RuntimeConfig cfg, decimal r, decimal entry, decimal boxW, bool isLong, decimal? expOverride = null)
         {
             if (cfg.TargetsMode.Equals("expansion", StringComparison.OrdinalIgnoreCase))
             {
@@ -626,7 +626,7 @@ namespace BotCore.Strategy
         }
         private static int FirstWeekdayOfMonth(int y, int m, DayOfWeek dow)
         { var d = new DateTime(y, m, 1); while (d.DayOfWeek != dow) d = d.AddDays(1); return d.Day; }
-        private static decimal AdaptedRankThreshold(string sym, DateTime local, decimal baseRank)
+        private static decimal AdaptedRankThreshold(DateTime local, decimal baseRank)
         {
             // Simple hourly adaptation: slightly tighter just after RTH open
             var minuteOfDay = local.Hour * 60 + local.Minute;

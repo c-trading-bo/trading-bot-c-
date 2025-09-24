@@ -24,7 +24,7 @@ namespace BotCore.Risk
             _logger = logger;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("[CRITICAL-SYSTEM] Starting critical system monitoring with cancellation support");
 
@@ -36,7 +36,7 @@ namespace BotCore.Risk
                 MonitorPerformanceMetricsAsync(stoppingToken)
             };
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            return Task.WhenAll(tasks);
         }
 
         private async Task MonitorSystemHealthAsync(CancellationToken cancellationToken)
@@ -132,7 +132,7 @@ namespace BotCore.Risk
             }
         }
 
-        private async Task CheckSystemResourcesAsync(CancellationToken cancellationToken)
+        private async Task CheckSystemResourcesAsync()
         {
             await Task.Yield().ConfigureAwait(false);
             
@@ -145,7 +145,7 @@ namespace BotCore.Risk
                 memoryUsage / (1024.0 * 1024.0), gen0Collections, gen1Collections, gen2Collections);
         }
 
-        private async Task CheckDatabaseConnectivityAsync(CancellationToken cancellationToken)
+        private async Task CheckDatabaseConnectivityAsync()
         {
             try
             {
@@ -160,7 +160,7 @@ namespace BotCore.Risk
             }
         }
 
-        private async Task CheckApiEndpointsAsync(CancellationToken cancellationToken)
+        private async Task CheckApiEndpointsAsync()
         {
             try
             {
@@ -175,7 +175,7 @@ namespace BotCore.Risk
             }
         }
 
-        private async Task PerformIntelligentMemoryCleanupAsync(CancellationToken cancellationToken)
+        private async Task PerformIntelligentMemoryCleanupAsync()
         {
             await Task.Yield().ConfigureAwait(false);
             
@@ -191,7 +191,7 @@ namespace BotCore.Risk
             _logger.LogInformation("[CRITICAL-SYSTEM] Memory cleanup completed - Freed: {MemoryFreedMB:F2}MB", memoryFreed);
         }
 
-        private async Task<double> GetCpuUsageAsync(CancellationToken cancellationToken)
+        private async Task<double> GetCpuUsageAsync()
         {
             await Task.Yield().ConfigureAwait(false);
             // Real CPU usage calculation would go here
@@ -204,11 +204,11 @@ namespace BotCore.Risk
             return (workerThreads, completionPortThreads);
         }
 
-        public override async Task StopAsync(CancellationToken cancellationToken)
+        public override Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("[CRITICAL-SYSTEM] Stopping critical system monitoring");
             _cancellationTokenSource.Cancel();
-            await base.StopAsync(cancellationToken).ConfigureAwait(false);
+            return base.StopAsync(cancellationToken);
         }
 
         public override void Dispose()

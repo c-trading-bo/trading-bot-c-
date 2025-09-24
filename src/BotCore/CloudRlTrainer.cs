@@ -32,11 +32,11 @@ public sealed class CloudRlTrainer : IDisposable
 
         // Check for updates every 30 minutes
         var pollInterval = TimeSpan.FromMinutes(30);
-        _timer = new Timer(CheckForUpdatesCallback, null, TimeSpan.Zero, pollInterval);
+        _timer = new Timer(CheckForUpdatesCallback, null, 0, (int)pollInterval.TotalMilliseconds);
         _log.LogInformation("[CloudRlTrainer] Started - checking GitHub for model updates every {Interval}", pollInterval);
     }
 
-    private async void CheckForUpdatesCallback(object? state)
+    private async Task CheckForUpdatesCallback()
     {
         try
         {

@@ -53,11 +53,11 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
         _logger.LogInformation("Data Orchestrator Service stopped");
     }
 
-    private async Task ProcessDataOperationsAsync(CancellationToken cancellationToken)
+    private Task ProcessDataOperationsAsync(CancellationToken cancellationToken)
     {
         // Process data collection and management operations
         // This will be implemented based on actual data requirements
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public Task<MarketData> GetLatestMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
@@ -130,9 +130,9 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
         {
             return action switch
             {
-                "collect_market_data" => await CollectMarketDataActionAsync(context, cancellationToken),
-                "store_historical_data" => await StoreHistoricalDataActionAsync(context, cancellationToken),
-                "generate_daily_report" => await GenerateDailyReportActionAsync(context, cancellationToken),
+                "collect_market_data" => await CollectMarketDataActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "store_historical_data" => await StoreHistoricalDataActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "generate_daily_report" => await GenerateDailyReportActionAsync(context, cancellationToken).ConfigureAwait(false),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             }.ConfigureAwait(false);
         }
@@ -145,22 +145,22 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
 
     public bool CanExecute(string action) => SupportedActions.Contains(action);
 
-    public async Task CollectMarketDataAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task CollectMarketDataAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[DATA] Collecting market data...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate data collection
+        return Task.Delay(100, cancellationToken); // Simulate data collection
     }
 
-    public async Task StoreHistoricalDataAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task StoreHistoricalDataAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[DATA] Storing historical data...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate data storage
+        return Task.Delay(100, cancellationToken); // Simulate data storage
     }
 
-    public async Task GenerateDailyReportAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task GenerateDailyReportAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[DATA] Generating daily report...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate report generation
+        return Task.Delay(100, cancellationToken); // Simulate report generation
     }
 
     // Helper methods for workflow actions

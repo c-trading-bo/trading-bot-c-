@@ -23,8 +23,6 @@ public class BatchedOnnxInferenceService : IDisposable
     private readonly BatchConfig _batchConfig;
     private readonly Timer _batchProcessor;
     private readonly Channel<InferenceRequest> _requestQueue;
-    private readonly ConcurrentDictionary<string, List<InferenceRequest>> _pendingBatches = new();
-    private readonly object _lock = new();
     private bool _disposed;
 
     // GPU and quantization detection
@@ -115,7 +113,7 @@ public class BatchedOnnxInferenceService : IDisposable
     /// <summary>
     /// Process batched inference requests
     /// </summary>
-    private async void ProcessBatchesAsync(object? state)
+    private async Task ProcessBatchesAsync()
     {
         try
         {

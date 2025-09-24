@@ -75,7 +75,7 @@ namespace TradingBot.Tests.Unit
             tracker.IncrementSeededBars(5);
             tracker.IncrementLiveTicks(2);
             
-            var result = await tracker.ValidateReadinessAsync();
+            var result = await tracker.ValidateReadinessAsync().ConfigureAwait(false);
             
             // Assert
             Assert.True(result.IsReady);
@@ -93,7 +93,7 @@ namespace TradingBot.Tests.Unit
             tracker.IncrementBarsSeen(3);
             tracker.IncrementSeededBars(2);
             
-            var result = await tracker.ValidateReadinessAsync();
+            var result = await tracker.ValidateReadinessAsync().ConfigureAwait(false);
             
             // Assert
             Assert.False(result.IsReady);

@@ -242,7 +242,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         return events;
     }
 
-    private async Task<List<EconomicEvent>> LoadFromExternalSourceAsync(string dataSource, string apiKey)
+    private async Task<List<EconomicEvent>> LoadFromExternalSourceAsync(string dataSource)
     {
         // This would integrate with real economic calendar APIs
         // For production readiness, implement actual API integration
@@ -462,7 +462,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         };
     }
 
-    private void UpdateRestrictionForSymbol(string symbol, EconomicEvent economicEvent, TimeSpan timeUntilEvent)
+    private void UpdateRestrictionForSymbol(string symbol, EconomicEvent economicEvent)
     {
         var restrictedUntil = economicEvent.ScheduledTime.Add(GetPostEventBuffer(economicEvent.Impact));
         

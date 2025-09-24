@@ -29,9 +29,6 @@ public class TradingLogger : ITradingLogger, IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly SemaphoreSlim _fileLock = new(1, 1);
     private readonly string _sessionId = Guid.NewGuid().ToString("N")[..8];
-    
-    // File rotation tracking
-    private readonly Dictionary<TradingLogCategory, FileInfo> _currentFiles = new();
     private readonly Dictionary<TradingLogCategory, long> _currentFileSizes = new();
     private readonly PerformanceMetrics _performanceMetrics = new();
     
@@ -91,7 +88,7 @@ public class TradingLogger : ITradingLogger, IDisposable
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    public async Task LogOrderAsync(string side, string symbol, decimal quantity, decimal entry, decimal stop, decimal target, decimal rMultiple, string customTag, string? orderId = null)
+    public Task LogOrderAsync(string side, string symbol, decimal quantity, decimal entry, decimal stop, decimal target, decimal rMultiple, string customTag, string? orderId = null)
     {
         var orderData = new
         {
@@ -106,10 +103,10 @@ public class TradingLogger : ITradingLogger, IDisposable
             orderId
         };
 
-        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_PLACED", orderData, customTag).ConfigureAwait(false);
+        return LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_PLACED", orderData, customTag);
     }
 
-    public async Task LogTradeAsync(string accountId, string orderId, decimal fillPrice, decimal quantity, DateTime fillTime)
+    public Task LogTradeAsync(string accountId, string orderId, decimal fillPrice, decimal quantity, DateTime fillTime)
     {
         var tradeData = new
         {
@@ -120,10 +117,10 @@ public class TradingLogger : ITradingLogger, IDisposable
             time = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
         };
 
-        await LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, "TRADE_FILLED", tradeData, orderId).ConfigureAwait(false);
+        return LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, "TRADE_FILLED", tradeData, orderId);
     }
 
-    public async Task LogOrderStatusAsync(string accountId, string orderId, string status, string? reason = null)
+    public Task LogOrderStatusAsync(string accountId, string orderId, string status, string? reason = null)
     {
         var statusData = new
         {
@@ -133,10 +130,10 @@ public class TradingLogger : ITradingLogger, IDisposable
             reason
         };
 
-        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_STATUS", statusData, orderId).ConfigureAwait(false);
+        return LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_STATUS", statusData, orderId);
     }
 
-    public async Task LogSystemAsync(TradingLogLevel level, string component, string message, object? context = null)
+    public Task LogSystemAsync(TradingLogLevel level, string component, string message, object? context = null)
     {
         var systemData = new
         {
@@ -145,7 +142,7 @@ public class TradingLogger : ITradingLogger, IDisposable
             context
         };
 
-        await LogEventAsync(TradingLogCategory.SYSTEM, level, "SYSTEM_EVENT", systemData).ConfigureAwait(false);
+        return LogEventAsync(TradingLogCategory.SYSTEM, level, "SYSTEM_EVENT", systemData);
     }
 
     public async Task LogMarketDataAsync(string symbol, string dataType, object data)
@@ -467,9 +464,9 @@ using System.Globalization;
         }
     }
 
-    public async Task<PerformanceMetrics> GetPerformanceMetricsAsync()
+    public Task<PerformanceMetrics> GetPerformanceMetricsAsync()
     {
-        return await Task.FromResult(_performanceMetrics).ConfigureAwait(false);
+        return Task.FromResult(_performanceMetrics);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -526,7 +523,6 @@ public class PerformanceMetrics
 {
     private readonly ConcurrentDictionary<TradingLogCategory, long> _categoryCounts = new();
     private readonly ConcurrentDictionary<TradingLogLevel, long> _levelCounts = new();
-    private readonly object _lockObject = new();
     private DateTime _startTime = DateTime.UtcNow;
     private long _totalEntries;
 

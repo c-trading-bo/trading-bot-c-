@@ -19,7 +19,7 @@ namespace BotCore
         }
 
 #nullable enable
-        private sealed record AvailableReq(bool live);internal sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);internal sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        private sealed record AvailableReq(bool live);public sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);public sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private static readonly Dictionary<string, string> SymbolRootToSymbolId = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -34,7 +34,7 @@ namespace BotCore
             id ??= await TryResolveViaAvailableAsync(root, live: true, ct).ConfigureAwait(false); // safety fallback
 
             // 2) Fallback to SEARCH if still nothing
-            id ??= await TryResolveViaSearchAsync(root, live: false, ct) ?? await TryResolveViaSearchAsync(root, live: true, ct).ConfigureAwait(false);
+            id ??= await TryResolveViaSearchAsync(root, live: false, ct).ConfigureAwait(false) ?? await TryResolveViaSearchAsync(root, live: true, ct).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new InvalidOperationException($"No contractId found for symbol: {root}");
@@ -97,7 +97,7 @@ namespace BotCore
             }
         }
 
-        private sealed record SearchReq(string searchText, bool live);internal sealed record SearchResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        private sealed record SearchReq(string searchText, bool live);public sealed record SearchResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private async Task<string?> TryResolveViaSearchAsync(string searchText, bool live, CancellationToken ct)
         {

@@ -33,15 +33,9 @@ namespace SupervisorAgent
             public int TrailTicks { get; set; } = 6;
         }
 
-        private readonly ILogger<SupervisorAgent> _log = log;
-        private readonly HttpClient _http = http;
-        private readonly string _apiBase = apiBase;
-        private readonly string _jwt = jwt;
-        private readonly long _accountId = accountId;
         private readonly object _marketHub = marketHub;
         private readonly object _userHub = userHub;
         private readonly StatusService _status = status;
-        private readonly Config _cfg = cfg;
 
         public async Task RunAsync(CancellationToken ct)
         {

@@ -52,7 +52,6 @@ namespace OrchestratorAgent
         private static readonly ConcurrentQueue<long> _latencyMs = new();
         private static readonly ConcurrentQueue<DateTime> _rejects = new();
         private static readonly ConcurrentQueue<DateTime> _ocoRebuilds = new();
-        private static readonly object _latLock = new();
         private readonly OrderLimiter _limiter = new(20, TimeSpan.FromSeconds(10));
         private readonly Notifier _notifier = new();
 
@@ -239,7 +238,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct)
+                var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct).ConfigureAwait(false)
                                ?? [].ConfigureAwait(false);
                 foreach (var p in parents)
                 {

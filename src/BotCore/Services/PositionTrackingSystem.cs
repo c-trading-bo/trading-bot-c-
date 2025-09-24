@@ -188,7 +188,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Update market prices for unrealized P&L calculation
         /// </summary>
-        public async Task UpdateMarketPricesAsync(Dictionary<string, decimal> marketPrices)
+        public Task UpdateMarketPricesAsync(Dictionary<string, decimal> marketPrices)
         {
             foreach (var position in _positions.Values)
             {
@@ -204,9 +204,9 @@ namespace TopstepX.Bot.Core.Services
                     }
                 }
             }
-            
+
             // Check overall account risk
-            await CheckAccountRiskAsync().ConfigureAwait(false);
+            return CheckAccountRiskAsync();
         }
         
         private Task CheckRiskLimitsAsync(Position position)

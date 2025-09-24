@@ -365,7 +365,7 @@ namespace BotCore.Services
         /// <summary>
         /// Calculate expiration date for a contract
         /// </summary>
-        private DateTime CalculateExpirationDate(string baseSymbol, string monthCode, int year)
+        private DateTime CalculateExpirationDate(string monthCode, int year)
         {
             var month = MonthCodeToMonth(monthCode);
             

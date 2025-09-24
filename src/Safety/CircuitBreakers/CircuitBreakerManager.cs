@@ -70,7 +70,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
         }
     }
 
-    public async Task ResetCircuitBreakersAsync(string reason)
+    public Task ResetCircuitBreakersAsync(string reason)
     {
         lock (_lock)
         {
@@ -98,10 +98,10 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task ForceCircuitBreakerAsync(string reason, TimeSpan duration)
+    public Task ForceCircuitBreakerAsync(string reason, TimeSpan duration)
     {
         var forceBreaker = new CircuitBreakerState
         {
@@ -132,7 +132,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             reason, duration);
         
         OnCircuitBreakerTriggered.Invoke(triggerEvent);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private void InitializeCircuitBreakers()
@@ -252,7 +252,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
         }
     }
 
-    private async Task TriggerCircuitBreakerAsync(
+    private Task TriggerCircuitBreakerAsync(
         CircuitBreakerState breaker, 
         string reason, 
         string correlationId,
@@ -281,10 +281,10 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             breaker.Type, reason, correlationId);
         
         OnCircuitBreakerTriggered.Invoke(triggerEvent);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task ResetCircuitBreakerAsync(
+    private Task ResetCircuitBreakerAsync(
         CircuitBreakerState breaker, 
         string reason, 
         string correlationId)
@@ -307,7 +307,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             breaker.Type, reason, correlationId);
         
         OnCircuitBreakerReset.Invoke(resetEvent);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
 

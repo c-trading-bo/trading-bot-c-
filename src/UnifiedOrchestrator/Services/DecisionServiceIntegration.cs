@@ -79,12 +79,12 @@ public class DecisionServiceIntegration : IHostedService
     public bool IsConnected { get; private set; };
 
     // IHostedService implementation
-    Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         return IntegrateAsync();
     }
 
-    Task IHostedService.StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         return DisconnectAsync();
     }

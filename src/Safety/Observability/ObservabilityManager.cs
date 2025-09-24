@@ -138,7 +138,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         }
     }
 
-    public async Task TrackLatencyAsync(string operationName, TimeSpan latency, string? correlationId = null)
+    public Task TrackLatencyAsync(string operationName, TimeSpan latency, string? correlationId = null)
     {
         try
         {
@@ -175,20 +175,20 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
                 operationName, correlationId);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task<LatencyMetrics> GetLatencyMetricsAsync(string operationName)
+    public Task<LatencyMetrics> GetLatencyMetricsAsync(string operationName)
     {
         if (_latencyTrackers.TryGetValue(operationName, out var tracker))
         {
-            return await Task.FromResult(tracker.GetMetrics()).ConfigureAwait(false);
+            return Task.FromResult(tracker.GetMetrics());
         }
 
-        return await Task.FromResult(new LatencyMetrics { OperationName = operationName }).ConfigureAwait(false);
+        return Task.FromResult(new LatencyMetrics { OperationName = operationName });
     }
 
-    public async Task SendToDeadLetterQueueAsync<T>(T item, string reason, string? correlationId = null)
+    public Task SendToDeadLetterQueueAsync<T>(T item, string reason, string? correlationId = null)
     {
         try
         {
@@ -226,10 +226,10 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
                 correlationId);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task<List<DeadLetterItem>> GetDeadLetterItemsAsync(string? queueName = null)
+    public Task<List<DeadLetterItem>> GetDeadLetterItemsAsync(string? queueName = null)
     {
         var items = new List<DeadLetterItem>();
 
@@ -257,7 +257,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
             _logger.LogError(ex, "[OBSERVABILITY] Error retrieving dead letter items for queue: {QueueName}", queueName);
         }
 
-        return await Task.FromResult(items).ConfigureAwait(false);
+        return Task.FromResult(items);
     }
 
     public async Task ProcessGracefulShutdownAsync(CancellationToken cancellationToken)
@@ -303,7 +303,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         }
     }
 
-    public async Task RegisterShutdownHookAsync(Func<CancellationToken, Task> shutdownHook)
+    public Task RegisterShutdownHookAsync(Func<CancellationToken, Task> shutdownHook)
     {
         lock (_shutdownLock)
         {
@@ -311,14 +311,14 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         }
         
         _logger.LogDebug("[OBSERVABILITY] Shutdown hook registered: {HookCount} total hooks", _shutdownHooks.Count);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _metricsTimer.Change(TimeSpan.Zero, _config.MetricsCollectionInterval);
         _logger.LogInformation("[OBSERVABILITY] Started with instance ID: {InstanceId}", _instanceId);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

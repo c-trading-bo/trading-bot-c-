@@ -185,7 +185,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         var limitFillProb = intent.LimitPrice.HasValue
             ? await EstimateLimitOrderFillProbabilityAsync(
                 intent.Symbol, intent.LimitPrice.Value, intent.Quantity,
-                intent.IsBuy, intent.MaxWaitTime, currentState, ct)
+                intent.IsBuy, intent.MaxWaitTime, currentState, ct).ConfigureAwait(false)
             : 0m.ConfigureAwait(false);
 
         // Calculate expected values
@@ -242,8 +242,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
     private ExecutionRecommendation ChooseOptimalStrategy(
         TradeIntent intent,
-        MicrostructureState state,
-        decimal marketEV,
+                decimal marketEV,
         decimal limitEV,
         decimal marketSlippage,
         decimal limitSlippage,
@@ -388,7 +387,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 /// <summary>
 /// Execution history for learning and improvement
 /// </summary>
-internal record ExecutionHistory
+internal sealed record ExecutionHistory
 {
     public DateTime Timestamp { get; init; }
     public TradeIntent Intent { get; init; } = null!;

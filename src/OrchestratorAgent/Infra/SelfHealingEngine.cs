@@ -22,22 +22,22 @@ public class SelfHealingEngine
         _logger.LogInformation("✅ [SelfHealingEngine] Self-healing enabled and active");
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    public Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Starting active healing mode");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Initializing active healing systems");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Stopping");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<bool> TryHealAsync(HealthCheckResult failedResult, CancellationToken cancellationToken = default)

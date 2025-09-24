@@ -582,7 +582,7 @@ public class HistoricalWalkForwardTrainer
 
             return new TrainedModelResult
             {
-                ModelData = await File.ReadAllBytesAsync(tempModelPath, cancellationToken),
+                ModelData = await File.ReadAllBytesAsync(tempModelPath, cancellationToken).ConfigureAwait(false),
                 ModelPath = tempModelPath,
                 Metrics = new MLModelMetrics
                 {

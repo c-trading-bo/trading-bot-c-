@@ -31,14 +31,14 @@ namespace TradingBot.BotCore.Services
             _logger.LogInformation("🏛️ [STATE-DURABILITY] Starting daily backup service");
 
             // Perform initial backup on startup
-            await PerformBackupAsync();
+            await PerformBackupAsync().ConfigureAwait(false);
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await Task.Delay(_backupInterval, stoppingToken);
-                    await PerformBackupAsync();
+                    await Task.Delay(_backupInterval, stoppingToken).ConfigureAwait(false);
+                    await PerformBackupAsync().ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -49,7 +49,7 @@ namespace TradingBot.BotCore.Services
                 {
                     _logger.LogError(ex, "🚨 [STATE-DURABILITY] Error in backup loop");
                     // Continue running even if backup fails
-                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken); // Retry in 1 hour
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false); // Retry in 1 hour
                 }
             }
 
@@ -76,7 +76,7 @@ namespace TradingBot.BotCore.Services
                 Directory.CreateDirectory(backupDir);
 
                 // Create backup archive
-                await CreateBackupArchiveAsync(statePath, backupFile);
+                await CreateBackupArchiveAsync(statePath, backupFile).ConfigureAwait(false);
 
                 // Cleanup old backups
                 CleanupOldBackups(backupDir);
@@ -91,16 +91,16 @@ namespace TradingBot.BotCore.Services
                 _logger.LogError(ex, "🚨 [STATE-DURABILITY] Backup failed at {Timestamp}", backupStart);
                 
                 // Create critical alert
-                await CreateBackupFailureAlertAsync(ex);
+                await CreateBackupFailureAlertAsync(ex).ConfigureAwait(false);
             }
         }
 
         /// <summary>
         /// Restore state from a specific backup
         /// </summary>
-        public async Task RestoreFromBackupAsync(string backupFileName)
+        public Task RestoreFromBackupAsync(string backupFileName)
         {
-            await Task.Run(() =>
+            return Task.Run(() =>
             {
                 try
                 {
@@ -140,7 +140,7 @@ namespace TradingBot.BotCore.Services
                     _logger.LogError(ex, "🚨 [STATE-DURABILITY] Restore failed from backup: {BackupFile}", backupFileName);
                     throw;
                 }
-            }).ConfigureAwait(false);
+            });
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace TradingBot.BotCore.Services
             await Task.Run(() =>
             {
                 ZipFile.CreateFromDirectory(statePath, backupFile, CompressionLevel.Optimal, false);
-            });
+            }).ConfigureAwait(false);
 
             // Verify backup file
             var backupInfo = new FileInfo(backupFile);
@@ -229,7 +229,7 @@ namespace TradingBot.BotCore.Services
                 var alertPath = $"CRITICAL_ALERT_BACKUP_FAILURE_{DateTime.UtcNow:yyyyMMdd_HHmmss}.txt";
                 var alertContent = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC - STATE BACKUP FAILURE\n\n{ex}";
                 
-                await File.WriteAllTextAsync(alertPath, alertContent);
+                await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 _logger.LogCritical("🚨 [STATE-DURABILITY] CRITICAL ALERT: Backup failure alert created at {AlertPath}", alertPath);
             }
             catch (Exception alertEx)

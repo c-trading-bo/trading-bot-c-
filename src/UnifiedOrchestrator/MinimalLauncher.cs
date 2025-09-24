@@ -10,7 +10,7 @@ namespace TradingBot.MinimalOrchestrator
     /// Minimal UnifiedOrchestrator launcher for testing TopStep connectivity
     /// This bypasses the full intelligence stack to focus on core connectivity
     /// </summary>
-    public class Program
+    public static class Program
     {
         public static async Task Main(string[] args)
         {
@@ -26,13 +26,13 @@ namespace TradingBot.MinimalOrchestrator
                 Console.WriteLine("✅ Host created successfully");
                 Console.WriteLine("🔌 Testing TopStep connectivity...");
                 
-                await host.StartAsync();
+                await host.StartAsync().ConfigureAwait(false);
                 Console.WriteLine("✅ Orchestrator started successfully");
                 
                 // Test TopStep connectivity
-                await TestTopStepConnectivity(host.Services);
+                await TestTopStepConnectivity(host.Services).ConfigureAwait(false);
                 
-                await host.WaitForShutdownAsync();
+                await host.WaitForShutdownAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -55,7 +55,7 @@ namespace TradingBot.MinimalOrchestrator
             logger.LogInformation("Testing TopStep API connectivity...");
             
             // Basic connectivity test
-            await Task.Delay(1000); // Simulate connection attempt
+            await Task.Delay(1000).ConfigureAwait(false); // Simulate connection attempt
             
             logger.LogInformation("✅ TopStep connectivity test completed");
             Console.WriteLine("🎯 TOPSTEP CONNECTION: Ready for trading");

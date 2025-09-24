@@ -296,7 +296,7 @@ public class TopStepComplianceManager
         _currentDrawdown = _accountBalance - accountHighWaterMark;
     }
     
-    private async Task CheckComplianceViolationsAsync(CancellationToken cancellationToken)
+    private Task CheckComplianceViolationsAsync()
     {
         // Check for hard violations
         if (_todayPnL <= TopStepDailyLossLimit)
@@ -325,8 +325,8 @@ public class TopStepComplianceManager
             _logger.LogError("🔴 [TOPSTEP-COMPLIANCE] CRITICAL: Approaching drawdown limit: ${Drawdown}",
                 _currentDrawdown);
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
     
     private int GetMinimumTradingDays()

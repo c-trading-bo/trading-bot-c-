@@ -32,67 +32,67 @@ namespace BotCore.Services
         /// <summary>
         /// Get account information with comprehensive error handling
         /// </summary>
-        public async Task<JsonElement> GetAccountAsync(string accountId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> GetAccountAsync(string accountId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>
         /// Get account balance with proper error handling
         /// </summary>
-        public async Task<JsonElement> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/balance";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>
         /// Get positions with comprehensive error handling
         /// </summary>
-        public async Task<JsonElement> GetPositionsAsync(string accountId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> GetPositionsAsync(string accountId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/positions";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>
         /// Get orders with full error handling
         /// </summary>
-        public async Task<JsonElement> GetOrdersAsync(string accountId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> GetOrdersAsync(string accountId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/orders";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>
         /// Get trades with comprehensive error handling
         /// </summary>
-        public async Task<JsonElement> GetTradesAsync(string accountId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> GetTradesAsync(string accountId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/trades";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>
         /// Place order with full error handling and validation
         /// </summary>
-        public async Task<JsonElement> PlaceOrderAsync(string accountId, object orderRequest, CancellationToken cancellationToken = default)
+        public Task<JsonElement> PlaceOrderAsync(string accountId, object orderRequest, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
@@ -101,13 +101,13 @@ namespace BotCore.Services
                 throw new ArgumentException("Order request cannot be null", nameof(orderRequest));
 
             var endpoint = $"/accounts/{accountId}/orders";
-            return await ExecutePostWithRetryAsync(endpoint, orderRequest, cancellationToken).ConfigureAwait(false);
+            return ExecutePostWithRetryAsync(endpoint, orderRequest, cancellationToken);
         }
 
         /// <summary>
         /// Cancel order with proper error handling
         /// </summary>
-        public async Task<JsonElement> CancelOrderAsync(string accountId, string orderId, CancellationToken cancellationToken = default)
+        public Task<JsonElement> CancelOrderAsync(string accountId, string orderId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(accountId))
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
@@ -116,7 +116,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Order ID cannot be null or empty", nameof(orderId));
 
             var endpoint = $"/accounts/{accountId}/orders/{orderId}";
-            return await ExecuteDeleteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            return ExecuteDeleteWithRetryAsync(endpoint, cancellationToken);
         }
 
         /// <summary>

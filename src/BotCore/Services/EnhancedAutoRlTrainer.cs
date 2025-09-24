@@ -43,7 +43,7 @@ namespace BotCore
             _logger.LogInformation("[EnhancedAutoRlTrainer] Started - checking every {Interval} for training opportunities", checkInterval);
         }
 
-        private async void CheckAndTrain(object? state)
+        private async Task CheckAndTrain()
         {
             if (_disposed) return;
 

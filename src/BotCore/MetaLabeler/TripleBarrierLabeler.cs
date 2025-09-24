@@ -185,8 +185,8 @@ public class TripleBarrierLabeler
     }
 
     private Dictionary<string, decimal> ExtractFeatures(
-        HistoricalTradeSignal signal,
-        PriceBar currentBar)
+        HistoricalTradeSignal signal
+        )
     {
         return new Dictionary<string, decimal>
         {
@@ -215,7 +215,7 @@ public class TripleBarrierLabeler
         return risk > 0 ? reward / risk : 0m;
     }
 
-    private record BarrierResult
+    private sealed record BarrierResult
     {
         public DateTime ExitTime { get; init; }
         public decimal ExitPrice { get; init; }

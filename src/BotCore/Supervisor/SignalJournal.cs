@@ -12,7 +12,7 @@ namespace BotCore.Supervisor
     public sealed class SignalJournal
     {
         private readonly string _path;
-        private static readonly string Header = "utc,strategy,symbol,side,entry,stop,target,qty,score,stage,cid,note";
+        private const string Header = "utc,strategy,symbol,side,entry,stop,target,qty,score,stage,cid,note";
         private readonly object _sync = new();
 
         public SignalJournal(string? filePath = null)

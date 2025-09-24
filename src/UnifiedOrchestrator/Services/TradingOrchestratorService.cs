@@ -301,7 +301,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             var enhancedDecision = await _enhancedBrain!.MakeEnhancedDecisionAsync(
                 "ES", enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false);
             
-            if (enhancedDecision?.EnhancementApplied == true)
+            if (enhancedDecision?.EnhancementApplied)
             {
                 // Convert to unified decision format
                 var action = enhancedDecision.MarketTimingSignal switch
@@ -589,7 +589,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 Price = (double)esPrice,
                 Volume = systemHealthy ? 1000.0 : 0.0, // Use health as volume proxy when SDK connected
                 Timestamp = DateTime.UtcNow,
-                TechnicalIndicators = await CalculateRealTechnicalIndicators("ES", cancellationToken)
+                TechnicalIndicators = await CalculateRealTechnicalIndicators("ES", cancellationToken).ConfigureAwait(false)
             }.ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -797,11 +797,11 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         {
             return action switch
             {
-                "execute_trade" => await ExecuteTradeActionAsync(context, cancellationToken),
-                "connect" => await ConnectActionAsync(context, cancellationToken),
-                "disconnect" => await DisconnectActionAsync(context, cancellationToken),
-                "risk_management" => await RiskManagementActionAsync(context, cancellationToken),
-                "microstructure_analysis" => await MicrostructureAnalysisActionAsync(context, cancellationToken),
+                "execute_trade" => await ExecuteTradeActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "connect" => await ConnectActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "disconnect" => await DisconnectActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "risk_management" => await RiskManagementActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "microstructure_analysis" => await MicrostructureAnalysisActionAsync(context, cancellationToken).ConfigureAwait(false),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             }.ConfigureAwait(false);
         }
@@ -925,16 +925,16 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         }
     }
 
-    public async Task ManagePortfolioRiskAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task ManagePortfolioRiskAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[TRADING] Managing portfolio risk...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate risk management
+        return Task.Delay(100, cancellationToken); // Simulate risk management
     }
 
-    public async Task AnalyzeMicrostructureAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task AnalyzeMicrostructureAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[TRADING] Analyzing market microstructure...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate analysis
+        return Task.Delay(100, cancellationToken); // Simulate analysis
     }
 
     // Helper methods for workflow actions
@@ -994,7 +994,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                         Price = price,
                         Volume = volume,
                         Timestamp = DateTime.UtcNow,
-                        TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken)
+                        TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken).ConfigureAwait(false)
                     }.ConfigureAwait(false);
                 }
             }
@@ -1188,7 +1188,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                         Price = price,
                         Volume = volume,
                         Timestamp = DateTime.UtcNow,
-                        TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken)
+                        TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken).ConfigureAwait(false)
                     }.ConfigureAwait(false);
                 }
             }

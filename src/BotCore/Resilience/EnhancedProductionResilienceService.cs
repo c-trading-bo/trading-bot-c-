@@ -19,12 +19,7 @@ namespace BotCore.Resilience;
 /// </summary>
 public class EnhancedProductionResilienceService
 {
-    private const int DefaultBufferSize = 100;
-
     private const int MaxTimeoutMs = 30000;
-
-    private const int DefaultTimeoutMs = 5000;
-
     private const int ThousandMs = 1000;
 
     private readonly ILogger<EnhancedProductionResilienceService> _logger;
@@ -128,14 +123,14 @@ public class EnhancedProductionResilienceService
     /// <summary>
     /// Execute operation with comprehensive resilience policies
     /// </summary>
-    public async Task<T> ExecuteWithResilienceAsync<T>(
+    public Task<T> ExecuteWithResilienceAsync<T>(
         string operationName,
         Func<CancellationToken, Task<T>> operation,
         CancellationToken cancellationToken = default)
     {
         var policy = GetOperationResiliencePolicy<T>(operationName);
         
-        return await policy.ExecuteAsync(async (ct) =>
+        return policy.ExecuteAsync(async (ct) =>
         {
             _logger.LogDebug("🔧 [RESILIENCE] Executing {Operation} with resilience protection", operationName).ConfigureAwait(false);
             return await operation(ct).ConfigureAwait(false);
@@ -145,14 +140,14 @@ public class EnhancedProductionResilienceService
     /// <summary>
     /// Execute HTTP operation with full resilience stack
     /// </summary>
-    public async Task<HttpResponseMessage> ExecuteHttpWithResilienceAsync(
+    public Task<HttpResponseMessage> ExecuteHttpWithResilienceAsync(
         string operationName,
         Func<CancellationToken, Task<HttpResponseMessage>> httpOperation,
         CancellationToken cancellationToken = default)
     {
         var policy = GetHttpResiliencePolicy(operationName);
         
-        return await policy.ExecuteAsync(async (ct) =>
+        return policy.ExecuteAsync(async (ct) =>
         {
             _logger.LogDebug("🌐 [RESILIENCE] Executing HTTP {Operation} with full resilience stack", operationName).ConfigureAwait(false);
             return await httpOperation(ct).ConfigureAwait(false);
@@ -220,10 +215,6 @@ public class EnhancedProductionResilienceService
 /// </summary>
 public class ResilienceConfiguration
 {
-    private const int DefaultBufferSize = 100;
-    private const int ThousandMs = 1000;
-    private const int DefaultTimeoutMs = 5000;
-    private const int MaxTimeoutMs = 30000;
     [Required]
     [Range(1, 10)]
     public int MaxRetries { get; set; } = 3;

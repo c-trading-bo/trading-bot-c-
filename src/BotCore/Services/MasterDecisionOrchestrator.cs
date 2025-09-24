@@ -587,8 +587,7 @@ public class MasterDecisionOrchestrator : BackgroundService
     /// This enables continuous learning of optimal parameter combinations
     /// </summary>
     private async Task UpdateBundlePerformanceAsync(
-        string decisionId,
-        decimal realizedPnL,
+                decimal realizedPnL,
         bool wasCorrect,
         Dictionary<string, object> metadata,
         CancellationToken cancellationToken)
@@ -732,12 +731,12 @@ public class MasterDecisionOrchestrator : BackgroundService
         }
     }
     
-    private async Task CheckContractRolloverAsync(CancellationToken cancellationToken)
+    private Task CheckContractRolloverAsync(CancellationToken cancellationToken)
     {
-        await _rolloverManager.CheckRolloverNeedsAsync(cancellationToken).ConfigureAwait(false);
+        return _rolloverManager.CheckRolloverNeedsAsync(cancellationToken);
     }
     
-    private async Task TrackDecisionForLearningAsync(
+    private Task TrackDecisionForLearningAsync(
         UnifiedTradingDecision decision,
         MarketContext marketContext,
         CancellationToken cancellationToken)
@@ -754,8 +753,8 @@ public class MasterDecisionOrchestrator : BackgroundService
             MarketContext = marketContext,
             Timestamp = decision.Timestamp
         };
-        
-        await _learningManager.TrackDecisionAsync(trackingInfo, cancellationToken).ConfigureAwait(false);
+
+        return _learningManager.TrackDecisionAsync(trackingInfo, cancellationToken);
     }
     
     private void LogDecision(UnifiedTradingDecision decision, DateTime startTime)
@@ -769,9 +768,8 @@ public class MasterDecisionOrchestrator : BackgroundService
     }
     
     private UnifiedTradingDecision CreateEmergencyDecision(
-        string symbol, 
-        MarketContext marketContext, 
-        string decisionId, 
+        string symbol,
+                string decisionId, 
         DateTime startTime)
     {
         return new UnifiedTradingDecision
@@ -793,12 +791,11 @@ public class MasterDecisionOrchestrator : BackgroundService
         };
     }
     
-    private async Task UpdatePerformanceTrackingAsync(
-        string decisionId,
-        string decisionSource,
+    private Task UpdatePerformanceTrackingAsync(
+                string decisionSource,
         decimal realizedPnL,
-        bool wasCorrect,
-        CancellationToken cancellationToken)
+        bool wasCorrect
+        )
     {
         lock (_stateLock)
         {
@@ -815,8 +812,8 @@ public class MasterDecisionOrchestrator : BackgroundService
                 (decimal)performance.WinningDecisions / performance.TotalDecisions : 0;
             performance.LastUpdated = DateTime.UtcNow;
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
     
     private decimal CalculateOverallWinRate()
@@ -928,13 +925,13 @@ public class ContinuousLearningManager
         _serviceProvider = serviceProvider;
     }
     
-    public async Task InitializeAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task StartLearningAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task ProcessLearningEventsAsync(List<LearningEvent> events, CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task CheckAndUpdateModelsAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task ForceUpdateAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task RestartAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task TrackDecisionAsync(DecisionTrackingInfo info, CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
+    public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StartLearningAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ProcessLearningEventsAsync(List<LearningEvent> events, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task CheckAndUpdateModelsAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ForceUpdateAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task RestartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task TrackDecisionAsync(DecisionTrackingInfo info, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 /// <summary>
@@ -951,9 +948,9 @@ public class ContractRolloverManager
         _serviceProvider = serviceProvider;
     }
     
-    public async Task InitializeAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task StartMonitoringAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
-    public async Task CheckRolloverNeedsAsync(CancellationToken cancellationToken) => await Task.CompletedTask.ConfigureAwait(false);
+    public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StartMonitoringAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task CheckRolloverNeedsAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 #endregion

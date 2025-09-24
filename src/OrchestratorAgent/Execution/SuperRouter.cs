@@ -83,9 +83,9 @@ namespace OrchestratorAgent.Execution
             }
         }
         
-        public async Task EnsureBracketsAsync(long accountId, CancellationToken ct) => await _baseRouter.EnsureBracketsAsync(accountId, ct).ConfigureAwait(false);
+        public Task EnsureBracketsAsync(long accountId, CancellationToken ct) => _baseRouter.EnsureBracketsAsync(accountId, ct);
         
-        public async Task FlattenAll(long accountId, CancellationToken ct) => await _baseRouter.FlattenAllAsync(accountId, ct).ConfigureAwait(false);
+        public Task FlattenAll(long accountId, CancellationToken ct) => _baseRouter.FlattenAllAsync(accountId, ct);
 
         // Enhanced routing with ML integration
         public async Task<bool> RouteAsync(Signal sig, CancellationToken ct)

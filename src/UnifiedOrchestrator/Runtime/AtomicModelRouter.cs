@@ -139,10 +139,10 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
     /// <summary>
     /// Initialize with a champion model
     /// </summary>
-    public async Task<bool> InitializeAsync(T championModel, ModelVersion championVersion, CancellationToken cancellationToken = default)
+    public Task<bool> InitializeAsync(T championModel, ModelVersion championVersion, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[{Algorithm}] Initializing with champion model version {VersionId}", _algorithm, championVersion.VersionId);
-        return await SwapAsync(championModel, championVersion, cancellationToken).ConfigureAwait(false);
+        return SwapAsync(championModel, championVersion, cancellationToken);
     }
 
     /// <summary>
