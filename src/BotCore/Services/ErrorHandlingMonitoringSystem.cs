@@ -503,7 +503,7 @@ namespace TopstepX.Bot.Core.Services
     public class CriticalErrorEventArgs : EventArgs
     {
         public string Component { get; set; } = string.Empty;
-        public Exception Exception { get; set; } = new();
+        public Exception Exception { get; set; } = new InvalidOperationException();
         public string ErrorId { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public bool RequiresImmediateAction { get; set; }

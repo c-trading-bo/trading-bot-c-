@@ -19,6 +19,14 @@ namespace BotCore.Resilience;
 /// </summary>
 public class EnhancedProductionResilienceService
 {
+    private const int DefaultBufferSize = 100;
+
+    private const int MaxTimeoutMs = 30000;
+
+    private const int DefaultTimeoutMs = 5000;
+
+    private const int ThousandMs = 1000;
+
     private readonly ILogger<EnhancedProductionResilienceService> _logger;
     private readonly ResilienceConfiguration _config;
 
@@ -212,6 +220,10 @@ public class EnhancedProductionResilienceService
 /// </summary>
 public class ResilienceConfiguration
 {
+    private const int DefaultBufferSize = 100;
+    private const int ThousandMs = 1000;
+    private const int DefaultTimeoutMs = 5000;
+    private const int MaxTimeoutMs = 30000;
     [Required]
     [Range(1, 10)]
     public int MaxRetries { get; set; } = 3;

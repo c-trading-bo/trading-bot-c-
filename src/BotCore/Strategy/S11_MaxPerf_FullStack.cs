@@ -390,8 +390,8 @@ namespace TopstepX.S11
                 if (Adr <= 0) return false;
                 var today = LastBarTime.Date;
                 double todayHi = 0, todayLo = double.MaxValue;
-                bool found;
-                for (int i; i < Min1.Count; i++)
+                bool found = false;
+                for (int i = 0; i < Min1.Count; i++)
                 {
                     var b = Min1.Last(i);
                     if (b.TimeET.Date != today) continue;

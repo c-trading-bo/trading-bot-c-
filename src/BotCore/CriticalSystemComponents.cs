@@ -687,14 +687,29 @@ namespace TradingBot.Critical
                     var currentState = new SystemState
                     {
                         Timestamp = DateTime.UtcNow,
-                        Positions = _activePositions.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                        PendingOrders = GetPendingOrders(),
-                        StrategyStates = GetStrategyStates(),
                         RiskMetrics = CalculateRiskMetrics(),
                         MarketState = GetMarketState(),
                         SystemVersion = GetSystemVersion(),
                         CheckpointHash = GenerateStateHash()
                     };
+                    
+                    // Populate collection properties
+                    foreach (var position in _activePositions)
+                    {
+                        currentState.Positions[position.Key] = position.Value;
+                    }
+                    
+                    var pendingOrders = GetPendingOrders();
+                    foreach (var order in pendingOrders)
+                    {
+                        currentState.PendingOrders[order.Key] = order.Value;
+                    }
+                    
+                    var strategyStates = GetStrategyStates();
+                    foreach (var strategyState in strategyStates)
+                    {
+                        currentState.StrategyStates[strategyState.Key] = strategyState.Value;
+                    }
                     
                     var json = JsonSerializer.Serialize(currentState, new JsonSerializerOptions { WriteIndented = true });
                     
@@ -987,7 +1002,7 @@ namespace TradingBot.Critical
             await Task.Delay(5000).ConfigureAwait(false); // Wait 5 seconds for recovery
             if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(35))
             {
-                await ActivateEmergencyMode(new Exception("System freeze > 35 seconds after recovery attempt")).ConfigureAwait(false);
+                await ActivateEmergencyMode(new InvalidOperationException("System freeze > 35 seconds after recovery attempt")).ConfigureAwait(false);
             }
         }
         
@@ -1396,9 +1411,10 @@ namespace TradingBot.Critical
                             AlertType = "ES_NQ_OVERFLOW",
                             CurrentCorrelation = ES_NQ_CORRELATION,
                             MaxAllowed = MAX_CORRELATION_EXPOSURE,
-                            AffectedSymbols = new List<string> { "ES", "NQ" },
                             RecommendedAction = "Reduce one position before adding to the other"
                         };
+                        alert.AffectedSymbols.Add("ES");
+                        alert.AffectedSymbols.Add("NQ");
                         
                         await SendCorrelationAlert(alert).ConfigureAwait(false);
                         return false;

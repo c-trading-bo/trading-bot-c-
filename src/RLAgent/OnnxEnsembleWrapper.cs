@@ -683,7 +683,7 @@ public class ModelSession
 /// <summary>
 /// Inference request for batching (merged from OnnxEnsembleService)
 /// </summary>
-public class InferenceRequest
+public sealed class InferenceRequest
 {
     public IReadOnlyList<float> Features { get; set; } = Array.Empty<float>();
     public TaskCompletionSource<EnsemblePrediction> TaskCompletionSource { get; set; } = null!;

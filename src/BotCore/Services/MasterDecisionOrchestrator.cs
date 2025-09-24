@@ -880,9 +880,14 @@ public class MasterDecisionOrchestrator : BackgroundService
                     TotalPnL = _performanceTracking.Values.Sum(p => p.TotalPnL),
                     OverallWinRate = CalculateOverallWinRate(),
                     ActiveSources = _performanceTracking.Count
-                },
-                SourcePerformance = _performanceTracking.Values.ToList()
+                }
             };
+            
+            // Add performance data to the collection property
+            foreach (var performance in _performanceTracking.Values)
+            {
+                report.SourcePerformance.Add(performance);
+            }
             
             // Save report
             var reportPath = Path.Combine("reports", $"performance_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");

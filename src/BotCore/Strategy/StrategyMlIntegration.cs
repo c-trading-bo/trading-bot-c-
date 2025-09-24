@@ -203,7 +203,7 @@ namespace BotCore.Strategy
         private static MultiStrategyRlCollector.ComprehensiveFeatures CreateBreakoutFeatures(
             string signalId, string symbol, decimal price, IList<Bar> bars, decimal score, decimal qScore)
         {
-            decimal highBreakout = 0m, lowBreakout = 0m, volume = 1000m, avgVolume = 1000m, consolidationTime;
+            decimal highBreakout = 0m, lowBreakout = 0m, volume = 1000m, avgVolume = 1000m, consolidationTime = 10m;
 
             if (bars.Count >= 20)
             {

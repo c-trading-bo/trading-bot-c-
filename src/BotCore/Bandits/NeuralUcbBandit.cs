@@ -181,7 +181,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
 /// <summary>
 /// Individual NeuralUCB arm with neural network and uncertainty estimation.
 /// </summary>
-internal class NeuralUcbArm
+internal sealed class NeuralUcbArm
 {
     private readonly INeuralNetwork _network;
     private readonly NeuralUcbConfig _config;

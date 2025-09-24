@@ -143,7 +143,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
 /// <summary>
 /// Tracks model calibration metrics in real-time
 /// </summary>
-internal class CalibrationTracker
+internal sealed class CalibrationTracker
 {
     private readonly List<(decimal predicted, bool actual)> _predictions = new();
     private readonly object _lock = new();

@@ -11,6 +11,10 @@ namespace BotCore.Configuration
         /// <summary>
         /// Enable model version tracking
         /// </summary>
+    private const int DefaultBufferSize = 100;
+
+    private const int ThousandMs = 1000;
+
         public bool EnableVersionTracking { get; set; } = true;
 
         /// <summary>
@@ -82,6 +86,8 @@ namespace BotCore.Configuration
     /// </summary>
     public class DataFlowEnhancementConfiguration
     {
+        private const int ThousandMs = 1000;
+        private const int DefaultBufferSize = 100;
         /// <summary>
         /// Enable snapshot data requests after subscriptions
         /// </summary>

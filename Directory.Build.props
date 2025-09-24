@@ -4,21 +4,18 @@
     <LangVersion>latest</LangVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 
-    <!-- PRODUCTION HARDENING: HIGH QUALITY WITH PRAGMATIC ENFORCEMENT -->
+    <!-- PRODUCTION HARDENING: STRICT ENFORCEMENT RESTORED -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- Critical errors only - allow quality warnings -->
-    <WarningsAsErrors>CS0019;CS0103;CS0246;CS1061;CS1929;CS0165;CS0201;CS0579;CS1002;CS1525</WarningsAsErrors>
-    <WarningsNotAsErrors>CA1303;CA1724;CA1852;CA1812;CA2007;S1118;S109;S138;S1172;S1481;S2325;S4143;S1905;SCS0005</WarningsNotAsErrors>
 
     <!-- Enable nullable reference types solution-wide -->
     <Nullable>enable</Nullable>
 
     <!-- Enable static code analysis with PRODUCTION enforcement -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisMode>Recommended</AnalysisMode>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <AnalysisLevel>latest</AnalysisLevel>
-    <!-- Focus on critical errors, allow quality warnings -->
-    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <!-- Strict enforcement - all warnings become errors -->
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
 
     <!-- Security and reliability analyzers -->
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
@@ -30,14 +27,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Production-focused analyzer packages - Essential for critical issues only -->
+    <!-- Production-focused analyzer packages - Full strict enforcement restored -->
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" PrivateAssets="all" />
-    <!-- Temporarily disable extensive analyzers for production readiness -->
-    <!-- <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" /> -->
-    <!-- <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" /> -->
-    <!-- <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" /> -->
-    <!-- <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" /> -->
-    <!-- <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" /> -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" />
+    <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- PRODUCTION ENFORCEMENT: Business Logic Validation Targets -->
