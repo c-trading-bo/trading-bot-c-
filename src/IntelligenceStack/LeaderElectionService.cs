@@ -710,9 +710,18 @@ public class QuarantineManager : IQuarantineManager
         }
 
         var previousState = status.State;
+        await UpdateModelHealthStateAsync(status, modelId, avgBrierScore, avgLatency, previousState, cancellationToken).ConfigureAwait(false);
 
+        if (status.State != previousState)
+        {
+            ModelHealthChanged(_logger, modelId, previousState.ToString(), status.State.ToString(), avgBrierScore, avgLatency, null);
+        }
+    }
+
+    private async Task UpdateModelHealthStateAsync(QuarantineStatus status, string modelId, double avgBrierScore, double avgLatency, HealthState previousState, CancellationToken cancellationToken)
+    {
         // Evaluate against thresholds
-        if (avgBrierScore > BaseBrierThreshold + _config.QuarantineBrierDelta || avgLatency > _config.LatencyP99Ms * LatencyMultiplierMax)
+        if (IsQuarantineRequired(avgBrierScore, avgLatency))
         {
             status.State = HealthState.Quarantine;
             status.BlendWeight = ZeroBlendWeight;
@@ -722,12 +731,12 @@ public class QuarantineManager : IQuarantineManager
                 await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
-        else if (avgBrierScore > BaseBrierThreshold + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
+        else if (IsDegradeRequired(avgBrierScore, avgLatency))
         {
             status.State = HealthState.Degrade;
             status.BlendWeight = HalfBlendWeight; // Require agreement with another model
         }
-        else if (avgBrierScore > BaseBrierThreshold + _config.WatchBrierDelta || avgLatency > _config.LatencyP99Ms)
+        else if (IsWatchRequired(avgBrierScore, avgLatency))
         {
             status.State = HealthState.Watch;
             status.BlendWeight = HalfBlendWeight; // Halve blend weight
@@ -737,10 +746,23 @@ public class QuarantineManager : IQuarantineManager
             status.State = HealthState.Healthy;
             status.BlendWeight = FullBlendWeight;
         }
+    }
 
-        if (status.State != previousState)
-        {
-            ModelHealthChanged(_logger, modelId, previousState.ToString(), status.State.ToString(), avgBrierScore, avgLatency, null);
-        }
+    private bool IsQuarantineRequired(double avgBrierScore, double avgLatency)
+    {
+        return avgBrierScore > BaseBrierThreshold + _config.QuarantineBrierDelta || 
+               avgLatency > _config.LatencyP99Ms * LatencyMultiplierMax;
+    }
+
+    private bool IsDegradeRequired(double avgBrierScore, double avgLatency)
+    {
+        return avgBrierScore > BaseBrierThreshold + _config.DegradeBrierDelta || 
+               avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier;
+    }
+
+    private bool IsWatchRequired(double avgBrierScore, double avgLatency)
+    {
+        return avgBrierScore > BaseBrierThreshold + _config.WatchBrierDelta || 
+               avgLatency > _config.LatencyP99Ms;
     }
 }

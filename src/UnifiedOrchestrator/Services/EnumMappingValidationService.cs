@@ -18,11 +18,13 @@ public class EnumMappingValidationService
 {
     private readonly ILogger<EnumMappingValidationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
+    private readonly IMLConfigurationService _mlConfig;
 
-    public EnumMappingValidationService(ILogger<EnumMappingValidationService> logger, ITradingBrainAdapter brainAdapter)
+    public EnumMappingValidationService(ILogger<EnumMappingValidationService> logger, ITradingBrainAdapter brainAdapter, IMLConfigurationService mlConfig)
     {
         _logger = logger;
         _brainAdapter = brainAdapter;
+        _mlConfig = mlConfig;
     }
 
     /// <summary>
@@ -132,7 +134,7 @@ public class EnumMappingValidationService
             Symbol = "ES",
             PriceDirection = direction,
             OptimalPositionMultiplier = multiplier,
-            ModelConfidence = 0.7m,
+            ModelConfidence = (decimal)_mlConfig.GetAIConfidenceThreshold(),
             RecommendedStrategy = "TestStrategy",
             DecisionTime = DateTime.UtcNow,
             ProcessingTimeMs = 50.0,

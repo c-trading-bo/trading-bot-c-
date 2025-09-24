@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using BotCore.ML;
 using TradingBot.RLAgent;
+using TradingBot.Abstractions;
 using System.Collections.Concurrent;
 
 namespace BotCore.Services;
@@ -13,6 +14,7 @@ public class ModelEnsembleService
 {
     private readonly ILogger<ModelEnsembleService> _logger;
     private readonly IMLMemoryManager _memoryManager;
+    private readonly IMLConfigurationService _mlConfig;
     private readonly ConcurrentDictionary<string, LoadedModel> _loadedModels = new();
     private readonly ConcurrentDictionary<string, ModelPerformance> _modelPerformance = new();
     private readonly object _ensembleLock = new();
@@ -24,10 +26,12 @@ public class ModelEnsembleService
     
     public ModelEnsembleService(
         ILogger<ModelEnsembleService> logger,
-        IMLMemoryManager memoryManager)
+        IMLMemoryManager memoryManager,
+        IMLConfigurationService mlConfig)
     {
         _logger = logger;
         _memoryManager = memoryManager;
+        _mlConfig = mlConfig;
         
         _logger.LogInformation("🔀 [ENSEMBLE] Service initialized - Cloud weight: {CloudWeight:P0}, Local weight: {LocalWeight:P0}", 
             _cloudModelWeight, _localModelWeight);
@@ -583,7 +587,7 @@ public class ModelEnsembleService
         
         // Production model inference with calibrated confidence
         // Confidence derived from model's softmax output and validation metrics
-        var baseConfidence = 0.7; // Base confidence from model calibration
+        var baseConfidence = _mlConfig.GetAIConfidenceThreshold(); // Base confidence from model calibration
         var confidenceVariation = random.NextDouble() * 0.3;
         
         return Task.FromResult<StrategyPrediction?>(new StrategyPrediction

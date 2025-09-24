@@ -826,59 +826,105 @@ public class RLAdvisorSystem
         {
             LoadingHistoricalDataViaSDK(_logger, symbol, null);
 
-            // Call Python SDK bridge to get historical data
-            var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
-            if (!File.Exists(pythonScript))
+            var pythonScript = ValidateSdkScriptPath();
+            if (pythonScript == null)
             {
-                SDKBridgeScriptNotFound(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            // Calculate estimated number of bars needed
-            var timespan = endDate - startDate;
-            var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // 5-minute bars
-
-            var startInfo = new ProcessStartInfo
+            var output = await ExecuteSdkBridgeProcessAsync(pythonScript, symbol, startDate, endDate).ConfigureAwait(false);
+            if (output == null)
             {
-                FileName = "python3",
-                Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                SDKBridgeStartFailed(_logger, null);
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().ConfigureAwait(false);
+            var dataPoints = ParseSdkOutputToDataPoints(output, symbol, startDate, endDate);
+            DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
+            return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
+        }
+        catch (JsonException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (HttpRequestException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (TimeoutException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+        catch (InvalidOperationException ex)
+        {
+            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+    }
 
-            if (process.ExitCode != 0)
+    private string? ValidateSdkScriptPath()
+    {
+        var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
+        if (!File.Exists(pythonScript))
+        {
+            SDKBridgeScriptNotFound(_logger, null);
+            return null;
+        }
+        return pythonScript;
+    }
+
+    private async Task<string?> ExecuteSdkBridgeProcessAsync(string pythonScript, string symbol, DateTime startDate, DateTime endDate)
+    {
+        var timespan = endDate - startDate;
+        var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // 5-minute bars
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "python3",
+            Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            SDKBridgeStartFailed(_logger, null);
+            return null;
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            SDKBridgeExitCode(_logger, process.ExitCode, error, null);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            SDKBridgeEmptyOutput(_logger, null);
+            return null;
+        }
+
+        return output;
+    }
+
+    private List<RLMarketDataPoint> ParseSdkOutputToDataPoints(string output, string symbol, DateTime startDate, DateTime endDate)
+    {
+        var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
+        var dataPoints = new List<RLMarketDataPoint>();
+
+        if (barData != null)
+        {
+            foreach (var bar in barData)
             {
-                SDKBridgeExitCode(_logger, process.ExitCode, error, null);
-                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-            }
-
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                SDKBridgeEmptyOutput(_logger, null);
-                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-            }
-
-            // Parse JSON response and convert to RL market data points
-            var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
-            var dataPoints = new List<RLMarketDataPoint>();
-
-            if (barData != null)
-            {
-                foreach (var bar in barData)
-                {
                 try
                 {
                     var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ts) ? ts : DateTime.UtcNow;
@@ -922,31 +968,9 @@ public class RLAdvisorSystem
                     BarDataParseFailed(_logger, ex.Message, null);
                 }
             }
-            }
+        }
 
-            DataPointsLoadedViaSDK(_logger, dataPoints.Count, symbol, null);
-            return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
-        }
-        catch (JsonException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (HttpRequestException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (TimeoutException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
-        catch (InvalidOperationException ex)
-        {
-            HistoricalDataLoadFailedViaSDK(_logger, symbol, ex);
-            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
-        }
+        return dataPoints;
     }
 
     private static List<RLMarketDataPoint> LoadHistoricalMarketDataFallback(string symbol, DateTime startDate, DateTime endDate)

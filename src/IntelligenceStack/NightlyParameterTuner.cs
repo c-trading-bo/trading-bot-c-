@@ -1069,7 +1069,7 @@ public class NightlyParameterTuner
         return stableVersion;
     }
 
-    private async Task PrepareRollbackConfigurationAsync(string modelFamily, CancellationToken cancellationToken)
+    private Task PrepareRollbackConfigurationAsync(string modelFamily, CancellationToken cancellationToken)
     {
         var configPath = Path.Combine(_statePath, "rollback", $"{modelFamily}_rollback_config.json");
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
@@ -1083,7 +1083,7 @@ public class NightlyParameterTuner
         };
 
         var configJson = JsonSerializer.Serialize(rollbackConfig, JsonOptions);
-        await File.WriteAllTextAsync(configPath, configJson, cancellationToken).ConfigureAwait(false);
+        return File.WriteAllTextAsync(configPath, configJson, cancellationToken);
     }
 
     private async Task RestoreStableParametersAsync(string modelFamily, CancellationToken cancellationToken)

@@ -67,8 +67,8 @@ public class ObservabilityDashboard : IDisposable
     private const double ConfidenceInterval95Upper = 0.40;
     private const int TargetOrderLatencyP99Ms = 400;
     private const int DashboardUpdateIntervalSeconds = 30;
-    private const double ActiveRegimeValue = 1.0;
-    private const double InactiveRegimeValue = 0.0;
+    private const double ActiveIndicatorValue = 1.0d;
+    private const double InactiveIndicatorValue = 0.0d;
 
     // Time-of-day profile constants (S109)
     private const double MidnightActivityLevel = 0.8;
@@ -680,7 +680,7 @@ public class ObservabilityDashboard : IDisposable
         // Record metrics asynchronously to avoid blocking subsequent collections
         var recordingTasks = new[]
         {
-            Task.Run(() => RecordMetric("regime_changes", ensembleStatus.InTransition ? ActiveRegimeValue : InactiveRegimeValue, timestamp, new Dictionary<string, string>
+            Task.Run(() => RecordMetric("regime_changes", ensembleStatus.InTransition ? ActiveIndicatorValue : InactiveIndicatorValue, timestamp, new Dictionary<string, string>
             {
                 ["current_regime"] = ensembleStatus.CurrentRegime.ToString(),
                 ["previous_regime"] = ensembleStatus.PreviousRegime.ToString()
@@ -701,25 +701,49 @@ public class ObservabilityDashboard : IDisposable
         var dashboardData = await GetDashboardDataAsync().ConfigureAwait(false);
         
         // Generate JSON data files for dashboard
+        await WriteDashboardDataFileAsync(dashboardData).ConfigureAwait(false);
+        
+        // Generate summary metrics file
+        await WriteSummaryFileAsync(dashboardData).ConfigureAwait(false);
+    }
+
+    private async Task WriteDashboardDataFileAsync(object dashboardData)
+    {
         var dataFile = Path.Combine(_dashboardPath, "data", "dashboard_data.json");
         var json = JsonSerializer.Serialize(dashboardData, JsonOptions);
         await File.WriteAllTextAsync(dataFile, json).ConfigureAwait(false);
-        
-        // Generate summary metrics file
+    }
+
+    private async Task WriteSummaryFileAsync(dynamic dashboardData)
+    {
         var summaryFile = Path.Combine(_dashboardPath, "data", "summary.json");
-        var summary = new
+        var summary = CreateDashboardSummary(dashboardData);
+        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
+        await File.WriteAllTextAsync(summaryFile, summaryJson).ConfigureAwait(false);
+    }
+
+    private object CreateDashboardSummary(dynamic dashboardData)
+    {
+        return new
         {
             timestamp = dashboardData.Timestamp,
             status = "healthy",
-            active_models = dashboardData.ModelHealth?.TotalModels ?? 0,
-            quarantined_models = dashboardData.ModelHealth?.QuarantinedModels ?? 0,
-            current_regime = dashboardData.RegimeTimeline?.CurrentRegime ?? "unknown",
-            decision_latency = dashboardData.GoldenSignals?.Latency?.DecisionLatencyP99Ms ?? 0,
-            error_rate = dashboardData.GoldenSignals?.ErrorRate?.ErrorRatePercent ?? 0
+            active_models = GetSafeValue(dashboardData.ModelHealth?.TotalModels, 0),
+            quarantined_models = GetSafeValue(dashboardData.ModelHealth?.QuarantinedModels, 0),
+            current_regime = GetSafeValue(dashboardData.RegimeTimeline?.CurrentRegime, "unknown"),
+            decision_latency = GetSafeValue(dashboardData.GoldenSignals?.Latency?.DecisionLatencyP99Ms, 0),
+            error_rate = GetSafeValue(dashboardData.GoldenSignals?.ErrorRate?.ErrorRatePercent, 0)
         };
-        
-        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
-        await File.WriteAllTextAsync(summaryFile, summaryJson).ConfigureAwait(false);
+    }
+
+    private static T GetSafeValue<T>(T? value, T defaultValue) where T : struct
+    {
+        return value ?? defaultValue;
+    }
+
+    private static string GetSafeValue(string? value, string defaultValue)
+    {
+        return value ?? defaultValue;
     }
 
     private void RecordMetric(string name, double value, DateTime timestamp, Dictionary<string, string>? tags = null)
