@@ -153,7 +153,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
             foreach (var kvp in armImportance)
             {
                 if (!featureImportance.ContainsKey(kvp.Key))
-                    featureImportance[kvp.Key];
+                    featureImportance[kvp.Key] = 0;
 
                 featureImportance[kvp.Key] += kvp.Value * armWeight;
             }
@@ -278,7 +278,7 @@ internal sealed class NeuralUcbArm
             {
                 var featureName = featureKeys[i];
                 if (!importance.ContainsKey(featureName))
-                    importance[featureName];
+                    importance[featureName] = 0;
 
                 importance[featureName] += Math.Abs(gradients[i]);
             }
@@ -607,7 +607,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             _session.Dispose();
             _session = null;
         }
-        _isInitialized;
+        _isInitialized = false;
     }
 }
 

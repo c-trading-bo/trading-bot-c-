@@ -273,7 +273,7 @@ namespace BotCore
                     var success = await UpdateSingleModelAsync(modelName, modelInfo, cancellationToken).ConfigureAwait(false);
                     if (!success)
                     {
-                        allSuccessful;
+                        allSuccessful = false;
                         _log.LogError("[ModelUpdater] Failed to update model: {ModelName}", modelName);
                     }
                     else

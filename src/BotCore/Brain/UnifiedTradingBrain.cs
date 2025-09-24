@@ -790,8 +790,8 @@ namespace BotCore.Brain
         /// </summary>
         public void ResetDaily()
         {
-            _dailyPnl;
-            _currentDrawdown;
+            _dailyPnl = 0;
+            _currentDrawdown = 0;
             _lastResetDate = DateTime.UtcNow.Date;
             
             _logger.LogInformation("🌅 [DAILY-RESET] Daily P&L and drawdown reset for new trading day");
