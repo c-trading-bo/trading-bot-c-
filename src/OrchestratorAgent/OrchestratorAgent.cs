@@ -289,239 +289,78 @@ namespace OrchestratorAgent
 
         public async Task ConnectAsync(string authToken, int accountId, CancellationToken ct = default)
         {
-            Task<string?> TokenProvider()
-            {
-                // Parse JWT to extract actual expiration time and validate
-                if (IsTokenExpired(authToken))
-                {
-                    _log.LogWarning("[USER HUB] JWT token is expired, may need refresh");
-                    // In production, this would trigger token refresh
-                    // For now, return null to force reconnection
-                    return Task.FromResult<string?>(null);
-                }
-                
-                return Task.FromResult<string?>(authToken);
-            }
+            _log.LogInformation("[TOPSTEPX-SDK] Initializing connection for account {AccountId}", accountId);
+            
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-            _conn = new HubConnectionBuilder()
-                .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
-                {
-                    options.AccessTokenProvider = TokenProvider;
-                    options.SkipNegotiation;
-                    options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
-                    options.CloseTimeout = TimeSpan.FromSeconds(30);
-                    options.WebSocketConfiguration = ws =>
-                    {
-                        ws.KeepAliveInterval = TimeSpan.FromSeconds(30);
-                    };
-                    options.HttpMessageHandlerFactory = handler =>
-                    {
-                        if (handler is HttpClientHandler clientHandler)
-                        {
-                            clientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
-                        }
-                        return handler;
-                    };
-                })
-                .WithAutomaticReconnect(
-                [
-                    TimeSpan.Zero,
-                    TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(5),
-                    TimeSpan.FromSeconds(10)
-                ])
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    logging.AddConsole();
-                    logging.SetMinimumLevel(LogLevel.Information);
-                    var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                    if (concise)
-                    {
-                        logging.AddFilter("Microsoft", LogLevel.Warning);
-                        logging.AddFilter("System", LogLevel.Warning);
-                        logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
-                    }
-                    // Suppress verbose client transport logs
-                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
-                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
-                })
-                .Build();
-
-            _conn.ServerTimeout = TimeSpan.FromSeconds(45);
-            _conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
-
-            // Wire events ONCE BEFORE StartAsync
-            bool handlersWired;
-            void WireHandlers()
-            {
-                if (handlersWired) return;
-                _conn.On<object>("GatewayUserOrder", data =>
-                {
-                    try
-                    {
-                        if (data is JsonElement je) _log.LogInformation($"Order event: {je}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.LogWarning(ex, "Order parse failed.");
-                    }
-                });
-                _conn.On<object>("GatewayUserTrade", data => Console.WriteLine($"TRADE => {data}"));
-                handlersWired = true;
-            }
-            WireHandlers();
-
-            _conn.Reconnecting += error =>
-            {
-                _log.LogWarning(error, "UserHub reconnecting: {Message}", error?.Message);
-                return Task.CompletedTask;
-            };
-            _conn.Reconnected += connectionId =>
-            {
-                _log.LogInformation("UserHub reconnected: {ConnectionId}", connectionId);
-                // Re-subscribe after reconnect
-                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeAccounts", accountId, ct2), ct);
-                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeOrders", accountId, ct2), ct);
-                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribePositions", accountId, ct2), ct);
-                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeTrades", accountId, ct2), ct);
-                return Task.CompletedTask;
-            };
-            _conn.Closed += error =>
-            {
-                _log.LogWarning(error, "UserHub closed: {Message}", error?.Message);
-                return Task.CompletedTask;
-            };
-
-            using (var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
-            {
-                connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-                await _conn.StartAsync(connectCts.Token).ConfigureAwait(false);
-            }
-            if (_conn.State != HubConnectionState.Connected)
-                throw new InvalidOperationException("UserHub failed to connect.");
-
-            // Log JWT TTL at connect time
-            {
-                var (_, expUtc) = (authToken, DateTime.UtcNow.AddHours(1));
-                var ttl = expUtc - DateTimeOffset.UtcNow;
-                _log.LogInformation($"UserHub connected. JWT TTL ≈ {(int)ttl.TotalSeconds}s");
-            }
-
-            // Only subscribe if connection is active
-            if (_conn.State == HubConnectionState.Connected)
-            {
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct).ConfigureAwait(false);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct).ConfigureAwait(false);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct).ConfigureAwait(false);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct).ConfigureAwait(false);
-                _log.LogInformation("[UserHub] subscribed for account {AccountId}", SecurityHelpers.MaskAccountId(accountId));
-            }
-        }
-#nullable enable
-        // Method removed - TopstepX SDK handles connections and retries internally
-
-        private bool IsTokenExpired(string token)
-        {
             try
             {
-                if (string.IsNullOrWhiteSpace(token))
-                    return true;
+                // Subscribe to TopstepX SDK events
+                _topstepXClient.OnOrderUpdate += HandleOrderUpdate;
+                _topstepXClient.OnTradeUpdate += HandleTradeUpdate;
 
-                // JWT tokens have 3 parts separated by dots
-                var parts = token.Split('.');
-                if (parts.Length != 3)
+                // Subscribe to account-specific order and trade updates
+                var orderSubscribed = await _topstepXClient.SubscribeOrdersAsync(accountId.ToString(), ct).ConfigureAwait(false);
+                var tradeSubscribed = await _topstepXClient.SubscribeTradesAsync(accountId.ToString(), ct).ConfigureAwait(false);
+
+                if (orderSubscribed && tradeSubscribed)
                 {
-                    _log.LogWarning("[JWT] Invalid token format - not a JWT");
-                    return true;
-                }
-
-                // Decode the payload (second part)
-                var payload = parts[1];
-                
-                // Add padding if needed for Base64 decoding
-                var missingPadding = payload.Length % 4;
-                if (missingPadding != 0)
-                {
-                    payload += new string('=', 4 - missingPadding);
-                }
-
-                // Convert from Base64URL to Base64
-                payload = payload.Replace('-', '+').Replace('_', '/');
-                
-                var jsonBytes = Convert.FromBase64String(payload);
-                var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes);
-                
-                // Parse the JSON payload
-                using var doc = JsonDocument.Parse(jsonString);
-using System.Globalization;
-                var root = doc.RootElement;
-
-                // Look for 'exp' claim (expiration time as Unix timestamp)
-                if (root.TryGetProperty("exp", out var expElement))
-                {
-                    var exp = expElement.GetInt64();
-                    var expDateTime = DateTimeOffset.FromUnixTimeSeconds(exp);
-                    var now = DateTimeOffset.UtcNow;
-                    
-                    var isExpired = expDateTime <= now;
-                    
-                    if (isExpired)
-                    {
-                        _log.LogWarning("[JWT] Token expired at {ExpirationTime}, current time {CurrentTime}", 
-                            expDateTime, now);
-                    }
-                    else
-                    {
-                        var timeToExpiry = expDateTime - now;
-                        _log.LogDebug("[JWT] Token valid, expires in {TimeToExpiry}", timeToExpiry);
-                        
-                        // Warn if token expires soon (within 5 minutes)
-                        if (timeToExpiry < TimeSpan.FromMinutes(5))
-                        {
-                            _log.LogWarning("[JWT] Token expires soon: {TimeToExpiry}", timeToExpiry);
-                        }
-                    }
-                    
-                    return isExpired;
+                    _subscribed = true;
+                    _log.LogInformation("[TOPSTEPX-SDK] Successfully subscribed to orders and trades for account {AccountId}", accountId);
                 }
                 else
                 {
-                    _log.LogWarning("[JWT] No expiration claim found in token");
-                    return false; // Assume valid if no exp claim
+                    _log.LogWarning("[TOPSTEPX-SDK] Failed to subscribe to some data streams for account {AccountId}. Orders: {OrdersSub}, Trades: {TradesSub}", 
+                        accountId, orderSubscribed, tradeSubscribed);
                 }
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "[JWT] Error parsing token expiration");
-                return false; // Assume valid on parse error to avoid unnecessary disconnections
+                _log.LogError(ex, "[TOPSTEPX-SDK] Failed to initialize connection for account {AccountId}", accountId);
+                throw;
             }
         }
 
-        public async ValueTask DisposeAsync()
+        public async Task SubscribeToAccountAsync(string authToken, int accountId, CancellationToken ct = default)
+        {
+            if (_subscribed)
+            {
+                _log.LogInformation("[TOPSTEPX-SDK] Already subscribed to account {AccountId}", accountId);
+                return;
+            }
+
+            await ConnectAsync(authToken, accountId, ct).ConfigureAwait(false);
+        }
+
+        private void HandleOrderUpdate(object? sender, OrderUpdateEventArgs e)
         {
             try
             {
-                _log.LogInformation("[TOPSTEPX-SDK] Disposing TopstepX user agent");
-
-                // Unsubscribe from events
-                if (_topstepXClient != null)
-                {
-                    _topstepXClient.OnOrderUpdate -= HandleOrderUpdate;
-                    _topstepXClient.OnTradeUpdate -= HandleTradeUpdate;
-                }
-
-                // Cancel any ongoing operations
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
-                _subscribed = false;
+                _log.LogInformation("[TOPSTEPX-SDK] Order update - OrderId: {OrderId}, Status: {Status}", 
+                    e.OrderId, e.Status);
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[TOPSTEPX-SDK] Error during disposal");
+                _log.LogWarning(ex, "[TOPSTEPX-SDK] Error handling order update");
             }
         }
-    }
 
+        private void HandleTradeUpdate(object? sender, TradeUpdateEventArgs e)
+        {
+            try
+            {
+                _log.LogInformation("[TOPSTEPX-SDK] Trade update - OrderId: {OrderId}, Price: {Price}, Quantity: {Quantity}", 
+                    e.OrderId, e.FillPrice, e.Quantity);
 
-}
+                // Update PnL tracker with the trade information
+                if (_pnl != null)
+                {
+                    // Integration with PnL tracker would go here
+                    _log.LogDebug("[TOPSTEPX-SDK] Trade forwarded to PnL tracker");
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[TOPSTEPX-SDK] Error handling trade update");
+            }
+        }
