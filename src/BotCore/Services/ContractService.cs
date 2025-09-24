@@ -175,7 +175,7 @@ public class ContractService : IContractService
         }
     }
 
-    private class ContractCacheEntry
+    private sealed class ContractCacheEntry
     {
         public string ContractId { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }

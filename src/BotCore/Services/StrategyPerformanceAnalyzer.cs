@@ -437,7 +437,7 @@ public class StrategyPerformanceAnalyzer
         analysis.OverallScore = CalculateOverallScore(analysis);
     }
     
-    private decimal CalculateMaxDrawdown(List<AnalyzerTradeOutcome> trades)
+    private static decimal CalculateMaxDrawdown(List<AnalyzerTradeOutcome> trades)
     {
         if (trades.Count == 0) return 0m;
         
@@ -457,7 +457,7 @@ public class StrategyPerformanceAnalyzer
         return maxDrawdown;
     }
     
-    private decimal CalculateOverallScore(StrategyAnalysis analysis)
+    private static decimal CalculateOverallScore(StrategyAnalysis analysis)
     {
         if (analysis.AllTrades.Count < 5) return 0.5m;
         
@@ -626,7 +626,7 @@ public class StrategyPerformanceAnalyzer
         return baseScore;
     }
     
-    private decimal CalculateRecommendationConfidence(Dictionary<string, decimal> strategyScores)
+    private static decimal CalculateRecommendationConfidence(Dictionary<string, decimal> strategyScores)
     {
         var scores = strategyScores.Values.OrderByDescending(s => s).ToArray();
         if (scores.Length < 2) return 0.5m;

@@ -20,8 +20,8 @@ namespace BotCore
 
 #nullable enable
         private sealed record AvailableReq(bool live);
-        private sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);
-        private sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        internal sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);
+        internal sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private static readonly Dictionary<string, string> SymbolRootToSymbolId = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -100,7 +100,7 @@ namespace BotCore
         }
 
         private sealed record SearchReq(string searchText, bool live);
-        private sealed record SearchResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        internal sealed record SearchResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private async Task<string?> TryResolveViaSearchAsync(string searchText, bool live, CancellationToken ct)
         {

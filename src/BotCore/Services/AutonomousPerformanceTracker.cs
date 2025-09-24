@@ -414,7 +414,7 @@ public class AutonomousPerformanceTracker
         return stdDev > 0 ? avgReturn / stdDev * (decimal)Math.Sqrt(252) : 0m; // Annualized
     }
     
-    private decimal CalculateMaxDrawdown()
+    private static decimal CalculateMaxDrawdown()
     {
         if (_allTrades.Count == 0) return 0m;
         

@@ -272,7 +272,7 @@ public class BatchedOnnxInferenceService : IDisposable
 /// <summary>
 /// Individual inference request
 /// </summary>
-internal class InferenceRequest
+internal sealed class InferenceRequest
 {
     public string Id { get; set; } = string.Empty;
     public string ModelPath { get; set; } = string.Empty;

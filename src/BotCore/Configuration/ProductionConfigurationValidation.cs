@@ -270,9 +270,13 @@ public class HealthCheckConfiguration
     [Range(5000, 60000)]
     public int IntervalMs { get; set; } = 10000;
 
+    private const int MinTimeoutMs = 1000;
+    private const int MaxTimeoutMs = 30000;
+    private const int DefaultTimeoutMs = 5000;
+
     [Required]
-    [Range(1000, 30000)]
-    public int TimeoutMs { get; set; } = 5000;
+    [Range(MinTimeoutMs, MaxTimeoutMs)]
+    public int TimeoutMs { get; set; } = DefaultTimeoutMs;
 
     [Required]
     public bool EnableHealthEndpoint { get; set; } = true;

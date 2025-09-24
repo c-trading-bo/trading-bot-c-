@@ -175,7 +175,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
 /// <summary>
 /// Individual LinUCB arm with linear model and confidence estimation.
 /// </summary>
-internal class LinUcbArm
+internal sealed class LinUcbArm
 {
     private readonly decimal _alpha;
     private readonly int _dimension;
