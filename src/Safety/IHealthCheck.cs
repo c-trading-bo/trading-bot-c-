@@ -72,7 +72,7 @@ public enum HealthStatus
 /// Attribute to mark health checks for automatic discovery
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class HealthCheckAttribute : Attribute
+public sealed class HealthCheckAttribute : Attribute
 {
     public string? Category { get; set; }
     public int Priority { get; set; }

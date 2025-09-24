@@ -160,10 +160,8 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
     private BayesianPosterior ApplyShrinkage(
         string strategy,
-        string config,
-        string regime,
-        string session,
-        BayesianPosterior localPosterior)
+                string regime,
+                BayesianPosterior localPosterior)
     {
         var shrinkageTargets = new List<(decimal weight, BayesianPosterior target)>();
 
@@ -226,8 +224,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
     private void UpdateHierarchicalGroups(
         string strategy,
-        string config,
-        string regime,
+                string regime,
         string session,
         bool wasSuccessful)
     {

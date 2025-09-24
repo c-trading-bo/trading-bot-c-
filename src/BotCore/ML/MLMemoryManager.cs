@@ -61,7 +61,7 @@ public class MLMemoryManager : IMLMemoryManager
     /// <summary>
     /// Initialize memory management timers and monitoring
     /// </summary>
-    public async Task InitializeMemoryManagementAsync()
+    public Task InitializeMemoryManagementAsync()
     {
         _logger.LogInformation("[ML-Memory] Starting memory management services");
         
@@ -74,8 +74,8 @@ public class MLMemoryManager : IMLMemoryManager
         // Setup memory pressure notifications
         GC.RegisterForFullGCNotification(10, 10);
         _ = Task.Run(StartGCMonitoring);
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -283,7 +283,7 @@ public class MLMemoryManager : IMLMemoryManager
             candidatesForRemoval.Count, deadReferences.Count);
     }
 
-    private async Task CleanupOldVersionsAsync(string modelId)
+    private Task CleanupOldVersionsAsync(string modelId)
     {
         var versions = _activeModels.Values
             .Where(m => m.ModelId == modelId)
@@ -313,8 +313,8 @@ public class MLMemoryManager : IMLMemoryManager
                 }
             }
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 
     private void CollectGarbage(object? state)
@@ -431,7 +431,7 @@ public class MLMemoryManager : IMLMemoryManager
         }
     }
 
-    private async Task AggressiveCleanupAsync()
+    private Task AggressiveCleanupAsync()
     {
         _logger.LogWarning("[ML-Memory] Starting intelligent emergency cleanup");
         
@@ -475,7 +475,7 @@ public class MLMemoryManager : IMLMemoryManager
         
         _logger.LogInformation("[ML-Memory] Emergency cleanup completed - freed ~{FreedMB}MB from {ModelCount} models", 
             totalFreed / 1024 / 1024, modelsToUnload.Count);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private void StartGCMonitoring()

@@ -56,7 +56,7 @@ namespace BotCore
             _log.LogInformation("[CloudDataUploader] Disposed");
         }
 
-        private async void UploadDataAsync(object? state)
+        private async Task UploadDataAsync()
         {
             if (_disposed || !_enabled) return;
 

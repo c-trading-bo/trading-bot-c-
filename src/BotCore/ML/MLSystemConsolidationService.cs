@@ -259,22 +259,22 @@ public sealed class MLSystemConsolidationService
         _logger.LogInformation("[ML-Consolidation] Successfully removed duplicate MLMemoryManager from {SourcePath}", action.SourcePath);
     }
 
-    private async Task AnalyzeMLModelManagersAsync(ConsolidationAction action)
+    private Task AnalyzeMLModelManagersAsync(ConsolidationAction action)
     {
         // This would analyze different ML model manager implementations
         // For now, just log the analysis
         _logger.LogInformation("[ML-Consolidation] Analyzing ML model managers in {SourcePath}", action.SourcePath);
         action.Status = ConsolidationStatus.Completed;
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    private async Task AnalyzeFileConflictAsync(ConsolidationAction action)
+    private Task AnalyzeFileConflictAsync(ConsolidationAction action)
     {
         // This would analyze file conflicts and suggest resolution
         _logger.LogInformation("[ML-Consolidation] Analyzing file conflict: {SourcePath} vs {TargetPath}", 
             action.SourcePath, action.TargetPath);
         action.Status = ConsolidationStatus.Completed;
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>

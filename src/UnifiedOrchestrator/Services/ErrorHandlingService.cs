@@ -73,15 +73,15 @@ public class ErrorHandlingService : IHostedService
             TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "ErrorHandler", 
+        return _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "ErrorHandler",
             "Error handling service started", new
             {
                 fileSystemAvailable = _fileSystemAvailable,
                 eventLogAvailable = _eventLogAvailable,
                 platform = RuntimeInformation.OSDescription
-            }).ConfigureAwait(false);
+            });
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -202,7 +202,7 @@ public class ErrorHandlingService : IHostedService
         }
     }
 
-    private async void CheckCircuitBreaker(object? state)
+    private async Task CheckCircuitBreaker(object? state)
     {
         try
         {

@@ -28,7 +28,7 @@ public class EnhancedTradingBrainIntegration
     // Integration state
     private readonly Dictionary<string, DateTime> _lastPredictions = new();
     private readonly Dictionary<string, double> _predictionAccuracies = new();
-    private bool _isEnhancementActive = true;
+    private readonly bool _isEnhancementActive = true;
     
     public EnhancedTradingBrainIntegration(
         ILogger<EnhancedTradingBrainIntegration> logger,
@@ -172,8 +172,7 @@ public class EnhancedTradingBrainIntegration
         EnsemblePrediction strategyPrediction,
         EnsemblePrediction pricePrediction,
         EnsembleActionResult ensembleAction,
-        string symbol,
-        Dictionary<string, object> marketContext)
+                Dictionary<string, object> marketContext)
     {
         var enhancedDecision = new EnhancedTradingDecision
         {
@@ -321,7 +320,7 @@ public class EnhancedTradingBrainIntegration
     /// <summary>
     /// Calculate market timing signal
     /// </summary>
-    private string CalculateMarketTiming(EnsemblePrediction pricePrediction, EnsembleActionResult ensembleAction, Dictionary<string, object> marketContext)
+    private string CalculateMarketTiming(EnsemblePrediction pricePrediction, EnsembleActionResult ensembleAction)
     {
         if (pricePrediction.Result is PriceDirectionPrediction pricePred)
         {
@@ -347,8 +346,7 @@ public class EnhancedTradingBrainIntegration
     /// Generate human-readable enhancement reason
     /// </summary>
     private string GenerateEnhancementReason(
-        BotCore.Brain.TradingDecision original, 
-        EnsemblePrediction strategyPred, 
+                EnsemblePrediction strategyPred, 
         EnsemblePrediction pricePred, 
         EnsembleActionResult action)
     {
@@ -510,7 +508,7 @@ public class EnhancedTradingBrainIntegration
     /// <summary>
     /// Track prediction for feedback analysis
     /// </summary>
-    private void TrackPredictionForFeedback(EnhancedTradingDecision decision, string symbol, Dictionary<string, object> context)
+    private void TrackPredictionForFeedback(EnhancedTradingDecision decision, string symbol)
     {
         try
         {
@@ -542,21 +540,21 @@ public class EnhancedTradingBrainIntegration
 
     #region Helper Methods
 
-    private double[] ExtractContextVector(Dictionary<string, object> marketContext)
+    private double[] ExtractContextVector()
     {
         // Extract and normalize market context into feature vector
         // This is a simplified implementation
         return new double[] { 0.5, 0.3, 0.7, 0.2, 0.8 };
     }
 
-    private double[] ExtractMarketFeatures(Dictionary<string, object> marketContext)
+    private double[] ExtractMarketFeatures()
     {
         // Extract market features for price prediction
         // This is a simplified implementation
         return new double[] { 0.6, 0.4, 0.9, 0.1, 0.5, 0.7 };
     }
 
-    private double[] CreateStateVector(Dictionary<string, object> marketContext, BotCore.Brain.TradingDecision decision)
+    private double[] CreateStateVector(BotCore.Brain.TradingDecision decision)
     {
         // Create state vector for CVaR-PPO
         // This is a simplified implementation

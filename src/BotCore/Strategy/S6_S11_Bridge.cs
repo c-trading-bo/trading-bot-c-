@@ -282,7 +282,7 @@ namespace BotCore.Strategy
         /// <summary>
         /// Convert existing Bar to S6 Bar1m format
         /// </summary>
-        private static TopstepX.S6.Bar1m ToS6Bar1m(Bar bar, TopstepX.S6.Instrument instrument, double tickSize)
+        private static TopstepX.S6.Bar1m ToS6Bar1m(Bar bar, double tickSize)
         {
             var timeET = bar.Start.Kind == DateTimeKind.Utc 
                 ? TimeZoneInfo.ConvertTimeFromUtc(bar.Start, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"))
@@ -303,7 +303,7 @@ namespace BotCore.Strategy
         /// <summary>
         /// Convert existing Bar to S11 Bar1m format
         /// </summary>
-        private static TopstepX.S11.Bar1m ToS11Bar1m(Bar bar, TopstepX.S11.Instrument instrument, double tickSize)
+        private static TopstepX.S11.Bar1m ToS11Bar1m(Bar bar, double tickSize)
         {
             var timeET = bar.Start.Kind == DateTimeKind.Utc 
                 ? TimeZoneInfo.ConvertTimeFromUtc(bar.Start, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"))
@@ -568,7 +568,7 @@ namespace BotCore.Strategy
         /// <summary>
         /// Basic S6 implementation without broker integration for fallback compatibility
         /// </summary>
-        private static List<Candidate> GetS6CandidatesBasic(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+        private static List<Candidate> GetS6CandidatesBasic(string symbol, Env env, IList<Bar> bars)
         {
             var candidates = new List<Candidate>();
             
@@ -622,7 +622,7 @@ namespace BotCore.Strategy
         /// <summary>
         /// Basic S11 implementation without broker integration for fallback compatibility
         /// </summary>
-        private static List<Candidate> GetS11CandidatesBasic(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+        private static List<Candidate> GetS11CandidatesBasic(string symbol, Env env, IList<Bar> bars)
         {
             var candidates = new List<Candidate>();
             

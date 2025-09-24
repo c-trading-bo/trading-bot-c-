@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,7 +74,10 @@ namespace TradingBot.Critical
         {
             public string OrderId { get; set; } = string.Empty;
             public decimal Price { get; set; }
+            public decimal FillPrice { get; set; }
             public int Quantity { get; set; }
+            public string Symbol { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; }
             public decimal Commission { get; set; }
             public string Exchange { get; set; } = string.Empty;
             public string LiquidityType { get; set; } = string.Empty;
@@ -83,6 +87,7 @@ namespace TradingBot.Critical
         {
             public string OrderId { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; }
             public string RejectReason { get; set; } = string.Empty;
         }
         
@@ -184,7 +189,7 @@ namespace TradingBot.Critical
                 else
                 {
                     // Orphaned fill - CRITICAL ALERT
-                    Task.Run(async () => await HandleOrphanedFill(fillData)).ConfigureAwait(false);
+                    Task.Run(async () => await HandleOrphanedFill(fillData).ConfigureAwait(false)).ConfigureAwait(false);
                 }
             }
             
@@ -421,7 +426,7 @@ namespace TradingBot.Critical
             _logger.LogWarning("[ORDER_FAILURE] Order {OrderId} failed: {Reason}", order.OrderId, reason);
         }
 
-        private async Task AlertOrderFailure(OrderRecord order, string reason)
+        private Task AlertOrderFailure(OrderRecord order, string reason)
         {
             // Professional order failure alerting system
             _logger.LogCritical("[ORDER_FAILURE_ALERT] Order {OrderId} failed: {Reason} - Symbol: {Symbol}, Side: {Side}, Qty: {Quantity}, Price: {Price}", 
@@ -446,8 +451,8 @@ namespace TradingBot.Critical
             {
                 _logger.LogError(ex, "Failed to log order failure alert for {OrderId}", order.OrderId);
             }
-            
-            await Task.CompletedTask.ConfigureAwait(false);
+
+            return Task.CompletedTask;
         }
 
         private async Task<string?> QueryOrderStatus(string orderId)
@@ -880,7 +885,7 @@ namespace TradingBot.Critical
             return Task.CompletedTask;
         }
         
-        private async Task ReattachProtectiveOrders(SystemState state)
+        private async Task ReattachProtectiveOrders()
         {
             foreach (var position in _activePositions.Values)
             {
@@ -1026,7 +1031,7 @@ namespace TradingBot.Critical
             SaveCrashDump(exception);
             
             // Attempt emergency position protection
-            Task.Run(async () => await EmergencyPositionProtection()).Wait(5000).ConfigureAwait(false);
+            Task.Run(async () => await EmergencyPositionProtection().ConfigureAwait(false)).Wait(5000).ConfigureAwait(false);
         }
 
         // Additional stub implementations
@@ -1039,11 +1044,11 @@ namespace TradingBot.Critical
         private void LogCriticalError(string message, Exception? ex) => _logger.LogError(ex, message);
         private Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
-        private Task<bool> CheckOrderExists(string orderId) => Task.FromResult(false);
+        private Task<bool> CheckOrderExists() => Task.FromResult(false);
         private decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
         private decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
-        private Task<Order?> PlaceStopLossOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
-        private Task<Order?> PlaceTakeProfitOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);
         private async Task ExecuteEmergencyOrder(Order order) 
         {
@@ -1539,19 +1544,19 @@ namespace TradingBot.Critical
                 _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
             }
         }
-        private decimal CalculateExposure(string symbol, int quantity, string direction) => quantity * 100m;
+        private decimal CalculateExposure(int quantity) => quantity * 100m;
         private decimal GetMaxExposure() => 10000m;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
         private decimal GetExposure(string symbol) => _exposures.TryGetValue(symbol, out var exp) ? exp.DirectionalExposure : 0m;
         private decimal GetMaxESNQCombined() => 5000m;
-        private async Task SendCorrelationAlert(CorrelationAlert alert) 
-        { 
-            await Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction)).ConfigureAwait(false); 
+        private Task SendCorrelationAlert(CorrelationAlert alert) 
+        {
+            return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));
         }
-        private decimal CalculatePortfolioConcentration(string symbol, decimal newExposure) => 0.3m;
+        private decimal CalculatePortfolioConcentration() => 0.3m;
         private Dictionary<string, List<decimal>> GetRecentPriceData() => new();
-        private double CalculatePearsonCorrelation(List<decimal> series1, List<decimal> series2) => 0.5;
+        private double CalculatePearsonCorrelation() => 0.5;
 
         public void UpdateExposure(string symbol, decimal exposure)
         {

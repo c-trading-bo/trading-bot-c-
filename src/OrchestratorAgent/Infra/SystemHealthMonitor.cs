@@ -12,7 +12,6 @@ public class SystemHealthMonitor
     private readonly HealthCheckDiscovery _discovery;
     private readonly SelfHealingEngine _selfHealingEngine;
     private readonly Dictionary<string, HealthCheck> _healthChecks = new();
-    private readonly List<IHealthCheck> _discoveredChecks = new();
     private readonly Timer _healthCheckTimer;
     private SystemHealthSnapshot _lastSnapshot = new();
     private readonly object _lockObject = new(); // Thread safety lock
@@ -28,7 +27,7 @@ public class SystemHealthMonitor
         InitializeHealthChecks();
 
         // Initialize self-healing engine
-        _ = Task.Run(async () => await _selfHealingEngine.InitializeAsync()).ConfigureAwait(false);
+        _ = Task.Run(async () => await _selfHealingEngine.InitializeAsync().ConfigureAwait(false)).ConfigureAwait(false);
 
         // Run health checks every 60 seconds
         _healthCheckTimer = new Timer(RunHealthChecks, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
@@ -36,7 +35,7 @@ public class SystemHealthMonitor
         _logger.LogInformation("[HEALTH] System health monitoring started - checking {count} features", _healthChecks.Count);
     }
 
-    private async void InitializeHealthChecks()
+    private async Task InitializeHealthChecks()
     {
         // Legacy hardcoded health checks (for backwards compatibility)
         InitializeLegacyHealthChecks();
@@ -292,9 +291,9 @@ public class SystemHealthMonitor
                         // Attempt self-healing for failed checks
                         _ = Task.Run(async () => await AttemptSelfHealingAsync(key, new HealthCheckResult
                         {
-                            Status = Infra.HealthStatus.Failed,
+                            Status = HealthStatus.Failed,
                             Message = result.Message
-                        })).ConfigureAwait(false);
+                        }).ConfigureAwait(false)).ConfigureAwait(false);
                     }
                     else if (check.CriticalLevel == HealthLevel.Critical && result.Status == HealthStatus.Warning)
                     {

@@ -36,7 +36,7 @@ public sealed class CloudRlTrainer : IDisposable
         _log.LogInformation("[CloudRlTrainer] Started - checking GitHub for model updates every {Interval}", pollInterval);
     }
 
-    private async void CheckForUpdatesCallback(object? state)
+    private async Task CheckForUpdatesCallback()
     {
         try
         {

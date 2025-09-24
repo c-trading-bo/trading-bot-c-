@@ -58,9 +58,9 @@ namespace BotCore.Auth
             }
         }
 
-        public async Task EnsureFreshTokenAsync(CancellationToken ct = default)
+        public Task EnsureFreshTokenAsync(CancellationToken ct = default)
         {
-            await GetFreshJwtAsync(ct).ConfigureAwait(false);
+            return GetFreshJwtAsync(ct);
         }
 
         public async Task<string> GetTokenAsync(CancellationToken ct = default)

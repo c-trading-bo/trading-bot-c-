@@ -22,9 +22,6 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     private readonly ILogger<UniversalAutoDiscoveryHealthCheck> _logger;
     // Constants for repeated category strings
     private const string MLPipelineCategory = "ML Pipeline";
-    private const string TradingSystemCategory = "Trading System";
-    private const string InfrastructureCategory = "Infrastructure";
-    private const string StateDirectory = "state";
     private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, ComponentInfo> _discoveredComponents = new();
     private readonly object _discoveryLock = new object();

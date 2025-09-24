@@ -58,19 +58,19 @@ namespace TradingBot.BotCore.Services
                 _suppressions.Add(entry);
             }
 
-            await SaveLedgerAsync();
+            await SaveLedgerAsync().ConfigureAwait(false);
 
             _logger.LogWarning("⚠️ [SUPPRESSION] Recorded suppression {RuleId} in {File}:{Line} by {Author}: {Justification}",
                 ruleId, Path.GetFileName(filePath), lineNumber, author, justification);
 
             // Create alert for new suppression
-            await CreateSuppressionAlertAsync(entry);
+            await CreateSuppressionAlertAsync(entry).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Review and approve a suppression
         /// </summary>
-        public async Task ReviewSuppressionAsync(Guid suppressionId, string reviewer, SuppressionStatus newStatus, string reviewNotes = "")
+        public Task ReviewSuppressionAsync(Guid suppressionId, string reviewer, SuppressionStatus newStatus, string reviewNotes = "")
         {
             lock (_ledgerLock)
             {
@@ -89,13 +89,13 @@ namespace TradingBot.BotCore.Services
                     suppressionId, reviewer, newStatus);
             }
 
-            await SaveLedgerAsync();
+            return SaveLedgerAsync();
         }
 
         /// <summary>
         /// Set expiration date for temporary suppression
         /// </summary>
-        public async Task SetSuppressionExpirationAsync(Guid suppressionId, DateTime expirationDate, string reason)
+        public Task SetSuppressionExpirationAsync(Guid suppressionId, DateTime expirationDate, string reason)
         {
             lock (_ledgerLock)
             {
@@ -112,7 +112,7 @@ namespace TradingBot.BotCore.Services
                     suppressionId, expirationDate, reason);
             }
 
-            await SaveLedgerAsync();
+            return SaveLedgerAsync();
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace TradingBot.BotCore.Services
                 {
                     if (file.Contains("bin") || file.Contains("obj")) continue;
 
-                    var lines = await File.ReadAllLinesAsync(file);
+                    var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false);
                     for (int i = 0; i < lines.Length; i++)
                     {
                         var line = lines[i].Trim();
@@ -336,7 +336,7 @@ namespace TradingBot.BotCore.Services
                     Converters = { new JsonStringEnumConverter() }
                 });
                 
-                await File.WriteAllTextAsync(_ledgerPath, json);
+                await File.WriteAllTextAsync(_ledgerPath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -364,7 +364,7 @@ Justification:
 This suppression requires review and approval.
 ";
 
-                await File.WriteAllTextAsync(alertPath, alertContent);
+                await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 _logger.LogWarning("🚨 [SUPPRESSION] Alert created: {AlertPath}", alertPath);
             }
             catch (Exception ex)

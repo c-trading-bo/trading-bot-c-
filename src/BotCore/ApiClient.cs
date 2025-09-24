@@ -34,7 +34,7 @@ namespace BotCore
             id ??= await TryResolveViaAvailableAsync(root, live: true, ct).ConfigureAwait(false); // safety fallback
 
             // 2) Fallback to SEARCH if still nothing
-            id ??= await TryResolveViaSearchAsync(root, live: false, ct) ?? await TryResolveViaSearchAsync(root, live: true, ct).ConfigureAwait(false);
+            id ??= await TryResolveViaSearchAsync(root, live: false, ct).ConfigureAwait(false) ?? await TryResolveViaSearchAsync(root, live: true, ct).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new InvalidOperationException($"No contractId found for symbol: {root}");

@@ -424,14 +424,14 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     /// <summary>
     /// Get current portfolio status from TopstepX
     /// </summary>
-    public async Task<PortfolioStatusResult> GetPortfolioStatusAsync(CancellationToken cancellationToken = default)
+    public Task<PortfolioStatusResult> GetPortfolioStatusAsync(CancellationToken cancellationToken = default)
     {
         if (!_adapterInitialized)
         {
             throw new InvalidOperationException("TopstepX adapter not initialized");
         }
         
-        return await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
+        return _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken);
     }
 
     public async Task<bool> ExecuteEmergencyShutdownAsync(CancellationToken cancellationToken = default)
@@ -454,21 +454,21 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     }
 
     // IUnifiedOrchestrator interface implementation
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        await InitializeSystemAsync(cancellationToken).ConfigureAwait(false);
+        return InitializeSystemAsync(cancellationToken);
     }
 
-    public new async Task StartAsync(CancellationToken cancellationToken = default)
+    public new Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[UNIFIED] Starting unified orchestrator...");
-        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+        return base.StartAsync(cancellationToken);
     }
 
-    public new async Task StopAsync(CancellationToken cancellationToken = default)
+    public new Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[UNIFIED] Stopping unified orchestrator...");
-        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        return base.StopAsync(cancellationToken);
     }
 
     public IReadOnlyList<UnifiedWorkflow> GetWorkflows()

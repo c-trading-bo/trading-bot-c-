@@ -18,14 +18,14 @@ namespace BotCore.Risk
             _drawdownProtection = new DrawdownProtectionSystem();
         }
 
-        public async Task InitializeAsync(decimal startingBalance)
+        public Task InitializeAsync(decimal startingBalance)
         {
-            await _drawdownProtection.InitializeDrawdownProtection(startingBalance).ConfigureAwait(false);
+            return _drawdownProtection.InitializeDrawdownProtection(startingBalance);
         }
 
-        public async Task UpdateBalanceAsync(decimal currentBalance, Trade? lastTrade = null)
+        public Task UpdateBalanceAsync(decimal currentBalance, Trade? lastTrade = null)
         {
-            await _drawdownProtection.UpdateBalance(currentBalance, lastTrade).ConfigureAwait(false);
+            return _drawdownProtection.UpdateBalance(currentBalance, lastTrade);
         }
 
         public static decimal ComputeRisk(decimal entry, decimal stop, decimal target, bool isLong)
@@ -152,37 +152,37 @@ namespace BotCore.Risk
                     ActionType = "REDUCE_SIZE_25", 
                     TriggerLevel = 250m, 
                     Description = "Reduce position size by 25%",
-                    Action = async () => await ReducePositionSize(0.75m)
+                    Action = async () => await ReducePositionSize(0.75m).ConfigureAwait(false)
                 },
                 new DrawdownAction { 
                     ActionType = "REDUCE_SIZE_50", 
                     TriggerLevel = 500m, 
                     Description = "Reduce position size by 50%",
-                    Action = async () => await ReducePositionSize(0.5m)
+                    Action = async () => await ReducePositionSize(0.5m).ConfigureAwait(false)
                 },
                 new DrawdownAction { 
                     ActionType = "REDUCE_SIZE_75", 
                     TriggerLevel = 750m, 
                     Description = "Reduce position size by 75%",
-                    Action = async () => await ReducePositionSize(0.25m)
+                    Action = async () => await ReducePositionSize(0.25m).ConfigureAwait(false)
                 },
                 new DrawdownAction { 
                     ActionType = "STRATEGY_ROTATION", 
                     TriggerLevel = 1000m, 
                     Description = "Switch to conservative strategies only",
-                    Action = async () => await SwitchToConservativeMode()
+                    Action = async () => await SwitchToConservativeMode().ConfigureAwait(false)
                 },
                 new DrawdownAction { 
                     ActionType = "HALT_NEW_TRADES", 
                     TriggerLevel = 1500m, 
                     Description = "Stop opening new positions",
-                    Action = async () => await HaltNewTrades()
+                    Action = async () => await HaltNewTrades().ConfigureAwait(false)
                 },
                 new DrawdownAction { 
                     ActionType = "CLOSE_ALL", 
                     TriggerLevel = 2000m, 
                     Description = "Close all positions and halt",
-                    Action = async () => await EmergencyCloseAll()
+                    Action = async () => await EmergencyCloseAll().ConfigureAwait(false)
                 }
             }).ConfigureAwait(false);
         }
@@ -381,10 +381,10 @@ namespace BotCore.Risk
             return Task.CompletedTask;
         }
         
-        private async Task EmergencyCloseAll()
+        private Task EmergencyCloseAll()
         {
             LogCritical("EMERGENCY: Closing all positions due to maximum drawdown");
-            await HaltTrading("Maximum drawdown reached").ConfigureAwait(false);
+            return HaltTrading("Maximum drawdown reached");
         }
 
         private Task HaltTrading(string reason)

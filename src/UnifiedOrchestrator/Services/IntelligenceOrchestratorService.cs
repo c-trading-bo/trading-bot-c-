@@ -51,11 +51,11 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         _logger.LogInformation("Intelligence Orchestrator Service stopped");
     }
 
-    private async Task ProcessIntelligenceOperationsAsync(CancellationToken cancellationToken)
+    private Task ProcessIntelligenceOperationsAsync(CancellationToken cancellationToken)
     {
         // Process ML/RL intelligence operations
         // This will be implemented based on actual intelligence requirements
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task<TradingDecision> GenerateDecisionAsync(MarketContext context, CancellationToken cancellationToken = default)
@@ -178,10 +178,10 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         {
             return action switch
             {
-                "run_ml_models" => await RunMLModelsActionAsync(context, cancellationToken),
-                "update_rl_training" => await UpdateRLTrainingActionAsync(context, cancellationToken),
-                "generate_predictions" => await GeneratePredictionsActionAsync(context, cancellationToken),
-                "analyze_correlations" => await AnalyzeCorrelationsActionAsync(context, cancellationToken),
+                "run_ml_models" => await RunMLModelsActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "update_rl_training" => await UpdateRLTrainingActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "generate_predictions" => await GeneratePredictionsActionAsync(context, cancellationToken).ConfigureAwait(false),
+                "analyze_correlations" => await AnalyzeCorrelationsActionAsync(context, cancellationToken).ConfigureAwait(false),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             }.ConfigureAwait(false);
         }
@@ -219,22 +219,22 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         IntelligenceEvent?.Invoke(this, eventArgs);
     }
 
-    public async Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Updating RL training...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate RL training
+        return Task.Delay(100, cancellationToken); // Simulate RL training
     }
 
-    public async Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Generating predictions...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate prediction generation
+        return Task.Delay(100, cancellationToken); // Simulate prediction generation
     }
 
-    public async Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
+    public Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Analyzing intermarket correlations...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate correlation analysis
+        return Task.Delay(100, cancellationToken); // Simulate correlation analysis
     }
 
     public async Task<bool> InitializeAsync(IntelligenceStackConfig config, CancellationToken cancellationToken = default)
@@ -244,7 +244,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         return true;
     }
 
-    public async Task<TradingDecision> MakeDecisionAsync(TradingBot.Abstractions.MarketContext context, CancellationToken cancellationToken = default)
+    public Task<TradingDecision> MakeDecisionAsync(TradingBot.Abstractions.MarketContext context, CancellationToken cancellationToken = default)
     {
         // Convert from Abstractions.MarketContext to local MarketContext
         var localContext = new MarketContext
@@ -256,7 +256,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             TechnicalIndicators = context.TechnicalIndicators
         };
         
-        return await GenerateDecisionAsync(localContext, cancellationToken).ConfigureAwait(false);
+        return GenerateDecisionAsync(localContext, cancellationToken);
     }
 
     public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)
@@ -266,16 +266,16 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         return new StartupValidationResult { IsValid = true, ValidationErrors = new List<string>() };
     }
 
-    public async Task ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default)
+    public Task ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("[INTELLIGENCE] Processing market data for {Symbol}", data.Symbol);
-        await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate data processing
+        return Task.Delay(10, cancellationToken); // Simulate data processing
     }
 
-    public async Task PerformNightlyMaintenanceAsync(CancellationToken cancellationToken = default)
+    public Task PerformNightlyMaintenanceAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Performing nightly maintenance...");
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate maintenance
+        return Task.Delay(100, cancellationToken); // Simulate maintenance
     }
 
     public bool IsTradingEnabled { get; private set; } = true;

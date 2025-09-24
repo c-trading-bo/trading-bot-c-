@@ -47,7 +47,7 @@ namespace TradingBot.BotCore.Services
             // Save model card to disk
             var cardPath = modelPath + ".card.json";
             var json = JsonSerializer.Serialize(modelCard, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(cardPath, json);
+            await File.WriteAllTextAsync(cardPath, json).ConfigureAwait(false);
             
             _logger.LogInformation("💾 [ONNX-COMPAT] Model card saved: {CardPath}", cardPath);
         }
@@ -69,7 +69,7 @@ namespace TradingBot.BotCore.Services
                 }
 
                 // Load and validate model card
-                var cardJson = await File.ReadAllTextAsync(cardPath);
+                var cardJson = await File.ReadAllTextAsync(cardPath).ConfigureAwait(false);
                 var modelCard = JsonSerializer.Deserialize<ModelCard>(cardJson);
                 
                 if (modelCard == null)

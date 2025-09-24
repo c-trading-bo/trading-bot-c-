@@ -209,8 +209,7 @@ public class UnifiedDecisionRouter
     /// Try Intelligence Orchestrator - Basic ML/RL fallback
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryIntelligenceOrchestratorAsync(
-        string symbol,
-        TradingBot.Abstractions.MarketContext marketContext,
+                TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try
@@ -260,7 +259,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Create emergency decision - Last resort fallback
     /// </summary>
-    private UnifiedTradingDecision CreateEmergencyDecision(string symbol, TradingBot.Abstractions.MarketContext marketContext)
+    private UnifiedTradingDecision CreateEmergencyDecision(string symbol)
     {
         // Emergency decisions are always conservative BUY (ES/NQ tend to trend up)
         return new UnifiedTradingDecision
@@ -319,7 +318,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Track decision for learning and performance analysis
     /// </summary>
-    private async Task TrackDecisionAsync(UnifiedTradingDecision decision, string source, CancellationToken cancellationToken)
+    private Task TrackDecisionAsync(UnifiedTradingDecision decision, string source)
     {
         try
         {
@@ -353,8 +352,8 @@ public class UnifiedDecisionRouter
         {
             _logger.LogError(ex, "❌ [DECISION-TRACKING] Failed to track decision");
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
     
     /// <summary>
@@ -492,7 +491,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private List<string> GetAvailableStrategies(TradingBot.Abstractions.MarketContext context)
+    private List<string> GetAvailableStrategies()
     {
         var hour = DateTime.UtcNow.Hour;
         return hour switch

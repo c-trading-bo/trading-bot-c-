@@ -39,7 +39,7 @@ namespace TradingBot.BotCore.Services
             {
                 using var sha256 = SHA256.Create();
                 using var fileStream = File.OpenRead(filePath);
-                var hashBytes = await Task.Run(() => sha256.ComputeHash(fileStream));
+                var hashBytes = await Task.Run(() => sha256.ComputeHash(fileStream)).ConfigureAwait(false);
                 var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
                 
                 _logger.LogDebug("📋 [INTEGRITY] File hash calculated: {File} -> {Hash}", 
@@ -94,7 +94,7 @@ namespace TradingBot.BotCore.Services
                     if (File.Exists(filePath))
                     {
                         var fileInfo = new FileInfo(filePath);
-                        var hash = await CalculateFileHashAsync(filePath);
+                        var hash = await CalculateFileHashAsync(filePath).ConfigureAwait(false);
                         
                         manifest.Files[Path.GetFileName(filePath)] = new FileIntegrity
                         {
@@ -190,7 +190,7 @@ namespace TradingBot.BotCore.Services
                         continue;
                     }
 
-                    var currentHash = await CalculateFileHashAsync(filePath);
+                    var currentHash = await CalculateFileHashAsync(filePath).ConfigureAwait(false);
                     if (currentHash != fileEntry.Value.Hash)
                     {
                         corruptFiles++;
@@ -299,7 +299,7 @@ namespace TradingBot.BotCore.Services
         {
             try
             {
-                var modelHash = await CalculateFileHashAsync(modelPath);
+                var modelHash = await CalculateFileHashAsync(modelPath).ConfigureAwait(false);
                 var metadataJson = JsonSerializer.Serialize(metadata);
                 var metadataHash = CalculateContentHash(metadataJson);
 

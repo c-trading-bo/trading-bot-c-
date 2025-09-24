@@ -112,7 +112,7 @@ public class MicrostructureIntegrationTest
     public async Task TestCalibrationStats()
     {
         // Test that calibration statistics can be retrieved
-        var stats = await _calibrationService.GetStatsAsync();
+        var stats = await _calibrationService.GetStatsAsync().ConfigureAwait(false);
         Assert.NotNull(stats);
 
         _logger.LogInformation("✅ Calibration statistics retrieval verified");

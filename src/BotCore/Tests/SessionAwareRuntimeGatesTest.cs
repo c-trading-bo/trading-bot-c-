@@ -10,7 +10,7 @@ namespace BotCore.Tests;
 /// <summary>
 /// Simple test to validate SessionAwareRuntimeGates functionality
 /// </summary>
-public class SessionAwareRuntimeGatesTest
+public static class SessionAwareRuntimeGatesTest
 {
     public static async Task RunBasicTestAsync()
     {
@@ -51,7 +51,7 @@ public class SessionAwareRuntimeGatesTest
         Console.WriteLine($"  Next Change: {status.NextSessionChange?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A"}");
         
         // Test trading permission
-        var tradingAllowed = await sessionGates.IsTradingAllowedAsync("ES");
+        var tradingAllowed = await sessionGates.IsTradingAllowedAsync("ES").ConfigureAwait(false);
         Console.WriteLine($"  ES Trading Allowed: {tradingAllowed}");
         
         // Test session detection
@@ -64,13 +64,13 @@ public class SessionAwareRuntimeGatesTest
 /// <summary>
 /// Demo program to show SessionAwareRuntimeGates in action
 /// </summary>
-public class SessionAwareDemoProgram
+public static class SessionAwareDemoProgram
 {
     public static async Task Main(string[] args)
     {
         try
         {
-            await SessionAwareRuntimeGatesTest.RunBasicTestAsync();
+            await SessionAwareRuntimeGatesTest.RunBasicTestAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

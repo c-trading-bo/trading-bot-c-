@@ -54,7 +54,7 @@ public class ProductionVerificationService : IHostedService
     /// <summary>
     /// Verify all services are real implementations, not mocks
     /// </summary>
-    private async Task VerifyServiceRegistrationsAsync()
+    private Task VerifyServiceRegistrationsAsync()
     {
         _logger.LogInformation("🔍 [SERVICE-VERIFICATION] Verifying service registrations are production-ready...");
 
@@ -106,13 +106,13 @@ public class ProductionVerificationService : IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Verify configuration security - no hardcoded credentials, proper SSL, etc.
     /// </summary>
-    private async Task VerifyConfigurationSecurityAsync()
+    private Task VerifyConfigurationSecurityAsync()
     {
         _logger.LogInformation("🔒 [SECURITY-VERIFICATION] Verifying configuration security...");
 
@@ -186,7 +186,7 @@ public class ProductionVerificationService : IHostedService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -302,21 +302,21 @@ public class ProductionVerificationService : IHostedService
     /// <summary>
     /// Implement production database layer if not present
     /// </summary>
-    private async Task ImplementProductionDatabaseLayerAsync()
+    private Task ImplementProductionDatabaseLayerAsync()
     {
         _logger.LogInformation("🏗️ [DATABASE-IMPLEMENTATION] Implementing production database layer...");
         
         // This would be implemented with Entity Framework Core
         // For now, log that it needs to be implemented
         _logger.LogWarning("⚠️ [DATABASE-IMPLEMENTATION] Production database layer needs to be implemented with Entity Framework Core");
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Verify client has proper error handling and doesn't return null inappropriately
     /// </summary>
-    private async Task VerifyClientErrorHandlingAsync(ITopstepXClient client)
+    private Task VerifyClientErrorHandlingAsync(ITopstepXClient client)
     {
         _logger.LogInformation("🔍 [CLIENT-VERIFICATION] Verifying client error handling patterns...");
 
@@ -333,7 +333,7 @@ public class ProductionVerificationService : IHostedService
             _logger.LogError(ex, "❌ [CLIENT-VERIFICATION] Client error handling verification failed");
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
 

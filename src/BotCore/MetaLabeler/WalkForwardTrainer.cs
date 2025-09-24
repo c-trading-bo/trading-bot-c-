@@ -167,9 +167,7 @@ public class WalkForwardTrainer
     }
 
     private async Task<List<HistoricalTradeSignal>> GetHistoricalSignalsAsync(
-        DateTime start,
-        DateTime end,
-        CancellationToken ct)
+                        )
     {
         // Note: This needs integration with signal history storage system
         // Currently returns empty list - connect to actual data provider when available
@@ -221,8 +219,8 @@ public class WalkForwardTrainer
 
     private async Task<ValidationMetrics> EvaluateModelAsync(
         string modelPath,
-        List<LabeledTradeData> testData,
-        CancellationToken ct)
+        List<LabeledTradeData> testData
+        )
     {
         try
         {

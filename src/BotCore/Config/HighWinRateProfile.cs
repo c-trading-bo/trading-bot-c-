@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace BotCore.Config
 {
-    public class HighWinRateProfile
+    public static class HighWinRateProfile
     {
         public static string Profile => "high_win_rate";
         public static Dictionary<string, int> AttemptCaps => new()

@@ -1087,7 +1087,7 @@ public static class TuningRunner
     {
         try
         {
-            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await getJwt()).ConfigureAwait(false);
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await getJwt().ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch { }
         var payload = new

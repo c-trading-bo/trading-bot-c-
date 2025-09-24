@@ -20,7 +20,6 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
     private readonly ILogger<WorkflowSchedulerService> _logger;
     private readonly ICentralMessageBus _messageBus;
     private readonly WorkflowSchedulingOptions _schedulingOptions;
-    private readonly Dictionary<string, DateTime> _workflowLastExecution = new();
     private readonly Dictionary<string, WorkflowScheduleConfig> _workflowSchedules = new();
 
     public WorkflowSchedulerService(
@@ -67,11 +66,11 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
         _logger.LogInformation("Workflow Scheduler Service stopped");
     }
 
-    private async Task ProcessScheduledWorkflowsAsync(CancellationToken cancellationToken)
+    private Task ProcessScheduledWorkflowsAsync(CancellationToken cancellationToken)
     {
         // Process scheduled workflows
         // This will be implemented based on actual workflow requirements
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async Task ScheduleWorkflowAsync(WorkflowDefinition workflow, CancellationToken cancellationToken = default)
@@ -259,15 +258,15 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
         }
     }
 
-    public new async Task StartAsync(CancellationToken cancellationToken = default)
+    public new Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[SCHEDULER] Starting workflow scheduler...");
-        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+        return base.StartAsync(cancellationToken);
     }
 
-    public new async Task StopAsync(CancellationToken cancellationToken = default)
+    public new Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[SCHEDULER] Stopping workflow scheduler...");
-        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        return base.StopAsync(cancellationToken);
     }
 }

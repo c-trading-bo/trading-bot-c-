@@ -369,7 +369,7 @@ public sealed class OnnxModelLoader : IDisposable
     /// <summary>
     /// Hot-reload watcher - checks for model updates every 60 seconds
     /// </summary>
-    private async void CheckForModelUpdates(object? state)
+    private async Task CheckForModelUpdates()
     {
         try
         {

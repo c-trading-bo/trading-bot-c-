@@ -79,7 +79,7 @@ public class InferenceBrain : IInferenceBrain
             }
 
             // Ensure all models are ready
-            if (!await IsReadyAsync(cancellationToken))
+            if (!await IsReadyAsync(cancellationToken).ConfigureAwait(false))
             {
                 riskWarnings.Add("One or more champion models not ready").ConfigureAwait(false);
                 return CreateFallbackDecision(context, stopwatch.Elapsed, riskWarnings);
@@ -205,14 +205,14 @@ public class InferenceBrain : IInferenceBrain
     /// <summary>
     /// Get current champion model versions for all algorithms
     /// </summary>
-    public async Task<Dictionary<string, ModelVersion?>> GetChampionVersionsAsync(CancellationToken cancellationToken = default)
+    public Task<Dictionary<string, ModelVersion?>> GetChampionVersionsAsync(CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(new Dictionary<string, ModelVersion?>
+        return Task.FromResult(new Dictionary<string, ModelVersion?>
         {
             ["PPO"] = _ppoRouter.CurrentVersion,
             ["UCB"] = _ucbRouter.CurrentVersion,
             ["LSTM"] = _lstmRouter.CurrentVersion
-        }).ConfigureAwait(false);
+        });
     }
 
     /// <summary>

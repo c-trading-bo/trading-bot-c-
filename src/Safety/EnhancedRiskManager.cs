@@ -167,7 +167,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         }
     }
 
-    public async Task UpdateSessionLimitsAsync(RiskLimits newLimits)
+    public Task UpdateSessionLimitsAsync(RiskLimits newLimits)
     {
         if (!newLimits.IsValid())
         {
@@ -180,9 +180,9 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         _logger.LogInformation("[ENHANCED-RISK] Risk limits updated: DailyLoss={DailyLoss:C}, SessionLoss={SessionLoss:C}, " +
                              "MaxPosition={MaxPosition:C}", 
             newLimits.MaxDailyLoss, newLimits.MaxSessionLoss, newLimits.MaxPositionSize);
-        
+
         // Create backup when limits change
-        await _persistence.CreateBackupAsync("limits_update").ConfigureAwait(false);
+        return _persistence.CreateBackupAsync("limits_update");
     }
 
     public async Task ForcePositionUnwindAsync(string reason)
@@ -277,7 +277,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
     }
     
     // Helper methods for external components to update risk state
-    public async Task UpdatePositionStateAsync(string symbol, decimal currentPrice, int quantity)
+    public Task UpdatePositionStateAsync(string symbol, decimal currentPrice, int quantity)
     {
         // Update our position tracking
         lock (_stateLock)
@@ -292,8 +292,8 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             
             _currentState = _currentState with { LastUpdated = DateTime.UtcNow };
         }
-        
-        await TriggerRiskStateUpdate().ConfigureAwait(false);
+
+        return TriggerRiskStateUpdate();
     }
 
     public async Task UpdatePnLStateAsync(decimal totalPnL)

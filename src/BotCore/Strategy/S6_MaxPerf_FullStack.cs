@@ -47,6 +47,26 @@ namespace TopstepX.S6
         public readonly double Volume;
         public Bar1m(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
         { TimeET = timeEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
+
+        public override bool Equals(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(Bar1m left, Bar1m right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Bar1m left, Bar1m right)
+        {
+            return !(left == right);
+        }
     }
 
     public readonly struct DepthLadder // L1-L3 snapshot
@@ -61,6 +81,26 @@ namespace TopstepX.S6
         {
             long b = (long)BidSz1 + BidSz2 + BidSz3; long a = (long)AskSz1 + AskSz2 + AskSz3; long d = b + a;
             if (d <= 0) return 0; return (double)(b - a) / d;
+        }
+
+        public override bool Equals(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(DepthLadder left, DepthLadder right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(DepthLadder left, DepthLadder right)
+        {
+            return !(left == right);
         }
     }
 
@@ -319,7 +359,7 @@ namespace TopstepX.S6
             public long ToTicks(double px) => (long)Math.Round(px / TickPx);
             public double ToPx(long ticks) => ticks * TickPx;
 
-            public void OnBar(Bar1m bar, bool warmup)
+            public void OnBar(Bar1m bar)
             {
                 LastBarTime = bar.TimeET;
                 Min1.Add(bar);
@@ -442,7 +482,7 @@ namespace TopstepX.S6
                 }
             }
 
-            public void PlaceWithOco(Side side, long entryTicks, double stopPx, double targetPx, string tag)
+            public void PlaceWithOco(Side side, double stopPx, double targetPx, string tag)
             {
                 int qty = Math.Max(1, (int)Math.Round(C.BaseQty * C.MultiplierInWindow));
                 R.PlaceMarket(Instr, side, qty, $"{tag};stop={stopPx:F2};tgt={targetPx:F2}");
@@ -509,7 +549,7 @@ namespace TopstepX.S6
     {
         private readonly Channel<T> _ch = Channel.CreateBounded<T>(new BoundedChannelOptions(8192){ SingleReader = true, SingleWriter = false, FullMode = BoundedChannelFullMode.DropOldest });
         public bool TryPost(in T item) => _ch.Writer.TryWrite(item);
-        public async void Run(Func<T, bool> onEvent, CancellationToken ct)
+        public async Task Run(Func<T, bool> onEvent, CancellationToken ct)
         {
             var r = _ch.Reader;
             while (await r.WaitToReadAsync(ct).ConfigureAwait(false))

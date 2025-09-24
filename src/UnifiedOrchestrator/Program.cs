@@ -37,19 +37,13 @@ namespace TradingBot.UnifiedOrchestrator;
 /// 
 /// ALL FUNCTIONALITY IS NOW UNIFIED INTO ONE SYSTEM THAT WORKS TOGETHER
 /// </summary>
-public class Program
+public static class Program
 {
     // API Configuration Constants
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
     private const string TopstepXUserAgent = "TopstepX-TradingBot/1.0";
-    
-    // Environment Variable Constants
-    private const string TopstepXJwtEnvVar = "TOPSTEPX_JWT";
-    private const string BooleanFalse = "false";
     private const string BotModeEnvVar = "BOT_MODE";
-    
-    // Logging Constants
-    private const string TokenProviderLogSource = "TokenProvider";
+
     public static async Task Main(string[] args)
     {
         // Load .env files in priority order for auto TopstepX configuration
@@ -88,7 +82,7 @@ public class Program
             var host = CreateHostBuilder(args).Build();
             
             // Validate service registration and configuration on startup
-            await ValidateStartupServicesAsync(host.Services);
+            await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
             // Initialize ML parameter provider for OrchestratorAgent classes
             OrchestratorAgent.Configuration.MLParameterProvider.Initialize(host.Services);
@@ -1281,21 +1275,5 @@ public static class EnvironmentLoader
                 Console.WriteLine("No TopstepX credentials found - will attempt to use JWT token if available");
             }
         }
-    }
-
-    /// <summary>
-    /// Configure the microstructure calibration service that integrates with existing StrategyGates
-    /// Only added enhancement - no duplication of existing sophisticated components
-    /// </summary>
-    private static void ConfigureMicrostructureCalibration(IServiceCollection services, IConfiguration configuration)
-    {
-        // Configure microstructure calibration options
-        services.Configure<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationOptions>(
-            configuration.GetSection("MicrostructureCalibration"));
-        
-        // Register the calibration service as a hosted background service
-        services.AddHostedService<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
-        
-        // Note: This service integrates with existing StrategyGates.cs - does not replace it
     }
 }

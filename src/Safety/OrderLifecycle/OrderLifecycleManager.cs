@@ -53,7 +53,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
     public async Task<string> CreateOrderEvidenceAsync(OrderCreationRequest request)
     {
         // Check for duplicate customTag (idempotent replay guard)
-        if (await IsCustomTagUsedAsync(request.CustomTag))
+        if (await IsCustomTagUsedAsync(request.CustomTag).ConfigureAwait(false))
         {
             _logger.LogWarning("[ORDER_LIFECYCLE] Duplicate customTag detected: {CustomTag} - blocking replay", 
                 request.CustomTag).ConfigureAwait(false);
@@ -218,24 +218,24 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
         }
     }
 
-    public async Task<OrderEvidence?> GetOrderEvidenceAsync(string evidenceId)
+    public Task<OrderEvidence?> GetOrderEvidenceAsync(string evidenceId)
     {
-        return await Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId)).ConfigureAwait(false);
+        return Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId));
     }
 
-    public async Task<List<OrderEvidence>> GetActiveOrdersAsync()
+    public Task<List<OrderEvidence>> GetActiveOrdersAsync()
     {
         var activeOrders = _orderEvidence.Values
             .Where(e => !e.Status.IsCompleted())
             .OrderBy(e => e.CreatedAt)
             .ToList();
 
-        return await Task.FromResult(activeOrders).ConfigureAwait(false);
+        return Task.FromResult(activeOrders);
     }
 
-    public async Task<bool> IsCustomTagUsedAsync(string customTag)
+    public Task<bool> IsCustomTagUsedAsync(string customTag)
     {
-        return await Task.FromResult(_usedCustomTags.ContainsKey(customTag)).ConfigureAwait(false);
+        return Task.FromResult(_usedCustomTags.ContainsKey(customTag));
     }
 
     public async Task CancelStaleOrdersAsync()
@@ -270,26 +270,26 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
             evidenceId, reason);
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _staleOrderTimer.Change(TimeSpan.Zero, _config.StaleOrderCheckInterval);
         _logger.LogInformation("[ORDER_LIFECYCLE] Started with timeout: {Timeout}, check interval: {Interval}",
             _config.OrderTimeout, _config.StaleOrderCheckInterval);
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         _staleOrderTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _logger.LogInformation("[ORDER_LIFECYCLE] Stopped");
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private void CheckStaleOrdersCallback(object? state)
     {
         try
         {
-            _ = Task.Run(async () => await CancelStaleOrdersAsync()).ConfigureAwait(false);
+            _ = Task.Run(async () => await CancelStaleOrdersAsync().ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

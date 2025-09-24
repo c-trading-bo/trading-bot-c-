@@ -80,7 +80,7 @@ namespace BotCore
             _log.LogInformation("[ModelUpdater] Service stopped");
         }
 
-        private async void OnTimerElapsed(object? state)
+        private async Task OnTimerElapsed()
         {
             if (!_isRunning)
                 return;
@@ -151,7 +151,7 @@ namespace BotCore
             }
 
             // Safety check: only update when flat
-            if (!await IsPositionFlat(cancellationToken))
+            if (!await IsPositionFlat(cancellationToken).ConfigureAwait(false))
             {
                 _log.LogInformation("[ModelUpdater] Skipping update - active positions detected").ConfigureAwait(false);
                 return;
@@ -301,7 +301,7 @@ namespace BotCore
                 using var response = await _http.GetAsync(modelInfo.Url, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                await using var fileStream = File.Create(tempPath);
+                await using var fileStream = File.Create(tempPath).ConfigureAwait(false);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
                 await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 fileStream.Close();
@@ -368,7 +368,7 @@ namespace BotCore
         private static async Task<string> ComputeFileChecksumAsync(string filePath)
         {
             using var sha256 = SHA256.Create();
-            await using var fileStream = File.OpenRead(filePath);
+            await using var fileStream = File.OpenRead(filePath).ConfigureAwait(false);
             var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }

@@ -88,17 +88,17 @@ public class SystemHealthMonitoringService : IHostedService
         }
     }
 
-    private async void PerformHealthCheck(object? state)
+    private async Task PerformHealthCheck(object? state)
     {
         try
         {
             var healthData = new
             {
                 timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
-                services = await CheckServiceHealth(),
-                connections = await CheckConnectionHealth(),
-                memory = await CheckMemoryHealth(),
-                threadPool = await GetThreadPoolStatus()
+                services = await CheckServiceHealth().ConfigureAwait(false),
+                connections = await CheckConnectionHealth().ConfigureAwait(false),
+                memory = await CheckMemoryHealth().ConfigureAwait(false),
+                threadPool = await GetThreadPoolStatus().ConfigureAwait(false)
             }.ConfigureAwait(false);
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "HealthMonitor", 
@@ -110,7 +110,7 @@ public class SystemHealthMonitoringService : IHostedService
         }
     }
 
-    private async void CollectPerformanceMetrics(object? state)
+    private async Task CollectPerformanceMetrics(object? state)
     {
         try
         {
@@ -157,7 +157,7 @@ public class SystemHealthMonitoringService : IHostedService
         {
             tokenProvider = tokenProvider?.IsTokenValid ?? false,
             topstepXAdapter = CheckTopstepXAdapterHealth(),
-            authenticationService = await CheckAuthenticationHealthAsync()
+            authenticationService = await CheckAuthenticationHealthAsync().ConfigureAwait(false)
         }.ConfigureAwait(false);
 
         return serviceChecks;
@@ -196,9 +196,9 @@ public class SystemHealthMonitoringService : IHostedService
     {
         var connectionHealth = new
         {
-            userHub = await CheckHubConnection("User"),
-            marketHub = await CheckHubConnection("Market"),
-            httpClient = await CheckHttpClientHealth()
+            userHub = await CheckHubConnection("User").ConfigureAwait(false),
+            marketHub = await CheckHubConnection("Market").ConfigureAwait(false),
+            httpClient = await CheckHttpClientHealth().ConfigureAwait(false)
         }.ConfigureAwait(false);
 
         return connectionHealth;

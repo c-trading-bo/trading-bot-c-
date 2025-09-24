@@ -46,14 +46,14 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
         _fileWatcher.Changed += OnKillFileDetected;
     }
 
-    public async Task<bool> IsKillSwitchActiveAsync()
+    public Task<bool> IsKillSwitchActiveAsync()
     {
-        return await Task.FromResult(_isActive).ConfigureAwait(false);
+        return Task.FromResult(_isActive);
     }
 
-    public async Task StartWatchingAsync()
+    public Task StartWatchingAsync()
     {
-        await StartWatchingAsync(CancellationToken.None).ConfigureAwait(false);
+        return StartWatchingAsync(CancellationToken.None);
     }
 
     public async Task StartWatchingAsync(CancellationToken cancellationToken = default)

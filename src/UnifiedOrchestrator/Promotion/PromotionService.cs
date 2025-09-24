@@ -209,7 +209,7 @@ public class PromotionService : IPromotionService
                 Reason = reason,
                 PromotedBy = Environment.UserName,
                 WasFlat = decision.IsFlat,
-                MarketSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken),
+                MarketSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false),
                 PassedValidation = true,
                 ContextData = new Dictionary<string, object>
                 {

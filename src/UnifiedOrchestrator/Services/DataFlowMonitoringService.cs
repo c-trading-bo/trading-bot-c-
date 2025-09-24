@@ -215,7 +215,7 @@ public class DataFlowMonitoringService : BackgroundService
     /// <summary>
     /// Check overall connection health and identify issues
     /// </summary>
-    private async Task CheckConnectionHealth(CancellationToken cancellationToken)
+    private Task CheckConnectionHealth(CancellationToken cancellationToken)
     {
         var healthyConnections = _connectionHealth.Values.Count(h => h.IsHealthy);
         var totalConnections = _connectionHealth.Count;
@@ -238,13 +238,13 @@ public class DataFlowMonitoringService : BackgroundService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Report comprehensive data flow status
     /// </summary>
-    private async Task ReportDataFlowStatus(CancellationToken cancellationToken)
+    private Task ReportDataFlowStatus(CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var liveDataCount = _liveDataMetrics.Count;
@@ -259,7 +259,7 @@ public class DataFlowMonitoringService : BackgroundService
             liveDataCount, liveDataRate, historicalDataCount, historicalDataRate,
             _connectionHealth.Values.Count(h => h.IsHealthy), _connectionHealth.Count);
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>

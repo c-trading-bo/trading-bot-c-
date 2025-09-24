@@ -65,7 +65,7 @@ namespace BotCore.Brain
         private object? _lstmPricePredictor;
         private object? _metaClassifier;
         private object? _marketRegimeDetector;
-        private INeuralNetwork? _confidenceNetwork;
+        private readonly INeuralNetwork? _confidenceNetwork;
         
         // TopStep compliance tracking
         private decimal _currentDrawdown;
@@ -349,9 +349,8 @@ namespace BotCore.Brain
             MarketContext context, 
             string executedStrategy, 
             decimal reward, 
-            bool wasCorrect, 
-            decimal pnl,
-            CancellationToken cancellationToken)
+            bool wasCorrect,
+                        CancellationToken cancellationToken)
         {
             try
             {
@@ -448,7 +447,7 @@ namespace BotCore.Brain
 
         #region ML Model Predictions
 
-        private Task<MarketRegime> DetectMarketRegimeAsync(MarketContext context, CancellationToken cancellationToken)
+        private Task<MarketRegime> DetectMarketRegimeAsync(MarketContext context)
         {
             if (_metaClassifier == null || !IsInitialized)
             {
@@ -524,8 +523,8 @@ namespace BotCore.Brain
 
         private Task<PricePrediction> PredictPriceDirectionAsync(
             MarketContext context, 
-            IList<Bar> bars, 
-            CancellationToken cancellationToken)
+            IList<Bar> bars
+            )
         {
             if (_lstmPricePredictor == null || !IsInitialized)
             {
@@ -603,8 +602,7 @@ namespace BotCore.Brain
             MarketContext context,
             StrategySelection strategy,
             PricePrediction prediction,
-            RiskEngine risk,
-            CancellationToken cancellationToken)
+                        CancellationToken cancellationToken)
         {
             // Check TopStep compliance first
             var (canTrade, reason, level) = ShouldStopTrading();
@@ -653,7 +651,7 @@ namespace BotCore.Brain
                 context.Volatility,
                 context.VolumeRatio,
                 context.TrendStrength
-            }) : 0.5m.ConfigureAwait(false);
+            }).ConfigureAwait(false) : 0.5m.ConfigureAwait(false);
             
             var confidenceMultiplier = modelConfidence;
 
@@ -823,8 +821,8 @@ namespace BotCore.Brain
             RiskEngine risk,
             StrategySelection strategySelection,
             PricePrediction prediction,
-            decimal sizeMultiplier,
-            CancellationToken cancellationToken)
+            decimal sizeMultiplier
+            )
         {
             try
             {
@@ -912,7 +910,7 @@ namespace BotCore.Brain
 
         #region Helper Methods
 
-        private MarketContext CreateMarketContext(string symbol, Env env, Levels levels, IList<Bar> bars)
+        private MarketContext CreateMarketContext(string symbol, Env env, IList<Bar> bars)
         {
             var latestBar = bars.LastOrDefault();
             if (latestBar == null)
@@ -1194,7 +1192,7 @@ namespace BotCore.Brain
             }
         }
         
-        private async Task CrossPollinateStrategyPatternsAsync(CancellationToken cancellationToken)
+        private async Task CrossPollinateStrategyPatternsAsync()
         {
             await Task.CompletedTask.ConfigureAwait(false);
             
@@ -1526,7 +1524,7 @@ namespace BotCore.Brain
         /// <summary>
         /// Convert CVaR-PPO action result to contract count
         /// </summary>
-        private int ConvertCVaRActionToContracts(ActionResult actionResult, int baseContracts, MarketContext context)
+        private int ConvertCVaRActionToContracts(ActionResult actionResult, int baseContracts)
         {
             // CVaR-PPO actions map to position size multipliers
             // Action 0=No Trade, 1=Micro(0.25x), 2=Small(0.5x), 3=Normal(1x), 4=Large(1.5x), 5=Max(2x)

@@ -109,7 +109,7 @@ namespace BotCore.Services
                 // Log significant trades with structured data (fire and forget)
                 if (Math.Abs(result.PnL) > 100 || metrics.TotalTrades % 10 == 0)
                 {
-                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot)).ConfigureAwait(false);
+                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot).ConfigureAwait(false)).ConfigureAwait(false);
                 }
             }
         }
@@ -217,27 +217,6 @@ namespace BotCore.Services
             var timeSpan = new TimeSpan(hour, 0, 0);
             var session = ES_NQ_TradingSchedule.GetCurrentSession(timeSpan);
             return session?.Description ?? "Unknown";
-        }
-
-        private int GetSessionsToday()
-        {
-            // Count how many different sessions have had trades today
-            var today = DateTime.UtcNow.Date;
-            var sessionsWithTrades = new HashSet<string>();
-
-            foreach (var metric in _metrics.Values)
-            {
-                if (metric.LastUpdated.Date == today)
-                {
-                    foreach (var hour in metric.TradesByHour.Keys)
-                    {
-                        var session = GetSessionForHour(hour);
-                        sessionsWithTrades.Add(session);
-                    }
-                }
-            }
-
-            return sessionsWithTrades.Count;
         }
 
         private double UpdateAverage(double currentAvg, double newValue, int count)

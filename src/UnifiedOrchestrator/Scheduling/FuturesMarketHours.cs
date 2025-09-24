@@ -32,7 +32,6 @@ public class FuturesMarketHours : IMarketHoursService
 
     // 24/7 Training schedule windows
     private readonly TimeSpan IntensiveTrainingStart = new(21, 0, 0);   // 9:00 PM ET (Friday evening)
-    private readonly TimeSpan IntensiveTrainingEnd = new(17, 0, 0);     // 5:00 PM ET (Sunday)
     private readonly TimeSpan BackgroundTrainingStart = new(1, 0, 0);   // 1:00 AM ET (overnight)
     private readonly TimeSpan BackgroundTrainingEnd = new(5, 0, 0);     // 5:00 AM ET
 
@@ -212,9 +211,9 @@ public class FuturesMarketHours : IMarketHoursService
         
         return trainingType.ToUpperInvariant() switch
         {
-            "INTENSIVE" => await GetNextIntensiveTrainingWindowAsync(etNow, cancellationToken),
-            "BACKGROUND" => await GetNextBackgroundTrainingWindowAsync(etNow, cancellationToken),
-            _ => await GetNextSafeWindowAsync(cancellationToken)
+            "INTENSIVE" => await GetNextIntensiveTrainingWindowAsync(etNow, cancellationToken).ConfigureAwait(false),
+            "BACKGROUND" => await GetNextBackgroundTrainingWindowAsync(etNow, cancellationToken).ConfigureAwait(false),
+            _ => await GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false)
         }.ConfigureAwait(false);
     }
 
@@ -230,7 +229,7 @@ public class FuturesMarketHours : IMarketHoursService
         var timeOfDay = etNow.TimeOfDay;
 
         // Check if we're already in a safe window
-        if (await IsInSafePromotionWindowAsync(cancellationToken))
+        if (await IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false))
         {
             return etNow.ConfigureAwait(false); // Already in safe window
         }
@@ -601,7 +600,7 @@ public class FuturesMarketHours : IMarketHoursService
         var timeOfDay = etNow.TimeOfDay;
 
         // If currently in background window, return now
-        if (await IsInBackgroundTrainingWindowAsync(cancellationToken))
+        if (await IsInBackgroundTrainingWindowAsync(cancellationToken).ConfigureAwait(false))
         {
             return ConvertFromEasternTime(etNow).ConfigureAwait(false);
         }

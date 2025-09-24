@@ -110,7 +110,7 @@ public class PerformanceTracker
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
 
             // Load existing metrics
-            var metrics = await LoadPersonalMetricsAsync() ?? new PersonalMetrics().ConfigureAwait(false);
+            var metrics = await LoadPersonalMetricsAsync().ConfigureAwait(false) ?? new PersonalMetrics().ConfigureAwait(false);
 
             // Update trade counts
             metrics.TotalTrades++;
@@ -279,9 +279,9 @@ public class PerformanceTracker
     }
     
     // Helper methods for ML feature extraction
-    private decimal GetVolumeContext(DateTime time) => 100000m; // Implement with real volume data
-    private decimal GetVolatilityContext(DateTime time) => 0.15m; // Implement with real volatility calculation  
-    private string GetTrendContext(string symbol, DateTime time) => "BULLISH"; // Implement with real trend analysis
+    private decimal GetVolumeContext() => 100000m; // Implement with real volume data
+    private decimal GetVolatilityContext() => 0.15m; // Implement with real volatility calculation  
+    private string GetTrendContext() => "BULLISH"; // Implement with real trend analysis
 
     /// <summary>
     /// Get personal trading metrics

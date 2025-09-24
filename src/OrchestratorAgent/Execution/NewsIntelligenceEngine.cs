@@ -21,6 +21,26 @@ namespace OrchestratorAgent.Execution
             public string Direction; // "BULLISH", "BEARISH", "NEUTRAL"
             public decimal VolatilityFactor;
             public decimal ConfidenceScore;
+
+            public override bool Equals(object obj)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override int GetHashCode()
+            {
+                throw new NotImplementedException();
+            }
+
+            public static bool operator ==(NewsEventData left, NewsEventData right)
+            {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(NewsEventData left, NewsEventData right)
+            {
+                return !(left == right);
+            }
         }
 
         public void UpdateNewsEvent(string headline, DateTime timestamp)

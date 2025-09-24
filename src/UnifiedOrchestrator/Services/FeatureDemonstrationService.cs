@@ -102,7 +102,7 @@ public class FeatureDemonstrationService : BackgroundService
         _logger.LogInformation("🎯 [FEATURE_DEMO] All four features demonstrated successfully!");
     }
 
-    private async Task DemonstrateWorkflowSchedulingAsync(CancellationToken cancellationToken)
+    private Task DemonstrateWorkflowSchedulingAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("📅 [FEATURE_DEMO] 1. WORKFLOW SCHEDULING LOGIC");
         _logger.LogInformation("📅 [FEATURE_DEMO] Configuration enabled: {Enabled}", _schedulingOptions.Enabled);
@@ -126,7 +126,7 @@ public class FeatureDemonstrationService : BackgroundService
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private async Task DemonstrateOrchestrationStatsAsync(CancellationToken cancellationToken)

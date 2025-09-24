@@ -23,10 +23,6 @@ public class RollbackDrillService : IRollbackDrillService
     private readonly ITradingBrainAdapter _brainAdapter;
     private readonly IPromotionService _promotionService;
     private readonly List<RollbackDrillResult> _drillHistory = new();
-    
-    // Load simulation parameters
-    private const int HIGH_LOAD_DECISIONS_PER_SECOND = 50;
-    private const int STRESS_TEST_DURATION_SECONDS = 30;
     private const int ROLLBACK_TIMEOUT_MS = 1000; // 1 second max rollback time
     
     public RollbackDrillService(
@@ -108,7 +104,7 @@ public class RollbackDrillService : IRollbackDrillService
     /// <summary>
     /// Execute quick rollback drill for demonstration
     /// </summary>
-    public async Task<RollbackDrillResult> ExecuteQuickDrillAsync(CancellationToken cancellationToken = default)
+    public Task<RollbackDrillResult> ExecuteQuickDrillAsync(CancellationToken cancellationToken = default)
     {
         var config = new RollbackDrillConfig
         {
@@ -119,7 +115,7 @@ public class RollbackDrillService : IRollbackDrillService
             EnableContextPreservation = true
         };
 
-        return await ExecuteRollbackDrillAsync(config, cancellationToken).ConfigureAwait(false);
+        return ExecuteRollbackDrillAsync(config, cancellationToken);
     }
 
     /// <summary>

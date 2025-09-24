@@ -223,7 +223,7 @@ namespace BotCore.Services
             }
         }
 
-        private decimal[] ExtractRegimeFeatures(string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
+        private decimal[] ExtractRegimeFeatures(TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             if (bars.Count < 50) return CreateDefaultFeatures();
 
@@ -399,7 +399,7 @@ namespace BotCore.Services
             }
         }
 
-        private Env CreateEnvironment(TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
+        private Env CreateEnvironment(IReadOnlyList<Bar> bars)
         {
             // Create environment for strategy evaluation
             return new Env
@@ -409,7 +409,7 @@ namespace BotCore.Services
             };
         }
 
-        private Levels CreateLevels(IReadOnlyList<Bar> bars)
+        private Levels CreateLevels()
         {
             // Create levels for strategy evaluation - Levels class is empty, just return new instance
             return new Levels();
@@ -455,7 +455,7 @@ namespace BotCore.Services
             };
         }
 
-        private double CalculateSessionMultiplier(TradingSession session)
+        private double CalculateSessionMultiplier()
         {
             // ML-based session performance adjustments
             var hour = DateTime.UtcNow.Hour;
@@ -479,7 +479,7 @@ namespace BotCore.Services
             };
         }
 
-        private double CalculateRealTimeCorrelation(string instrument)
+        private double CalculateRealTimeCorrelation()
         {
             try
             {
@@ -562,7 +562,7 @@ namespace BotCore.Services
             return denominator != 0 ? numerator / denominator : 0.85;
         }
 
-        private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument, BotCore.Models.Signal signal, TradingBot.Abstractions.MarketData data)
+        private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument)
         {
             // ES/NQ correlation analysis using advanced statistical methods
             var correlation = CalculateRealTimeCorrelation(instrument);

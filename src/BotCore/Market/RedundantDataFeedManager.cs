@@ -215,7 +215,7 @@ public class RedundantDataFeedManager : IDisposable
         return true;
     }
 
-    private async Task HandleFeedFailureAsync(IDataFeed feed, Exception ex)
+    private Task HandleFeedFailureAsync(IDataFeed feed, Exception ex)
     {
         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
         {
@@ -225,8 +225,8 @@ public class RedundantDataFeedManager : IDisposable
             _logger.LogError(ex, "[DataFeed] Feed {FeedName} failed (Error count: {ErrorCount})", 
                 feed.FeedName, health.ErrorCount);
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 
     private void OnDataReceived(object? sender, MarketData data)
@@ -257,7 +257,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         if (sender is IDataFeed feed)
         {
-            _ = Task.Run(async () => await HandleFeedFailureAsync(feed, ex)).ConfigureAwait(false);
+            _ = Task.Run(async () => await HandleFeedFailureAsync(feed, ex).ConfigureAwait(false)).ConfigureAwait(false);
         }
     }
 

@@ -221,7 +221,7 @@ public class ProductionMonitoringService : IHealthCheck
         _healthMetrics["system"] = systemMetric;
     }
 
-    private Task<(bool IsHealthy, string Message)> CheckModelHealthAsync(CancellationToken cancellationToken)
+    private Task<(bool IsHealthy, string Message)> CheckModelHealthAsync()
     {
         try
         {

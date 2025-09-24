@@ -14,7 +14,6 @@ namespace BotCore.Strategy
 {
     public static class AllStrategies
     {
-        private static readonly HighWinRateProfile Profile = new();
         private static readonly TimeZoneInfo Et = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
 
         // (attempt accounting moved to specific strategies as needed)
@@ -437,7 +436,6 @@ namespace BotCore.Strategy
 
         // Smart ON/RTH anchor: if before 09:30 local, anchor to 20:00 (prev/today) else 09:30 today
         private static readonly TimeSpan NightStart = new(20, 0, 0);
-        private static readonly TimeSpan NightEnd = new(2, 0, 0);
         private static readonly TimeSpan RthOpen = new(9, 30, 0);
         private static DateTime SmartAnchor(DateTime nowLocal)
         {

@@ -251,8 +251,8 @@ internal sealed class NeuralUcbArm
         {
             UpdateCount = UpdateCount,
             AverageReward = AverageReward,
-            ModelComplexity = await _network.GetComplexityAsync(ct),
-            AverageUncertainty = await GetAverageUncertaintyAsync(ct),
+            ModelComplexity = await _network.GetComplexityAsync(ct).ConfigureAwait(false),
+            AverageUncertainty = await GetAverageUncertaintyAsync(ct).ConfigureAwait(false),
             LastUpdated = LastUpdated,
             LastTraining = LastTraining
         }.ConfigureAwait(false);
@@ -497,12 +497,12 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         return PredictFallback(features);
     }
 
-    public async Task<decimal> PredictWithDropoutAsync(decimal[] features, CancellationToken ct = default)
+    public Task<decimal> PredictWithDropoutAsync(decimal[] features, CancellationToken ct = default)
     {
         // For ONNX models, dropout is handled during training, not inference
         // For uncertainty estimation, we can add noise to input features
         var noisyFeatures = features.Select(f => f + (decimal)(_random.NextDouble() - 0.5) * 0.01m).ToArray();
-        return await PredictAsync(noisyFeatures, ct).ConfigureAwait(false);
+        return PredictAsync(noisyFeatures, ct);
     }
 
     public async Task TrainAsync(decimal[][] features, decimal[] targets, CancellationToken ct = default)

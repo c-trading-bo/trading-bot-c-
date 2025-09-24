@@ -55,9 +55,9 @@ public class LogRetentionService : IHostedService
         _cleanupTimer?.Dispose();
     }
 
-    private async void PerformCleanup(object? state)
+    private Task PerformCleanup(object? state)
     {
-        await PerformCleanupAsync().ConfigureAwait(false);
+        return PerformCleanupAsync();
     }
 
     private async Task PerformCleanupAsync()

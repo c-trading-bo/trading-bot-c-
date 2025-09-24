@@ -362,7 +362,7 @@ namespace BotCore.Services
             }
         }
 
-        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId, int barCount)
+        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId)
         {
             try
             {
@@ -446,7 +446,7 @@ namespace BotCore.Services
                     foreach (var bar in sampleBars)
                     {
                         _logger.LogInformation("[HISTORICAL-BRIDGE] 📊 Sample Bar: {Symbol} {Timestamp} O:{Open} H:{High} L:{Low} C:{Close} V:{Volume}", 
-                            bar.Symbol, new DateTime(1970, 1, 1).AddMilliseconds(bar.Ts), bar.Open, bar.High, bar.Low, bar.Close, bar.Volume);
+                            bar.Symbol, DateTime.UnixEpoch.AddMilliseconds(bar.Ts), bar.Open, bar.High, bar.Low, bar.Close, bar.Volume);
                     }
                 }
                 

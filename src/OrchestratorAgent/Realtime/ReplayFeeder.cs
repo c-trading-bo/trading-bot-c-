@@ -12,7 +12,7 @@ namespace OrchestratorAgent.Realtime
         {
             using var r = new StreamReader(File.OpenRead(path));
             string? line;
-            while ((line = await r.ReadLineAsync(ct)) != null)
+            while ((line = await r.ReadLineAsync(ct).ConfigureAwait(false)) != null)
             {
                 ct.ThrowIfCancellationRequested().ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(line);

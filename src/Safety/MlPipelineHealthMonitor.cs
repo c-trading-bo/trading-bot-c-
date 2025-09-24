@@ -50,7 +50,7 @@ namespace BotCore.Infra
             _log.LogInformation("[ML-Health] Started monitoring pipeline health every {Interval}", interval);
         }
 
-        private async void CheckHealthAsync(object? state)
+        private async Task CheckHealthAsync(object? state)
         {
             try
             {

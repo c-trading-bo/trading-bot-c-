@@ -53,7 +53,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
             File.Copy(modelPath, tempOutputPath, true);
 
             // Validate the copied ONNX model
-            if (!await ValidateOnnxModelAsync(tempOutputPath, cancellationToken))
+            if (!await ValidateOnnxModelAsync(tempOutputPath, cancellationToken).ConfigureAwait(false))
             {
                 File.Delete(tempOutputPath).ConfigureAwait(false);
                 throw new InvalidOperationException("ONNX model validation failed");

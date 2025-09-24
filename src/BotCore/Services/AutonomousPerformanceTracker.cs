@@ -64,8 +64,7 @@ public class AutonomousPerformanceTracker
     
     // Learning and optimization
     private readonly Dictionary<string, StrategyLearning> _strategyLearning = new();
-    private readonly Queue<OptimizationInsight> _optimizationInsights = new();
-    
+
     public AutonomousPerformanceTracker(ILogger<AutonomousPerformanceTracker> logger)
     {
         _logger = logger;
@@ -78,7 +77,7 @@ public class AutonomousPerformanceTracker
     /// <summary>
     /// Record a new trade outcome for analysis
     /// </summary>
-    public async Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
+    public Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
     {
         lock (_trackingLock)
         {
@@ -113,9 +112,9 @@ public class AutonomousPerformanceTracker
             _logger.LogDebug("📊 [PERFORMANCE-TRACKER] Trade recorded: {Strategy} {Symbol} ${PnL:F2} (Total: {Trades} trades, ${TotalPnL:F2})",
                 trade.Strategy, trade.Symbol, trade.PnL, _totalTrades, _totalPnL);
         }
-        
+
         // Record learning insights outside the lock
-        await RecordLearningInsightAsync(trade, cancellationToken).ConfigureAwait(false);
+        return RecordLearningInsightAsync(trade, cancellationToken);
     }
     
     /// <summary>
@@ -476,7 +475,7 @@ public class AutonomousPerformanceTracker
         }
     }
     
-    private async Task RecordLearningInsightAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken)
+    private Task RecordLearningInsightAsync(AutonomousTradeOutcome trade)
     {
         // Generate learning insights from trade outcome
         var insight = new LearningInsight
@@ -505,8 +504,8 @@ public class AutonomousPerformanceTracker
                 _strategyLearning[trade.Strategy].Insights.RemoveAt(0);
             }
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
     
     private decimal GetRecentStrategyPerformance(string strategy, TimeSpan period)
@@ -547,7 +546,7 @@ public class AutonomousPerformanceTracker
         return strategyPnL.OrderBy(kvp => kvp.Value).First().Key;
     }
     
-    private async Task<List<string>> GenerateTradingInsightsAsync(AutonomousTradeOutcome[] trades, CancellationToken cancellationToken)
+    private async Task<List<string>> GenerateTradingInsightsAsync(AutonomousTradeOutcome[] trades)
     {
         var insights = new List<string>();
         

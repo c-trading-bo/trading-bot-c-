@@ -189,13 +189,13 @@ namespace BotCore
             return Task.CompletedTask;
         }
 
-        private async Task SaveTradeDataAsync(TradeData tradeData)
+        private Task SaveTradeDataAsync(TradeData tradeData)
         {
             var dateStr = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
             var filename = Path.Combine(_liveDataPath, $"live_trades_{dateStr}.jsonl");
 
             var json = JsonSerializer.Serialize(tradeData);
-            await File.AppendAllTextAsync(filename, json + Environment.NewLine).ConfigureAwait(false);
+            return File.AppendAllTextAsync(filename, json + Environment.NewLine);
         }
 
         private async Task SaveCompleteTradeAsync(TradeData tradeData)

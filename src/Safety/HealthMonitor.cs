@@ -66,10 +66,10 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
         _config = config.Value;
     }
 
-    public async Task<TradingBot.Abstractions.HealthStatus> GetHealthStatusAsync(string componentName)
+    public Task<TradingBot.Abstractions.HealthStatus> GetHealthStatusAsync(string componentName)
     {
         var currentHealth = GetCurrentHealth();
-        return await Task.FromResult(new TradingBot.Abstractions.HealthStatus
+        return Task.FromResult(new TradingBot.Abstractions.HealthStatus
         {
             ComponentName = componentName,
             IsHealthy = currentHealth.IsHealthy,
@@ -80,12 +80,12 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             ErrorRate = currentHealth.ErrorRate,
             AverageLatencyMs = currentHealth.AverageLatencyMs,
             StatusMessage = currentHealth.StatusMessage
-        }).ConfigureAwait(false);
+        });
     }
 
-    public async Task StartMonitoringAsync()
+    public Task StartMonitoringAsync()
     {
-        await StartMonitoringAsync(CancellationToken.None).ConfigureAwait(false);
+        return StartMonitoringAsync(CancellationToken.None);
     }
 
     public async Task StartMonitoringAsync(CancellationToken cancellationToken = default)

@@ -34,8 +34,6 @@ public class ContinuousOperationService : BackgroundService
     
     // Configuration
     private readonly TimeSpan _operationCheckInterval = TimeSpan.FromMinutes(10);
-    private readonly TimeSpan _dailyRetrainingWindow = TimeSpan.FromHours(2); // 2-hour daily retraining window
-    private readonly int _maxConcurrentTrainingJobs = 3;
     private readonly int _rollingWindowDays = 30; // Use 30-day rolling window for retraining
 
     public ContinuousOperationService(
@@ -607,7 +605,7 @@ public class ContinuousOperationService : BackgroundService
     /// <summary>
     /// Monitor active jobs and clean up completed ones
     /// </summary>
-    private async Task MonitorActiveJobsAsync(CancellationToken cancellationToken)
+    private Task MonitorActiveJobsAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -631,7 +629,7 @@ public class ContinuousOperationService : BackgroundService
             _logger.LogError(ex, "[24/7-OPS] Failed to monitor active jobs");
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -657,7 +655,7 @@ public class ContinuousOperationService : BackgroundService
     /// <summary>
     /// Log operation event
     /// </summary>
-    private async Task LogOperationAsync(string operation, string message, CancellationToken cancellationToken)
+    private Task LogOperationAsync(string operation, string message, CancellationToken cancellationToken)
     {
         try
         {
@@ -683,7 +681,7 @@ public class ContinuousOperationService : BackgroundService
             _logger.LogError(ex, "[24/7-OPS] Failed to log operation");
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     #endregion

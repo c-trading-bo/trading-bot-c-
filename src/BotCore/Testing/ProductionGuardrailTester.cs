@@ -39,10 +39,10 @@ public class ProductionGuardrailTester
         var allPassed = true;
 
         // Test 1: DRY_RUN precedence
-        allPassed &= await TestDryRunPrecedence();
+        allPassed &= await TestDryRunPrecedence().ConfigureAwait(false);
 
         // Test 2: Kill switch functionality
-        allPassed &= await TestKillSwitchFunctionality();
+        allPassed &= await TestKillSwitchFunctionality().ConfigureAwait(false);
 
         // Test 3: Price validation (ES/MES tick rounding)
         allPassed &= TestPriceValidation();
@@ -51,7 +51,7 @@ public class ProductionGuardrailTester
         allPassed &= TestRiskValidation();
 
         // Test 5: Order evidence requirements
-        allPassed &= await TestOrderEvidenceRequirements();
+        allPassed &= await TestOrderEvidenceRequirements().ConfigureAwait(false);
 
         if (allPassed)
         {
@@ -100,7 +100,7 @@ public class ProductionGuardrailTester
             Environment.SetEnvironmentVariable("DRY_RUN", null);
             Environment.SetEnvironmentVariable("EXECUTE", null);
             Environment.SetEnvironmentVariable("AUTO_EXECUTE", null);
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
     }
 
@@ -111,10 +111,10 @@ public class ProductionGuardrailTester
         try
         {
             // Create kill.txt file
-            await File.WriteAllTextAsync("kill.txt", "Test kill switch");
+            await File.WriteAllTextAsync("kill.txt", "Test kill switch").ConfigureAwait(false);
 
             // Give file watcher time to detect
-            await Task.Delay(100);
+            await Task.Delay(100).ConfigureAwait(false);
 
             var killSwitchActive = ProductionKillSwitchService.IsKillSwitchActive();
             var isDryRun = ProductionKillSwitchService.IsDryRunMode();
@@ -232,11 +232,11 @@ public class ProductionGuardrailTester
                     FillPrice = 4125.25m, 
                     Quantity = 1 
                 },
-                "TEST-TAG-GOOD");
+                "TEST-TAG-GOOD").ConfigureAwait(false);
 
             // Test with missing evidence (should fail)  
             var badEvidence = await _evidenceService.VerifyOrderFillEvidenceAsync(
-                null, null, "TEST-TAG-BAD");
+                null, null, "TEST-TAG-BAD").ConfigureAwait(false);
 
             if (goodEvidence.HasSufficientEvidence && !badEvidence.HasSufficientEvidence)
             {
@@ -270,7 +270,7 @@ public class ProductionGuardrailTester
         try
         {
             var tester = ActivatorUtilities.CreateInstance<ProductionGuardrailTester>(services);
-            return await tester.RunAllTestsAsync();
+            return await tester.RunAllTestsAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

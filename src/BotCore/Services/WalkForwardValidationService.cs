@@ -424,7 +424,7 @@ namespace BotCore.Services
         /// Simulate model performance for demonstration
         /// In production, this would run actual model predictions
         /// </summary>
-        private Task<WalkForwardModelPerformance> SimulateModelPerformance(string modelPath, ValidationWindow window, CancellationToken cancellationToken)
+        private Task<WalkForwardModelPerformance> SimulateModelPerformance(ValidationWindow window)
         {
             // Simulate realistic performance metrics with some randomness
             var random = new Random(window.RandomSeed);

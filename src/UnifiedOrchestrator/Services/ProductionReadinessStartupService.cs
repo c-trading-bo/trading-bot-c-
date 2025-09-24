@@ -50,7 +50,7 @@ public class ProductionReadinessStartupService : IHostedService
     /// <summary>
     /// Provide concrete proof of production configuration settings
     /// </summary>
-    private async Task LogConfigurationProofAsync()
+    private Task LogConfigurationProofAsync()
     {
         _logger.LogInformation("🔧 [CONFIG-PROOF] Verifying production configuration settings...");
         
@@ -94,7 +94,7 @@ public class ProductionReadinessStartupService : IHostedService
         _logger.LogInformation("✅ [CONFIG-PROOF] TOPSTEPX_API_KEY from environment: {HasApiKey}", hasApiKey);
         _logger.LogInformation("✅ [CONFIG-PROOF] TOPSTEPX_USERNAME from environment: {HasUsername}", hasUsername);
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -196,7 +196,7 @@ public class ProductionReadinessStartupService : IHostedService
     /// <summary>
     /// Provide concrete proof that API clients have proper error handling (no null returns)
     /// </summary>
-    private async Task LogApiClientProofAsync()
+    private Task LogApiClientProofAsync()
     {
         _logger.LogInformation("🌐 [API-PROOF] Verifying API clients have proper error handling...");
         
@@ -230,7 +230,7 @@ public class ProductionReadinessStartupService : IHostedService
         {
             _logger.LogError(ex, "❌ [API-PROOF] Error during API client verification");
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
+
+        return Task.CompletedTask;
     }
 }

@@ -185,8 +185,8 @@ public class TripleBarrierLabeler
     }
 
     private Dictionary<string, decimal> ExtractFeatures(
-        HistoricalTradeSignal signal,
-        PriceBar currentBar)
+        HistoricalTradeSignal signal
+        )
     {
         return new Dictionary<string, decimal>
         {

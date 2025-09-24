@@ -91,7 +91,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             // Check for promotion opportunity (every hour)
             if (DateTime.UtcNow - _lastPromotionCheck > TimeSpan.FromHours(1))
             {
-                _ = Task.Run(async () => await CheckPromotionOpportunityAsync(), cancellationToken).ConfigureAwait(false);
+                _ = Task.Run(async () => await CheckPromotionOpportunityAsync().ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
                 _lastPromotionCheck = DateTime.UtcNow;
             }
             
@@ -117,7 +117,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Get decision from UnifiedTradingBrain with proper context conversion
     /// </summary>
-    private async Task<BrainDecision> GetUnifiedBrainDecisionAsync(TradingContext context, CancellationToken cancellationToken)
+    private Task<BrainDecision> GetUnifiedBrainDecisionAsync(TradingContext context, CancellationToken cancellationToken)
     {
         // Convert TradingContext to UnifiedTradingBrain inputs
         var symbol = context.Symbol ?? "ES";
@@ -151,7 +151,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         
         var riskEngine = new RiskEngine();
         
-        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false);
+        return _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken);
     }
 
     /// <summary>

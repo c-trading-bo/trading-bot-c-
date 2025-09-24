@@ -51,7 +51,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
         _config = config.Value;
     }
 
-    public async Task<TradingBot.Abstractions.RiskAssessment> AssessRiskAsync(TradingBot.Abstractions.TradingDecision decision)
+    public Task<TradingBot.Abstractions.RiskAssessment> AssessRiskAsync(TradingBot.Abstractions.TradingDecision decision)
     {
         var riskAssessment = new TradingBot.Abstractions.RiskAssessment
         {
@@ -75,7 +75,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
             riskAssessment.Warnings.Add("Approaching maximum daily loss limit");
         }
 
-        return await Task.FromResult(riskAssessment).ConfigureAwait(false);
+        return Task.FromResult(riskAssessment);
     }
 
     private decimal CalculateRiskScore(TradingBot.Abstractions.TradingDecision decision)

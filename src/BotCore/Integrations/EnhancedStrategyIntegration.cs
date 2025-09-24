@@ -149,7 +149,7 @@ namespace BotCore.Integrations
             return "HOLD";
         }
 
-        private static string DetermineMarketRegime(Bar currentBar, MarketSnapshot snapshot)
+        private static string DetermineMarketRegime(Bar currentBar)
         {
             var range = currentBar.High - currentBar.Low;
             var price = currentBar.Close;
@@ -159,7 +159,7 @@ namespace BotCore.Integrations
             return "Range";
         }
 
-        private static decimal CalculateRMultiple(decimal entryPrice, decimal exitPrice, decimal pnl, bool isWin)
+        private static decimal CalculateRMultiple(decimal entryPrice, decimal exitPrice, decimal pnl)
         {
             if (entryPrice == 0) return 0;
 
@@ -175,7 +175,7 @@ namespace BotCore.Integrations
 
         // Helper calculation methods (simplified - could be enhanced with actual technical analysis)
         private static decimal CalculateAtr(Bar bar) => (bar.High - bar.Low);
-        private static decimal CalculateRsi(Bar bar) => 50m; // Neutral RSI - could be calculated from price history
+        private static decimal CalculateRsi() => 50m; // Neutral RSI - could be calculated from price history
         private static decimal CalculateMomentum(Bar bar) => (bar.Close - bar.Open) / bar.Open;
         private static decimal CalculateTrendStrength(Bar bar) => Math.Abs(bar.Close - bar.Open) / bar.Open;
         private static decimal CalculateVolume(Bar bar) => (decimal)bar.Volume;

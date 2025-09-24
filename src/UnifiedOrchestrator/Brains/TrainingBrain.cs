@@ -156,7 +156,7 @@ public class TrainingBrain : ITrainingBrain
             var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken).ConfigureAwait(false);
             
             // Validate artifact
-            if (!await artifactBuilder.ValidateArtifactAsync(finalArtifactPath, cancellationToken))
+            if (!await artifactBuilder.ValidateArtifactAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false))
             {
                 throw new InvalidOperationException($"Artifact validation failed for {finalArtifactPath}").ConfigureAwait(false);
             }

@@ -65,10 +65,10 @@ public class EnhancedAuthenticationService : IHostedService
         await AttemptAuthenticationAsync().ConfigureAwait(false);
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
-            "Enhanced authentication service stopped").ConfigureAwait(false);
+        return _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService",
+            "Enhanced authentication service stopped");
     }
 
     private async Task AttemptAuthenticationAsync()
@@ -163,13 +163,13 @@ public class EnhancedAuthenticationService : IHostedService
         }
     }
 
-    private async void OnTokenRefreshed(string newToken)
+    private Task OnTokenRefreshed(string newToken)
     {
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
+        return _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService",
             "JWT token refreshed successfully", new
             {
                 tokenLength = newToken.Length,
                 refreshTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture)
-            }).ConfigureAwait(false);
+            });
     }
 }

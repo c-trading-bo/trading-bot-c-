@@ -392,8 +392,7 @@ namespace BotCore.ML
             decimal price,
             decimal atr,
             decimal score,
-            decimal qScore,
-            IList<Bar> bars)
+                        IList<Bar> bars)
         {
             var features = new SimpleFeatureSnapshot
             {

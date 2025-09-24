@@ -87,7 +87,6 @@ public class ZoneService : IZoneService, ISupplyDemandService
 {
     private readonly ILogger<ZoneService> _logger;
     private ZoneData? _currentZones;
-    private readonly object _lockObject = new();
 
     public ZoneService(ILogger<ZoneService> logger)
     {

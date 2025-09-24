@@ -298,7 +298,7 @@ public class ProductionValidationService : IValidationService
     /// <summary>
     /// Generate actual validation report with realistic data for demonstration
     /// </summary>
-    public async Task<ValidationReport> GenerateDemoValidationReportAsync(CancellationToken cancellationToken = default)
+    public Task<ValidationReport> GenerateDemoValidationReportAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[VALIDATION] Generating demonstration validation report with realistic metrics");
 
@@ -306,7 +306,7 @@ public class ProductionValidationService : IValidationService
         var championResults = GenerateRealisticShadowResults("UnifiedTradingBrain", 150, 0.15, 0.08); // Lower performance
         var challengerResults = GenerateRealisticShadowResults("InferenceBrain", 150, 0.25, 0.12); // Higher performance
 
-        return await RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken).ConfigureAwait(false);
+        return RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken);
     }
 
     // Helper methods for statistical calculations (simplified implementations)

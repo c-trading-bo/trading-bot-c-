@@ -166,11 +166,11 @@ namespace OrchestratorAgent.ML
         private readonly ILogger<RlSizer> _logger;
         private readonly ISizerConfig _sizerConfig;
         private InferenceSession? _session;
-        private readonly float[] _actions = null!;
+        private readonly float[] _actions;
         private readonly bool _sampleAction;
-        private string[] _inputNames = null!;
+        private string[] _inputNames;
         private readonly Random _rng = new();
-        private readonly string _modelPath = null!;
+        private readonly string _modelPath;
         private DateTime _modelLastWrite;
         private readonly int _maxAgeMinutes;
 

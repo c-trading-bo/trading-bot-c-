@@ -233,9 +233,9 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
         }
     }
 
-    private async void RefreshTimerCallback(object? state)
+    private Task RefreshTimerCallback(object? state)
     {
-        await RefreshTokenAsync().ConfigureAwait(false);
+        return RefreshTokenAsync();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

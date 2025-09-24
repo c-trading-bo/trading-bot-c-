@@ -128,7 +128,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
                 ModelName = modelName,
                 Version = version,
                 FilePath = targetPath,
-                FileHash = await _securityService.ComputeFileHashAsync(targetPath),
+                FileHash = await _securityService.ComputeFileHashAsync(targetPath).ConfigureAwait(false),
                 RegistrationTime = DateTime.UtcNow,
                 Metrics = metrics,
                 ValidationResult = validationResult,
@@ -388,10 +388,10 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         }
     }
     
-    private async Task UpdateDatabaseRegistryAsync(ModelRegistryEntry entry)
+    private Task UpdateDatabaseRegistryAsync(ModelRegistryEntry entry)
     {
         // Placeholder for database update - in production would use proper ORM/SQL
-        await Task.Delay(10).ConfigureAwait(false); // Simulate database write
+        return Task.Delay(10); // Simulate database write
     }
     
     private ModelRegistryEntry? GetModelFromDatabase(string modelName, string? version)
@@ -412,10 +412,10 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         return new List<string>();
     }
     
-    private async Task MarkModelAsDeletedInDatabase(string modelName, string? version)
+    private Task MarkModelAsDeletedInDatabase(string modelName, string? version)
     {
         // Placeholder for database update - in production would use proper ORM/SQL
-        await Task.Delay(10).ConfigureAwait(false);
+        return Task.Delay(10);
     }
     
     private void SynchronizeModels(object? state)
@@ -458,7 +458,6 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     // High-performance caching with LRU eviction
     private readonly ConcurrentDictionary<string, CachedFeatureData> _featureCache = new();
     private readonly ConcurrentDictionary<string, FeatureSchema> _schemaRegistry = new();
-    private readonly LinkedList<string> _accessOrder = new();
     private readonly object _accessOrderLock = new();
     
     // Enterprise features
@@ -590,7 +589,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             // Step 3: Store in appropriate format (compressed vs raw)
             var shouldCompress = timestamp < DateTime.UtcNow.AddDays(-CompressionThresholdDays);
             var storageResult = shouldCompress 
-                ? await StoreCompressedFeatureAsync(featureName, timestamp, values, schema)
+                ? await StoreCompressedFeatureAsync(featureName, timestamp, values, schema).ConfigureAwait(false)
                 : await StoreRawFeatureAsync(featureName, timestamp, values, schema).ConfigureAwait(false);
             
             if (!storageResult)
@@ -727,7 +726,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 CompressionRatio = compressionRatio,
                 MemoryUsageMB = cacheMetrics.MemoryUsageMB,
                 LastCompressionRun = _lastCompressionRun,
-                IndexHealth = await _indexService.GetHealthScoreAsync()
+                IndexHealth = await _indexService.GetHealthScoreAsync().ConfigureAwait(false)
             }.ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -826,9 +825,9 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         await Task.Delay(5).ConfigureAwait(false);
         return true; 
     }
-    private async Task UpdateFeatureCacheAsync(string featureName, DateTime timestamp, double[] values) 
-    { 
-        await Task.Delay(1).ConfigureAwait(false);
+    private Task UpdateFeatureCacheAsync(string featureName, DateTime timestamp, double[] values) 
+    {
+        return Task.Delay(1);
     }
     private async Task<double[]> LoadFeatureFromStorageAsync(string featureName, DateTime startDate, DateTime endDate) 
     { 
@@ -1025,9 +1024,9 @@ public class ModelBackupService
     private readonly ILogger _logger;
     private readonly string _basePath;
     public ModelBackupService(ILogger logger, string basePath) { _logger = logger; _basePath = basePath; }
-    public async Task CreateBackupAsync(string filePath, string modelName, string version, string? reason = null) 
-    { 
-        await Task.Delay(100).ConfigureAwait(false);
+    public Task CreateBackupAsync(string filePath, string modelName, string version, string? reason = null) 
+    {
+        return Task.Delay(100);
     }
 }
 
@@ -1054,7 +1053,7 @@ public class FeatureCompressionService : IAsyncDisposable
 {
     private readonly ILogger _logger;
     public FeatureCompressionService(ILogger logger) => _logger = logger;
-    public async Task RunCompressionAsync(string storageDirectory) => await Task.Delay(1000).ConfigureAwait(false);
+    public Task RunCompressionAsync(string storageDirectory) => Task.Delay(1000);
     public async ValueTask DisposeAsync() => await Task.CompletedTask.ConfigureAwait(false);
 }
 
@@ -1068,7 +1067,7 @@ public class FeatureIndexService
         await Task.Delay(50).ConfigureAwait(false);
         return new List<string>(); 
     }
-    public async Task IndexFeatureAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(10).ConfigureAwait(false);
+    public Task IndexFeatureAsync(string featureName, DateTime timestamp, int valueCount) => Task.Delay(10);
     public async Task<string[]> GetAllFeatureNamesAsync() 
     { 
         await Task.Delay(20).ConfigureAwait(false);
@@ -1086,7 +1085,7 @@ public class FeatureLineageTracker
     private readonly ILogger _logger;
     private readonly string _storageDirectory;
     public FeatureLineageTracker(ILogger logger, string storageDirectory) { _logger = logger; _storageDirectory = storageDirectory; }
-    public async Task RecordFeatureCreationAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(5).ConfigureAwait(false);
+    public Task RecordFeatureCreationAsync(string featureName, DateTime timestamp, int valueCount) => Task.Delay(5);
 }
 
 public class FeatureValidator
@@ -1104,6 +1103,6 @@ public class StreamingFeatureManager : IAsyncDisposable
 {
     private readonly ILogger _logger;
     public StreamingFeatureManager(ILogger logger) => _logger = logger;
-    public async Task PublishFeatureAsync(string featureName, DateTime timestamp, double[] values) => await Task.Delay(2).ConfigureAwait(false);
+    public Task PublishFeatureAsync(string featureName, DateTime timestamp, double[] values) => Task.Delay(2);
     public async ValueTask DisposeAsync() => await Task.CompletedTask.ConfigureAwait(false);
 }

@@ -47,42 +47,6 @@ namespace BotCore
             _pythonScriptDir = null;
         }
 
-        private async void CheckAndTrain(object? state)
-        {
-            try
-            {
-                // Prevent too frequent attempts if failures occur
-                if (_consecutiveFailures >= MaxConsecutiveFailures)
-                {
-                    var backoffHours = Math.Pow(2, _consecutiveFailures - MaxConsecutiveFailures) * 6;
-                    if (DateTime.UtcNow - _lastTrainingAttempt < TimeSpan.FromHours(backoffHours))
-                    {
-                        _log.LogWarning("[AutoRlTrainer] Backing off training attempts due to {Failures} consecutive failures", _consecutiveFailures);
-                        return;
-                    }
-                }
-
-                _lastTrainingAttempt = DateTime.UtcNow;
-
-                if (!HasSufficientTrainingData())
-                {
-                    _log.LogDebug("[AutoRlTrainer] Insufficient training data - need {MinDays}+ days", MinTrainingDays);
-                    return;
-                }
-
-                _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
-                await RunTrainingPipelineAsync().ConfigureAwait(false);
-
-                _consecutiveFailures = 0;
-                _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
-            }
-            catch (Exception ex)
-            {
-                _consecutiveFailures++;
-                _log.LogError(ex, "[AutoRlTrainer] Training failed (attempt {Failures}/{Max})", _consecutiveFailures, MaxConsecutiveFailures);
-            }
-        }
-
         private bool HasSufficientTrainingData()
         {
             try

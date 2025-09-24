@@ -33,7 +33,7 @@ public sealed class Program
             // Run tests
             logger.LogInformation("🧪 Running production guardrail tests...");
             var tester = ActivatorUtilities.CreateInstance<ProductionGuardrailTester>(services);
-            var allPassed = await tester.RunAllTestsAsync();
+            var allPassed = await tester.RunAllTestsAsync().ConfigureAwait(false);
 
             if (allPassed)
             {

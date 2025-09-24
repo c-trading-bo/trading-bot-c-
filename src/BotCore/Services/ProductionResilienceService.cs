@@ -16,7 +16,6 @@ public class ProductionResilienceService
     private readonly ILogger<ProductionResilienceService> _logger;
     private readonly ResilienceConfig _config;
     private readonly Dictionary<string, CircuitBreakerState> _circuitBreakers = new();
-    private readonly Dictionary<string, DateTime> _lastFailures = new();
 
     public ProductionResilienceService(ILogger<ProductionResilienceService> logger, IOptions<ResilienceConfig> config)
     {
@@ -115,13 +114,13 @@ public class ProductionResilienceService
     /// <summary>
     /// Execute HTTP operation with proper timeout and retry handling
     /// </summary>
-    public async Task<T> ExecuteHttpOperationAsync<T>(
+    public Task<T> ExecuteHttpOperationAsync<T>(
         string operationName,
         Func<HttpClient, CancellationToken, Task<T>> httpOperation,
         HttpClient httpClient,
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteWithResilienceAsync(operationName, async (ct) =>
+        return ExecuteWithResilienceAsync(operationName, async (ct) =>
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct).ConfigureAwait(false);
             timeoutCts.CancelAfter(_config.HttpTimeout);
@@ -252,6 +251,10 @@ public enum CircuitState
 public class CircuitBreakerOpenException : Exception
 {
     public CircuitBreakerOpenException(string message) : base(message) { }
+
+    public CircuitBreakerOpenException()
+    {
+    }
 }
 
 #endregion
