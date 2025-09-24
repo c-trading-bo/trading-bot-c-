@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace OrchestratorAgent.Realtime
 {
-    public sealed class MarketTee : IAsyncDisposable
+    internal sealed class MarketTee : IAsyncDisposable
     {
         private readonly StreamWriter? _writer;
         private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);

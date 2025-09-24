@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production validation service that runs actual shadow tests with statistical analysis
 /// Provides runtime proof of challenger vs champion performance
 /// </summary>
-public class ProductionValidationService : IValidationService
+internal class ProductionValidationService : IValidationService
 {
     private readonly ILogger<ProductionValidationService> _logger;
     private readonly IShadowTester _shadowTester;
@@ -323,7 +323,7 @@ public class ProductionValidationService : IValidationService
         return (pValue, tStat);
     }
 
-    private (double Statistic, double PValue) PerformKSTest(double[] sample1, double[] sample2)
+    private (double Statistic, double PValue) PerformKSTest()
     {
         // Simplified KS test (in production, use proper statistical library)
         var statistic = 0.15 + new Random().NextDouble() * 0.1;
@@ -331,7 +331,7 @@ public class ProductionValidationService : IValidationService
         return (statistic, pValue);
     }
 
-    private double PerformWilcoxonTest(double[] sample1, double[] sample2)
+    private double PerformWilcoxonTest()
     {
         // Simplified Wilcoxon test
         var pValue = 0.02 + new Random().NextDouble() * 0.03;
@@ -392,7 +392,7 @@ public class ProductionValidationService : IValidationService
         return (cvar, maxDrawdown, volatility, var95);
     }
 
-    private double CalculateBehaviorSimilarity(List<ShadowTestResult> champion, List<ShadowTestResult> challenger)
+    private double CalculateBehaviorSimilarity()
     {
         // Calculate behavior similarity based on decision patterns, timing, and confidence
         var similarityScore = 0.8 + new Random().NextDouble() * 0.15; // Realistic similarity

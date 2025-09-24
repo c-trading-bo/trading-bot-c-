@@ -15,7 +15,7 @@ using System.Globalization;
 namespace OrchestratorAgent
 {
     /// <summary>Tiny wrapper around ApiClient for placing orders.</summary>
-    public sealed class OrderRouter
+    internal sealed class OrderRouter
     {
         // Helpers (class-scope) for env and parsing
         private static int ResolveIntEnv(string key, int defVal)

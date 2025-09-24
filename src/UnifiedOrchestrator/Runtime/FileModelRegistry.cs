@@ -15,7 +15,7 @@ namespace TradingBot.UnifiedOrchestrator.Runtime;
 /// <summary>
 /// File-based model registry with atomic operations and checksums
 /// </summary>
-public class FileModelRegistry : IModelRegistry
+internal class FileModelRegistry : IModelRegistry
 {
     private readonly ILogger<FileModelRegistry> _logger;
     private readonly string _registryPath;

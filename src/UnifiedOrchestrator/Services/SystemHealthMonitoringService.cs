@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// System health monitoring service with comprehensive logging
 /// Tracks service lifecycle, memory usage, thread pool stats, GC metrics
 /// </summary>
-public class SystemHealthMonitoringService : IHostedService
+internal class SystemHealthMonitoringService : IHostedService
 {
     private readonly ILogger<SystemHealthMonitoringService> _logger;
     private readonly ITradingLogger _tradingLogger;
@@ -88,7 +88,7 @@ public class SystemHealthMonitoringService : IHostedService
         }
     }
 
-    private async Task PerformHealthCheck(object? state)
+    private async Task PerformHealthCheck()
     {
         try
         {
@@ -110,7 +110,7 @@ public class SystemHealthMonitoringService : IHostedService
         }
     }
 
-    private async Task CollectPerformanceMetrics(object? state)
+    private async Task CollectPerformanceMetrics()
     {
         try
         {

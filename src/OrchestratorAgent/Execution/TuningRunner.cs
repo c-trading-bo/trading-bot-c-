@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Execution;
 
-public static class TuningRunner
+internal static class TuningRunner
 {
     // Default parameter grid values - CONFIGURABLE via environment variables
     // These arrays are fallback values when environment variables are not set
@@ -99,7 +99,7 @@ public static class TuningRunner
         private static decimal[] GetDefaultStopMultipliers() => new[] { 3.0m, 3.5m, 4.0m };
         private static decimal[] GetDefaultTargetMultipliers() => new[] { 5.0m, 6.0m, 7.0m };
     }
-    public sealed record Param(string Key, decimal? D = null, int? I = null, bool? B = null, string? S = null)
+            internal sealed record Param(string Key, decimal? D = null, int? I = null, bool? B = null, string? S = null)
     {
         public void Apply(Dictionary<string, JsonElement> extra)
         {
@@ -144,7 +144,7 @@ public static class TuningRunner
         catch { return defaults; }
     }
 
-    public sealed record TrialConfig(List<Param> Params)
+            internal sealed record TrialConfig(List<Param> Params)
     {
         public StrategyDef BuildStrategyDef()
         {
@@ -180,7 +180,7 @@ public static class TuningRunner
         public override string ToString() => string.Join(", ", Params.Select(p => p.Key + "=" + (p.D?.ToString() ?? p.I?.ToString() ?? p.B?.ToString() ?? p.S ?? "")));
     }
 
-    public sealed record TrialResult(TrialConfig Config, int Trades, int Wins, int Losses, decimal NetUsd, decimal WinRate, decimal AvgR, decimal MaxDrawdownUsd)
+            internal sealed record TrialResult(TrialConfig Config, int Trades, int Wins, int Losses, decimal NetUsd, decimal WinRate, decimal AvgR, decimal MaxDrawdownUsd)
     {
         public override string ToString() => $"trades={Trades} win%={WinRate:P1} net=${NetUsd:F2} avgR={AvgR:F2} maxDD=${MaxDrawdownUsd:F0} :: {Config}";
     }

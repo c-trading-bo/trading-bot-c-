@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Ops
 {
-    public sealed class Watchdog(int maxMb, int maxThreads, int periodSec, Func<Task> persistState)
+    internal sealed class Watchdog(int maxMb, int maxThreads, int periodSec, Func<Task> persistState)
     {
         private readonly int _maxMb = maxMb, _maxThreads = maxThreads, _periodSec = periodSec;
         private readonly Func<Task> _persist = persistState;

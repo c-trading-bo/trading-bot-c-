@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Realtime
 {
-    public sealed class ReplayFeeder
+    internal sealed class ReplayFeeder
     {
         public static async IAsyncEnumerable<(string type, JsonElement data)> ReadAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
         {

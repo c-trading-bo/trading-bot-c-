@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Runtime;
 /// Microstructure Calibration Service for nightly parameter adjustment
 /// Production-grade adaptive calibration for institutional autonomous trading
 /// </summary>
-public class MicrostructureCalibrationService : BackgroundService
+internal class MicrostructureCalibrationService : BackgroundService
 {
     private readonly ILogger<MicrostructureCalibrationService> _logger;
     private readonly MicrostructureCalibrationOptions _options;
@@ -374,7 +374,7 @@ public class MicrostructureCalibrationService : BackgroundService
 /// <summary>
 /// Calibration configuration options
 /// </summary>
-public class MicrostructureCalibrationOptions
+internal class MicrostructureCalibrationOptions
 {
     public bool EnableNightlyCalibration { get; set; } = true;
     public int CalibrationHour { get; set; } = 3; // 3 AM EST
@@ -386,7 +386,7 @@ public class MicrostructureCalibrationOptions
 /// <summary>
 /// Calibration data for analysis
 /// </summary>
-public class CalibrationData
+internal class CalibrationData
 {
     public string Symbol { get; set; } = string.Empty;
     public int WindowDays { get; set; }
@@ -403,7 +403,7 @@ public class CalibrationData
 /// <summary>
 /// Calibration result for a symbol
 /// </summary>
-public class CalibrationResult
+internal class CalibrationResult
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime CalibrationTimeUtc { get; set; }
@@ -416,7 +416,7 @@ public class CalibrationResult
 /// <summary>
 /// Calibration history for persistence
 /// </summary>
-public class CalibrationHistory
+internal class CalibrationHistory
 {
     public DateTime CalibrationDate { get; set; }
     public List<CalibrationResult> Results { get; set; } = new();
@@ -426,7 +426,7 @@ public class CalibrationHistory
 /// <summary>
 /// Calibration statistics
 /// </summary>
-public class CalibrationStats
+internal class CalibrationStats
 {
     public DateTime LastCalibrationDate { get; set; }
     public int TotalCalibrations { get; set; }

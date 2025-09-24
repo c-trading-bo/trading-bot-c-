@@ -13,7 +13,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production demonstration runner that executes all validation tests
 /// and generates the runtime artifacts requested in the PR review
 /// </summary>
-public class ProductionDemonstrationRunner
+internal class ProductionDemonstrationRunner
 {
     private readonly ILogger<ProductionDemonstrationRunner> _logger;
     private readonly IProductionReadinessValidationService _validationService;
@@ -263,7 +263,7 @@ public class ProductionDemonstrationRunner
     /// <summary>
     /// Demonstrate safe window enforcement with CME alignment
     /// </summary>
-    private async Task DemonstrateSafeWindowEnforcementAsync(string demoId, CancellationToken cancellationToken)
+    private async Task DemonstrateSafeWindowEnforcementAsync(string demoId)
     {
         var safeWindowTests = new List<object>();
 
@@ -313,7 +313,7 @@ public class ProductionDemonstrationRunner
     /// <summary>
     /// Demonstrate data integration status with both historical and live data
     /// </summary>
-    private async Task DemonstrateDataIntegrationAsync(string demoId, CancellationToken cancellationToken)
+    private async Task DemonstrateDataIntegrationAsync(string demoId)
     {
         var historicalStatus = await _dataIntegration.GetHistoricalDataStatusAsync().ConfigureAwait(false);
         var liveStatus = await _dataIntegration.GetLiveDataStatusAsync().ConfigureAwait(false);
@@ -374,7 +374,7 @@ public class ProductionDemonstrationRunner
 /// <summary>
 /// Result of the complete production demonstration
 /// </summary>
-public class ProductionDemonstrationResult
+internal class ProductionDemonstrationResult
 {
     public string DemoId { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }

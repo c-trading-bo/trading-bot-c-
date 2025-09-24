@@ -15,7 +15,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Automated Promotion System with Gradual Rollout and Health Monitoring
 /// Implements safe champion/challenger transitions with position size limits and emergency rollback
 /// </summary>
-public class AutomatedPromotionService : BackgroundService
+internal class AutomatedPromotionService : BackgroundService
 {
     private readonly ILogger<AutomatedPromotionService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -361,7 +361,7 @@ public class AutomatedPromotionService : BackgroundService
     /// <summary>
     /// Progress rollout to next step with increased position size limit
     /// </summary>
-    private async Task ProgressRolloutToNextStepAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
+    private async Task ProgressRolloutToNextStepAsync(GradualRolloutState rollout)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -387,7 +387,7 @@ public class AutomatedPromotionService : BackgroundService
     /// <summary>
     /// Complete rollout with full position size
     /// </summary>
-    private Task CompleteRolloutAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
+    private Task CompleteRolloutAsync(GradualRolloutState rollout)
     {
         try
         {
@@ -451,7 +451,7 @@ public class AutomatedPromotionService : BackgroundService
     /// <summary>
     /// Perform safety checks before promotion
     /// </summary>
-    private async Task<bool> PerformSafetyChecksAsync(PromotionSchedule promotion, CancellationToken cancellationToken)
+    private async Task<bool> PerformSafetyChecksAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -500,8 +500,8 @@ public class AutomatedPromotionService : BackgroundService
     /// Collect health metrics for rollout monitoring
     /// </summary>
     private async Task<RolloutHealthMetric> CollectRolloutHealthMetricAsync(
-        GradualRolloutState rollout, 
-        CancellationToken cancellationToken)
+        GradualRolloutState rollout
+        )
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -531,8 +531,8 @@ public class AutomatedPromotionService : BackgroundService
     /// </summary>
     private async Task<bool> AssessRolloutHealthAsync(
         GradualRolloutState rollout, 
-        RolloutHealthMetric metric, 
-        CancellationToken cancellationToken)
+        RolloutHealthMetric metric
+        )
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -661,7 +661,7 @@ public class AutomatedPromotionService : BackgroundService
 /// <summary>
 /// Gradual rollout state tracking
 /// </summary>
-public class GradualRolloutState
+internal class GradualRolloutState
 {
     public string Algorithm { get; set; } = string.Empty;
     public string ChallengerVersionId { get; set; } = string.Empty;
@@ -678,7 +678,7 @@ public class GradualRolloutState
 /// <summary>
 /// Health metric for rollout monitoring
 /// </summary>
-public class RolloutHealthMetric
+internal class RolloutHealthMetric
 {
     public DateTime Timestamp { get; set; }
     public int StepNumber { get; set; }
@@ -695,7 +695,7 @@ public class RolloutHealthMetric
 /// <summary>
 /// Health check result
 /// </summary>
-public class PromotionHealthCheck
+internal class PromotionHealthCheck
 {
     public DateTime Timestamp { get; set; }
     public string Algorithm { get; set; } = string.Empty;
@@ -708,7 +708,7 @@ public class PromotionHealthCheck
 /// <summary>
 /// Automated promotion system status
 /// </summary>
-public class AutomatedPromotionStatus
+internal class AutomatedPromotionStatus
 {
     public int ScheduledPromotionsCount { get; set; }
     public int ActiveRolloutsCount { get; set; }

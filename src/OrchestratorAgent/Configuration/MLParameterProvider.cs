@@ -7,7 +7,7 @@ namespace OrchestratorAgent.Configuration
     /// Static helper to provide ML configuration parameters for OrchestratorAgent classes
     /// Replaces hardcoded values with configuration-driven ones
     /// </summary>
-    public static class MLParameterProvider
+    internal static class MLParameterProvider
     {
         private static IServiceProvider? _serviceProvider;
         

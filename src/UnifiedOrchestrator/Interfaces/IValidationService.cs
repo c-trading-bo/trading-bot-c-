@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for validation service that provides runtime proof of model performance
 /// </summary>
-public interface IValidationService
+internal interface IValidationService
 {
     /// <summary>
     /// Run comprehensive validation with real shadow test data

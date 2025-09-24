@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Advanced system integration service - coordinates advanced integrations
 /// </summary>
-public class AdvancedSystemIntegrationService
+internal class AdvancedSystemIntegrationService
 {
     private readonly ILogger<AdvancedSystemIntegrationService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -42,7 +42,7 @@ public class AdvancedSystemIntegrationService
         }
     }
 
-    private async Task InitializeMLIntegrationAsync(CancellationToken cancellationToken)
+    private async Task InitializeMLIntegrationAsync()
     {
         _logger.LogDebug("Initializing ML integration...");
         
@@ -52,7 +52,7 @@ public class AdvancedSystemIntegrationService
         _logger.LogDebug("✅ ML integration initialized");
     }
 
-    private async Task InitializeRLIntegrationAsync(CancellationToken cancellationToken)
+    private async Task InitializeRLIntegrationAsync()
     {
         _logger.LogDebug("Initializing RL integration...");
         
@@ -62,7 +62,7 @@ public class AdvancedSystemIntegrationService
         _logger.LogDebug("✅ RL integration initialized");
     }
 
-    private async Task InitializeCloudIntegrationAsync(CancellationToken cancellationToken)
+    private async Task InitializeCloudIntegrationAsync()
     {
         _logger.LogDebug("Initializing cloud integration...");
         
@@ -115,21 +115,21 @@ public class AdvancedSystemIntegrationService
         }
     }
 
-    private async Task<bool> ValidateMLIntegrationAsync(CancellationToken cancellationToken)
+    private async Task<bool> ValidateMLIntegrationAsync()
     {
         // Validate ML models are loaded and accessible
         await Task.CompletedTask.ConfigureAwait(false);
         return true;
     }
 
-    private async Task<bool> ValidateRLIntegrationAsync(CancellationToken cancellationToken)
+    private async Task<bool> ValidateRLIntegrationAsync()
     {
         // Validate RL agents are initialized and ready
         await Task.CompletedTask.ConfigureAwait(false);
         return true;
     }
 
-    private async Task<bool> ValidateCloudIntegrationAsync(CancellationToken cancellationToken)
+    private async Task<bool> ValidateCloudIntegrationAsync()
     {
         var cloudEndpoint = Environment.GetEnvironmentVariable("CLOUD_ENDPOINT");
         if (string.IsNullOrEmpty(cloudEndpoint))

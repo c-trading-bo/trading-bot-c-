@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace OrchestratorAgent.Infra
 {
-    public static class Capabilities
+    internal static class Capabilities
     {
         private static readonly HashSet<string> _set = [];
         public static IReadOnlyCollection<string> All => _set;

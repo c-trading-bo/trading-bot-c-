@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Execution
     /// Only allows trades when ML predicts win probability > threshold.
     /// This is the #1 upgrade for improving win rates in institutional systems.
     /// </summary>
-    public class MetaLabelingGate
+    internal class MetaLabelingGate
     {
         private readonly Dictionary<string, BarrierStats> _barrierStats = new();
         private readonly Queue<TradeOutcome> _recentOutcomes = new();
@@ -250,7 +250,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class EntrySignal
+    internal class EntrySignal
     {
         public string Symbol { get; set; } = "";
         public string Side { get; set; } = "";
@@ -261,7 +261,7 @@ namespace OrchestratorAgent.Execution
         public DateTime Timestamp { get; set; }
     }
 
-    public class MarketContext
+    internal class MarketContext
     {
         public double CurrentPrice { get; set; }
         public double CurrentVolume { get; set; }
@@ -280,7 +280,7 @@ namespace OrchestratorAgent.Execution
         public bool IsHighImpactNews { get; set; }
     }
 
-    public class SignalFeatures
+    internal class SignalFeatures
     {
         public double RsiLevel { get; set; }
         public double VolumeRatio { get; set; }
@@ -297,7 +297,7 @@ namespace OrchestratorAgent.Execution
         public double DistanceToResistance { get; set; }
     }
 
-    public class MetaLabelDecision
+    internal class MetaLabelDecision
     {
         public bool ShouldTakeEntry { get; set; }
         public double PredictedWinProbability { get; set; }
@@ -306,7 +306,7 @@ namespace OrchestratorAgent.Execution
         public string Reason { get; set; } = "";
     }
 
-    public class TradeOutcome
+    internal class TradeOutcome
     {
         public bool IsWin { get; set; }
         public double RMultiple { get; set; }
@@ -315,7 +315,7 @@ namespace OrchestratorAgent.Execution
         public DateTime Timestamp { get; set; }
     }
 
-    public class BarrierStats
+    internal class BarrierStats
     {
         public int Wins { get; private set; }
         public int Total { get; private set; }

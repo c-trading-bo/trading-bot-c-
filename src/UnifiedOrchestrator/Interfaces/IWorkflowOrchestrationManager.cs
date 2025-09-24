@@ -5,7 +5,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for workflow orchestration and conflict management
 /// </summary>
-public interface IWorkflowOrchestrationManager : IDisposable
+internal interface IWorkflowOrchestrationManager : IDisposable
 {
     /// <summary>
     /// Initialize workflow orchestration services

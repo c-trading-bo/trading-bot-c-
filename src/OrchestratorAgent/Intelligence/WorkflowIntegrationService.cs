@@ -14,7 +14,7 @@ namespace OrchestratorAgent.Intelligence
     /// Service that integrates with GitHub Actions workflows to consume ML/RL intelligence
     /// and trigger workflow executions from the C# trading bot.
     /// </summary>
-    public class WorkflowIntegrationService
+    internal class WorkflowIntegrationService
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<WorkflowIntegrationService> _logger;
@@ -230,7 +230,7 @@ namespace OrchestratorAgent.Intelligence
     }
 
     // Data models for workflow integration
-    public class MarketIntelligence
+    internal class MarketIntelligence
     {
         public string Regime { get; set; } = "";
         public decimal Confidence { get; set; }
@@ -249,14 +249,14 @@ namespace OrchestratorAgent.Intelligence
         public decimal? MeanReversionProbability { get; set; }
     }
 
-    public class CorrelationData
+    internal class CorrelationData
     {
         public Dictionary<string, decimal> Correlations { get; } = new();
         public DateTimeOffset Timestamp { get; set; }
         public string BasePair { get; set; } = "";
     }
 
-    public class ZoneAnalysis
+    internal class ZoneAnalysis
     {
         public List<Zone> SupplyZones { get; } = new();
         public List<Zone> DemandZones { get; } = new();
@@ -265,7 +265,7 @@ namespace OrchestratorAgent.Intelligence
         public DateTimeOffset Timestamp { get; set; }
     }
 
-    public class Zone
+    internal class Zone
     {
         public decimal Top { get; set; }
         public decimal Bottom { get; set; }
@@ -275,7 +275,7 @@ namespace OrchestratorAgent.Intelligence
         public DateTimeOffset LastTouch { get; set; }
     }
 
-    public class SentimentData
+    internal class SentimentData
     {
         public decimal OverallScore { get; set; } // -1 to 1 scale
         public Dictionary<string, decimal> Sources { get; } = new();

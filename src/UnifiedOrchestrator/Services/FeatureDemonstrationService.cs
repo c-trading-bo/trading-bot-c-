@@ -20,7 +20,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// 3. Python integration with model calls
 /// 4. ONNX model inference loading
 /// </summary>
-public class FeatureDemonstrationService : BackgroundService
+internal class FeatureDemonstrationService : BackgroundService
 {
     private readonly ILogger<FeatureDemonstrationService> _logger;
     private readonly IWorkflowScheduler _workflowScheduler;
@@ -102,7 +102,7 @@ public class FeatureDemonstrationService : BackgroundService
         _logger.LogInformation("🎯 [FEATURE_DEMO] All four features demonstrated successfully!");
     }
 
-    private Task DemonstrateWorkflowSchedulingAsync(CancellationToken cancellationToken)
+    private Task DemonstrateWorkflowSchedulingAsync()
     {
         _logger.LogInformation("📅 [FEATURE_DEMO] 1. WORKFLOW SCHEDULING LOGIC");
         _logger.LogInformation("📅 [FEATURE_DEMO] Configuration enabled: {Enabled}", _schedulingOptions.Enabled);
@@ -193,7 +193,7 @@ public class FeatureDemonstrationService : BackgroundService
         }
     }
 
-    private async Task DemonstrateOnnxModelLoadingAsync(CancellationToken cancellationToken)
+    private async Task DemonstrateOnnxModelLoadingAsync()
     {
         _logger.LogInformation("🧠 [FEATURE_DEMO] 4. MODEL INFERENCE LOADER");
         _logger.LogInformation("🧠 [FEATURE_DEMO] ONNX loading enabled: {Enabled}", _modelOptions.OnnxEnabled);

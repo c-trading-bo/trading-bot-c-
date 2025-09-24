@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class BacktestOptions
+    internal class BacktestOptions
     {
         public int TrainingWindowDays { get; set; } = 30;
         public int TestWindowDays { get; set; } = 7;
@@ -18,7 +18,7 @@ namespace UnifiedOrchestrator.Services
         public double MinAccuracyThreshold { get; set; } = 0.6;
     }
 
-    public class BacktestWindowResult
+    internal class BacktestWindowResult
     {
         public DateTime TrainingStart { get; set; }
         public DateTime TrainingEnd { get; set; }
@@ -33,7 +33,7 @@ namespace UnifiedOrchestrator.Services
         public double MaxDrawdown { get; set; }
     }
 
-    public class BacktestResult
+    internal class BacktestResult
     {
         public string ModelName { get; set; } = "";
         public DateTime BacktestStart { get; set; }
@@ -44,7 +44,7 @@ namespace UnifiedOrchestrator.Services
         public string ErrorMessage { get; set; } = "";
     }
 
-    public class BacktestHarnessService
+    internal class BacktestHarnessService
     {
         private readonly ILogger<BacktestHarnessService> _logger;
         private readonly BacktestOptions _options;

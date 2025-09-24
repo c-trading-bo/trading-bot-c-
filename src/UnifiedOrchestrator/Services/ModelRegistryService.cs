@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class ModelRegistryOptions
+    internal class ModelRegistryOptions
     {
         public string RegistryPath { get; set; } = "models/registry";
         public bool AutoCompress { get; set; } = true;
@@ -17,7 +17,7 @@ namespace UnifiedOrchestrator.Services
         public int MaxModelsPerName { get; set; } = 10;
     }
 
-    public class ModelMetadata
+    internal class ModelMetadata
     {
         public DateTime TrainingDate { get; set; }
         public Dictionary<string, object> Hyperparams { get; } = new();
@@ -28,7 +28,7 @@ namespace UnifiedOrchestrator.Services
         public DateTime LastUpdated { get; set; }
     }
 
-    public class ModelRegistryEntry
+    internal class ModelRegistryEntry
     {
         public string ModelName { get; set; } = "";
         public string ModelPath { get; set; } = "";
@@ -37,7 +37,7 @@ namespace UnifiedOrchestrator.Services
         public string RegistryId { get; set; } = "";
     }
 
-    public class ModelRegistryService
+    internal class ModelRegistryService
     {
         private readonly ILogger<ModelRegistryService> _logger;
         private readonly ModelRegistryOptions _options;

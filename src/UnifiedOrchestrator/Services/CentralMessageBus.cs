@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Central message bus implementation - The "ONE BRAIN" communication system
 /// </summary>
-public class CentralMessageBus : ICentralMessageBus
+internal class CentralMessageBus : ICentralMessageBus
 {
     private readonly ILogger<CentralMessageBus> _logger;
     private readonly ConcurrentDictionary<string, object> _sharedState = new();

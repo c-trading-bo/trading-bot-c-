@@ -29,7 +29,7 @@ namespace OrchestratorAgent.ML
     /// Feature snapshot for ML model inference. Contains market data features
     /// extracted at a point in time for a specific symbol and strategy.
     /// </summary>
-    public sealed class FeatureSnapshot
+    internal sealed class FeatureSnapshot
     {
         public Dictionary<string, float> Features { get; } = new();
 
@@ -161,7 +161,7 @@ namespace OrchestratorAgent.ML
     /// Risk-aware reinforcement learning position sizer using ONNX models.
     /// Loads trained CVaR-PPO policy and recommends position multipliers.
     /// </summary>
-    public sealed class RlSizer : IDisposable
+    internal sealed class RlSizer : IDisposable
     {
         private readonly ILogger<RlSizer> _logger;
         private readonly ISizerConfig _sizerConfig;

@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 /// <summary>
 /// Loads environment variables from .env files for unified configuration
 /// </summary>
-public static class EnvironmentLoader
+internal static class EnvironmentLoader
 {
     /// <summary>
     /// Load environment files in priority order: .env.local then .env

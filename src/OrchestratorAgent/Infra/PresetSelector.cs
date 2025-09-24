@@ -10,7 +10,7 @@ using OrchestratorAgent.Configuration;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>> getBars, TimeSpan dwell, bool allowLive)
+internal sealed class PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>> getBars, TimeSpan dwell, bool allowLive)
 {
     private readonly ILogger _log = log;
     private readonly Func<string, IReadOnlyList<Bar>> _getBars = getBars;

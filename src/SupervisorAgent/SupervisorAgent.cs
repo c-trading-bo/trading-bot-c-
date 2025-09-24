@@ -14,9 +14,9 @@ using BotCore;
 
 namespace SupervisorAgent
 {
-    public sealed class SupervisorAgent(ILogger<SupervisorAgent> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, SupervisorAgent.Config cfg)
+    internal sealed class SupervisorAgent(ILogger<SupervisorAgent> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, SupervisorAgent.Config cfg)
     {
-        public sealed class Config
+        internal sealed class Config
         {
             public bool LiveTrading { get; set; }
             public int BarSeconds { get; set; } = 60;
@@ -25,7 +25,7 @@ namespace SupervisorAgent
             public BracketConfig DefaultBracket { get; set; } = new();
         }
 
-        public sealed class BracketConfig
+        internal sealed class BracketConfig
         {
             public int StopTicks { get; set; } = 12;
             public int TargetTicks { get; set; } = 18;

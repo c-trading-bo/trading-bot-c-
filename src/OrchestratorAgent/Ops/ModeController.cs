@@ -3,9 +3,9 @@ using System.Text.Json;
 
 namespace OrchestratorAgent.Ops
 {
-    public enum TradeMode { Dry = 0, Shadow = 1, Live = 2 }
+    internal enum TradeMode { Dry = 0, Shadow = 1, Live = 2 }
 
-    public sealed class ModeController
+    internal sealed class ModeController
     {
         private readonly string _statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "state", "mode.json");
         public TradeMode Mode { get; private set; } = TradeMode.Shadow;

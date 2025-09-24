@@ -13,7 +13,7 @@ namespace OrchestratorAgent.Services
     /// Integrates C# Trading Bot with GitHub Actions Workflows
     /// Reads workflow outputs and triggers workflow execution
     /// </summary>
-    public class WorkflowIntegrationService
+    internal class WorkflowIntegrationService
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<WorkflowIntegrationService> _logger;
@@ -277,7 +277,7 @@ namespace OrchestratorAgent.Services
     }
 
     // Data models for workflow integration
-    public class MarketIntelligence
+    internal class MarketIntelligence
     {
         public decimal MlConfidence { get; set; }
         public Dictionary<string, decimal> MlPredictions { get; } = new();
@@ -288,7 +288,7 @@ namespace OrchestratorAgent.Services
         public DateTime LastUpdated { get; set; }
     }
 
-    public class ZoneAnalysis
+    internal class ZoneAnalysis
     {
         public string Symbol { get; set; } = "";
         public List<decimal> SupplyZones { get; } = new();
@@ -297,7 +297,7 @@ namespace OrchestratorAgent.Services
         public DateTime LastUpdated { get; set; }
     }
 
-    public class MicrostructureData
+    internal class MicrostructureData
     {
         public string Symbol { get; set; } = "";
         public decimal OrderFlowImbalance { get; set; }

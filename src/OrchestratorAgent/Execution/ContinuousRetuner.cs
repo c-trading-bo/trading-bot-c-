@@ -10,7 +10,7 @@ using System.IO;
 
 namespace OrchestratorAgent.Execution;
 
-public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt,
+internal sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt,
     IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots,
     TimeSpan interval, int lookbackDays, bool allowLive, CancellationToken ct) : IAsyncDisposable
 {

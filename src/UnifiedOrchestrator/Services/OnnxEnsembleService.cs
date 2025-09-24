@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class OnnxEnsembleOptions
+    internal class OnnxEnsembleOptions
     {
         public int MaxBatchSize { get; set; } = 16;
         public int BatchTimeoutMs { get; set; } = 50;
@@ -20,7 +20,7 @@ namespace UnifiedOrchestrator.Services
         public int MaxModels { get; set; } = 10;
     }
 
-    public class ModelInfo
+    internal class ModelInfo
     {
         public string ModelName { get; set; } = "";
         public string ModelPath { get; set; } = "";
@@ -30,7 +30,7 @@ namespace UnifiedOrchestrator.Services
         public string ErrorMessage { get; set; } = "";
     }
 
-    public class EnsembleStatus
+    internal class EnsembleStatus
     {
         public int LoadedModels { get; set; }
         public int TotalModels { get; set; }
@@ -40,7 +40,7 @@ namespace UnifiedOrchestrator.Services
         public List<ModelInfo> Models { get; } = new();
     }
 
-    public class PredictionResult
+    internal class PredictionResult
     {
         public Dictionary<string, double> Outputs { get; } = new();
         public double Confidence { get; set; }
@@ -50,7 +50,7 @@ namespace UnifiedOrchestrator.Services
         public string BlockedReason { get; set; } = "";
     }
 
-    public class OnnxEnsembleService : IDisposable
+    internal class OnnxEnsembleService : IDisposable
     {
         private readonly ILogger<OnnxEnsembleService> _logger;
         private readonly OnnxEnsembleOptions _options;
@@ -305,7 +305,7 @@ namespace UnifiedOrchestrator.Services
             }
         }
 
-        private async Task<Dictionary<string, double>> RunRealModelInferenceAsync(string modelName, string modelPath, Dictionary<string, float> inputs, CancellationToken cancellationToken)
+        private async Task<Dictionary<string, double>> RunRealModelInferenceAsync(string modelName, Dictionary<string, float> inputs, CancellationToken cancellationToken)
         {
             try
             {

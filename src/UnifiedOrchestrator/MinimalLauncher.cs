@@ -10,7 +10,7 @@ namespace TradingBot.MinimalOrchestrator
     /// Minimal UnifiedOrchestrator launcher for testing TopStep connectivity
     /// This bypasses the full intelligence stack to focus on core connectivity
     /// </summary>
-    public static class Program
+    internal static class Program
     {
         public static async Task Main(string[] args)
         {

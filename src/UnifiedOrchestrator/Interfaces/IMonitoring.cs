@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for monitoring model drift and performance degradation
 /// </summary>
-public interface IDriftMonitor
+internal interface IDriftMonitor
 {
     /// <summary>
     /// Check for model drift in performance
@@ -29,7 +29,7 @@ public interface IDriftMonitor
 /// <summary>
 /// Interface for health gates and risk monitoring
 /// </summary>
-public interface IHealthGate
+internal interface IHealthGate
 {
     /// <summary>
     /// Check if algorithm is healthy and safe to trade
@@ -50,7 +50,7 @@ public interface IHealthGate
 /// <summary>
 /// Drift detection result
 /// </summary>
-public class DriftDetectionResult
+internal class DriftDetectionResult
 {
     public string Algorithm { get; set; } = string.Empty;
     public string DriftType { get; set; } = string.Empty; // PERFORMANCE, DATA, CONCEPT
@@ -66,7 +66,7 @@ public class DriftDetectionResult
 /// <summary>
 /// Drift monitoring status
 /// </summary>
-public class DriftMonitoringStatus
+internal class DriftMonitoringStatus
 {
     public string Algorithm { get; set; } = string.Empty;
     public bool IsMonitoring { get; set; }
@@ -79,7 +79,7 @@ public class DriftMonitoringStatus
 /// <summary>
 /// Health gate result
 /// </summary>
-public class HealthGateResult
+internal class HealthGateResult
 {
     public string Algorithm { get; set; } = string.Empty;
     public bool IsHealthy { get; set; }

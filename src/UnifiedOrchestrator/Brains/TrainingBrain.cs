@@ -18,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Brains;
 /// Write-only training brain - produces versioned artifacts with no live inference access
 /// This ensures complete isolation from live trading operations
 /// </summary>
-public class TrainingBrain : ITrainingBrain
+internal class TrainingBrain : ITrainingBrain
 {
     private readonly ILogger<TrainingBrain> _logger;
     private readonly IModelRegistry _modelRegistry;
@@ -275,7 +275,7 @@ public class TrainingBrain : ITrainingBrain
 
     #region Private Methods
 
-    private async Task ValidateTrainingConfigAsync(TrainingConfig config, CancellationToken cancellationToken)
+    private async Task ValidateTrainingConfigAsync(TrainingConfig config)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -455,7 +455,7 @@ public class TrainingBrain : ITrainingBrain
         return $"v{DateTime.UtcNow:yyyyMMdd_HHmmss}_{algorithm}_{Guid.NewGuid().ToString("N")[..8]}";
     }
 
-    private async Task<int> CountActualDataSamples(TrainingConfig config, CancellationToken cancellationToken)
+    private async Task<int> CountActualDataSamples(TrainingConfig config)
     {
         try
         {

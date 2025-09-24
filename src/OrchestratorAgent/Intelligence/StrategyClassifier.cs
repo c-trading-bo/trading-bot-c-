@@ -7,9 +7,9 @@ namespace OrchestratorAgent.Intelligence
     /// <summary>
     /// Classifies trading strategies into categories for strategy-specific intelligence routing
     /// </summary>
-    public static class StrategyClassifier
+    internal static class StrategyClassifier
     {
-        public enum StrategyCategory
+        internal enum StrategyCategory
         {
             Breakout,      // Trend-following, momentum-based entries
             MeanReversion, // Counter-trend, reversal-based entries
@@ -137,7 +137,7 @@ namespace OrchestratorAgent.Intelligence
     /// <summary>
     /// Intelligence requirements for a specific strategy
     /// </summary>
-    public class StrategyIntelligenceRequirements
+    internal class StrategyIntelligenceRequirements
     {
         public StrategyClassifier.StrategyCategory Category { get; set; }
         public bool RequiresTrendingRegime { get; set; }
@@ -153,7 +153,7 @@ namespace OrchestratorAgent.Intelligence
     /// <summary>
     /// Types of sentiment filtering for different strategy categories
     /// </summary>
-    public enum SentimentFilterType
+    internal enum SentimentFilterType
     {
         None,              // No sentiment filtering
         MomentumWeighted,  // Breakout strategies - weight sentiment by momentum

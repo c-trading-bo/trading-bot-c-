@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Launches and manages Python UCB (Upper Confidence Bound) processes
 /// </summary>
-public class PythonUcbLauncher : IHostedService
+internal class PythonUcbLauncher : IHostedService
 {
     private readonly ILogger<PythonUcbLauncher> _logger;
 

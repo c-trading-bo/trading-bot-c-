@@ -25,7 +25,7 @@ using System.Globalization;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null, BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
+    internal sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null, BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
     {
 
         // Position epoch tracking for bracket mode locking
@@ -44,7 +44,7 @@ namespace OrchestratorAgent
             decimal EntryPrice,
             int Quantity
         );
-        public sealed class Config
+        internal sealed class Config
         {
             public bool LiveTrading { get; set; }
             public int BarSeconds { get; set; } = 60;
@@ -53,7 +53,7 @@ namespace OrchestratorAgent
             public BracketConfig DefaultBracket { get; set; } = new();
         }
 
-        public sealed class BracketConfig
+        internal sealed class BracketConfig
         {
             public int StopTicks { get; set; } = 12;
             public int TargetTicks { get; set; } = 18;

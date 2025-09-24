@@ -11,7 +11,7 @@ using OrchestratorAgent.Execution;
 namespace OrchestratorAgent.Execution
 {
     // Enhanced router with regime-aware Bayesian priors, CVaR sizing, drift detection, and canary testing
-    public sealed class SuperRouter
+    internal sealed class SuperRouter
     {
         readonly OrchestratorAgent.OrderRouter _baseRouter;
         readonly ILogger<SuperRouter> _log;

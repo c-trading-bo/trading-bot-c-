@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Infra
 {
-    public sealed class Notifier
+    internal sealed class Notifier
     {
         private readonly HttpClient _http = new();
         private readonly string? _url = Environment.GetEnvironmentVariable("BOT_ALERT_WEBHOOK");

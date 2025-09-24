@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class StreamingOptions
+    internal class StreamingOptions
     {
         public List<TimeSpan> TimeWindows { get; set; } = new() { TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5) };
         public int MicrostructureWindow { get; set; } = 100;
@@ -17,7 +17,7 @@ namespace UnifiedOrchestrator.Services
         public int MaxCacheSize { get; set; } = 10000;
     }
 
-    public class MarketTick
+    internal class MarketTick
     {
         public string Symbol { get; set; } = "";
         public DateTime Timestamp { get; set; }
@@ -28,7 +28,7 @@ namespace UnifiedOrchestrator.Services
         public double Ask { get; set; }
     }
 
-    public class MicrostructureFeatures
+    internal class MicrostructureFeatures
     {
         public double OrderFlow { get; set; }
         public double VolumeWeightedSpread { get; set; }
@@ -36,7 +36,7 @@ namespace UnifiedOrchestrator.Services
         public double MidPriceChange { get; set; }
     }
 
-    public class TimeWindowFeatures
+    internal class TimeWindowFeatures
     {
         public double VWAP { get; set; }
         public double Volatility { get; set; }
@@ -45,7 +45,7 @@ namespace UnifiedOrchestrator.Services
         public int TickCount { get; set; }
     }
 
-    public class StreamingFeatures
+    internal class StreamingFeatures
     {
         public string Symbol { get; set; } = "";
         public DateTime GeneratedAt { get; set; }
@@ -53,7 +53,7 @@ namespace UnifiedOrchestrator.Services
         public Dictionary<TimeSpan, TimeWindowFeatures> TimeWindowFeatures { get; } = new();
     }
 
-    public class StreamingFeatureAggregator : IDisposable
+    internal class StreamingFeatureAggregator : IDisposable
     {
         private readonly ILogger<StreamingFeatureAggregator> _logger;
         private readonly StreamingOptions _options;
@@ -141,7 +141,7 @@ namespace UnifiedOrchestrator.Services
                 .ToList();
         }
 
-        private async Task<StreamingFeatures> GenerateFeaturesAsync(string symbol, DateTime timestamp, CancellationToken cancellationToken)
+        private async Task<StreamingFeatures> GenerateFeaturesAsync(string symbol, DateTime timestamp)
         {
             var features = new StreamingFeatures
             {

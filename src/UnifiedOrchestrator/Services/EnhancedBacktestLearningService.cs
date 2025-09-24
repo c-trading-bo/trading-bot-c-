@@ -28,7 +28,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// - Identical context and outputs for reproducible results
 /// - Same scheduling: Market Open: Light learning every 60 min, Market Closed: Intensive every 15 min
 /// </summary>
-public class EnhancedBacktestLearningService : BackgroundService
+internal class EnhancedBacktestLearningService : BackgroundService
 {
     private readonly ILogger<EnhancedBacktestLearningService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -651,7 +651,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Load REAL historical data for backtesting - NO SYNTHETIC GENERATION ALLOWED
     /// </summary>
-    private async Task<List<HistoricalDataPoint>> LoadRealHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
+    private async Task<List<HistoricalDataPoint>> LoadRealHistoricalDataAsync(BacktestConfig config)
     {
         try
         {
@@ -682,8 +682,8 @@ public class EnhancedBacktestLearningService : BackgroundService
     private async Task UpdateBacktestStateAsync(
         BacktestState state,
         HistoricalDecision decision,
-        HistoricalDataPoint dataPoint,
-        CancellationToken cancellationToken)
+        HistoricalDataPoint dataPoint
+        )
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -773,8 +773,8 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<BacktestResult> CalculateBacktestMetricsAsync(
         BacktestState state,
-        HistoricalReplayContext context,
-        CancellationToken cancellationToken)
+        HistoricalReplayContext context
+        )
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -917,7 +917,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         return configs;
     }
 
-    private async Task AnalyzeBacktestResultsAsync(BacktestResult[] results, TrainingIntensity intensity, CancellationToken cancellationToken)
+    private async Task AnalyzeBacktestResultsAsync(BacktestResult[] results, CancellationToken cancellationToken)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -982,7 +982,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Analyze successful patterns from high-performing backtests
     /// </summary>
-    private async Task<Dictionary<string, object>> AnalyzeSuccessfulPatternsAsync(BacktestResult result, CancellationToken cancellationToken)
+    private async Task<Dictionary<string, object>> AnalyzeSuccessfulPatternsAsync(BacktestResult result)
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -1020,7 +1020,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Analyze failure patterns to avoid repeating mistakes
     /// </summary>
-    private async Task<Dictionary<string, object>> AnalyzeFailurePatternsAsync(BacktestResult[] failedResults, CancellationToken cancellationToken)
+    private async Task<Dictionary<string, object>> AnalyzeFailurePatternsAsync(BacktestResult[] failedResults)
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -1241,7 +1241,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Load REAL historical bars from actual market data - NO SYNTHETIC GENERATION ALLOWED
     /// </summary>
-    private async Task<List<BotCore.Models.Bar>> LoadRealHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    private async Task<List<BotCore.Models.Bar>> LoadRealHistoricalBarsAsync(UnifiedBacktestConfig config)
     {
         try
         {
@@ -1368,8 +1368,8 @@ public class EnhancedBacktestLearningService : BackgroundService
     private async Task<TradeResult> ExecuteHistoricalTradeAsync(
         UnifiedHistoricalDecision decision, 
         decimal currentPrice, 
-        UnifiedBacktestState state,
-        CancellationToken cancellationToken)
+        UnifiedBacktestState state
+        )
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior for proper execution simulation
         
@@ -1425,7 +1425,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Feed backtest results to UnifiedTradingBrain for continuous learning
     /// </summary>
-    private async Task FeedResultsToUnifiedBrainAsync(UnifiedBacktestResult[] results, CancellationToken cancellationToken)
+    private async Task FeedResultsToUnifiedBrainAsync(UnifiedBacktestResult[] results)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -1641,7 +1641,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Calculate realistic market impact based on order size and market conditions
     /// </summary>
-    private decimal CalculateMarketImpact(UnifiedHistoricalDecision decision, UnifiedBacktestState state)
+    private decimal CalculateMarketImpact(UnifiedHistoricalDecision decision)
     {
         var orderSize = Math.Abs(decision.Size);
         var averageVolume = 1000; // Typical ES volume per minute
@@ -1668,7 +1668,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Calculate realistic slippage including market impact
     /// </summary>
-    private decimal CalculateRealisticSlippage(UnifiedHistoricalDecision decision, decimal currentPrice, decimal marketImpact)
+    private decimal CalculateRealisticSlippage(UnifiedHistoricalDecision decision, decimal marketImpact)
     {
         var symbol = decision.Symbol.ToUpperInvariant();
         var baseSlippage = symbol switch
@@ -1717,7 +1717,7 @@ public class EnhancedBacktestLearningService : BackgroundService
 /// <summary>
 /// Historical replay context for tracking backtest progress
 /// </summary>
-public class HistoricalReplayContext
+internal class HistoricalReplayContext
 {
     public string BacktestId { get; set; } = string.Empty;
     public BacktestConfig Config { get; set; } = new();
@@ -1732,7 +1732,7 @@ public class HistoricalReplayContext
 /// <summary>
 /// Historical data point with identical structure to live data
 /// </summary>
-public class HistoricalDataPoint
+internal class HistoricalDataPoint
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
@@ -1746,7 +1746,7 @@ public class HistoricalDataPoint
 /// <summary>
 /// Backtest state tracking
 /// </summary>
-public class BacktestState
+internal class BacktestState
 {
     public decimal StartingCapital { get; set; }
     public decimal CurrentCapital { get; set; }
@@ -1763,7 +1763,7 @@ public class BacktestState
 /// <summary>
 /// Historical decision from UnifiedTradingBrain
 /// </summary>
-public class HistoricalDecision
+internal class HistoricalDecision
 {
     public DateTime Timestamp { get; set; }
     public string Symbol { get; set; } = string.Empty;
@@ -1794,7 +1794,7 @@ public class HistoricalDecision
 /// Result of executing a historical trade
 /// </summary>
 /// </summary>
-public class TradeResult
+internal class TradeResult
 {
     public bool Success { get; set; }
     public decimal ExecutionPrice { get; set; }

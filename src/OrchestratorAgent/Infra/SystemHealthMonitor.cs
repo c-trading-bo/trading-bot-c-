@@ -5,7 +5,7 @@ using OrchestratorAgent.Infra.HealthChecks;
 
 namespace OrchestratorAgent.Infra;
 
-public class SystemHealthMonitor
+internal class SystemHealthMonitor
 {
     private readonly ILogger<SystemHealthMonitor> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -1218,7 +1218,7 @@ using System.Globalization; // ES = $50/point, NQ = $20/point
     }
 }
 
-public class HealthCheck
+internal class HealthCheck
 {
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
@@ -1226,7 +1226,7 @@ public class HealthCheck
     public HealthLevel CriticalLevel { get; set; }
 }
 
-public class SystemHealthSnapshot
+internal class SystemHealthSnapshot
 {
     public DateTime Timestamp { get; set; }
     public Dictionary<string, HealthResult> Results { get; } = new();
@@ -1238,7 +1238,7 @@ public class SystemHealthSnapshot
             : HealthStatus.Healthy;
 }
 
-public class HealthResult
+internal class HealthResult
 {
     public HealthStatus Status { get; set; }
     public string Message { get; set; } = "";
@@ -1255,7 +1255,7 @@ public class HealthResult
     }
 }
 
-public enum HealthLevel
+internal enum HealthLevel
 {
     Low,
     Medium,

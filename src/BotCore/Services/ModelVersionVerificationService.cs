@@ -254,7 +254,7 @@ namespace BotCore.Services
                 {
                     var header = new byte[8];
                     using var fs = File.OpenRead(modelPath);
-                    fs.Read(header, 0, 8);
+                    fs.ReadExactly(header, 0, 8);
                     
                     // ONNX files should start with protobuf magic bytes or model structure
                     // This is a simplified check - in production you might use ONNX runtime validation

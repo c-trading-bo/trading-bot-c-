@@ -23,7 +23,7 @@ namespace TradingBot.UnifiedOrchestrator.Brains;
 /// Maintains UnifiedTradingBrain as primary decision maker while shadow testing InferenceBrain
 /// Provides gradual transition path based on proven statistical performance
 /// </summary>
-public class TradingBrainAdapter : ITradingBrainAdapter
+internal class TradingBrainAdapter : ITradingBrainAdapter
 {
     private readonly ILogger<TradingBrainAdapter> _logger;
     private readonly UnifiedTradingBrain _unifiedBrain; // Champion - current production brain
@@ -157,7 +157,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Convert BrainDecision to TradingDecision
     /// </summary>
-    private AbstractionsTradingDecision ConvertBrainDecisionToTradingDecision(BrainDecision brainDecision, TradingContext context, string algorithmName)
+    private AbstractionsTradingDecision ConvertBrainDecisionToTradingDecision(BrainDecision brainDecision, string algorithmName)
     {
         var tradingDecision = new AbstractionsTradingDecision
         {
@@ -513,7 +513,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
 /// <summary>
 /// Comparison between champion and challenger decisions (unified types)
 /// </summary>
-public class UnifiedDecisionComparison
+internal class UnifiedDecisionComparison
 {
     public DateTime Timestamp { get; set; }
     public TradingContext Context { get; set; } = new();

@@ -15,9 +15,9 @@ namespace OrchestratorAgent.Execution;
 /// bounded overrides for S2/S3/S6/S11. Applies short TTL in PAPER/SHADOW when RUN_LEARNING=1.
 /// In LIVE, only applies if INSTANT_ALLOW_LIVE=1.
 /// </summary>
-public static class AdaptiveLearner
+internal static class AdaptiveLearner
 {
-    public sealed record Summary(string strategy, string symbol, DateTime start, DateTime end, int trades, int wins, int losses, decimal netUsd, decimal winRate, decimal avgR, decimal maxDrawdownUsd);
+    internal sealed record Summary(string strategy, string symbol, DateTime start, DateTime end, int trades, int wins, int losses, decimal netUsd, decimal winRate, decimal avgR, decimal maxDrawdownUsd);
 
     public static async Task RunAsync(string symbolRoot, ILogger log, CancellationToken ct)
     {

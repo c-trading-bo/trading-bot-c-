@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Models;
 /// <summary>
 /// Telemetry data for cloud integration
 /// </summary>
-public class TelemetryData
+internal class TelemetryData
 {
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string Source { get; set; } = string.Empty;
@@ -17,7 +17,7 @@ public class TelemetryData
 /// <summary>
 /// Trade data model
 /// </summary>
-public class TradeData
+internal class TradeData
 {
     public string TradeId { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
@@ -32,7 +32,7 @@ public class TradeData
 /// <summary>
 /// System status information
 /// </summary>
-public class SystemStatus
+internal class SystemStatus
 {
     public bool IsHealthy { get; set; }
     public Dictionary<string, string> ComponentStatuses { get; } = new();
@@ -43,7 +43,7 @@ public class SystemStatus
 /// <summary>
 /// Cloud metrics information
 /// </summary>
-public class CloudMetrics
+internal class CloudMetrics
 {
     public DateTime LastSync { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -54,7 +54,7 @@ public class CloudMetrics
 /// <summary>
 /// Workflow definition model
 /// </summary>
-public class WorkflowDefinition
+internal class WorkflowDefinition
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
@@ -66,7 +66,7 @@ public class WorkflowDefinition
 /// <summary>
 /// Workflow status model
 /// </summary>
-public class WorkflowStatus
+internal class WorkflowStatus
 {
     public string WorkflowId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -78,7 +78,7 @@ public class WorkflowStatus
 /// <summary>
 /// Workflow execution result
 /// </summary>
-public class WorkflowResult
+internal class WorkflowResult
 {
     public string WorkflowId { get; set; } = string.Empty;
     public bool Success { get; set; }
@@ -90,7 +90,7 @@ public class WorkflowResult
 /// <summary>
 /// Position status information
 /// </summary>
-public class PositionStatus
+internal class PositionStatus
 {
     public string Symbol { get; set; } = string.Empty;
     public decimal Quantity { get; set; }

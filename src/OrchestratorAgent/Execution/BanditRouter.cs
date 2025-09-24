@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class BanditRouter
+    internal sealed class BanditRouter
     {
         private readonly Random _rng = new();
         private DateTime _lastPick = DateTime.MinValue;

@@ -5,7 +5,7 @@ using System.Linq;
 namespace OrchestratorAgent.Execution
 {
     // Chooses position multiplier so that tail loss (CVaR) at level q does not exceed targetR.
-    public sealed class CvarSizer
+    internal sealed class CvarSizer
     {
         readonly Queue<double> _r = new();
         readonly int _max = 500;

@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Manages continuous learning, training, and model synchronization across distributed deployments
 /// Implements market-aware scheduling for intensive training during downtime and light training during trading hours
 /// </summary>
-public class ContinuousOperationService : BackgroundService
+internal class ContinuousOperationService : BackgroundService
 {
     private readonly ILogger<ContinuousOperationService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -605,7 +605,7 @@ public class ContinuousOperationService : BackgroundService
     /// <summary>
     /// Monitor active jobs and clean up completed ones
     /// </summary>
-    private Task MonitorActiveJobsAsync(CancellationToken cancellationToken)
+    private Task MonitorActiveJobsAsync()
     {
         try
         {
@@ -655,7 +655,7 @@ public class ContinuousOperationService : BackgroundService
     /// <summary>
     /// Log operation event
     /// </summary>
-    private Task LogOperationAsync(string operation, string message, CancellationToken cancellationToken)
+    private Task LogOperationAsync(string operation, string message)
     {
         try
         {
@@ -706,7 +706,7 @@ public class ContinuousOperationService : BackgroundService
 /// <summary>
 /// Continuous operation state
 /// </summary>
-public class ContinuousOperationState
+internal class ContinuousOperationState
 {
     public DateTime StartTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
@@ -723,7 +723,7 @@ public class ContinuousOperationState
 /// <summary>
 /// Training job status
 /// </summary>
-public class TrainingJobStatus
+internal class TrainingJobStatus
 {
     public string JobId { get; set; } = string.Empty;
     public string Algorithm { get; set; } = string.Empty;
@@ -738,7 +738,7 @@ public class TrainingJobStatus
 /// <summary>
 /// Operation log entry
 /// </summary>
-public class OperationLog
+internal class OperationLog
 {
     public DateTime Timestamp { get; set; }
     public string Operation { get; set; } = string.Empty;
@@ -748,7 +748,7 @@ public class OperationLog
 /// <summary>
 /// Continuous operation status for monitoring
 /// </summary>
-public class ContinuousOperationStatus
+internal class ContinuousOperationStatus
 {
     public ContinuousOperationState State { get; set; } = new();
     public List<TrainingJobStatus> ActiveJobs { get; } = new();

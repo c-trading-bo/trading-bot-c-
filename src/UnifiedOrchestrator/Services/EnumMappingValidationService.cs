@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Service for validating enum mapping coverage as requested in PR review
 /// </summary>
-public class EnumMappingValidationService
+internal class EnumMappingValidationService
 {
     private readonly ILogger<EnumMappingValidationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
@@ -199,7 +199,7 @@ public class EnumMappingValidationService
 /// <summary>
 /// Report for enum mapping coverage validation
 /// </summary>
-public class EnumMappingCoverageReport
+internal class EnumMappingCoverageReport
 {
     public DateTime TestTime { get; set; }
     public int TotalTests { get; set; }
@@ -213,7 +213,7 @@ public class EnumMappingCoverageReport
 /// <summary>
 /// Individual test case for enum mapping
 /// </summary>
-public class EnumMappingTestCase
+internal class EnumMappingTestCase
 {
     public string TestName { get; set; } = string.Empty;
     public string PriceDirection { get; set; } = string.Empty;

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OrchestratorAgent.Execution
 {
     // Maintains Beta(a,b) win-rate priors per (Strat, Cfg, Regime, Session)
-    public sealed class BayesianPriors
+    internal sealed class BayesianPriors
     {
         readonly Dictionary<(string strat, string cfg, string regime, string session), (double a, double b)> _map =
             new(StringTupleComparer.OrdinalIgnoreCase);

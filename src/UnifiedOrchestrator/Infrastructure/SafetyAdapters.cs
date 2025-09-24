@@ -10,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 /// <summary>
 /// Health monitor adapter with proper interface implementation
 /// </summary>
-public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
+internal class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
 {
     private readonly ILogger<HealthMonitorAdapter> _logger;
 

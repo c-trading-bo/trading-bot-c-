@@ -19,7 +19,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 /// Comprehensive observability and health monitoring system for production trading
 /// Monitors TopstepX adapter connections, API health, performance metrics, and system state
 /// </summary>
-public class ProductionObservabilityService : IHostedService, IPerformanceMonitor
+internal class ProductionObservabilityService : IHostedService, IPerformanceMonitor
 {
     private readonly ILogger<ProductionObservabilityService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -94,7 +94,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         return _performanceCounter.GetMetricsAsync();
     }
 
-    private async Task PerformHealthChecks(object? state)
+    private async Task PerformHealthChecks()
     {
         try
         {
@@ -138,7 +138,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         }
     }
 
-    private async Task PerformReconciliation(object? state)
+    private async Task PerformReconciliation()
     {
         try
         {
@@ -159,7 +159,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
 /// <summary>
 /// TopstepX adapter monitoring and health checks
 /// </summary>
-public class TopstepXAdapterMonitor
+internal class TopstepXAdapterMonitor
 {
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<string, DateTime> _lastEventTimes = new();
@@ -310,7 +310,7 @@ public class TopstepXAdapterMonitor
     /// Gets position count from account service
     /// </summary>
     // Legacy methods removed - now handled by TopstepX SDK adapter
-    private async Task<int> GetPositionCountAsync(object accountService)
+    private async Task<int> GetPositionCountAsync()
     {
         await Task.Yield().ConfigureAwait(false);
         return 0; // Legacy method - position tracking now via TopstepX SDK adapter
@@ -319,7 +319,7 @@ public class TopstepXAdapterMonitor
     /// <summary>
     /// Legacy method - order tracking now via TopstepX SDK adapter
     /// </summary>
-    private async Task<int> GetActiveOrderCountAsync(object orderService)
+    private async Task<int> GetActiveOrderCountAsync()
     {
         await Task.Yield().ConfigureAwait(false);
         return 0; // Legacy method - order tracking now via TopstepX SDK adapter
@@ -339,7 +339,7 @@ public class TopstepXAdapterMonitor
 /// <summary>
 /// API health monitoring
 /// </summary>
-public class ApiHealthMonitor
+internal class ApiHealthMonitor
 {
     private readonly ILogger _logger;
     private readonly HttpClient _httpClient;
@@ -398,7 +398,7 @@ public class ApiHealthMonitor
 /// <summary>
 /// System health monitoring
 /// </summary>
-public class HealthMonitor
+internal class HealthMonitor
 {
     private readonly ILogger _logger;
 
@@ -461,7 +461,7 @@ public class HealthMonitor
 /// <summary>
 /// Performance counter for metrics collection
 /// </summary>
-public class PerformanceCounter
+internal class PerformanceCounter
 {
     private readonly ConcurrentDictionary<string, List<TimeSpan>> _latencies = new();
     private readonly ConcurrentDictionary<string, int> _throughputCounts = new();
@@ -521,7 +521,7 @@ public class PerformanceCounter
 /// <summary>
 /// Health status result
 /// </summary>
-public class HealthStatus
+internal class HealthStatus
 {
     public bool IsHealthy { get; set; }
     public string Reason { get; set; } = string.Empty;
@@ -530,7 +530,7 @@ public class HealthStatus
 /// <summary>
 /// Extension methods for registering observability services
 /// </summary>
-public static class ObservabilityServiceExtensions
+internal static class ObservabilityServiceExtensions
 {
     public static IServiceCollection AddProductionObservability(this IServiceCollection services)
     {

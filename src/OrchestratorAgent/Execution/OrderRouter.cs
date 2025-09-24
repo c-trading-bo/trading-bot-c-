@@ -5,7 +5,7 @@ using OrchestratorAgent.Execution.DrySim;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class OrderRouter
+    internal sealed class OrderRouter
     {
         private readonly TradeMode _mode;
         private readonly IExecutionSink _live;

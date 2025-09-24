@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class DataLakeOptions
+    internal class DataLakeOptions
     {
         public string DatabasePath { get; set; } = "data/feature_lake.db";
         public double DriftThreshold { get; set; } = 0.05;
@@ -18,7 +18,7 @@ namespace UnifiedOrchestrator.Services
         public int MaxRetentionDays { get; set; } = 365;
     }
 
-    public class FeatureSet
+    internal class FeatureSet
     {
         public string FeatureSetName { get; set; } = "";
         public Dictionary<string, object> Features { get; } = new();
@@ -26,7 +26,7 @@ namespace UnifiedOrchestrator.Services
         public string InstanceId { get; set; } = "";
     }
 
-    public class DataQualityReport
+    internal class DataQualityReport
     {
         public string FeatureSetName { get; set; } = "";
         public DateTime GeneratedAt { get; set; }
@@ -37,7 +37,7 @@ namespace UnifiedOrchestrator.Services
         public List<string> Issues { get; } = new();
     }
 
-    public class DataLakeService : IDisposable
+    internal class DataLakeService : IDisposable
     {
         private readonly ILogger<DataLakeService> _logger;
         private readonly DataLakeOptions _options;

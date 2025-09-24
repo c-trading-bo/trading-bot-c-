@@ -4,10 +4,10 @@ using System.Linq;
 
 namespace OrchestratorAgent.Execution
 {
-    public enum Regime { Range = 0, Trend = 1, Vol = 2 }
+    internal enum Regime { Range = 0, Trend = 1, Vol = 2 }
 
     // 3-state HMM for market regime detection
-    public sealed class RegimeEngine
+    internal sealed class RegimeEngine
     {
         readonly int _states = 3;
         readonly double[,] _A;      // transition matrix

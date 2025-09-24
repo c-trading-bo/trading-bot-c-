@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Startup service that provides concrete runtime proof of production readiness
 /// Logs specific evidence that NO mock services are active and provides runtime verification
 /// </summary>
-public class ProductionReadinessStartupService : IHostedService
+internal class ProductionReadinessStartupService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ProductionReadinessStartupService> _logger;

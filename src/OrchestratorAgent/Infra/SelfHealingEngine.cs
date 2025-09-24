@@ -10,7 +10,7 @@ namespace OrchestratorAgent.Infra;
 /// Self-healing engine that automatically attempts to fix detected health issues
 /// ENABLED - Actively monitors and repairs system issues
 /// </summary>
-public class SelfHealingEngine
+internal class SelfHealingEngine
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SelfHealingEngine> _logger;
@@ -81,7 +81,7 @@ public class SelfHealingEngine
 /// <summary>
 /// Recovery attempt history for active self-healing engine
 /// </summary>
-public class RecoveryAttemptHistory
+internal class RecoveryAttemptHistory
 {
     public int AttemptCount { get; set; }
     public DateTime LastAttempt { get; set; }
@@ -97,7 +97,7 @@ public class RecoveryAttemptHistory
 /// <summary>
 /// Self-healing status for active engine
 /// </summary>
-public class SelfHealingStatus
+internal class SelfHealingStatus
 {
     public bool IsActive { get; set; } = true;
     public string Status { get; set; } = "Active";

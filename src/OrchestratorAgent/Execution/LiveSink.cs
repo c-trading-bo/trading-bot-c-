@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class LiveSink(BotCore.ApiClient api) : IExecutionSink
+    internal sealed class LiveSink(BotCore.ApiClient api) : IExecutionSink
     {
         private readonly BotCore.ApiClient _api = api;
 

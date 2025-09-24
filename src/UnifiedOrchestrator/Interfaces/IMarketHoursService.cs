@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for managing futures market hours and safe promotion windows
 /// </summary>
-public interface IMarketHoursService
+internal interface IMarketHoursService
 {
     /// <summary>
     /// Check if current time is within a safe promotion window
@@ -43,7 +43,7 @@ public interface IMarketHoursService
 /// <summary>
 /// Safe promotion window information
 /// </summary>
-public class SafePromotionWindow
+internal class SafePromotionWindow
 {
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }

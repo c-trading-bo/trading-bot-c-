@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Read-only inference brain interface - no training or parameter mutation allowed
 /// </summary>
-public interface IInferenceBrain
+internal interface IInferenceBrain
 {
     /// <summary>
     /// Make a trading decision using current champion models (read-only)
@@ -35,7 +35,7 @@ public interface IInferenceBrain
 /// <summary>
 /// Write-only training brain interface - produces versioned artifacts
 /// </summary>
-public interface ITrainingBrain
+internal interface ITrainingBrain
 {
     /// <summary>
     /// Train a new challenger model for an algorithm
@@ -61,7 +61,7 @@ public interface ITrainingBrain
 /// <summary>
 /// Trading decision output from inference brain
 /// </summary>
-public class TradingDecision
+internal class TradingDecision
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -96,7 +96,7 @@ public class TradingDecision
 /// <summary>
 /// Inference brain statistics
 /// </summary>
-public class InferenceStats
+internal class InferenceStats
 {
     public int TotalDecisions { get; set; }
     public int DecisionsToday { get; set; }
@@ -119,7 +119,7 @@ public class InferenceStats
 /// <summary>
 /// Training configuration
 /// </summary>
-public class TrainingConfig
+internal class TrainingConfig
 {
     public string Algorithm { get; set; } = string.Empty;
     public DateTime DataStartTime { get; set; }
@@ -135,7 +135,7 @@ public class TrainingConfig
 /// <summary>
 /// Training result
 /// </summary>
-public class TrainingResult
+internal class TrainingResult
 {
     public string JobId { get; set; } = string.Empty;
     public string Algorithm { get; set; } = string.Empty;
@@ -157,7 +157,7 @@ public class TrainingResult
 /// <summary>
 /// Training metadata
 /// </summary>
-public class TrainingMetadata
+internal class TrainingMetadata
 {
     public DateTime TrainingStartTime { get; set; }
     public DateTime TrainingEndTime { get; set; }
@@ -173,7 +173,7 @@ public class TrainingMetadata
 /// <summary>
 /// Training job status
 /// </summary>
-public class TrainingStatus
+internal class TrainingStatus
 {
     public string JobId { get; set; } = string.Empty;
     public string Algorithm { get; set; } = string.Empty;
@@ -190,7 +190,7 @@ public class TrainingStatus
 /// <summary>
 /// Interface for model training services
 /// </summary>
-public interface IModelTrainingService
+internal interface IModelTrainingService
 {
     /// <summary>
     /// Train a challenger model based on promising backtest results
@@ -206,7 +206,7 @@ public interface IModelTrainingService
 /// <summary>
 /// Request for challenger model training
 /// </summary>
-public class ChallengerTrainingRequest
+internal class ChallengerTrainingRequest
 {
     public string BaseModelVersion { get; set; } = string.Empty;
     public double TargetSharpe { get; set; }

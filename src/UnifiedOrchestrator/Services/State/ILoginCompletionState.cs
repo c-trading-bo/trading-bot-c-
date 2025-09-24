@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 
 namespace TradingBot.UnifiedOrchestrator.Services.State
 {
-    public interface ILoginCompletionState
+    internal interface ILoginCompletionState
     {
         Task WaitForLoginCompletion();
         void SetLoginCompleted();

@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for model registry - versioned, immutable artifact storage
 /// </summary>
-public interface IModelRegistry
+internal interface IModelRegistry
 {
     /// <summary>
     /// Register a new model version
@@ -60,7 +60,7 @@ public interface IModelRegistry
 /// <summary>
 /// Interface for atomic model routing with champion/challenger support
 /// </summary>
-public interface IModelRouter<T> where T : class
+internal interface IModelRouter<T> where T : class
 {
     /// <summary>
     /// Get the current champion model (read-only access)
@@ -86,7 +86,7 @@ public interface IModelRouter<T> where T : class
 /// <summary>
 /// Statistics for model router
 /// </summary>
-public class ModelRouterStats
+internal class ModelRouterStats
 {
     public string Algorithm { get; set; } = string.Empty;
     public string CurrentVersionId { get; set; } = string.Empty;
@@ -101,7 +101,7 @@ public class ModelRouterStats
 /// <summary>
 /// Factory for creating model routers
 /// </summary>
-public interface IModelRouterFactory
+internal interface IModelRouterFactory
 {
     /// <summary>
     /// Create a model router for an algorithm

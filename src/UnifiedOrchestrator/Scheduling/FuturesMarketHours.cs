@@ -12,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Scheduling;
 /// Implements safe promotion windows and 24/7 operation scheduling to avoid disrupting live trading
 /// Supports intensive training during market downtime and light background training during trading hours
 /// </summary>
-public class FuturesMarketHours : IMarketHoursService
+internal class FuturesMarketHours : IMarketHoursService
 {
     private readonly ILogger<FuturesMarketHours> _logger;
     
@@ -564,7 +564,7 @@ public class FuturesMarketHours : IMarketHoursService
         return currentEt.Date.AddDays(daysUntilSaturday);
     }
 
-    private async Task<DateTime?> GetNextIntensiveTrainingWindowAsync(DateTime etNow, CancellationToken cancellationToken)
+    private async Task<DateTime?> GetNextIntensiveTrainingWindowAsync(DateTime etNow)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         

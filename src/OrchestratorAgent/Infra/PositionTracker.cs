@@ -15,7 +15,7 @@ namespace OrchestratorAgent.Infra
     /// Tracks positions in real-time from user hub snapshots/fills and market trades.
     /// Maintains signed quantity, average price, realized/unrealized PnL (USD) per symbol.
     /// </summary>
-    public sealed class PositionTracker
+    internal sealed class PositionTracker
     {
         private readonly ILogger _log;
         private readonly long _accountId;
@@ -28,7 +28,7 @@ namespace OrchestratorAgent.Infra
             TryLoad();
         }
 
-        public sealed class PositionState
+        internal sealed class PositionState
         {
             public string Symbol { get; set; } = "";  // root or contract symbol
             public int Qty { get; set; }               // signed (+ long / - short)
@@ -83,8 +83,8 @@ namespace OrchestratorAgent.Infra
             catch { }
         }
 
-        public sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);
-        public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
+        internal sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);
+        internal sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
 
         public async Task SeedFromRestAsync(BotCore.ApiClient api, long accountId, CancellationToken ct)
         {

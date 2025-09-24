@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace OrchestratorAgent.Ops
 {
     /// <summary>Single-writer lease: only one process can route orders (exclusive lock on a file).</summary>
-    public sealed class LiveLease : IAsyncDisposable
+    internal sealed class LiveLease : IAsyncDisposable
     {
         private readonly string _path;
         private FileStream? _stream;

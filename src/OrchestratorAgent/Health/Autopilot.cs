@@ -3,7 +3,7 @@ using OrchestratorAgent.Ops;
 
 namespace OrchestratorAgent.Health
 {
-    public sealed class Autopilot(ILogger log, ModeController mode)
+    internal sealed class Autopilot(ILogger log, ModeController mode)
     {
         private readonly ILogger _log = log;
         private readonly ModeController _mode = mode;

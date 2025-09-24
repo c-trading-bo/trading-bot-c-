@@ -8,7 +8,7 @@ namespace OrchestratorAgent.ML;
 /// Simple A/A testing for RL vs baseline CVaR sizer
 /// Provides deterministic traffic splitting based on signal ID hash
 /// </summary>
-public sealed class SizerCanary
+internal sealed class SizerCanary
 {
     private readonly ILogger<SizerCanary> _log;
     private readonly bool _enabled;

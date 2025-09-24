@@ -10,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Service for testing regression impact of ValidationReport → PromotionTestReport rename
 /// </summary>
-public class ValidationReportRegressionService
+internal class ValidationReportRegressionService
 {
     private readonly ILogger<ValidationReportRegressionService> _logger;
 
@@ -65,7 +65,7 @@ public class ValidationReportRegressionService
         }
     }
 
-    private async Task TestPromotionTestReportCreationAsync(RegressionTestReport report, CancellationToken cancellationToken)
+    private async Task TestPromotionTestReportCreationAsync(RegressionTestReport report)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -116,7 +116,7 @@ public class ValidationReportRegressionService
         report.TestResults.Add(testCase);
     }
 
-    private async Task TestDownstreamAnalyticsAsync(RegressionTestReport report, CancellationToken cancellationToken)
+    private async Task TestDownstreamAnalyticsAsync(RegressionTestReport report)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -167,7 +167,7 @@ public class ValidationReportRegressionService
         report.TestResults.Add(testCase);
     }
 
-    private async Task TestReportingPipelineAsync(RegressionTestReport report, CancellationToken cancellationToken)
+    private async Task TestReportingPipelineAsync(RegressionTestReport report)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -208,7 +208,7 @@ public class ValidationReportRegressionService
         report.TestResults.Add(testCase);
     }
 
-    private async Task TestBackwardCompatibilityAsync(RegressionTestReport report, CancellationToken cancellationToken)
+    private async Task TestBackwardCompatibilityAsync(RegressionTestReport report)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -264,7 +264,7 @@ public class ValidationReportRegressionService
 /// <summary>
 /// Report for regression testing
 /// </summary>
-public class RegressionTestReport
+internal class RegressionTestReport
 {
     public DateTime TestTime { get; set; }
     public int TotalTests { get; set; }
@@ -278,7 +278,7 @@ public class RegressionTestReport
 /// <summary>
 /// Individual regression test case
 /// </summary>
-public class RegressionTestCase
+internal class RegressionTestCase
 {
     public string TestName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;

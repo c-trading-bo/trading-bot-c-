@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Testing;
 /// <summary>
 /// Simple test to verify contract entitlement probe functionality
 /// </summary>
-public static class EntitlementTest
+internal static class EntitlementTest
 {
     public static async Task TestContractEntitlements()
     {
@@ -67,7 +67,7 @@ public static class EntitlementTest
 /// <summary>
 /// Simple console logger for testing
 /// </summary>
-public class ConsoleLogger : Microsoft.Extensions.Logging.ILogger
+internal class ConsoleLogger : Microsoft.Extensions.Logging.ILogger
 {
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
     public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;

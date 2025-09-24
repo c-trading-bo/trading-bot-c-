@@ -38,8 +38,8 @@ namespace OrchestratorAgent
     //
     // To prevent conflicts, this system is DISABLED.
     // To run the active system: cd src/UnifiedOrchestrator && dotnet run
-    
-    public static class Program
+
+    internal static class Program
     {
         public static async Task Main(string[] args)
         {

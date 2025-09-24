@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class CloudFlowOptions
+    internal class CloudFlowOptions
     {
         public bool Enabled { get; set; }
         public string CloudEndpoint { get; set; } = "";
@@ -18,7 +18,7 @@ namespace UnifiedOrchestrator.Services
         public int TimeoutSeconds { get; set; } = 30;
     }
 
-    public class TradeRecord
+    internal class TradeRecord
     {
         public string TradeId { get; set; } = "";
         public string Symbol { get; set; } = "";
@@ -32,7 +32,7 @@ namespace UnifiedOrchestrator.Services
         public string Strategy { get; set; } = "";
     }
 
-    public class CloudFlowService : IDisposable
+    internal class CloudFlowService : IDisposable
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<CloudFlowService> _logger;

@@ -15,7 +15,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// 4. Health Test - Force degraded state, confirm health monitoring
 /// 5. Multi-Instrument Test - Simultaneous MNQ + ES without contention
 /// </summary>
-public class TopstepXIntegrationTestService : BackgroundService
+internal class TopstepXIntegrationTestService : BackgroundService
 {
     private readonly ILogger<TopstepXIntegrationTestService> _logger;
     private readonly ITopstepXAdapterService _adapterService;

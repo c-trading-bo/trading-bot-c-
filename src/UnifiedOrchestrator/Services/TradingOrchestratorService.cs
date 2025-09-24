@@ -27,7 +27,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// NEVER RETURNS HOLD - Always produces actionable trading decisions
 /// Continuous learning from every trade outcome feeds back into all AI systems
 /// </summary>
-public class TradingOrchestratorService : BackgroundService, ITradingOrchestrator
+internal class TradingOrchestratorService : BackgroundService, ITradingOrchestrator
 {
     private readonly ILogger<TradingOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -944,13 +944,13 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Trade execution completed" } };
     }
 
-    private async Task<WorkflowExecutionResult> ConnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private async Task<WorkflowExecutionResult> ConnectActionAsync(CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Connected to TopstepX" } };
     }
 
-    private async Task<WorkflowExecutionResult> DisconnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    private async Task<WorkflowExecutionResult> DisconnectActionAsync()
     {
         await DisconnectAsync().ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Disconnected from TopstepX" } };
@@ -1294,7 +1294,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Get real historical bars from actual market data sources - REQUIRES REAL DATA ONLY
     /// </summary>
-    private async Task<IList<Bar>> GetRealBarsAsync(string symbol, int count, CancellationToken cancellationToken)
+    private async Task<IList<Bar>> GetRealBarsAsync(string symbol, CancellationToken cancellationToken)
     {
         try
         {
@@ -1496,7 +1496,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
 /// <summary>
 /// Unified trading decision from the always-learning system
 /// </summary>
-public class UnifiedTradingDecision
+internal class UnifiedTradingDecision
 {
     public string DecisionId { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
@@ -1513,7 +1513,7 @@ public class UnifiedTradingDecision
 /// <summary>
 /// Trade execution result
 /// </summary>
-public class TradeExecutionResult
+internal class TradeExecutionResult
 {
     public string DecisionId { get; set; } = string.Empty;
     public bool Success { get; set; }

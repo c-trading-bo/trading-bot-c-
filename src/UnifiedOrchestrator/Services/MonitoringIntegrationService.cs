@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Monitoring integration service providing REST API endpoints for log queries and metrics
 /// Exposes Prometheus-compatible metrics and real-time log streaming
 /// </summary>
-public class MonitoringIntegrationService : IHostedService
+internal class MonitoringIntegrationService : IHostedService
 {
     private readonly ILogger<MonitoringIntegrationService> _logger;
     private readonly ITradingLogger _tradingLogger;

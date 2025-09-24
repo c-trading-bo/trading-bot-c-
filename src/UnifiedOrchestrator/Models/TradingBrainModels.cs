@@ -20,7 +20,7 @@ using MarketRegime = TradingBot.Abstractions.MarketRegime;
 /// <summary>
 /// ML Recommendation
 /// </summary>
-public class MLRecommendation
+internal class MLRecommendation
 {
     public string RecommendedStrategy { get; set; } = string.Empty;
     public decimal Confidence { get; set; }
@@ -32,7 +32,7 @@ public class MLRecommendation
 /// <summary>
 /// Strategy Performance
 /// </summary>
-public class StrategyPerformance
+internal class StrategyPerformance
 {
     public string StrategyName { get; set; } = string.Empty;
     public decimal Returns { get; set; }
@@ -47,7 +47,7 @@ public class StrategyPerformance
 /// <summary>
 /// Component Health Status
 /// </summary>
-public class ComponentHealth
+internal class ComponentHealth
 {
     public string ComponentName { get; set; } = string.Empty;
     public bool IsHealthy { get; set; }
@@ -61,7 +61,7 @@ public class ComponentHealth
 /// <summary>
 /// Validation Report with comprehensive statistical analysis
 /// </summary>
-public class ValidationReport
+internal class ValidationReport
 {
     public string ValidationId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
@@ -86,7 +86,7 @@ public class ValidationReport
 /// <summary>
 /// Statistical significance analysis
 /// </summary>
-public class StatisticalSignificance
+internal class StatisticalSignificance
 {
     public double PValue { get; set; }
     public double TStatistic { get; set; }
@@ -101,7 +101,7 @@ public class StatisticalSignificance
 /// <summary>
 /// Performance comparison between champion and challenger
 /// </summary>
-public class PerformanceComparison
+internal class PerformanceComparison
 {
     public double SharpeChampion { get; set; }
     public double SharpeChallenger { get; set; }
@@ -120,7 +120,7 @@ public class PerformanceComparison
 /// <summary>
 /// Risk comparison including CVaR and drawdown analysis
 /// </summary>
-public class RiskComparison
+internal class RiskComparison
 {
     public double CVaRChampion { get; set; }
     public double CVaRChallenger { get; set; }
@@ -138,7 +138,7 @@ public class RiskComparison
 /// <summary>
 /// Behavior alignment analysis
 /// </summary>
-public class BehaviorAlignment
+internal class BehaviorAlignment
 {
     public double AlignmentPercentage { get; set; }
     public double MajorDisagreementRate { get; set; }
@@ -151,7 +151,7 @@ public class BehaviorAlignment
 /// <summary>
 /// Shadow test result for validation
 /// </summary>
-public class ShadowTestResult
+internal class ShadowTestResult
 {
     public string TestId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
@@ -173,7 +173,7 @@ public class ShadowTestResult
 /// <summary>
 /// Trading context for decision making - unified definition
 /// </summary>
-public class TradingContext
+internal class TradingContext
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;

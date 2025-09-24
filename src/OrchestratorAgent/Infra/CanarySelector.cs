@@ -11,7 +11,7 @@ using OrchestratorAgent.Configuration;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> getTags, PositionTracker pos, TimeSpan dwell, TimeSpan window, decimal epsilon, bool allowLive, int minPlays = 2, decimal minEpsilon = 0.05m, double decayHalfLifeHours = 6d) : IAsyncDisposable
+internal sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> getTags, PositionTracker pos, TimeSpan dwell, TimeSpan window, decimal epsilon, bool allowLive, int minPlays = 2, decimal minEpsilon = 0.05m, double decayHalfLifeHours = 6d) : IAsyncDisposable
 {
     private readonly ILogger _log = log;
     private readonly Func<string, HashSet<string>> _getTags = getTags; // by root

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Execution;
 
-public sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt, IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots, CancellationToken ct) : IAsyncDisposable
+internal sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt, IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots, CancellationToken ct) : IAsyncDisposable
 {
     private readonly ILogger _log = log;
     private readonly HttpClient _http = http;

@@ -11,7 +11,7 @@ namespace OrchestratorAgent.Execution
     /// ES-RTH, ES-ETH, NQ-RTH, NQ-ETH each have different behavior patterns.
     /// Separate Bayesian priors and configs for each combination.
     /// </summary>
-    public class PerSymbolSessionLattices
+    internal class PerSymbolSessionLattices
     {
         private readonly Dictionary<string, SymbolSessionConfig> _configs = new();
         private readonly Dictionary<string, SessionBayesianPriors> _priors = new();
@@ -206,7 +206,7 @@ namespace OrchestratorAgent.Execution
         private string GetKey(string symbol, SessionType session) => $"{symbol}_{session}";
     }
 
-    public class SymbolSessionConfig
+    internal class SymbolSessionConfig
     {
         public string Symbol { get; set; } = "";
         public SessionType Session { get; set; }
@@ -219,7 +219,7 @@ namespace OrchestratorAgent.Execution
         public int VolumeThreshold { get; set; }
     }
 
-    public class SessionBayesianPriors
+    internal class SessionBayesianPriors
     {
         public double Alpha { get; private set; } = 1.0; // Prior wins + actual wins
         public double Beta { get; private set; } = 1.0;  // Prior losses + actual losses

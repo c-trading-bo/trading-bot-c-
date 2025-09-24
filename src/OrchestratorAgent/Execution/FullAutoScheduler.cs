@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class FullAutoScheduler : BackgroundService
+    internal sealed class FullAutoScheduler : BackgroundService
     {
         readonly ILogger<FullAutoScheduler> _log;
         readonly IServiceProvider _sp;

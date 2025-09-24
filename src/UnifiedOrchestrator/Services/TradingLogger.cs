@@ -18,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// High-performance async trading logger with lock-free concurrent operations
 /// Implements production-ready logging with file rotation, compression, and structured JSON
 /// </summary>
-public class TradingLogger : ITradingLogger, IDisposable
+internal class TradingLogger : ITradingLogger, IDisposable
 {
     private readonly ILogger<TradingLogger> _logger;
     private readonly TradingLoggerOptions _options;
@@ -500,7 +500,7 @@ using System.Globalization;
 /// <summary>
 /// Configuration options for TradingLogger
 /// </summary>
-public class TradingLoggerOptions
+internal class TradingLoggerOptions
 {
     public string LogDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TradingBot", "Logs");
     public int BatchSize { get; set; } = 1000;
@@ -519,7 +519,7 @@ public class TradingLoggerOptions
 /// <summary>
 /// Performance metrics for the trading logger
 /// </summary>
-public class PerformanceMetrics
+internal class PerformanceMetrics
 {
     private readonly ConcurrentDictionary<TradingLogCategory, long> _categoryCounts = new();
     private readonly ConcurrentDictionary<TradingLogLevel, long> _levelCounts = new();

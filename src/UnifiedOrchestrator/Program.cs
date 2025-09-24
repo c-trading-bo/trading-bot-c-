@@ -37,7 +37,7 @@ namespace TradingBot.UnifiedOrchestrator;
 /// 
 /// ALL FUNCTIONALITY IS NOW UNIFIED INTO ONE SYSTEM THAT WORKS TOGETHER
 /// </summary>
-public static class Program
+internal static class Program
 {
     // API Configuration Constants
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
@@ -1172,7 +1172,7 @@ Stack Trace:
 /// Hosted service that initializes all advanced system components during startup
 /// This ensures everything is properly integrated into the unified orchestrator brain
 /// </summary>
-public class AdvancedSystemInitializationService : IHostedService
+internal class AdvancedSystemInitializationService : IHostedService
 {
     private readonly ILogger<AdvancedSystemInitializationService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -1216,7 +1216,7 @@ public class AdvancedSystemInitializationService : IHostedService
     }
 }
 
-public static class EnvironmentLoader
+internal static class EnvironmentLoader
 {
     /// <summary>
     /// Load environment files in priority order to auto-detect TopstepX credentials

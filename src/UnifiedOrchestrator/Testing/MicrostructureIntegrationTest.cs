@@ -18,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Testing;
 /// Integration tests for microstructure calibration service with existing StrategyGates
 /// Validates that the calibration properly integrates with sophisticated existing infrastructure
 /// </summary>
-public class MicrostructureIntegrationTest
+internal class MicrostructureIntegrationTest
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly MicrostructureCalibrationService _calibrationService;

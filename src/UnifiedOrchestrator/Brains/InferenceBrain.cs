@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Brains;
 /// Read-only inference brain wrapping AtomicModelRouter instances
 /// No training or parameter mutation allowed - only decision making
 /// </summary>
-public class InferenceBrain : IInferenceBrain
+internal class InferenceBrain : IInferenceBrain
 {
     private readonly ILogger<InferenceBrain> _logger;
     private readonly IModelRouterFactory _routerFactory;
@@ -299,7 +299,7 @@ public class InferenceBrain : IInferenceBrain
         return passed;
     }
 
-    private async Task<AlgorithmDecision> MakePPODecision(object ppoModel, TradingContext context, CancellationToken cancellationToken)
+    private async Task<AlgorithmDecision> MakePPODecision(TradingContext context, CancellationToken cancellationToken)
     {
         try
         {
@@ -365,7 +365,7 @@ public class InferenceBrain : IInferenceBrain
         }
     }
 
-    private async Task<AlgorithmDecision> MakeUCBDecision(object ucbModel, TradingContext context, CancellationToken cancellationToken)
+    private async Task<AlgorithmDecision> MakeUCBDecision(TradingContext context, CancellationToken cancellationToken)
     {
         try
         {
@@ -427,7 +427,7 @@ public class InferenceBrain : IInferenceBrain
         }
     }
 
-    private async Task<AlgorithmDecision> MakeLSTMDecision(object lstmModel, TradingContext context, CancellationToken cancellationToken)
+    private async Task<AlgorithmDecision> MakeLSTMDecision(TradingContext context, CancellationToken cancellationToken)
     {
         try
         {
@@ -488,7 +488,7 @@ public class InferenceBrain : IInferenceBrain
         }
     }
 
-    private async Task<EnsembleDecision> EnsembleDecisions(Dictionary<string, AlgorithmDecision> decisions, TradingContext context, CancellationToken cancellationToken)
+    private async Task<EnsembleDecision> EnsembleDecisions(Dictionary<string, AlgorithmDecision> decisions, TradingContext context)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -718,7 +718,7 @@ public class InferenceBrain : IInferenceBrain
     /// <summary>
     /// Analyze PPO momentum and trend signals
     /// </summary>
-    private PPOAnalysis AnalyzePPOSignals(MarketFeatures features, TradingContext context)
+    private PPOAnalysis AnalyzePPOSignals(MarketFeatures features)
     {
         // Momentum calculation based on price action and volume
         var priceChange = (features.Price - features.MovingAverage20) / features.MovingAverage20;
@@ -800,7 +800,7 @@ public class InferenceBrain : IInferenceBrain
     /// <summary>
     /// Calculate expected value for BUY action
     /// </summary>
-    private decimal CalculateBuyExpectedValue(MarketFeatures features, TradingContext context)
+    private decimal CalculateBuyExpectedValue(MarketFeatures features)
     {
         var trendBonus = features.TrendStrength > 0.6m ? 0.3m : 0m;
         var volumeBonus = features.VolumeProfile > 1.2m ? 0.2m : 0m;
@@ -812,7 +812,7 @@ public class InferenceBrain : IInferenceBrain
     /// <summary>
     /// Calculate expected value for SELL action
     /// </summary>
-    private decimal CalculateSellExpectedValue(MarketFeatures features, TradingContext context)
+    private decimal CalculateSellExpectedValue(MarketFeatures features)
     {
         var trendBonus = features.TrendStrength < -0.6m ? 0.3m : 0m;
         var volumeBonus = features.VolumeProfile > 1.2m ? 0.2m : 0m;
@@ -854,7 +854,7 @@ public class InferenceBrain : IInferenceBrain
     /// <summary>
     /// Analyze LSTM pattern recognition
     /// </summary>
-    private LSTMAnalysis AnalyzeLSTMPatterns(List<decimal[]> sequenceFeatures, TradingContext context)
+    private LSTMAnalysis AnalyzeLSTMPatterns(List<decimal[]> sequenceFeatures)
     {
         // Pattern recognition based on sequence analysis
         var patterns = DetectMarketPatterns(sequenceFeatures);
@@ -1017,7 +1017,7 @@ public class InferenceBrain : IInferenceBrain
         return context.Volume * 0.8m; // Assume current volume is 20% above average
     }
     
-    private int CalculateDecisionCount(TradingContext context)
+    private int CalculateDecisionCount()
     {
         // Simplified decision count estimation
         // In real implementation, this would track actual decision history
@@ -1034,7 +1034,7 @@ public class InferenceBrain : IInferenceBrain
     private decimal CalculateSequenceReliability(List<decimal[]> sequence) => 
         sequence.Count >= 15 ? 0.8m : 0.6m;
     
-    private decimal CalculatePredictedMagnitude(List<decimal[]> sequence, decimal direction) => 
+    private decimal CalculatePredictedMagnitude(decimal direction) => 
         Math.Abs(direction) * 0.5m;
 
     #endregion

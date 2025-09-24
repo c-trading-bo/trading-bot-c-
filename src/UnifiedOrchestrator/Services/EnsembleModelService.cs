@@ -13,7 +13,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Ensemble wrapper with voting/weights by confidence and input anomaly detection
 /// Implements requirement: Ensemble wrapper with voting/weights by confidence and input anomaly detection
 /// </summary>
-public class EnsembleModelService
+internal class EnsembleModelService
 {
     private readonly ILogger<EnsembleModelService> _logger;
     private readonly Dictionary<string, EnsembleModelInfo> _models = new();
@@ -128,10 +128,8 @@ public class EnsembleModelService
     }
 
     private async Task<ModelPrediction> GetModelPredictionAsync(
-        string modelId, 
-        EnsembleModelInfo modelInfo, 
-        Dictionary<string, object> features, 
-        CancellationToken cancellationToken)
+        string modelId,
+                        CancellationToken cancellationToken)
     {
         try
         {
@@ -175,9 +173,8 @@ public class EnsembleModelService
     }
 
     private EnsemblePrediction CalculateWeightedEnsemble(
-        List<ModelPrediction> predictions, 
-        double totalWeight, 
-        double anomalyScore)
+        List<ModelPrediction> predictions,
+                double anomalyScore)
     {
         // Calculate confidence-weighted prediction
         var weightedSum = 0.0;
@@ -222,7 +219,7 @@ public class EnsembleModelService
 /// <summary>
 /// Information about a model in the ensemble
 /// </summary>
-public class EnsembleModelInfo
+internal class EnsembleModelInfo
 {
     public string ModelId { get; set; } = string.Empty;
     public string ModelType { get; set; } = string.Empty;
@@ -234,7 +231,7 @@ public class EnsembleModelInfo
 /// <summary>
 /// Individual model prediction
 /// </summary>
-public class ModelPrediction
+internal class ModelPrediction
 {
     public string ModelId { get; set; } = string.Empty;
     public double Prediction { get; set; }
@@ -245,7 +242,7 @@ public class ModelPrediction
 /// <summary>
 /// Ensemble prediction result
 /// </summary>
-public class EnsemblePrediction
+internal class EnsemblePrediction
 {
     public double Prediction { get; set; }
     public double Confidence { get; set; }

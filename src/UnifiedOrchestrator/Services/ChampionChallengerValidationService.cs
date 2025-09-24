@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Champion/Challenger validation service demonstrating the architecture
 /// </summary>
-public class ChampionChallengerValidationService : BackgroundService
+internal class ChampionChallengerValidationService : BackgroundService
 {
     private readonly ILogger<ChampionChallengerValidationService> _logger;
     private readonly IModelRegistry _modelRegistry;

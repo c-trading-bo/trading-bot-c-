@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OrchestratorAgent.Execution
 {
     // Hot-swappable sentiment analysis for news-driven trading
-    public sealed class SentimentAnalyzer
+    internal sealed class SentimentAnalyzer
     {
         readonly Queue<double> _sentimentHistory = new();
         readonly int _maxHistory = 100;

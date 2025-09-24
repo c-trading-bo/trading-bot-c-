@@ -11,7 +11,7 @@ using System.Globalization;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class AutoRollbackGuard : IAsyncDisposable
+internal sealed class AutoRollbackGuard : IAsyncDisposable
 {
     private readonly ILogger _log;
     private readonly PositionTracker _pos;

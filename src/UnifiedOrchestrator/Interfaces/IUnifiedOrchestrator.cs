@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Core interface for the unified orchestrator system
 /// </summary>
-public interface IUnifiedOrchestrator
+internal interface IUnifiedOrchestrator
 {
     /// <summary>
     /// Initialize the orchestrator with all required services
@@ -59,7 +59,7 @@ public interface IUnifiedOrchestrator
 /// <summary>
 /// Interface for workflow action execution
 /// </summary>
-public interface IWorkflowActionExecutor
+internal interface IWorkflowActionExecutor
 {
     /// <summary>
     /// Execute a specific action within a workflow
@@ -80,7 +80,7 @@ public interface IWorkflowActionExecutor
 /// <summary>
 /// Interface for trading-specific operations
 /// </summary>
-public interface ITradingOrchestrator : IWorkflowActionExecutor
+internal interface ITradingOrchestrator : IWorkflowActionExecutor
 {
     /// <summary>
     /// Connect to TopstepX API and hubs
@@ -111,7 +111,7 @@ public interface ITradingOrchestrator : IWorkflowActionExecutor
 /// <summary>
 /// Interface for ML/RL intelligence operations
 /// </summary>
-public interface IIntelligenceOrchestrator : IWorkflowActionExecutor
+internal interface IIntelligenceOrchestrator : IWorkflowActionExecutor
 {
     /// <summary>
     /// Run ML models for predictions
@@ -137,7 +137,7 @@ public interface IIntelligenceOrchestrator : IWorkflowActionExecutor
 /// <summary>
 /// Interface for data collection operations
 /// </summary>
-public interface IDataOrchestrator : IWorkflowActionExecutor
+internal interface IDataOrchestrator : IWorkflowActionExecutor
 {
     /// <summary>
     /// Collect market data
@@ -158,7 +158,7 @@ public interface IDataOrchestrator : IWorkflowActionExecutor
 /// <summary>
 /// Interface for workflow scheduling
 /// </summary>
-public interface IWorkflowScheduler
+internal interface IWorkflowScheduler
 {
     /// <summary>
     /// Schedule a workflow for execution

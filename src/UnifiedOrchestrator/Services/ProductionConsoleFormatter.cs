@@ -12,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production-ready console formatter with color coding and noise reduction
 /// Shows only ERROR, WARN, and critical INFO messages with clean formatting
 /// </summary>
-public class ProductionConsoleFormatter : ConsoleFormatter
+internal class ProductionConsoleFormatter : ConsoleFormatter
 {
     private const string TimestampFormat = "HH:mm:ss.fff";
     
