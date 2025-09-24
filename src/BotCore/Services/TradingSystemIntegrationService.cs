@@ -208,7 +208,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("🚀 Trading System Integration Service starting...");
                 
                 // Initialize all components
-                await InitializeComponentsAsync(stoppingToken).ConfigureAwait(false);
+                await InitializeComponentsAsync().ConfigureAwait(false);
                 
                 // Setup TopstepX SDK connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -227,7 +227,7 @@ namespace TopstepX.Bot.Core.Services
                 SetupEventHandlers();
                 
                 // Initialize enhanced market data flow and historical seeding - NEW
-                await InitializeProductionReadinessAsync(stoppingToken).ConfigureAwait(false);
+                await InitializeProductionReadinessAsync().ConfigureAwait(false);
                 
                 // Perform initial system checks
                 await PerformSystemReadinessChecksAsync().ConfigureAwait(false);

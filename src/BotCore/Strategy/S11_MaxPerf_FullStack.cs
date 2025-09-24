@@ -48,7 +48,7 @@ namespace TopstepX.S11
         public Bar1m(DateTimeOffset tEt, long o, long h, long l, long c, double v)
         { TimeET = tEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             throw new NotImplementedException();
         }
@@ -83,7 +83,7 @@ namespace TopstepX.S11
             if (d <= 0) return 0; return (double)(b - a) / d;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             throw new NotImplementedException();
         }
@@ -242,10 +242,10 @@ namespace TopstepX.S11
         public void Warmup1m(Instrument instr, IEnumerable<(DateTimeOffset tEt,double o,double h,double l,double c,double v)> bars)
         {
             var s = Get(instr); foreach (var b in bars)
-            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar, warmup:true); }
+            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
-        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar, warmup:false); StepEngine(Get(instr)); }
+        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
         public void OnDepth(Instrument instr, DepthLadder depth) { Get(instr).LastDepth = depth; }
 
         private void StepEngine(State s)
@@ -260,7 +260,7 @@ namespace TopstepX.S11
             if (s.LastDepth.SpreadTicks > _cfg.MaxSpreadTicks) return;
 
             var regime = Classify(s);
-            ManagePosition(s, regime);
+            ManagePosition(s);
 
             if (regime == Mode.Fade) TryEnterFade(s);
         }
@@ -302,7 +302,7 @@ namespace TopstepX.S11
             // Conservative DOM imbalance check
             if (Math.Abs(s.LastDepth.Imbalance()) < _cfg.MinDomImbalance) return;
 
-            s.PlaceWithOco(fadeLong ? Side.Buy : Side.Sell, entry, stopPx, tgtPx, "S11-Fade");
+            s.PlaceWithOco(fadeLong ? Side.Buy : Side.Sell, stopPx, tgtPx, "S11-Fade");
         }
 
         private void ManagePosition(State s)

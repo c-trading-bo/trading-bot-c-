@@ -48,7 +48,7 @@ namespace TopstepX.S6
         public Bar1m(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
         { TimeET = timeEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             throw new NotImplementedException();
         }
@@ -83,7 +83,7 @@ namespace TopstepX.S6
             if (d <= 0) return 0; return (double)(b - a) / d;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             throw new NotImplementedException();
         }
@@ -219,10 +219,10 @@ namespace TopstepX.S6
         public void Warmup1m(Instrument instr, IEnumerable<(DateTimeOffset tEt,double o,double h,double l,double c,double v)> bars)
         {
             var s = Get(instr); long tick = s.Tick; foreach (var b in bars)
-            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar, warmup:true); }
+            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
-        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar, warmup:false); StepEngine(Get(instr)); }
+        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
         public void OnDepth(Instrument instr, DepthLadder depth) { Get(instr).LastDepth = depth; }
 
         private void StepEngine(State s)
@@ -283,7 +283,7 @@ namespace TopstepX.S6
                 long level = longSide ? s.ON_High : s.ON_Low;
                 if (!s.RetestConfirmed(level, longSide)) return;
             }
-            s.PlaceWithOco(longSide ? Side.Buy : Side.Sell, entry, stopPx, tgtPx, "S6-Drive");
+            s.PlaceWithOco(longSide ? Side.Buy : Side.Sell, stopPx, tgtPx, "S6-Drive");
         }
 
         private void TryEnterReversal(State s)
@@ -296,7 +296,7 @@ namespace TopstepX.S6
             double stopPx = s.ComputeStopBeyondExtremePx(longSide);
             double tgtPx  = s.ComputeTargetPx(longSide);
             if (!s.TrendAgree1m5m(true)) return;
-            s.PlaceWithOco(longSide ? Side.Buy : Side.Sell, s.LastClose, stopPx, tgtPx, "S6-Reversal");
+            s.PlaceWithOco(longSide ? Side.Buy : Side.Sell, stopPx, tgtPx, "S6-Reversal");
         }
 
         private void ManagePosition(State s, Mode regime)

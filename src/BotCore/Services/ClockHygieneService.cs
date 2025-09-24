@@ -144,7 +144,7 @@ namespace TradingBot.BotCore.Services
             return $"UTC:{UtcTime:yyyy-MM-dd HH:mm:ss.fff} Mono:{MonotonicTime.TotalMilliseconds:F3}ms";
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             throw new NotImplementedException();
         }
