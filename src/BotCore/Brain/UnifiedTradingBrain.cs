@@ -218,7 +218,7 @@ namespace BotCore.Brain
                 
                 // 6. GENERATE ENHANCED CANDIDATES using brain intelligence
                 var enhancedCandidates = await GenerateEnhancedCandidatesAsync(
-                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken).ConfigureAwait(false);
+                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize).ConfigureAwait(false);
                 
                 var decision = new BrainDecision
                 {

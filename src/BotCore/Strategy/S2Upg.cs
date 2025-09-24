@@ -13,7 +13,7 @@ namespace BotCore.Strategy
         {
             if (bars is null || bars.Count < 2) return 1m;
             int start = Math.Max(0, bars.Count - look);
-            decimal up = 0, dn;
+            decimal up = 0, dn = 0;
             for (int i = start; i < bars.Count; i++)
             {
                 var b = bars[i];
@@ -29,8 +29,8 @@ namespace BotCore.Strategy
         {
             if (bars == null || bars.Count == 0) return (0m, 0m);
             var prevDate = nowLocal.Date.AddDays(-1);
-            bool found; decimal hi = 0m, lo;
-            for (int i; i < bars.Count; i++)
+            bool found = false; decimal hi = 0m, lo = 0;
+            for (int i = 0; i < bars.Count; i++)
             {
                 var d = bars[i].Start.Date;
                 if (d != prevDate) continue;

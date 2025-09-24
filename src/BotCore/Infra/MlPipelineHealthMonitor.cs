@@ -75,10 +75,10 @@ namespace BotCore.Infra
             CheckModelFreshness(issues, warnings);
 
             // Check training activity
-            CheckTrainingActivity(issues, warnings);
+            CheckTrainingActivity(warnings);
 
             // Check GitHub Actions pipeline
-            await CheckGitHubPipelineAsync(issues, warnings).ConfigureAwait(false);
+            await CheckGitHubPipelineAsync(warnings).ConfigureAwait(false);
 
             // Check file system health
             CheckFileSystemHealth(issues, warnings);
