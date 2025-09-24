@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
