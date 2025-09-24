@@ -1,0 +1,51 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "MSBuild",
+          "version": "17.8.32",
+          "informationUri": "https://github.com/dotnet/msbuild"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CS1501",
+          "message": {
+            "text": "Multiple method overload signature mismatches found - 194 instances"
+          },
+          "level": "error"
+        },
+        {
+          "ruleId": "CS0200",
+          "message": {
+            "text": "Read-only property assignment attempts - 166 instances" 
+          },
+          "level": "error"
+        },
+        {
+          "ruleId": "CS0165",
+          "message": {
+            "text": "Use of unassigned local variables - 148 instances"
+          },
+          "level": "error"
+        },
+        {
+          "ruleId": "CS1061", 
+          "message": {
+            "text": "Missing methods/properties in interfaces - 136 instances"
+          },
+          "level": "error"
+        },
+        {
+          "ruleId": "CS0201",
+          "message": {
+            "text": "Invalid statement usage - 126 instances"
+          },
+          "level": "error"
+        }
+      ]
+    }
+  ]
+}
