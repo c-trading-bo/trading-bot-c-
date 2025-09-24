@@ -112,7 +112,7 @@ namespace BotCore
                 Volume = (int)_v
             };
             _bucket = DateTimeOffset.MinValue;
-            _o = _h = _l = _c; _v;
+            _o = _h = _l = _c; _v = 0;
             OnBar?.Invoke(bar);
         }
 

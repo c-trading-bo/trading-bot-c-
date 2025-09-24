@@ -182,7 +182,7 @@ namespace TopstepX.Bot.Core.Services
                 await Task.Delay(1000).ConfigureAwait(false);
                 
                 // Reset state
-                _isEmergencyStop;
+                _isEmergencyStop = false;
                 
                 _logger.LogWarning("🔄 Emergency stop reset - system ready");
                 return true;

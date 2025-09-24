@@ -85,7 +85,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Save configuration with schema version
         /// </summary>
-        public async Task SaveConfigurationAsync<T>(T configuration, string filePath) where T : IVersionedConfiguration
+        public async Task SaveConfigurationAsync<T>(T configuration, string filePath) where T : IVersionedConfiguration, new()
         {
             try
             {

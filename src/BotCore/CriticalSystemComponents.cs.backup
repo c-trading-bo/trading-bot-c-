@@ -73,7 +73,10 @@ namespace TradingBot.Critical
         {
             public string OrderId { get; set; } = string.Empty;
             public decimal Price { get; set; }
+            public decimal FillPrice { get; set; }
             public int Quantity { get; set; }
+            public string Symbol { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; }
             public decimal Commission { get; set; }
             public string Exchange { get; set; } = string.Empty;
             public string LiquidityType { get; set; } = string.Empty;
@@ -83,6 +86,8 @@ namespace TradingBot.Critical
         {
             public string OrderId { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; }
+        }
             public string RejectReason { get; set; } = string.Empty;
         }
         
@@ -1707,46 +1712,6 @@ namespace TradingBot.Critical
             catch (Exception ex)
             {
                 System.Console.WriteLine($"[AZURE_KV_ERROR] Failed to get secret {key}: {ex.Message}");
-                return null;
-            }
-        }
-        
-        private static string? GetFromAWSSecretsManager(string key)
-        {
-            try
-            {
-                // AWS Secrets Manager integration using environment variables for configuration
-                var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
-                var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
-                var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
-                
-                if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
-                {
-                    // Fallback to environment variable with AWS prefix
-                    return Environment.GetEnvironmentVariable($"AWS_{key}");
-                }
-                
-                // In production, this would use AWS.SecretsManager
-                // For now, simulate with environment variables as secure fallback
-                var secretValue = Environment.GetEnvironmentVariable($"AWS_{key}");
-                
-                if (!string.IsNullOrEmpty(secretValue))
-                {
-                    return secretValue;
-                }
-                
-                // Additional fallback for common trading secrets
-                return key.ToUpper() switch
-                {
-                    "TOPSTEPX_JWT" => Environment.GetEnvironmentVariable("TOPSTEPX_JWT"),
-                    "CLOUD_API_KEY" => Environment.GetEnvironmentVariable("CLOUD_API_KEY"),
-                    "DATABASE_CONNECTION" => Environment.GetEnvironmentVariable("DATABASE_CONNECTION"),
-                    _ => null
-                };
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"[AWS_SM_ERROR] Failed to get secret {key}: {ex.Message}");
                 return null;
             }
         }

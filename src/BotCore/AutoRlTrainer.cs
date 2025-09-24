@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,7 +73,7 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
                 await RunTrainingPipelineAsync().ConfigureAwait(false);
 
-                _consecutiveFailures;
+                _consecutiveFailures = 0;
                 _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
             }
             catch (Exception ex)
@@ -143,7 +144,7 @@ namespace BotCore
                     MultiStrategyRlCollector.StrategyType.Momentum
                 };
 
-                bool hasData;
+                bool hasData = false;
                 foreach (var strategy in strategies)
                 {
                     try

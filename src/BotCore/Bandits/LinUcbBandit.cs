@@ -196,7 +196,7 @@ internal sealed class LinUcbArm
         _b = new decimal[dimension];
 
         // Initialize A as identity matrix
-        for (int i; i < dimension; i++)
+        for (int i = 0; i < dimension; i++)
         {
             _A[i, i] = 1m;
         }

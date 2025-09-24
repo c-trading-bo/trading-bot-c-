@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TopstepX.Bot.Abstractions;
 using TradingBot.Abstractions;
+using static TradingBot.Abstractions.Px;
 using BotCore.Models;
 using BotCore.Strategy;
 using BotCore.Risk;
@@ -491,7 +493,7 @@ namespace TopstepX.Bot.Core.Services
             }
             finally
             {
-                _isEvaluationRunning;
+                _isEvaluationRunning = false;
             }
         }
 
@@ -607,7 +609,7 @@ namespace TopstepX.Bot.Core.Services
                     CancellationToken.None).ConfigureAwait(false);
 
                 _logger.LogDebug("[ML/RL-FEATURES] Generated feature vector for {Symbol} with {FeatureCount} features", 
-                    symbol, featureVector?.Features.Length ?? 0);
+                    symbol, featureVector?.Features.Count ?? 0);
 
                 return featureVector;
             }
