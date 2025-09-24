@@ -700,7 +700,7 @@ namespace BotCore.Brain
                     var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken).ConfigureAwait(false);
                     
                     // Convert CVaR-PPO action to contract sizing
-                    var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts, context);
+                    var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts);
                     
                     // Apply CVaR risk controls
                     var riskAdjustedContracts = ApplyCVaRRiskControls(cvarContracts, actionResult, context);

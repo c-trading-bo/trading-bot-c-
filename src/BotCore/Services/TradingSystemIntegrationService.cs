@@ -1588,8 +1588,7 @@ namespace TopstepX.Bot.Core.Services
                     
                     // Check adapter health
                     var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}% - Status: {Status}", 
-                        healthScore.HealthScore, healthScore.Status);
+                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}%", healthScore);
                 }
                 else
                 {

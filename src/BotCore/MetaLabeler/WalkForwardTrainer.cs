@@ -119,7 +119,7 @@ public class WalkForwardTrainer
         try
         {
             // Get training data
-            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct).ConfigureAwait(false);
+            var trainSignals = await GetHistoricalSignalsAsync().ConfigureAwait(false);
             var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct).ConfigureAwait(false);
 
             fold.TrainingSamples = trainLabeled.Count;
@@ -136,7 +136,7 @@ public class WalkForwardTrainer
             fold.ModelPath = modelPath;
 
             // Get test data (respecting embargo period)
-            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct).ConfigureAwait(false);
+            var testSignals = await GetHistoricalSignalsAsync().ConfigureAwait(false);
             var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct).ConfigureAwait(false);
 
             fold.TestSamples = testLabeled.Count;

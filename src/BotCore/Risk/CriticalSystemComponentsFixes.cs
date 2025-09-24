@@ -48,9 +48,9 @@ namespace BotCore.Risk
                 try
                 {
                     // Real system health monitoring logic
-                    await CheckSystemResourcesAsync(cancellationToken).ConfigureAwait(false);
-                    await CheckDatabaseConnectivityAsync(cancellationToken).ConfigureAwait(false);
-                    await CheckApiEndpointsAsync(cancellationToken).ConfigureAwait(false);
+                    await CheckSystemResourcesAsync().ConfigureAwait(false);
+                    await CheckDatabaseConnectivityAsync().ConfigureAwait(false);
+                    await CheckApiEndpointsAsync().ConfigureAwait(false);
 
                     await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
                 }
@@ -84,7 +84,7 @@ namespace BotCore.Risk
                         _logger.LogWarning("[CRITICAL-SYSTEM] High memory usage detected: {MemoryUsageGB:F2}GB", memoryUsageGB);
                         
                         // Trigger intelligent cleanup instead of forced GC
-                        await PerformIntelligentMemoryCleanupAsync(cancellationToken).ConfigureAwait(false);
+                        await PerformIntelligentMemoryCleanupAsync().ConfigureAwait(false);
                     }
 
                     await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
@@ -111,7 +111,7 @@ namespace BotCore.Risk
                 try
                 {
                     // Real performance monitoring logic
-                    var cpuUsage = await GetCpuUsageAsync(cancellationToken).ConfigureAwait(false);
+                    var cpuUsage = await GetCpuUsageAsync().ConfigureAwait(false);
                     var threadPoolInfo = GetThreadPoolInfo();
                     
                     _logger.LogDebug("[CRITICAL-SYSTEM] Performance metrics - CPU: {CpuUsage:F2}%, Thread Pool: {WorkerThreads}/{CompletionPortThreads}",
