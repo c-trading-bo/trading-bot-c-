@@ -151,7 +151,7 @@ namespace BotCore
                     if (p.ValueKind == JsonValueKind.String && decimal.TryParse(p.GetString(), out val)) return true;
                 }
             }
-            val; return false;
+            val = 0; return false;
         }
 
         private static bool TryGetLong(JsonElement e, out long val, params string[] names)

@@ -38,7 +38,7 @@ namespace BotCore
             {
                 // Upload data every 15 minutes to ensure cloud has fresh training data
                 var interval = TimeSpan.FromMinutes(15);
-                _timer = new Timer(UploadDataAsync, null, TimeSpan.Zero, interval);
+                _timer = new Timer(UploadDataAsync, null, 0, (int)interval.TotalMilliseconds);
                 _log.LogInformation("[CloudDataUploader] Started - uploading every {Interval}", interval);
             }
             else

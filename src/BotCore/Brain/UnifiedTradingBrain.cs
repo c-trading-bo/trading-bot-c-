@@ -177,7 +177,7 @@ namespace BotCore.Brain
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Failed to initialize models - Using fallback logic");
-                IsInitialized; // Will use rule-based fallbacks
+                IsInitialized = false; // Will use rule-based fallbacks
             }
         }
 
