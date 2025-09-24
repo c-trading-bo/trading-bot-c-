@@ -71,8 +71,8 @@ public static class AuthenticationServiceExtensions
             });
         });
 
-        // Register auth factory as singleton (no concrete CachedTopstepAuth needed)
-        // services.AddSingleton<ITopstepAuth, CachedTopstepAuth>();
+        // Register cached auth service as singleton
+        services.AddSingleton<ITopstepAuth>(authFactory);
 
         // Register HTTP client service as singleton using factory
         services.AddSingleton<ITopstepXHttpClient>(serviceProvider =>
@@ -106,7 +106,7 @@ public static class AuthenticationServiceExtensions
 
         // Use custom auth provider
         services.AddSingleton(customAuthProvider);
-        // services.AddSingleton<ITopstepAuth, CachedTopstepAuth>();
+        services.AddSingleton<ITopstepAuth>(customAuthProvider);
 
         services.AddSingleton<ITopstepXHttpClient>(serviceProvider =>
         {
