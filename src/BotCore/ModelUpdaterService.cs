@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using BotCore.Utilities;
 
 namespace BotCore
 {
@@ -61,8 +62,9 @@ namespace BotCore
 
             Directory.CreateDirectory(_modelsPath);
 
-            // Create timer for periodic updates
-            _updateTimer = new Timer(_ => _ = OnTimerElapsed(), null, (int)TimeSpan.Zero.TotalMilliseconds, (int)TimeSpan.FromSeconds(_pollIntervalSeconds).TotalMilliseconds);
+            // Create timer for periodic updates using TimerHelper
+            var updateInterval = TimeSpan.FromSeconds(_pollIntervalSeconds);
+            _updateTimer = TimerHelper.CreateAsyncTimerWithImmediateStart(OnTimerElapsed, updateInterval);
         }
 
         public void Start()

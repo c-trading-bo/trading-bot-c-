@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using BotCore.Utilities;
 
 namespace BotCore
 {
@@ -36,10 +37,10 @@ namespace BotCore
 
             if (_enabled)
             {
-                // Upload data every 15 minutes to ensure cloud has fresh training data
+                // Upload data every 15 minutes using TimerHelper
                 var interval = TimeSpan.FromMinutes(15);
-                _timer = new Timer(_ => UploadDataAsync(), null, 0, (int)interval.TotalMilliseconds);
-                _log.LogInformation("[CloudDataUploader] Started - uploading every {Interval}", interval);
+                _timer = TimerHelper.CreateAsyncTimerWithImmediateStart(UploadDataAsync, interval);
+                LoggingHelper.LogServiceStarted(_log, "CloudDataUploader", interval, "uploading");
             }
             else
             {

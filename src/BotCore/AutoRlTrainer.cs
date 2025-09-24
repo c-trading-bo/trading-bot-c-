@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using BotCore.Utilities;
 
 namespace BotCore
 {
@@ -29,8 +30,8 @@ namespace BotCore
         {
             _log = logger;
 
-            // Log deprecation warning
-            _log.LogWarning("[AutoRlTrainer] DEPRECATED: Local training is disabled in favor of 100% cloud-based learning. Use CloudDataUploader + CloudRlTrainerEnhanced instead.");
+            // Log deprecation warning using standardized helper
+            LoggingHelper.LogDeprecation(_log, "AutoRlTrainer", "Local training is disabled in favor of 100% cloud-based learning", "CloudDataUploader + CloudRlTrainerEnhanced");
 
             // Don't start the timer - this component is deprecated
             _log.LogInformation("[AutoRlTrainer] Local training disabled - all learning now happens in cloud every 30 minutes");

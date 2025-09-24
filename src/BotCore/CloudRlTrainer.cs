@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using BotCore.Utilities;
 
 namespace BotCore;
 
@@ -30,10 +31,10 @@ public sealed class CloudRlTrainer : IDisposable
         Directory.CreateDirectory(_dataDir);
         Directory.CreateDirectory(_modelDir);
 
-        // Check for updates every 30 minutes
+        // Use TimerHelper to reduce duplication
         var pollInterval = TimeSpan.FromMinutes(30);
-        _timer = new Timer(_ => CheckForUpdatesCallback(), null, 0, (int)pollInterval.TotalMilliseconds);
-        _log.LogInformation("[CloudRlTrainer] Started - checking GitHub for model updates every {Interval}", pollInterval);
+        _timer = TimerHelper.CreateAsyncTimerWithImmediateStart(CheckForUpdatesCallback, pollInterval);
+        LoggingHelper.LogServiceStarted(_log, "CloudRlTrainer", pollInterval, "checking GitHub for model updates");
     }
 
     private async Task CheckForUpdatesCallback()
@@ -45,7 +46,7 @@ public sealed class CloudRlTrainer : IDisposable
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "[CloudRlTrainer] Error checking for updates");
+            LoggingHelper.LogError(_log, ex, "CloudRlTrainer", "check for updates");
         }
     }
 
