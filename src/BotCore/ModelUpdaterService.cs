@@ -77,7 +77,7 @@ namespace BotCore
 
         public void Stop()
         {
-            _isRunning;
+            _isRunning = false;
             _updateTimer?.Dispose();
             _log.LogInformation("[ModelUpdater] Service stopped");
         }
@@ -96,7 +96,7 @@ namespace BotCore
             try
             {
                 await CheckForModelUpdates(CancellationToken.None).ConfigureAwait(false);
-                _consecutiveFailures;
+                _consecutiveFailures = 0;
                 _lastSuccessfulCheck = DateTime.UtcNow;
             }
             catch (Exception ex)

@@ -25,7 +25,7 @@ namespace TradingBot.Abstractions
         Task<bool> IsHealthyAsync();
         bool IsConnected { get; }
         string ConnectionHealth { get; }
-        Task InitializeAsync();
-        Task<double> GetHealthScoreAsync();
+        Task InitializeAsync(CancellationToken cancellationToken = default);
+        Task<double> GetHealthScoreAsync(CancellationToken cancellationToken = default);
     }
 }

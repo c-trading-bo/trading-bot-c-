@@ -87,7 +87,7 @@ public class UnifiedDecisionRouter
                 decision.DecisionSource = "EnhancedBrain";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "enhanced_brain", cancellationToken).ConfigureAwait(false);
+                await TrackDecisionAsync(decision, "enhanced_brain").ConfigureAwait(false);
                 _logger.LogInformation("🧠 [ENHANCED-BRAIN] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
@@ -101,21 +101,21 @@ public class UnifiedDecisionRouter
                 decision.DecisionSource = "UnifiedBrain";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "unified_brain", cancellationToken).ConfigureAwait(false);
+                await TrackDecisionAsync(decision, "unified_brain").ConfigureAwait(false);
                 _logger.LogInformation("🎯 [UNIFIED-BRAIN] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
             }
             
             // Step 3: Try Intelligence Orchestrator (Fallback)
-            decision = await TryIntelligenceOrchestratorAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
+            decision = await TryIntelligenceOrchestratorAsync(marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
                 decision.DecisionSource = "IntelligenceOrchestrator";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "intelligence_orchestrator", cancellationToken).ConfigureAwait(false);
+                await TrackDecisionAsync(decision, "intelligence_orchestrator").ConfigureAwait(false);
                 _logger.LogInformation("🤖 [INTELLIGENCE-ORCHESTRATOR] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
@@ -127,7 +127,7 @@ public class UnifiedDecisionRouter
             decision.DecisionSource = "ForcedDecision";
             decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             
-            await TrackDecisionAsync(decision, "forced_decision", cancellationToken).ConfigureAwait(false);
+            await TrackDecisionAsync(decision, "forced_decision").ConfigureAwait(false);
             _logger.LogWarning("⚠️ [FORCED-DECISION] All brains returned HOLD, forcing: {Action} {Symbol}",
                 decision.Action, symbol);
             return decision;
@@ -137,7 +137,7 @@ public class UnifiedDecisionRouter
             _logger.LogError(ex, "❌ [DECISION-ROUTER] Error routing decision for {Symbol}", symbol);
             
             // Emergency fallback
-            var emergencyDecision = CreateEmergencyDecision(symbol, marketContext);
+            var emergencyDecision = CreateEmergencyDecision(symbol);
             emergencyDecision.DecisionId = decisionId;
             emergencyDecision.DecisionSource = "Emergency";
             emergencyDecision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
@@ -158,7 +158,7 @@ public class UnifiedDecisionRouter
         {
             // Convert MarketContext to EnhancedBrain format
             var enhancedContext = ConvertToEnhancedContext(marketContext);
-            var availableStrategies = GetAvailableStrategies(marketContext);
+            var availableStrategies = GetAvailableStrategies();
             
             var enhancedDecision = await _enhancedBrain.MakeEnhancedDecisionAsync(
                 symbol, enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false);
