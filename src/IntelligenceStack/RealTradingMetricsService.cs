@@ -18,7 +18,6 @@ public class RealTradingMetricsService : BackgroundService
     private readonly ILogger<RealTradingMetricsService> _logger;
     private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
     private readonly IMLConfigurationService _mlConfig;
-    private readonly Timer _metricsTimer;
     private readonly TimeSpan _pushInterval = TimeSpan.FromMinutes(1); // Push metrics every minute
 
     // Real trading metrics tracking
@@ -90,9 +89,6 @@ public class RealTradingMetricsService : BackgroundService
         _mlConfig = mlConfig ?? throw new ArgumentNullException(nameof(mlConfig));
         _intelligenceOrchestrator = intelligenceOrchestrator;
 
-        // Initialize timer for regular metrics collection
-        _metricsTimer = new Timer(CollectAndPushMetrics, null, _pushInterval, _pushInterval);
-
         ServiceInitialized(_logger, _pushInterval, null);
     }
 
@@ -100,12 +96,20 @@ public class RealTradingMetricsService : BackgroundService
     {
         ServiceStarted(_logger, null);
 
+        var nextMetricsPush = DateTime.UtcNow.Add(_pushInterval);
+
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                // Check if it's time to push metrics
+                if (DateTime.UtcNow >= nextMetricsPush)
+                {
+                    await CollectAndPushMetricsAsync().ConfigureAwait(false);
+                    nextMetricsPush = DateTime.UtcNow.Add(_pushInterval);
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
-                // Main service loop - metrics are pushed via timer
             }
         }
         catch (OperationCanceledException ex)
@@ -167,29 +171,6 @@ public class RealTradingMetricsService : BackgroundService
         }
     }
 
-    /// <summary>
-    /// Collect and push real trading metrics to cloud
-    /// Called by timer every minute
-    /// </summary>
-    private void CollectAndPushMetrics(object? state)
-    {
-        // Use Task.Run to avoid async void issues
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await CollectAndPushMetricsAsync().ConfigureAwait(false);
-            }
-#pragma warning disable CA1031 // Do not catch general exception types - Background service safety requires catching all exceptions
-            catch (Exception ex)
-            {
-                // Log and swallow exceptions to prevent crashes
-                MetricsCollectionFailed(_logger, ex);
-            }
-#pragma warning restore CA1031
-        });
-    }
-    
     /// <summary>
     /// Async implementation of metrics collection
     /// </summary>
@@ -372,15 +353,13 @@ public class RealTradingMetricsService : BackgroundService
         return averageReturn / returnStdDev;
     }
 
-    #endregion
-
-    public override void Dispose()
+    public override Task StopAsync(CancellationToken cancellationToken)
     {
-        _metricsTimer?.Dispose();
         ServiceDisposed(_logger, null);
-        base.Dispose();
-        GC.SuppressFinalize(this);
+        return base.StopAsync(cancellationToken);
     }
+
+    #endregion
 }
 
 /// <summary>
