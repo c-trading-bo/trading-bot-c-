@@ -193,105 +193,113 @@ public sealed class MamlLiveIntegration : IDisposable
                 Success = false
             };
 
-            // Get current model state
+            // Early validation checks
             var modelState = GetOrCreateModelState(regimeKey);
-            
-            // Check if enough time has passed since last update
-            if (!ShouldPerformUpdate(modelState))
+            var earlyValidation = ValidateAdaptationPreconditions(modelState, recentExamples);
+            if (!earlyValidation.canProceed)
             {
-                result.SkippedReason = "Too frequent - waiting for minimum interval";
+                result.SkippedReason = earlyValidation.reason;
                 return result;
             }
 
-            // Prepare adaptation data
-            var examples = recentExamples.Take(MaxExamplesPerAdaptation).ToList(); // Limit to recent examples
-            if (examples.Count < MinExamplesRequired)
-            {
-                result.SkippedReason = "Insufficient training examples";
-                return result;
-            }
+            // Perform the core adaptation logic
+            var adaptationSuccess = await PerformCoreAdaptationAsync(
+                result, modelState, earlyValidation.examples, regime, cancellationToken).ConfigureAwait(false);
 
-            // Perform MAML inner loop adaptation
-            var adaptationStep = await PerformInnerLoopAdaptationAsync(
-                modelState, 
-                examples, 
-                cancellationToken).ConfigureAwait(false);
-
-            // Validate adaptation step
-            var validationResult = await ValidateAdaptationAsync(
-                adaptationStep, 
-                cancellationToken).ConfigureAwait(false);
-
-            if (!validationResult.IsValid)
-            {
-                result.SkippedReason = $"Validation failed: {validationResult.Reason}";
-                AdaptationValidationFailed(_logger, regime.ToString(), validationResult.Reason, null);
-                return result;
-            }
-
-            // Apply bounded updates
-            var boundedStep = ApplyBoundedUpdates(adaptationStep);
-            
-            // Check for instability and potential rollback
-            if (await ShouldRollbackAsync(modelState, cancellationToken).ConfigureAwait(false))
-            {
-                await PerformRollbackAsync(modelState, cancellationToken).ConfigureAwait(false);
-                result.RolledBack = true;
-                result.SkippedReason = "Instability detected - rolled back";
-                return result;
-            }
-
-            // Apply the adaptation
-            await ApplyAdaptationAsync(modelState, boundedStep, cancellationToken).ConfigureAwait(false);
-            
-            // Update ensemble weights
-            await UpdateEnsembleWeightsAsync(regime, cancellationToken).ConfigureAwait(false);
-
-            result.Success = true;
-            
-            // Populate the read-only WeightChanges dictionary
-            foreach (var weightChange in boundedStep.WeightChanges)
-            {
-                result.WeightChanges[weightChange.Key] = weightChange.Value;
-            }
-            
-            result.PerformanceImprovement = boundedStep.PerformanceGain;
-            result.EndTime = DateTime.UtcNow;
-
-            MamlAdaptationCompleted(_logger, regime.ToString(), boundedStep.PerformanceGain, null);
-
-            return result;
+            return adaptationSuccess ? result : HandleAdaptationFailure(result);
         }
         catch (ArgumentException ex)
         {
-            MamlAdaptationFailed(_logger, regime.ToString(), ex);
-            return new MamlAdaptationResult 
-            { 
-                Regime = regime, 
-                Success = false, 
-                SkippedReason = $"ArgumentException: {ex.Message}" 
-            };
+            return HandleAdaptationException(regime, ex, "ArgumentException");
         }
         catch (InvalidOperationException ex)
         {
-            MamlAdaptationFailed(_logger, regime.ToString(), ex);
-            return new MamlAdaptationResult 
-            { 
-                Regime = regime, 
-                Success = false, 
-                SkippedReason = $"InvalidOperationException: {ex.Message}" 
-            };
+            return HandleAdaptationException(regime, ex, "InvalidOperationException");
         }
         catch (IOException ex)
         {
-            MamlAdaptationFailed(_logger, regime.ToString(), ex);
-            return new MamlAdaptationResult 
-            { 
-                Regime = regime, 
-                Success = false, 
-                SkippedReason = $"IOException: {ex.Message}" 
-            };
+            return HandleAdaptationException(regime, ex, "IOException");
         }
+    }
+
+    private static (bool canProceed, string reason, List<TrainingExample> examples) ValidateAdaptationPreconditions(
+        MamlModelState modelState, IEnumerable<TrainingExample> recentExamples)
+    {
+        // Check if enough time has passed since last update
+        if (!ShouldPerformUpdate(modelState))
+        {
+            return (false, "Too frequent - waiting for minimum interval", new List<TrainingExample>());
+        }
+
+        // Prepare adaptation data
+        var examples = recentExamples.Take(MaxExamplesPerAdaptation).ToList();
+        if (examples.Count < MinExamplesRequired)
+        {
+            return (false, "Insufficient training examples", examples);
+        }
+
+        return (true, string.Empty, examples);
+    }
+
+    private async Task<bool> PerformCoreAdaptationAsync(
+        MamlAdaptationResult result, MamlModelState modelState, List<TrainingExample> examples, 
+        RegimeType regime, CancellationToken cancellationToken)
+    {
+        // Perform MAML inner loop adaptation
+        var adaptationStep = await PerformInnerLoopAdaptationAsync(
+            modelState, examples, cancellationToken).ConfigureAwait(false);
+
+        // Validate adaptation step
+        var validationResult = await ValidateAdaptationAsync(adaptationStep, cancellationToken).ConfigureAwait(false);
+        if (!validationResult.IsValid)
+        {
+            result.SkippedReason = $"Validation failed: {validationResult.Reason}";
+            AdaptationValidationFailed(_logger, regime.ToString(), validationResult.Reason, null);
+            return false;
+        }
+
+        // Apply bounded updates and check for rollback
+        var boundedStep = ApplyBoundedUpdates(adaptationStep);
+        if (await ShouldRollbackAsync(modelState, cancellationToken).ConfigureAwait(false))
+        {
+            await PerformRollbackAsync(modelState, cancellationToken).ConfigureAwait(false);
+            result.RolledBack = true;
+            result.SkippedReason = "Instability detected - rolled back";
+            return false;
+        }
+
+        // Apply the adaptation and finalize results
+        await ApplyAdaptationAsync(modelState, boundedStep, cancellationToken).ConfigureAwait(false);
+        await UpdateEnsembleWeightsAsync(regime, cancellationToken).ConfigureAwait(false);
+
+        // Populate result
+        result.Success = true;
+        foreach (var weightChange in boundedStep.WeightChanges)
+        {
+            result.WeightChanges[weightChange.Key] = weightChange.Value;
+        }
+        result.PerformanceImprovement = boundedStep.PerformanceGain;
+        result.EndTime = DateTime.UtcNow;
+
+        MamlAdaptationCompleted(_logger, regime.ToString(), boundedStep.PerformanceGain, null);
+        return true;
+    }
+
+    private static MamlAdaptationResult HandleAdaptationFailure(MamlAdaptationResult result)
+    {
+        result.Success = false;
+        return result;
+    }
+
+    private MamlAdaptationResult HandleAdaptationException(RegimeType regime, Exception ex, string exceptionType)
+    {
+        MamlAdaptationFailed(_logger, regime.ToString(), ex);
+        return new MamlAdaptationResult 
+        { 
+            Regime = regime, 
+            Success = false, 
+            SkippedReason = $"{exceptionType}: {ex.Message}" 
+        };
     }
 
     /// <summary>
