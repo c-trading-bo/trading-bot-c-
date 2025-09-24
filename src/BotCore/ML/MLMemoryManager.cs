@@ -233,7 +233,7 @@ public class MLMemoryManager : IMLMemoryManager
                 if (currentMemory > MAX_MEMORY_BYTES * 0.95)
                 {
                     var memoryMB = currentMemory / 1024 / 1024;
-                    throw new OutOfMemoryException($"ML memory limit reached: {memoryMB}MB, cannot continue safely");
+                    throw new InvalidOperationException($"ML memory limit reached: {memoryMB}MB, cannot continue safely");
                 }
             }
         }
