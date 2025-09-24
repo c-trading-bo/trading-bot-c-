@@ -279,7 +279,7 @@ namespace TradingBot.BotCore.Services
             }
         }
 
-        private bool IsValidApiKey(string keyName, string keyValue)
+        private static bool IsValidApiKey(string keyName, string keyValue)
         {
             // Basic API key format validation
             return keyName switch
@@ -290,7 +290,7 @@ namespace TradingBot.BotCore.Services
             };
         }
 
-        private bool IsHardcodedEndpoint(string endpoint)
+        private static bool IsHardcodedEndpoint(string endpoint)
         {
             // Check for localhost, development, or other non-production patterns
             var hardcodedPatterns = new[]
@@ -306,7 +306,7 @@ namespace TradingBot.BotCore.Services
             return hardcodedPatterns.Any(pattern => Regex.IsMatch(endpoint, pattern, RegexOptions.IgnoreCase));
         }
 
-        private bool ContainsHardcodedCredentials(string connectionString)
+        private static bool ContainsHardcodedCredentials(string connectionString)
         {
             // Check for hardcoded passwords or sensitive data in connection strings
             var sensitivePatterns = new[]
@@ -320,7 +320,7 @@ namespace TradingBot.BotCore.Services
             return sensitivePatterns.Any(pattern => Regex.IsMatch(connectionString, pattern, RegexOptions.IgnoreCase));
         }
 
-        private string MaskSensitiveValue(string value)
+        private static string MaskSensitiveValue(string value)
         {
             if (string.IsNullOrEmpty(value)) return value;
             
@@ -329,7 +329,7 @@ namespace TradingBot.BotCore.Services
                 : value[..3] + new string('*', value.Length - 6) + value[^3..];
         }
 
-        private List<SecretValidationRule> InitializeValidationRules()
+        private static List<SecretValidationRule> InitializeValidationRules()
         {
             return new List<SecretValidationRule>
             {

@@ -489,7 +489,7 @@ namespace TradingBot.Critical
             return null;
         }
         
-        private string GetJwtToken()
+        private static string GetJwtToken()
         {
             // Get JWT token from environment or secure storage
             return Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "demo_token";
@@ -507,7 +507,7 @@ namespace TradingBot.Critical
             order.Status = actualStatus;
         }
 
-        private string GenerateHash(OrderRecord order, IEnumerable<FillRecord> fills)
+        private static string GenerateHash(OrderRecord order, IEnumerable<FillRecord> fills)
         {
             var data = $"{order.OrderId}{order.Symbol}{order.Quantity}{string.Join(",", fills.Select(f => f.FillId))}";
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data)));
@@ -1544,19 +1544,19 @@ namespace TradingBot.Critical
                 _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
             }
         }
-        private decimal CalculateExposure(int quantity) => quantity * 100m;
-        private decimal GetMaxExposure() => 10000m;
+        private static decimal CalculateExposure(int quantity) => quantity * 100m;
+        private static decimal GetMaxExposure() => 10000m;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
         private decimal GetExposure(string symbol) => _exposures.TryGetValue(symbol, out var exp) ? exp.DirectionalExposure : 0m;
-        private decimal GetMaxESNQCombined() => 5000m;
+        private static decimal GetMaxESNQCombined() => 5000m;
         private Task SendCorrelationAlert(CorrelationAlert alert) 
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));
         }
-        private decimal CalculatePortfolioConcentration() => 0.3m;
-        private Dictionary<string, List<decimal>> GetRecentPriceData() => new();
-        private double CalculatePearsonCorrelation() => 0.5;
+        private static decimal CalculatePortfolioConcentration() => 0.3m;
+        private static Dictionary<string, List<decimal>> GetRecentPriceData() => new();
+        private static double CalculatePearsonCorrelation() => 0.5;
 
         public void UpdateExposure(string symbol, decimal exposure)
         {

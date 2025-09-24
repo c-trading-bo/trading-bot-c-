@@ -387,7 +387,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 /// <summary>
 /// Execution history for learning and improvement
 /// </summary>
-internal record ExecutionHistory
+internal sealed record ExecutionHistory
 {
     public DateTime Timestamp { get; init; }
     public TradeIntent Intent { get; init; } = null!;

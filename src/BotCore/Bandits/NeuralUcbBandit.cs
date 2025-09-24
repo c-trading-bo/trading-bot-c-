@@ -404,7 +404,7 @@ public record NeuralUcbConfig
 /// <summary>
 /// Neural arm specific statistics
 /// </summary>
-internal record NeuralArmStatistics
+internal sealed record NeuralArmStatistics
 {
     public int UpdateCount { get; init; }
     public decimal AverageReward { get; init; }

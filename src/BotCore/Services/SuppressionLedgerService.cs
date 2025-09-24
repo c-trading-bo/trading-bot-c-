@@ -282,14 +282,14 @@ namespace TradingBot.BotCore.Services
             }
         }
 
-        private string ExtractRuleFromPragma(string pragmaLine)
+        private static string ExtractRuleFromPragma(string pragmaLine)
         {
             // Extract rule ID from "#pragma warning disable CA1234"
             var parts = pragmaLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return parts.Length >= 4 ? parts[3] : "Unknown";
         }
 
-        private string ExtractRuleFromSuppressMessage(string suppressLine)
+        private static string ExtractRuleFromSuppressMessage(string suppressLine)
         {
             // Extract rule ID from [SuppressMessage("Category", "CA1234:...")]
             var start = suppressLine.IndexOf('"');
