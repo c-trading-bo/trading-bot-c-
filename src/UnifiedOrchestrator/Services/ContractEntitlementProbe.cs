@@ -6,12 +6,12 @@ using Microsoft.Extensions.Logging;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Helper class to probe contract entitlements via REST snapshot before attempting SignalR subscriptions
+/// Helper class to probe contract entitlements via REST snapshot before attempting TopstepX SDK subscriptions
 /// </summary>
 public static class ContractEntitlementProbe
 {
     /// <summary>
-    /// Probes a contract ID via REST snapshot to verify entitlements before SignalR subscription
+    /// Probes a contract ID via REST snapshot to verify entitlements before TopstepX SDK subscription
     /// </summary>
     /// <param name="contractId">Contract ID to probe (e.g., CON.F.US.EP.Z25)</param>
     /// <param name="jwt">JWT token for authentication</param>

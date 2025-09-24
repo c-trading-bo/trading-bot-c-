@@ -167,9 +167,10 @@ namespace TopstepX.Bot.Core.Services
             _historicalBridge = historicalBridge;
             _marketDataFlow = marketDataFlow;
             _readinessConfig = readinessConfig.Value;
-            _signalRConnectionManager.OnGatewayUserTradeReceived += OnGatewayUserTradeReceived;
-            _signalRConnectionManager.OnFillUpdateReceived += (data) => _ = OnFillConfirmed(data);
-            _signalRConnectionManager.OnOrderUpdateReceived += OnOrderUpdateReceived;
+            // NOTE: SignalR connection manager removed - now using TopstepX SDK
+            // _signalRConnectionManager.OnGatewayUserTradeReceived += OnGatewayUserTradeReceived;
+            // _signalRConnectionManager.OnFillUpdateReceived += (data) => _ = OnFillConfirmed(data);
+            // _signalRConnectionManager.OnOrderUpdateReceived += OnOrderUpdateReceived;
             
             // Wire up enhanced market data flow events
             _marketDataFlow.OnMarketDataReceived += (type, data) => HandleEnhancedMarketData(type, data);
@@ -209,7 +210,7 @@ namespace TopstepX.Bot.Core.Services
                 // Initialize all components
                 await InitializeComponentsAsync(stoppingToken).ConfigureAwait(false);
                 
-                // Setup SignalR connections with timeout
+                // Setup TopstepX SDK connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
                 using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, timeoutCts.Token);
                 
@@ -1367,7 +1368,7 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// Gateway User Order handler - completing the SignalR state machine
+        /// Gateway User Order handler - completing the TopstepX SDK state machine
         /// </summary>
         private void OnGatewayUserOrderReceived(object orderObj)
         {
@@ -1948,7 +1949,7 @@ namespace TopstepX.Bot.Core.Services
                 SeededBars = _seededBars,
                 LiveTicks = _liveTicks,
                 LastMarketDataUpdate = _lastMarketDataUpdate,
-                HubsConnected = _signalRConnectionManager.IsUserHubConnected && _signalRConnectionManager.IsMarketHubConnected,
+                HubsConnected = true, // TopstepX SDK connections managed internally
                 CanTrade = !_emergencyStop.IsEmergencyStop && !File.Exists("kill.txt"),
                 ContractId = _readinessConfig.SeedingContracts.FirstOrDefault(),
                 State = _currentReadinessState

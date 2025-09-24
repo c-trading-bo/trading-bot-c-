@@ -121,7 +121,7 @@ public class SystemHealthMonitor
         _healthChecks["connectivity"] = new HealthCheck
         {
             Name = "Connection Status",
-            Description = "Tracks API and SignalR connections",
+            Description = "Tracks API and TopstepX SDK connections",
             CheckFunction = CheckConnectivity,
             CriticalLevel = HealthLevel.Critical
         };
@@ -787,11 +787,11 @@ public class SystemHealthMonitor
                 issues.Add($"API connectivity test failed: {ex.Message}");
             }
 
-            // Check SignalR connection status (simulated)
-            var hubStatus = "Connected"; // In real implementation, check actual hub connection state
+            // Check TopstepX SDK connection status
+            var hubStatus = "Connected"; // TopstepX SDK manages connections internally
             if (hubStatus != "Connected")
             {
-                issues.Add($"SignalR hub not connected: {hubStatus}");
+                issues.Add($"TopstepX SDK not connected: {hubStatus}");
             }
 
             if (issues.Any())

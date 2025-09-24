@@ -69,7 +69,7 @@ public class Program
   🧠 ONE BRAIN - Consolidates all trading bot functionality into one     
   ⚡ ONE SYSTEM - Replaces 4+ separate orchestrators with clean solution
   🔄 ONE WORKFLOW ENGINE - All workflows managed by single scheduler  
-  🌐 ONE TOPSTEPX CONNECTION - Unified API and SignalR hub management      
+  🌐 ONE TOPSTEPX CONNECTION - Unified API and SDK management      
   📊 ONE INTELLIGENCE SYSTEM - ML/RL models and predictions unified         
   📈 ONE TRADING ENGINE - All trading logic consolidated               
   📁 ONE DATA SYSTEM - Centralized data collection and reporting          
@@ -221,7 +221,7 @@ Stack Trace:
                 // REDUCE NOISE - Override Microsoft and System logging to warnings only
                 logging.AddFilter("Microsoft", LogLevel.Warning);
                 logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Error);
+                logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
                 logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
             })
             .ConfigureServices((context, services) =>
@@ -235,7 +235,7 @@ Stack Trace:
 
     private static void ConfigureUnifiedServices(IServiceCollection services, IConfiguration configuration, HostBuilderContext hostContext)
     {
-        // Register login completion state for SignalR connection management
+        // Register login completion state for TopstepX SDK connection management
         services.AddSingleton<Services.ILoginCompletionState, Services.EnterpriseLoginCompletionState>();
         
         // Register TradingBot.Abstractions.ILoginCompletionState for AutoTopstepXLoginService
@@ -277,7 +277,7 @@ Stack Trace:
         // Register snapshot manager for state reconciliation
         services.AddSingleton<ISnapshotManager, SnapshotManager>();
 
-        // Legacy SignalR connection manager removed - using TopstepX SDK adapter for connections
+        // Legacy connection manager removed - using TopstepX SDK adapter for connections
 
         // Register platform-aware Python path resolver
         services.AddSingleton<IPythonPathResolver, PlatformAwarePythonPathResolver>();
@@ -794,7 +794,7 @@ Stack Trace:
                 services.TryAddSingleton<BotCore.Services.PerformanceTracker>();
                 services.TryAddSingleton<BotCore.Services.TradingProgressMonitor>();
                 services.TryAddSingleton<BotCore.Services.TimeOptimizedStrategyManager>();
-                // NOTE: TopstepXService disabled to avoid SignalR connection conflicts
+                // NOTE: TopstepXService disabled to avoid connection conflicts
                 
                 
                 // Try to register more complex services (these might fail due to missing dependencies)

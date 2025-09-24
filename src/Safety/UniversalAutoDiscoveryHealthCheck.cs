@@ -373,9 +373,9 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
             };
         }
 
-        // Hub Clients
+        // Hub Clients (excluding legacy, now using TopstepX SDK)
         var hubTypes = types.Where(t =>
-            t.Name.Contains("Hub") || t.Name.Contains("SignalR"))
+            t.Name.Contains("Hub") && !t.Name.Contains("Legacy"))
             .ToList();
 
         foreach (var type in hubTypes)
@@ -596,7 +596,6 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
         var knownDependencies = new[]
         {
             "Microsoft.ML.OnnxRuntime",
-            "Microsoft.AspNetCore.SignalR.Client",
             "Newtonsoft.Json",
             "System.Text.Json"
         };
