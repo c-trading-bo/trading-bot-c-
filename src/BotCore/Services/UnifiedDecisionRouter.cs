@@ -698,7 +698,7 @@ public class UnifiedTradingDecision
     public decimal Quantity { get; set; }
     public string Strategy { get; set; } = string.Empty;
     public string DecisionSource { get; set; } = string.Empty;
-    public Dictionary<string, object> Reasoning { get; } = new();
+    public Dictionary<string, object> Reasoning { get; set; } = new();
     public DateTime Timestamp { get; set; }
     public double ProcessingTimeMs { get; set; }
 }

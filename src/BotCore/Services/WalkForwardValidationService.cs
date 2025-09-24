@@ -670,7 +670,7 @@ namespace BotCore.Services
         public bool PassesThresholds { get; set; }
 
         // Detailed results
-        public List<WindowResult> WindowResults { get; } = new();
+        public List<WindowResult> WindowResults { get; set; } = new();
     }
 
     #endregion
