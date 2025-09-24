@@ -68,7 +68,7 @@ namespace BotCore.Integrations
                     ExitPrice = exitPrice,
                     ExitTime = exitTime,
                     HoldingTimeMinutes = (decimal)holdingTime.TotalMinutes,
-                    ActualRMultiple = CalculateRMultiple(entryPrice, exitPrice, pnl, isWin),
+                    ActualRMultiple = CalculateRMultiple(entryPrice, exitPrice, pnl),
                     MaxDrawdown = Math.Min(0, pnl) // Simplified - could be enhanced with real-time tracking
                 };
 

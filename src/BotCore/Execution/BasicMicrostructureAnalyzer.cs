@@ -200,7 +200,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
         // Choose optimal strategy
         var recommendation = ChooseOptimalStrategy(
-            intent, currentState, marketOrderEV, limitOrderEV,
+            intent, marketOrderEV, limitOrderEV,
             marketSlippage, limitOrderSlippage, limitOrderFillProb, bestLimitPrice);
 
         // Record execution for learning

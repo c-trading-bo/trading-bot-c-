@@ -870,25 +870,25 @@ namespace TradingBot.Critical
             foreach (var position in _activePositions.Values)
             {
                 // Check if stop loss exists
-                var stopLossExists = await CheckOrderExists(position.StopLossOrderId).ConfigureAwait(false);
+                var stopLossExists = await CheckOrderExists().ConfigureAwait(false);
                 
                 if (!stopLossExists)
                 {
                     // Reattach stop loss
                     var stopPrice = CalculateStopLoss(position);
-                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice).ConfigureAwait(false);
+                    var stopOrder = await PlaceStopLossOrder().ConfigureAwait(false);
                     position.StopLossOrderId = stopOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached stop loss for {position.Symbol} at {stopPrice}");
                 }
                 
                 // Check take profit
-                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId).ConfigureAwait(false);
+                var takeProfitExists = await CheckOrderExists().ConfigureAwait(false);
                 
                 if (!takeProfitExists)
                 {
                     var targetPrice = CalculateTakeProfit(position);
-                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice).ConfigureAwait(false);
+                    var targetOrder = await PlaceTakeProfitOrder().ConfigureAwait(false);
                     position.TakeProfitOrderId = targetOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached take profit for {position.Symbol} at {targetPrice}");

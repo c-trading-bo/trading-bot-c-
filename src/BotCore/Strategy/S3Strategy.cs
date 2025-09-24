@@ -301,7 +301,7 @@ namespace BotCore.Strategy
                 var r = entry - isl;
                 if (r <= 0) { Reject("risk_nonpos_long"); return lst; }
                 var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
-                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, true, expF);
+                var (t1, _) = Targets(cfg, r, entry, boxW, true, expF);
                 AllStrategies.add_cand(lst, "S3", symbol, "BUY", entry, isl, t1, env, risk);
                 st.MarkFilled(segStartIdx, Side.BUY, last.Start);
                 RegisterAttempt(symbol, session, Side.BUY);
@@ -328,7 +328,7 @@ namespace BotCore.Strategy
                 var r = ish - entry;
                 if (r <= 0) { Reject("risk_nonpos_short"); return lst; }
                 var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
-                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, false, expF);
+                var (t1, _) = Targets(cfg, r, entry, boxW, false, expF);
                 AllStrategies.add_cand(lst, "S3", symbol, "SELL", entry, ish, t1, env, risk,
                     tag: $"rank={widthRank:F2} run={squeezeRun} nrOK={hasNrCluster} slope5={slope5:F3} barq={barq:F2}");
                 st.MarkFilled(segStartIdx, Side.SELL, last.Start);

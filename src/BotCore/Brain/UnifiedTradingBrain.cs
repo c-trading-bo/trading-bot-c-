@@ -214,7 +214,7 @@ namespace BotCore.Brain
                 var priceDirection = await PredictPriceDirectionAsync(context, bars).ConfigureAwait(false);
                 
                 // 5. OPTIMIZE POSITION SIZE using RL
-                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false);
+                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, cancellationToken).ConfigureAwait(false);
                 
                 // 6. GENERATE ENHANCED CANDIDATES using brain intelligence
                 var enhancedCandidates = await GenerateEnhancedCandidatesAsync(
@@ -289,7 +289,7 @@ namespace BotCore.Brain
                     await _strategySelector.UpdateArmAsync(strategy, contextVector, reward, cancellationToken).ConfigureAwait(false);
                     
                     // 🚀 MULTI-STRATEGY LEARNING: Update ALL strategies with this market condition
-                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, pnl, cancellationToken).ConfigureAwait(false);
+                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Update performance tracking for the specific strategy
@@ -1123,7 +1123,7 @@ namespace BotCore.Brain
                 UpdateOptimalConditionsFromPerformance(performanceAnalysis);
                 
                 // Cross-pollinate successful patterns between strategies
-                await CrossPollinateStrategyPatternsAsync(cancellationToken).ConfigureAwait(false);
+                await CrossPollinateStrategyPatternsAsync().ConfigureAwait(false);
                 
                 _logger.LogInformation("✅ [UNIFIED-LEARNING] Completed unified learning update");
             }
