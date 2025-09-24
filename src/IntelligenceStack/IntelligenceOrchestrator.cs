@@ -139,40 +139,6 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
         LoggerMessage.Define(LogLevel.Error, new EventId(4023, "MLExecutionInvalidOperation"),
             "[ML] Invalid operation during ML model execution");
             
-    // Additional delegates for prediction workflow
-    private static readonly Action<ILogger, string, string, decimal, Exception?> PredictionGenerated =
-        LoggerMessage.Define<string, string, decimal>(LogLevel.Information, new EventId(4024, "PredictionGenerated"),
-            "[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}");
-            
-    private static readonly Action<ILogger, Exception?> PredictionGenerationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4025, "PredictionGenerationFailed"),
-            "[PREDICTION] Prediction generation failed");
-            
-    private static readonly Action<ILogger, Exception?> CorrelationAnalysisStarted =
-        LoggerMessage.Define(LogLevel.Information, new EventId(4026, "CorrelationAnalysisStarted"),
-            "[CORRELATION] Performing feature correlation analysis");
-            
-    private static readonly Action<ILogger, string, double, Exception?> CorrelationResult =
-        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4027, "CorrelationResult"),
-            "[CORRELATION] {Feature}: {Correlation:F3}");
-            
-    private static readonly Action<ILogger, Exception?> CorrelationAnalysisFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4028, "CorrelationAnalysisFailed"),
-            "[CORRELATION] Correlation analysis failed");
-            
-    // Additional CA1848 compliance delegates for remaining violations
-    private static readonly Action<ILogger, string, Exception?> ModelRetrievalFailed =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4029, "ModelRetrievalFailed"),
-            "[INTELLIGENCE] Failed to get model for regime: {RegimeType}");
-            
-    private static readonly Action<ILogger, Exception?> PredictionFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4030, "PredictionFailed"),
-            "[INTELLIGENCE] Prediction failed");
-            
-    private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4031, "RealPredictionCalculationFailed"),
-            "[INTELLIGENCE] Real prediction calculation failed");
-            
     private static readonly Action<ILogger, string, int, Exception?> RLWeightsUpdated =
         LoggerMessage.Define<string, int>(LogLevel.Information, new EventId(4024, "RLWeightsUpdated"),
             "[RL] Updated weights for regime: {RegimeType}, Features: {FeatureCount}");
@@ -188,6 +154,39 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
     private static readonly Action<ILogger, string, Exception?> EventRaiseFailed =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(4031, "EventRaiseFailed"),
             "[INTELLIGENCE] Failed to raise event: {EventName}");
+            
+    // Additional LoggerMessage delegates for CA1848 compliance
+    private static readonly Action<ILogger, string, string, decimal, Exception?> PredictionGenerated =
+        LoggerMessage.Define<string, string, decimal>(LogLevel.Information, new EventId(4032, "PredictionGenerated"),
+            "[PREDICTION] Generated prediction for {Symbol}: {Action} with confidence {Confidence:F3}");
+            
+    private static readonly Action<ILogger, Exception?> PredictionGenerationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4033, "PredictionGenerationFailed"),
+            "[PREDICTION] Prediction generation failed");
+            
+    private static readonly Action<ILogger, Exception?> CorrelationAnalysisStarted =
+        LoggerMessage.Define(LogLevel.Information, new EventId(4034, "CorrelationAnalysisStarted"),
+            "[CORRELATION] Performing feature correlation analysis");
+            
+    private static readonly Action<ILogger, string, double, Exception?> CorrelationResult =
+        LoggerMessage.Define<string, double>(LogLevel.Debug, new EventId(4035, "CorrelationResult"),
+            "[CORRELATION] {Feature}: {Correlation:F3}");
+            
+    private static readonly Action<ILogger, Exception?> CorrelationAnalysisFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4036, "CorrelationAnalysisFailed"),
+            "[CORRELATION] Correlation analysis failed");
+            
+    private static readonly Action<ILogger, string, Exception?> ModelRetrievalFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4037, "ModelRetrievalFailed"),
+            "[INTELLIGENCE] Failed to get model for regime: {RegimeType}");
+            
+    private static readonly Action<ILogger, Exception?> PredictionFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4038, "PredictionFailed"),
+            "[INTELLIGENCE] Prediction failed");
+            
+    private static readonly Action<ILogger, Exception?> RealPredictionCalculationFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(4039, "RealPredictionCalculationFailed"),
+            "[INTELLIGENCE] Real prediction calculation failed");
     
     private readonly ILogger<IntelligenceOrchestrator> _logger;
     private readonly IntelligenceStackConfig _config;
@@ -806,19 +805,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                 Results = { ["message"] = $"Decision made: {decision.Action}", ["decision"] = decision }
             };
         }
-        catch (InvalidOperationException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (FormatException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (OverflowException ex)
+        catch (Exception ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -840,22 +827,9 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await ProcessMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Market data processed successfully" } };
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (ArgumentException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (FormatException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
-        catch (OverflowException ex)
-        {
-            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
-        }
         }
     }
 
@@ -902,12 +876,10 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             IntelligenceEventLogged(_logger, eventName, message, null);
             IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
-#pragma warning disable CA1031 // Do not catch general exception types - Event safety requires catching all exceptions
         catch (Exception ex)
         {
             EventRaiseFailed(_logger, eventName, ex);
         }
-#pragma warning restore CA1031
     }
 
     /// <summary>
@@ -975,22 +947,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             // No model available for this regime
             return null;
         }
-        catch (DirectoryNotFoundException)
-        {
-            // Model directory not found
-            return null;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
-            return null;
-        }
-        catch (IOException ex)
-        {
-            ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
-            return null;
-        }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
             return null;
@@ -1038,17 +995,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return Math.Min(baseConfidence, MaxConfidence);
         }
-        catch (InvalidOperationException ex)
-        {
-            PredictionFailed(_logger, ex);
-            return 0.0;
-        }
-        catch (ArgumentException ex)
-        {
-            PredictionFailed(_logger, ex);
-            return 0.0;
-        }
-        catch (ArithmeticException ex)
+        catch (Exception ex)
         {
             PredictionFailed(_logger, ex);
             return 0.0;
@@ -1183,17 +1130,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             
             return (confidence, model.Id);
         }
-        catch (InvalidOperationException ex)
-        {
-            RealPredictionCalculationFailed(_logger, ex);
-            return (BaseConfidenceLevel, "error_fallback");
-        }
-        catch (ArgumentException ex)
-        {
-            RealPredictionCalculationFailed(_logger, ex);
-            return (BaseConfidenceLevel, "error_fallback");
-        }
-        catch (ArithmeticException ex)
+        catch (Exception ex)
         {
             RealPredictionCalculationFailed(_logger, ex);
             return (BaseConfidenceLevel, "error_fallback");
