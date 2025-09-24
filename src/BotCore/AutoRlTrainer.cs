@@ -42,36 +42,6 @@ namespace BotCore
             _pythonScriptDir = null;
         }
 
-        private void CleanupOldBackups()
-        {
-            try
-            {
-                var modelDir = _modelDir ?? "models";
-                if (!Directory.Exists(modelDir)) return;
-
-                var backupFiles = Directory.GetFiles(modelDir, "backup_rl_sizer_*.onnx")
-                    .Select(f => new FileInfo(f))
-                    .OrderByDescending(f => f.CreationTime)
-                    .Skip(5) // Keep last 5 backups
-                    .ToList();
-
-                foreach (var file in backupFiles)
-                {
-                    file.Delete();
-                    _log.LogDebug("[AutoRlTrainer] Cleaned up old backup: {File}", file.Name);
-                }
-
-                if (backupFiles.Any())
-                {
-                    _log.LogInformation("[AutoRlTrainer] Cleaned up {Count} old backup(s)", backupFiles.Count);
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning(ex, "[AutoRlTrainer] Failed to cleanup old backups");
-            }
-        }
-
         public void Dispose()
         {
             if (_disposed) return;

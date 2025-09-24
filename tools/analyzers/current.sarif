@@ -36,6 +36,13 @@
             "text": "Missing methods/properties in interfaces - 136 instances remaining" 
           },
           "level": "error"
+        },
+        {
+          "ruleId": "CS0201",
+          "message": {
+            "text": "Invalid statement usage - 126 instances remaining"
+          },
+          "level": "error"
         }
       ]
     }
