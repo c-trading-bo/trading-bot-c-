@@ -29,7 +29,7 @@ namespace TradingBot.Critical
     {
         private readonly ConcurrentDictionary<string, OrderRecord> _pendingOrders = new();
         private readonly ConcurrentDictionary<string, FillRecord> _confirmedFills = new();
-        private readonly HubConnection _signalRConnection;
+        private readonly TradingBot.Abstractions.ITopstepXClient _topstepXClient;
         private readonly SQLiteConnection _database;
         private Timer? _reconciliationTimer;
         private readonly object _lockObject = new();
@@ -86,25 +86,18 @@ namespace TradingBot.Critical
             public string RejectReason { get; set; } = string.Empty;
         }
         
-        public ExecutionVerificationSystem(HubConnection signalRConnection, ILogger<ExecutionVerificationSystem> logger)
+        public ExecutionVerificationSystem(TradingBot.Abstractions.ITopstepXClient topstepXClient, ILogger<ExecutionVerificationSystem> logger)
         {
-            _signalRConnection = signalRConnection;
+            _topstepXClient = topstepXClient;
             _logger = logger;
             _database = new SQLiteConnection("Data Source=audit.db");
         }
         
         public Task InitializeVerificationSystem()
         {
-            // Setup SignalR listeners for fill events
-            _signalRConnection.On<FillEventData>("FillReceived", async (fillData) =>
-            {
-                await ProcessFillEvent(fillData).ConfigureAwait(false);
-            });
-            
-            _signalRConnection.On<OrderStatusData>("OrderStatusUpdate", async (statusData) =>
-            {
-                await ProcessOrderStatus(statusData).ConfigureAwait(false);
-            });
+            // Setup TopstepX SDK listeners for fill events
+            _topstepXClient.OnTradeUpdate += HandleTradeUpdate;
+            _topstepXClient.OnOrderUpdate += HandleOrderUpdate;
             
             // Initialize database for audit trail
             InitializeAuditDatabase();
@@ -115,6 +108,30 @@ namespace TradingBot.Critical
             _logger.LogInformation("ExecutionVerificationSystem initialized");
             
             return Task.CompletedTask;
+        }
+
+        private void HandleTradeUpdate(object? sender, TradeUpdateEventArgs e)
+        {
+            var fillData = new FillEventData
+            {
+                OrderId = e.OrderId,
+                FillPrice = e.FillPrice,
+                Quantity = e.Quantity,
+                Symbol = e.Symbol,
+                Timestamp = DateTime.UtcNow
+            };
+            _ = ProcessFillEvent(fillData);
+        }
+
+        private void HandleOrderUpdate(object? sender, OrderUpdateEventArgs e)
+        {
+            var statusData = new OrderStatusData
+            {
+                OrderId = e.OrderId,
+                Status = e.Status,
+                Timestamp = DateTime.UtcNow
+            };
+            _ = ProcessOrderStatus(statusData);
         }
         
         private Task ProcessFillEvent(FillEventData fillData)
