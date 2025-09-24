@@ -562,7 +562,7 @@ namespace TopstepX.Bot.Core.Services
                 // PHASE 8: Process validated signals for order placement
                 foreach (var signal in aggregatedSignals.Where(s => s.Score > 0.6m && s.Size > 0))
                 {
-                    await ProcessMlRlEnhancedSignalAsync(signal, featureVector).ConfigureAwait(false);
+                    await ProcessMlRlEnhancedSignalAsync(signal).ConfigureAwait(false);
                 }
                 
                 // Update active signals cache for continuous monitoring
@@ -1380,17 +1380,17 @@ namespace TopstepX.Bot.Core.Services
                 if (signal.StrategyId.Contains("STOP"))
                 {
                     // Update stop loss using ML-optimized levels
-                    await UpdateStopLossAsync(signal, featureVector).ConfigureAwait(false);
+                    await UpdateStopLossAsync(signal).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("TARGET"))
                 {
                     // Update take profit using ML-optimized levels
-                    await UpdateTakeProfitAsync(signal, featureVector).ConfigureAwait(false);
+                    await UpdateTakeProfitAsync(signal).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("SCALE"))
                 {
                     // Handle position scaling (add/reduce) using ML risk management
-                    await ProcessPositionScalingAsync(signal, featureVector).ConfigureAwait(false);
+                    await ProcessPositionScalingAsync(signal).ConfigureAwait(false);
                 }
 
                 _logger.LogDebug("[ML/RL-POS-MGMT-SIGNAL] Processed position management signal for {Symbol}: {Strategy}", 

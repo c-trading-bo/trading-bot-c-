@@ -1364,7 +1364,7 @@ namespace TradingBot.Critical
         public async Task<bool> ValidateNewPosition(string symbol, int quantity, string direction)
         {
             // Calculate new exposure
-            var newExposure = CalculateExposure(symbol, quantity, direction);
+            var newExposure = CalculateExposure(quantity);
             
             // Get current exposures
             var currentTotalExposure = _exposures.Values.Sum(e => Math.Abs(e.DirectionalExposure));
@@ -1408,7 +1408,7 @@ namespace TradingBot.Critical
             }
             
             // Check portfolio concentration
-            var concentration = CalculatePortfolioConcentration(symbol, newExposure);
+            var concentration = CalculatePortfolioConcentration();
             
             if (concentration > 0.5m) // No single direction > 50% of portfolio
             {
@@ -1462,10 +1462,7 @@ namespace TradingBot.Critical
                     {
                         if (symbol1 != symbol2)
                         {
-                            var correlation = CalculatePearsonCorrelation(
-                                priceData[symbol1],
-                                priceData[symbol2]
-                            );
+                            var correlation = CalculatePearsonCorrelation();
                             
                             _correlationMatrix[symbol1][symbol2] = correlation;
                         }

@@ -151,7 +151,7 @@ namespace BotCore.Strategy
             var rankThresh = localWidthRankEnter;
             if (cfg.HourlyRankAdapt)
             {
-                rankThresh = AdaptedRankThreshold(symbol, last.Start, rankThresh);
+                rankThresh = AdaptedRankThreshold(last.Start, rankThresh);
             }
             bool squeezeOnRank = widthRank <= rankThresh;
 

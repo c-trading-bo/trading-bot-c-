@@ -201,17 +201,17 @@ namespace BotCore.Brain
             try
             {
                 // 1. CREATE MARKET CONTEXT from current data
-                var context = CreateMarketContext(symbol, env, levels, bars);
+                var context = CreateMarketContext(symbol, env, bars);
                 _marketContexts[symbol] = context;
                 
                 // 2. DETECT MARKET REGIME using Meta Classifier
-                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken).ConfigureAwait(false);
+                var marketRegime = await DetectMarketRegimeAsync(context).ConfigureAwait(false);
                 
                 // 3. SELECT OPTIMAL STRATEGY using Neural UCB
                 var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken).ConfigureAwait(false);
                 
                 // 4. PREDICT PRICE MOVEMENT using LSTM
-                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken).ConfigureAwait(false);
+                var priceDirection = await PredictPriceDirectionAsync(context, bars).ConfigureAwait(false);
                 
                 // 5. OPTIMIZE POSITION SIZE using RL
                 var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false);
