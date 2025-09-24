@@ -2,8 +2,6 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-
 namespace UnifiedOrchestratorDemo
 {
     /// <summary>

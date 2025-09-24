@@ -13,7 +13,7 @@ public sealed class TradingProfileConfig
     [JsonPropertyName("concurrency")] public Concurrency Concurrency { get; set; } = new();
     [JsonPropertyName("hysteresis")] public Hysteresis Hysteresis { get; set; } = new();
     [JsonPropertyName("attempt_caps")] public Dictionary<string, int> AttemptCaps { get; set; } = [];
-    [JsonPropertyName("buffers")] public Buffers Buffers { get; set; } = new();
+    [JsonPropertyName("buffers")] public BufferConfig Buffers { get; set; } = new();
     [JsonPropertyName("strategies")] public List<StrategyDef> Strategies { get; set; } = [];
 
     // NEW: Always-on bias and News tuning
@@ -65,7 +65,7 @@ public sealed class Hysteresis
     [JsonPropertyName("min_dwell_minutes")] public int MinDwellMinutes { get; set; }
 }
 
-public sealed class Buffers
+public sealed class BufferConfig
 {
     [JsonPropertyName("ES_ticks")] public int ES_Ticks { get; set; }
     [JsonPropertyName("NQ_ticks")] public int NQ_Ticks { get; set; }
