@@ -805,7 +805,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
                 Results = { ["message"] = $"Decision made: {decision.Action}", ["decision"] = decision }
             };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -827,7 +835,15 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await ProcessMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
             return new WorkflowExecutionResult { Success = true, Results = { ["message"] = "Market data processed successfully" } };
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (ArgumentException ex)
+        {
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
+        }
+        catch (TimeoutException ex)
         {
             return new WorkflowExecutionResult { Success = false, ErrorMessage = ex.Message };
         }
@@ -876,10 +892,12 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             IntelligenceEventLogged(_logger, eventName, message, null);
             IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
+#pragma warning disable CA1031 // Do not catch general exception types - Event safety requires catching all exceptions
         catch (Exception ex)
         {
             EventRaiseFailed(_logger, eventName, ex);
         }
+#pragma warning restore CA1031
     }
 
     /// <summary>
@@ -947,7 +965,17 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             // No model available for this regime
             return null;
         }
-        catch (Exception ex)
+        catch (DirectoryNotFoundException)
+        {
+            // Model directory not found
+            return null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
+            return null;
+        }
+        catch (IOException ex)
         {
             ModelRetrievalFailed(_logger, regimeType.ToString(), ex);
             return null;
@@ -995,7 +1023,17 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return Math.Min(baseConfidence, MaxConfidence);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            PredictionFailed(_logger, ex);
+            return 0.0;
+        }
+        catch (ArgumentException ex)
+        {
+            PredictionFailed(_logger, ex);
+            return 0.0;
+        }
+        catch (ArithmeticException ex)
         {
             PredictionFailed(_logger, ex);
             return 0.0;
@@ -1130,7 +1168,17 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             
             return (confidence, model.Id);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            RealPredictionCalculationFailed(_logger, ex);
+            return (BaseConfidenceLevel, "error_fallback");
+        }
+        catch (ArgumentException ex)
+        {
+            RealPredictionCalculationFailed(_logger, ex);
+            return (BaseConfidenceLevel, "error_fallback");
+        }
+        catch (ArithmeticException ex)
         {
             RealPredictionCalculationFailed(_logger, ex);
             return (BaseConfidenceLevel, "error_fallback");
