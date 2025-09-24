@@ -40,13 +40,6 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5006, "TestFailed"),
             "[STARTUP] ❌ {TestName} failed ({ElapsedMs:F2}ms)");
             
-
-            
-
-    private static readonly Action<ILogger, string, double, Exception?> TestFailedException =
-        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5016, "TestFailedException"),
-            "[STARTUP] ❌ {TestName} FAILED with exception ({ElapsedMs:F2}ms)");
-            
     private static readonly Action<ILogger, double, Exception?> AllTestsPassed =
         LoggerMessage.Define<double>(LogLevel.Information, new EventId(5017, "AllTestsPassed"),
             "[STARTUP] 🎉 ALL TESTS PASSED - Trading system is ready! Total time: {ElapsedMs:F2}ms");
@@ -306,7 +299,6 @@ public class StartupValidator : IStartupValidator
         {
             AllTestsPassed(_logger, stopwatch.ElapsedMilliseconds, null);
         }
-    }
         else
         {
             ValidationFailedSummary(_logger, result.FailureReasons.Count, null);
@@ -314,11 +306,8 @@ public class StartupValidator : IStartupValidator
             foreach (var reason in result.FailureReasons)
             {
                 FailureReason(_logger, reason, null);
-                result.ValidationErrors.Add(reason);
             }
         }
-
-        return result;
     }
 
     public async Task<bool> ValidateDIGraphAsync(CancellationToken cancellationToken = default)

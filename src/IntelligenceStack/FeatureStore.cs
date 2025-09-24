@@ -578,7 +578,7 @@ public class FeatureStore : IFeatureStore
             FailureReason = reason,
             MissingnessPct = missingnessPct,
             OutOfRangePct = outOfRangePct,
-            TypeErrorCount = typeErrorCount
+            TypeErrorCount = counts.typeErrorCount
         };
     }
 

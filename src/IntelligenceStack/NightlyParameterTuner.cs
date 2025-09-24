@@ -231,103 +231,112 @@ public class NightlyParameterTuner
                 return result;
             }
 
-            // Create tuning session
-            var session = await CreateTuningSessionAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-            
-            // Run Bayesian optimization
-            var bayesianResult = await RunBayesianOptimizationAsync(session, cancellationToken).ConfigureAwait(false);
-            
-            // If Bayesian optimization doesn't find good parameters, try evolutionary search
-            if (!bayesianResult.ImprovedBaseline)
-            {
-                BayesianDidntImproveBaseline(_logger, null);
-                var evolutionaryResult = await RunEvolutionarySearchAsync(session, cancellationToken).ConfigureAwait(false);
-                
-                if (evolutionaryResult.ImprovedBaseline)
-                {
-                    bayesianResult = evolutionaryResult;
-                    result.Method = TuningMethod.EvolutionarySearch;
-                }
-            }
-
-            result.BaselineMetrics = bayesianResult.BaselineMetrics;
-            result.BestMetrics = bayesianResult.BestMetrics;
-            result.TrialsCompleted = bayesianResult.TrialsCompleted;
-            result.ImprovedBaseline = bayesianResult.ImprovedBaseline;
-            
-            // Copy best parameters to the read-only dictionary
-            foreach (var kvp in bayesianResult.BestParameters)
-            {
-                result.BestParameters[kvp.Key] = kvp.Value;
-            }
-
-            // Promote model if improvement found
-            if (bayesianResult.ImprovedBaseline)
-            {
-                await PromoteImprovedModelAsync(modelFamily, bayesianResult, cancellationToken).ConfigureAwait(false);
-                result.ModelPromoted = true;
-            }
-            else
-            {
-                // Check if rollback is needed due to degradation
-                if (await ShouldRollbackAsync(modelFamily, bayesianResult.BaselineMetrics, cancellationToken).ConfigureAwait(false))
-                {
-                    await PerformRollbackAsync(modelFamily, cancellationToken).ConfigureAwait(false);
-                    result.RolledBack = true;
-                }
-            }
-
-            result.EndTime = DateTime.UtcNow;
-            result.Success = true;
-
-            // Save results
-            await SaveTuningResultAsync(result, cancellationToken).ConfigureAwait(false);
-
-            CompletedNightlyTuning(_logger, modelFamily, result.ImprovedBaseline, result.TrialsCompleted, 
-                result.Duration.TotalMinutes, null);
-
+            await ExecuteTuningWorkflowAsync(result, modelFamily, cancellationToken).ConfigureAwait(false);
             return result;
         }
         catch (InvalidOperationException ex)
         {
             NightlyTuningFailed(_logger, modelFamily, ex);
-            return new NightlyTuningResult 
-            { 
-                ModelFamily = modelFamily, 
-                Success = false, 
-                ErrorMessage = ex.Message 
-            };
+            return CreateErrorResult(modelFamily, ex);
         }
         catch (ArgumentException ex)
         {
             NightlyTuningFailed(_logger, modelFamily, ex);
-            return new NightlyTuningResult 
-            { 
-                ModelFamily = modelFamily, 
-                Success = false, 
-                ErrorMessage = ex.Message 
-            };
+            return CreateErrorResult(modelFamily, ex);
         }
         catch (IOException ex)
         {
             NightlyTuningFailed(_logger, modelFamily, ex);
-            return new NightlyTuningResult 
-            { 
-                ModelFamily = modelFamily, 
-                Success = false, 
-                ErrorMessage = ex.Message 
-            };
+            return CreateErrorResult(modelFamily, ex);
         }
-        catch (TimeoutException ex)
+    }
+
+    private async Task ExecuteTuningWorkflowAsync(NightlyTuningResult result, string modelFamily, CancellationToken cancellationToken)
+    {
+        // Create tuning session
+        var session = await CreateTuningSessionAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+        
+        // Run optimization algorithms
+        var bayesianResult = await ExecuteOptimizationAsync(result, session, cancellationToken).ConfigureAwait(false);
+        
+        // Update result with optimization data
+        UpdateResultWithOptimizationData(result, bayesianResult);
+
+        // Handle model promotion or rollback
+        await HandleModelPromotionOrRollbackAsync(result, modelFamily, bayesianResult, cancellationToken).ConfigureAwait(false);
+
+        // Finalize result
+        result.EndTime = DateTime.UtcNow;
+        result.Success = true;
+        await SaveTuningResultAsync(result, cancellationToken).ConfigureAwait(false);
+
+        CompletedNightlyTuning(_logger, modelFamily, result.ImprovedBaseline, result.TrialsCompleted, 
+            result.Duration.TotalMinutes, null);
+    }
+
+    private async Task<OptimizationResult> ExecuteOptimizationAsync(NightlyTuningResult result, TuningSession session, CancellationToken cancellationToken)
+    {
+        // Run Bayesian optimization
+        var bayesianResult = await RunBayesianOptimizationAsync(session, cancellationToken).ConfigureAwait(false);
+        
+        // If Bayesian optimization doesn't find good parameters, try evolutionary search
+        if (!bayesianResult.ImprovedBaseline)
         {
-            NightlyTuningFailed(_logger, modelFamily, ex);
-            return new NightlyTuningResult 
-            { 
-                ModelFamily = modelFamily, 
-                Success = false, 
-                ErrorMessage = ex.Message 
-            };
+            BayesianDidntImproveBaseline(_logger, null);
+            var evolutionaryResult = await RunEvolutionarySearchAsync(session, cancellationToken).ConfigureAwait(false);
+            
+            if (evolutionaryResult.ImprovedBaseline)
+            {
+                bayesianResult = evolutionaryResult;
+                result.Method = TuningMethod.EvolutionarySearch;
+            }
         }
+
+        return bayesianResult;
+    }
+
+    private static void UpdateResultWithOptimizationData(NightlyTuningResult result, OptimizationResult bayesianResult)
+    {
+        result.BaselineMetrics = bayesianResult.BaselineMetrics;
+        result.BestMetrics = bayesianResult.BestMetrics;
+        result.TrialsCompleted = bayesianResult.TrialsCompleted;
+        result.ImprovedBaseline = bayesianResult.ImprovedBaseline;
+        
+        // Copy best parameters to the read-only dictionary
+        foreach (var kvp in bayesianResult.BestParameters)
+        {
+            result.BestParameters[kvp.Key] = kvp.Value;
+        }
+    }
+
+    private async Task HandleModelPromotionOrRollbackAsync(NightlyTuningResult result, string modelFamily, OptimizationResult bayesianResult, CancellationToken cancellationToken)
+    {
+        // Promote model if improvement found
+        if (bayesianResult.ImprovedBaseline)
+        {
+            await PromoteImprovedModelAsync(modelFamily, bayesianResult, cancellationToken).ConfigureAwait(false);
+            result.ModelPromoted = true;
+        }
+        else
+        {
+            // Check if rollback is needed due to degradation
+            if (await ShouldRollbackAsync(modelFamily, bayesianResult.BaselineMetrics, cancellationToken).ConfigureAwait(false))
+            {
+                await PerformRollbackAsync(modelFamily, cancellationToken).ConfigureAwait(false);
+                result.RolledBack = true;
+            }
+        }
+    }
+
+    private static NightlyTuningResult CreateErrorResult(string modelFamily, Exception ex)
+    {
+        // Note: Logging is handled by the caller
+        return new NightlyTuningResult 
+        { 
+            ModelFamily = modelFamily, 
+            Success = false, 
+            ErrorMessage = ex.Message 
+        };
     }
 
     /// <summary>
@@ -1166,8 +1175,6 @@ public class NightlyParameterTuner
         }
     }
 }
-
-// Removed RandomExtensions class - replaced with secure static method
 
 #region Supporting Classes
 
