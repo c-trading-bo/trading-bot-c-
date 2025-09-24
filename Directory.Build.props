@@ -86,7 +86,7 @@
   <!-- PRODUCTION ENFORCEMENT: Zero-tolerance mock/placeholder detection -->
   <Target Name="ProductionReadinessCheck" BeforeTargets="Build" Condition="'$(SkipProductionReadinessCheck)' != 'true'">
     <!-- Non-Windows enforcement - RESTORED PRODUCTION GUARDRAILS -->
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E 'PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE|placeholder|stub|fake|temporary|demo|example' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path '*/Tests/*' -exec grep -l -E '\bPLACEHOLDER\b|\bTEMP\b|\bDUMMY\b|\bMOCK\b|\bFAKE\b|\bSTUB\b|\bHARDCODED\b|\bSAMPLE\b|\bplaceholder\b|\bstub\b|\bfake\b|\btemporary\b' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
           

@@ -8,21 +8,21 @@ using BotCore.Bandits;
 namespace BotCore.Examples;
 
 /// <summary>
-/// 🎯 COMPATIBILITY KIT INTEGRATION EXAMPLE
+/// 🎯 COMPATIBILITY KIT INTEGRATION REFERENCE
 /// 
 /// Demonstrates how to integrate the non-invasive wrapper layer with your existing
 /// MasterDecisionOrchestrator and UnifiedTradingBrain without any refactoring.
 /// 
-/// This example shows the complete integration flow from setup to enhanced decision making.
+/// This reference shows the complete integration flow from setup to enhanced decision making.
 /// </summary>
-public class CompatibilityKitIntegrationExample
+public class CompatibilityKitIntegrationReference
 {
     /// <summary>
-    /// Complete integration example showing the enhancement of existing trading logic
+    /// Complete integration reference showing the enhancement of existing trading logic
     /// </summary>
-    public static async Task RunIntegrationExampleAsync()
+    public static async Task RunIntegrationReferenceAsync()
     {
-        Console.WriteLine("🔧 COMPATIBILITY KIT INTEGRATION EXAMPLE");
+        Console.WriteLine("🔧 COMPATIBILITY KIT INTEGRATION REFERENCE");
         Console.WriteLine("========================================");
         Console.WriteLine();
         

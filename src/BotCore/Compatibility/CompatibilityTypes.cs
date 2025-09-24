@@ -3,21 +3,11 @@ using System.Collections.Generic;
 
 namespace BotCore.Compatibility;
 
-/// <summary>
-/// Enhanced trading decision with parameter bundle tracking
-/// </summary>
-public record EnhancedTradingDecision
-{
-    public TradingDecision OriginalDecision { get; init; } = new();
-    public ParameterBundle ParameterBundle { get; init; } = new();
-    public ConfigurationSource ConfigurationSource { get; init; } = new();
-    public DateTime TimestampUtc { get; init; } = DateTime.UtcNow;
-    public string DecisionPath { get; init; } = string.Empty;
-    public Dictionary<string, object> ActivelyUsedParameters { get; init; } = new();
-}
+// Note: EnhancedTradingDecision is defined in Services/EnhancedTradingBrainIntegration.cs
+// Note: MarketContext is defined in Brain/UnifiedTradingBrain.cs
 
 /// <summary>
-/// Market context with enhanced parameter support
+/// Configuration source tracking for parameter bundles
 /// </summary>
 public record MarketContext
 {
@@ -31,18 +21,7 @@ public record MarketContext
     public DateTime TimestampUtc { get; init; } = DateTime.UtcNow;
 }
 
-/// <summary>
-/// Configuration source from StructuredConfigurationManager
-/// </summary>
-public class ConfigurationSource
-{
-    public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> BaseParameters { get; set; } = new();
-    public Dictionary<string, object> RiskParameters { get; set; } = new();
-    public Dictionary<string, Dictionary<string, object>> MarketConditionOverrides { get; set; } = new();
-    public string LoadedFrom { get; set; } = string.Empty;
-    public DateTime LastUpdated { get; set; }
-}
+// Note: ConfigurationSource is defined in StructuredConfigurationManager.cs
 
 /// <summary>
 /// Trading decision for compatibility kit

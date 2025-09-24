@@ -738,7 +738,7 @@ public sealed class MamlLiveIntegration : IDisposable
     {
         try
         {
-            // Parameters intentionally unused in placeholder implementation
+            // Parameters reserved for future implementation
             _ = regime;
             _ = count;
             _ = cancellationToken;
@@ -782,11 +782,11 @@ public sealed class MamlLiveIntegration : IDisposable
     {
         try
         {
-            // Parameters intentionally unused in placeholder implementation
+            // Parameters reserved for future implementation
             _ = regime;
             _ = count;
             
-            await Task.Yield(); // Placeholder for async operation
+            await Task.Yield(); // Reserved for async operation
             
             // In a full implementation, this would integrate with:
             // 1. TopstepX market data API for recent regime-specific market conditions

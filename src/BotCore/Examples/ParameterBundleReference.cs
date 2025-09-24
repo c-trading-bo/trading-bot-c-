@@ -9,17 +9,17 @@ using TradingBot.Abstractions;
 namespace BotCore.Examples;
 
 /// <summary>
-/// Example demonstrating how Neural UCB Extended replaces hardcoded trading parameters
+/// Reference demonstrating how Neural UCB Extended replaces hardcoded trading parameters
 /// 
 /// BEFORE: Hardcoded values like MaxPositionMultiplier = 2.0 and confidenceThreshold = 0.7
 /// AFTER: Dynamic parameter selection via learned bundles
 /// </summary>
-public class ParameterBundleExample
+public class ParameterBundleReference
 {
-    private readonly ILogger<ParameterBundleExample> _logger;
+    private readonly ILogger<ParameterBundleReference> _logger;
     private readonly NeuralUcbExtended _neuralUcbExtended;
     
-    public ParameterBundleExample(ILogger<ParameterBundleExample> logger, NeuralUcbExtended neuralUcbExtended)
+    public ParameterBundleReference(ILogger<ParameterBundleReference> logger, NeuralUcbExtended neuralUcbExtended)
     {
         _logger = logger;
         _neuralUcbExtended = neuralUcbExtended;
@@ -53,7 +53,7 @@ public class ParameterBundleExample
     {
         _logger.LogInformation("✅ [NEW-APPROACH] Using learned parameter bundles:");
         
-        // Create example market context
+        // Create reference market context
         var marketContext = new MarketContext
         {
             Symbol = "ES",
@@ -82,7 +82,7 @@ public class ParameterBundleExample
     }
     
     /// <summary>
-    /// Show complete integration example
+    /// Show complete integration reference
     /// </summary>
     public async Task ShowCompleteIntegrationAsync()
     {

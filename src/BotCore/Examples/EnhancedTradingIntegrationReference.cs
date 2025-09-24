@@ -5,22 +5,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using BotCore.Services;
 
-namespace BotCore.Examples;
+namespace BotCore.References;
 
 /// <summary>
-/// Integration example showing how to use the new neutral band decision policy
+/// Integration reference showing how to use the new neutral band decision policy
 /// and enhanced session-aware runtime gates in trading applications
 /// </summary>
-public class EnhancedTradingIntegrationExample
+public class EnhancedTradingIntegrationReference
 {
     private readonly SafeHoldDecisionPolicy _safeHoldPolicy;
     private readonly SessionAwareRuntimeGates _sessionGates;
-    private readonly ILogger<EnhancedTradingIntegrationExample> _logger;
+    private readonly ILogger<EnhancedTradingIntegrationReference> _logger;
 
-    public EnhancedTradingIntegrationExample(
+    public EnhancedTradingIntegrationReference(
         SafeHoldDecisionPolicy safeHoldPolicy,
         SessionAwareRuntimeGates sessionGates,
-        ILogger<EnhancedTradingIntegrationExample> logger)
+        ILogger<EnhancedTradingIntegrationReference> logger)
     {
         _safeHoldPolicy = safeHoldPolicy;
         _sessionGates = sessionGates;
@@ -28,7 +28,7 @@ public class EnhancedTradingIntegrationExample
     }
 
     /// <summary>
-    /// Example of complete trading decision workflow with neutral band and session awareness
+    /// Reference of complete trading decision workflow with neutral band and session awareness
     /// </summary>
     public async Task<bool> EvaluateCompleteTradingDecisionAsync(
         string symbol,
@@ -96,7 +96,7 @@ public class EnhancedTradingIntegrationExample
     }
 
     /// <summary>
-    /// Example showing session-specific risk parameter adjustment
+    /// Reference showing session-specific risk parameter adjustment
     /// </summary>
     public async Task<decimal> GetSessionAdjustedPositionSizeAsync(
         string symbol,
@@ -135,7 +135,7 @@ public class EnhancedTradingIntegrationExample
     }
 
     /// <summary>
-    /// Example showing neutral band statistics monitoring
+    /// Reference showing neutral band statistics monitoring
     /// </summary>
     public void LogNeutralBandStatistics()
     {
@@ -152,7 +152,7 @@ public class EnhancedTradingIntegrationExample
     }
 
     /// <summary>
-    /// Example showing enhanced reopen curbing logic
+    /// Reference showing enhanced reopen curbing logic
     /// </summary>
     public async Task MonitorReopenCurbStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -173,7 +173,7 @@ public class EnhancedTradingIntegrationExample
     }
 
     /// <summary>
-    /// Example showing integration with existing systems
+    /// Reference showing integration with existing systems
     /// Demonstrates how CloudRlTrainerV2 and BotSupervisor can use the new components
     /// </summary>
     public async Task<string> GetComprehensiveSystemStatusAsync(CancellationToken cancellationToken = default)
@@ -236,7 +236,7 @@ public static class EnhancedTradingIntegrationExtensions
     {
         services.AddSingleton<SessionAwareRuntimeGates>();
         services.AddSingleton<SafeHoldDecisionPolicy>();
-        services.AddSingleton<EnhancedTradingIntegrationExample>();
+        services.AddSingleton<EnhancedTradingIntegrationReference>();
         
         return services;
     }

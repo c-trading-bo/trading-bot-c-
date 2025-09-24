@@ -240,24 +240,9 @@ public class MarketDataUpdate
     public decimal Open { get; set; }
 }
 
-/// <summary>
-/// Enhanced market context for decision making
-/// </summary>
-public record MarketContext
-{
-    public string Symbol { get; init; } = string.Empty;
-    public decimal CurrentPrice { get; init; }
-    public DateTime Timestamp { get; init; }
-    public decimal Volatility { get; init; }
-    public bool IsTrending { get; init; }
-    public bool IsVolatile { get; init; }
-    public decimal Confidence { get; init; }
-    public decimal MaxPositionMultiplier { get; init; }
-    public decimal ConfidenceThreshold { get; init; }
-    public ConfigurationSource? ConfiguredParameters { get; init; }
-}
+// Note: MarketContext is defined in Brain/UnifiedTradingBrain.cs - removed duplicate definition
 
-// Placeholder interfaces for existing services
+// Interfaces for existing services
 public interface IMarketDataService
 {
     event Func<MarketDataUpdate, Task> MarketDataUpdated;

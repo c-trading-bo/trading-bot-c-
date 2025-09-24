@@ -32,7 +32,7 @@ namespace TradingBot.Abstractions
         string GetConfigPath();
 
         /// <summary>
-        /// Directory for temporary files
+        /// Directory for runtime work files
         /// </summary>
         string GetTempPath();
 

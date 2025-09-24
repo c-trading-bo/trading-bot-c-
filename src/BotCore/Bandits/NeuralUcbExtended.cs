@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using BotCore.ML;
+using BrainBrainMarketContext = BotCore.Brain.UnifiedTradingBrain.BrainMarketContext;
 
 namespace BotCore.Bandits;
 
@@ -72,7 +73,7 @@ public class NeuralUcbExtended : IDisposable
     /// This replaces the need for hardcoded MaxPositionMultiplier and confidenceThreshold
     /// </summary>
     public async Task<BundleSelection> SelectBundleAsync(
-        MarketContext marketContext,
+        BrainMarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
         try
@@ -142,7 +143,7 @@ public class NeuralUcbExtended : IDisposable
     /// </summary>
     public async Task UpdateBundlePerformanceAsync(
         string bundleId,
-        MarketContext marketContext,
+        BrainMarketContext marketContext,
         decimal reward,
         Dictionary<string, object>? metadata = null,
         CancellationToken cancellationToken = default)
@@ -246,7 +247,7 @@ public class NeuralUcbExtended : IDisposable
     /// <summary>
     /// Get recommended bundles based on market conditions with bracket optimization
     /// </summary>
-    private List<ParameterBundle> GetRecommendedBundles(MarketContext marketContext)
+    private List<ParameterBundle> GetRecommendedBundles(BrainMarketContext marketContext)
     {
         // Determine market condition from context
         var condition = DetermineMarketCondition(marketContext);
@@ -296,7 +297,7 @@ public class NeuralUcbExtended : IDisposable
     /// <summary>
     /// Apply bracket-specific filtering based on current market conditions
     /// </summary>
-    private List<ParameterBundle> ApplyBracketFiltering(List<ParameterBundle> bundles, MarketContext marketContext)
+    private List<ParameterBundle> ApplyBracketFiltering(List<ParameterBundle> bundles, BrainMarketContext marketContext)
     {
         var filteredBundles = bundles.AsEnumerable();
         
@@ -354,7 +355,7 @@ public class NeuralUcbExtended : IDisposable
     /// <summary>
     /// Determine market condition from context with bracket optimization focus
     /// </summary>
-    private static MarketCondition DetermineMarketCondition(MarketContext marketContext)
+    private static MarketCondition DetermineMarketCondition(BrainMarketContext marketContext)
     {
         // Enhanced market condition detection using bracket-specific features
         var volatility = CalculateBracketVolatility(marketContext);
@@ -392,11 +393,11 @@ public class NeuralUcbExtended : IDisposable
     /// <summary>
     /// Create context vector from market context
     /// </summary>
-    private static ContextVector CreateContextVector(MarketContext marketContext)
+    private static ContextVector CreateContextVector(BrainMarketContext marketContext)
     {
         var features = new Dictionary<string, decimal>();
         
-        // Map MarketContext properties to features
+        // Map BrainMarketContext properties to features
         features["price"] = (decimal)marketContext.Price;
         features["volume"] = (decimal)marketContext.Volume;
         features["bid"] = (decimal)marketContext.Bid;
@@ -443,7 +444,7 @@ public class NeuralUcbExtended : IDisposable
     /// Calculate volatility measure specifically for bracket selection
     /// Combines bid-ask spread, recent price movement, and volume volatility
     /// </summary>
-    private static decimal CalculateBracketVolatility(MarketContext marketContext)
+    private static decimal CalculateBracketVolatility(BrainMarketContext marketContext)
     {
         var spreadVolatility = 0m;
         if (marketContext.Ask > 0 && marketContext.Bid > 0)
@@ -469,7 +470,7 @@ public class NeuralUcbExtended : IDisposable
     /// Calculate trend strength for bracket selection
     /// Strong trends favor wider brackets (swing/aggressive), weak trends favor tight brackets
     /// </summary>
-    private static decimal CalculateBracketTrend(MarketContext marketContext)
+    private static decimal CalculateBracketTrend(BrainMarketContext marketContext)
     {
         // Use moving average indicators if available
         var ma20 = marketContext.TechnicalIndicators.TryGetValue("ma20", out var ma20Val) ? (decimal)ma20Val : (decimal)marketContext.Price;
@@ -497,7 +498,7 @@ public class NeuralUcbExtended : IDisposable
     /// Calculate momentum for bracket timing decisions
     /// High momentum favors aggressive brackets, low momentum favors conservative brackets
     /// </summary>
-    private static decimal CalculateBracketMomentum(MarketContext marketContext)
+    private static decimal CalculateBracketMomentum(BrainMarketContext marketContext)
     {
         var signalStrength = (decimal)marketContext.SignalStrength;
         var confidence = (decimal)marketContext.ConfidenceLevel;
@@ -542,7 +543,7 @@ public class NeuralUcbExtended : IDisposable
     /// Calculate overall risk environment for bracket selection
     /// High risk environments favor conservative brackets
     /// </summary>
-    private static decimal CalculateBracketRiskEnvironment(MarketContext marketContext)
+    private static decimal CalculateBracketRiskEnvironment(BrainMarketContext marketContext)
     {
         var newsIntensity = (decimal)marketContext.NewsIntensity;
         var isFomcDay = marketContext.IsFomcDay ? 1m : 0m;

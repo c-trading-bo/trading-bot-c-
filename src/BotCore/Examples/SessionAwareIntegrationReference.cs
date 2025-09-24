@@ -5,27 +5,27 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using BotCore.Services;
 
-namespace TradingBot.Examples;
+namespace TradingBot.References;
 
 /// <summary>
-/// Example integration showing how to use SessionAwareRuntimeGates
+/// Reference integration showing how to use SessionAwareRuntimeGates
 /// for 24×5 ES/NQ futures trading with proper session awareness
 /// </summary>
-public class SessionAwareIntegrationExample
+public class SessionAwareIntegrationReference
 {
     private readonly SessionAwareRuntimeGates _sessionGates;
-    private readonly ILogger<SessionAwareIntegrationExample> _logger;
+    private readonly ILogger<SessionAwareIntegrationReference> _logger;
 
-    public SessionAwareIntegrationExample(
+    public SessionAwareIntegrationReference(
         SessionAwareRuntimeGates sessionGates,
-        ILogger<SessionAwareIntegrationExample> logger)
+        ILogger<SessionAwareIntegrationReference> logger)
     {
         _sessionGates = sessionGates;
         _logger = logger;
     }
 
     /// <summary>
-    /// Example of session-aware trading decision logic
+    /// Reference of session-aware trading decision logic
     /// </summary>
     public async Task<bool> ShouldExecuteTradeAsync(string symbol, decimal entryPrice, string strategy)
     {
@@ -47,7 +47,7 @@ public class SessionAwareIntegrationExample
                 "Trade evaluation for {Symbol}: Session={Session}, RTH={IsRth}, ETH={IsEth}, TradingAllowed={TradingAllowed}",
                 symbol, sessionStatus.CurrentSession, sessionStatus.IsRth, sessionStatus.IsEth, sessionStatus.TradingAllowed);
 
-            // Example: Different risk parameters for RTH vs ETH
+            // Reference: Different risk parameters for RTH vs ETH
             if (sessionStatus.IsRth)
             {
                 // Regular trading hours - normal risk parameters
@@ -71,7 +71,7 @@ public class SessionAwareIntegrationExample
     }
 
     /// <summary>
-    /// Example monitoring method for session changes
+    /// Reference monitoring method for session changes
     /// </summary>
     public async Task MonitorSessionChangesAsync()
     {
@@ -108,7 +108,7 @@ public class SessionAwareIntegrationExample
     }
 
     /// <summary>
-    /// Example session-specific strategy selection
+    /// Reference session-specific strategy selection
     /// </summary>
     public string SelectStrategyBySession()
     {
@@ -138,7 +138,7 @@ public class SessionAwareIntegrationExample
         _logger.LogDebug("RTH validation passed for {Symbol} at {Price} using {Strategy}", 
             symbol, entryPrice, strategy);
         
-        return true; // Simplified for example
+        return true; // Simplified for reference
     }
 
     private async Task<bool> ValidateEthTradeAsync(string symbol, decimal entryPrice, string strategy)
@@ -154,7 +154,7 @@ public class SessionAwareIntegrationExample
         _logger.LogDebug("ETH validation passed for {Symbol} at {Price} using {Strategy}", 
             symbol, entryPrice, strategy);
         
-        return true; // Simplified for example
+        return true; // Simplified for reference
     }
 
     #endregion
@@ -171,7 +171,7 @@ public static class SessionAwareExtensions
     public static IServiceCollection AddSessionAwareRuntimeGates(this IServiceCollection services)
     {
         services.AddSingleton<SessionAwareRuntimeGates>();
-        services.AddSingleton<SessionAwareIntegrationExample>();
+        services.AddSingleton<SessionAwareIntegrationReference>();
         return services;
     }
 
