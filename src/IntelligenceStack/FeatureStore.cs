@@ -125,72 +125,94 @@ public class FeatureStore : IFeatureStore
                 return new FeatureSet { Symbol = symbol };
             }
 
-            // Find feature files in time range
-            var featureFiles = Directory.GetFiles(featuresPath, "*.json")
-                .Where(f => IsFileInTimeRange(f, fromTime, toTime))
-                .OrderBy(f => f);
-
-            var features = new Dictionary<string, double>();
-            var metadata = new Dictionary<string, object>();
-            string? version = null;
-            string? checksum = null;
-
-            foreach (var file in featureFiles)
-            {
-                var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
-                var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
-                
-                if (featureSet != null)
-                {
-                    // Merge features (later timestamps override earlier ones)
-                    foreach (var kvp in featureSet.Features)
-                    {
-                        features[kvp.Key] = kvp.Value;
-                    }
-                    
-                    // Merge metadata
-                    foreach (var kvp in featureSet.Metadata)
-                    {
-                        metadata[kvp.Key] = kvp.Value;
-                    }
-                    
-                    version = featureSet.Version;
-                    checksum = featureSet.SchemaChecksum;
-                }
-            }
-
-            var result = new FeatureSet
-            {
-                Symbol = symbol,
-                Timestamp = fromTime,
-                Version = version ?? "unknown",
-                SchemaChecksum = checksum ?? "unknown"
-            };
-            
-            // Populate read-only collections
-            if (features.Count > 0)
-            {
-                foreach (var kvp in features)
-                {
-                    result.Features[kvp.Key] = kvp.Value;
-                }
-            }
-            if (metadata.Count > 0)
-            {
-                foreach (var kvp in metadata)
-                {
-                    result.Metadata[kvp.Key] = kvp.Value;
-                }
-            }
+            var featureFiles = GetFeatureFilesInRange(featuresPath, fromTime, toTime);
+            var (features, metadata, version, checksum) = await ProcessFeatureFilesAsync(featureFiles, cancellationToken).ConfigureAwait(false);
+            var result = CreateFeatureSetResult(symbol, fromTime, features, metadata, version, checksum);
 
             FeaturesRetrieved(_logger, features.Count, symbol, fromTime, toTime, null);
-
             return result;
         }
         catch (Exception ex)
         {
             FeatureRetrievalFailed(_logger, symbol, fromTime, toTime, ex);
             throw new InvalidOperationException($"Feature retrieval failed for symbol {symbol}", ex);
+        }
+    }
+
+    private static IOrderedEnumerable<string> GetFeatureFilesInRange(string featuresPath, DateTime fromTime, DateTime toTime)
+    {
+        return Directory.GetFiles(featuresPath, "*.json")
+            .Where(f => IsFileInTimeRange(f, fromTime, toTime))
+            .OrderBy(f => f);
+    }
+
+    private static async Task<(Dictionary<string, double> features, Dictionary<string, object> metadata, string? version, string? checksum)> 
+        ProcessFeatureFilesAsync(IEnumerable<string> featureFiles, CancellationToken cancellationToken)
+    {
+        var features = new Dictionary<string, double>();
+        var metadata = new Dictionary<string, object>();
+        string? version = null;
+        string? checksum = null;
+
+        foreach (var file in featureFiles)
+        {
+            var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
+            var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
+            
+            if (featureSet != null)
+            {
+                MergeFeatureData(features, metadata, featureSet);
+                version = featureSet.Version;
+                checksum = featureSet.SchemaChecksum;
+            }
+        }
+
+        return (features, metadata, version, checksum);
+    }
+
+    private static void MergeFeatureData(Dictionary<string, double> features, Dictionary<string, object> metadata, FeatureSet featureSet)
+    {
+        foreach (var kvp in featureSet.Features)
+        {
+            features[kvp.Key] = kvp.Value;
+        }
+        
+        foreach (var kvp in featureSet.Metadata)
+        {
+            metadata[kvp.Key] = kvp.Value;
+        }
+    }
+
+    private static FeatureSet CreateFeatureSetResult(string symbol, DateTime fromTime, 
+        Dictionary<string, double> features, Dictionary<string, object> metadata, string? version, string? checksum)
+    {
+        var result = new FeatureSet
+        {
+            Symbol = symbol,
+            Timestamp = fromTime,
+            Version = version ?? "unknown",
+            SchemaChecksum = checksum ?? "unknown"
+        };
+        
+        PopulateFeatureSetCollections(result, features, metadata);
+        return result;
+    }
+
+    private static void PopulateFeatureSetCollections(FeatureSet result, Dictionary<string, double> features, Dictionary<string, object> metadata)
+    {
+        if (features.Count > 0)
+        {
+            foreach (var kvp in features)
+            {
+                result.Features[kvp.Key] = kvp.Value;
+            }
+        }
+        if (metadata.Count > 0)
+        {
+            foreach (var kvp in metadata)
+            {
+                result.Metadata[kvp.Key] = kvp.Value;
+            }
         }
     }
 
@@ -489,7 +511,12 @@ public class FeatureStore : IFeatureStore
 
     private static ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
     {
-        var totalFeatures = schema.Features.Count;
+        var validationCounts = CountValidationErrors(features, schema);
+        return CreateValidationResult(schema.Features.Count, validationCounts);
+    }
+
+    private static (int missingCount, int outOfRangeCount, int typeErrorCount) CountValidationErrors(FeatureSet features, FeatureSchema schema)
+    {
         var missingCount = 0;
         var outOfRangeCount = 0;
         var typeErrorCount = 0;
@@ -505,34 +532,44 @@ public class FeatureStore : IFeatureStore
                 continue;
             }
 
-            // Type validation
-            if (schemaFeature.DataType == typeof(double) && !double.IsFinite(value))
-            {
-                typeErrorCount++;
-                continue;
-            }
-
-            // Range validation
-            if (schemaFeature.MinValue.HasValue && value < schemaFeature.MinValue.Value)
-            {
-                outOfRangeCount++;
-            }
-            
-            if (schemaFeature.MaxValue.HasValue && value > schemaFeature.MaxValue.Value)
-            {
-                outOfRangeCount++;
-            }
+            ValidateFeatureValue(schemaFeature, value, ref typeErrorCount, ref outOfRangeCount);
         }
 
-        var missingnessPct = totalFeatures > 0 ? (double)missingCount / totalFeatures : 0.0;
-        var outOfRangePct = totalFeatures > 0 ? (double)outOfRangeCount / totalFeatures : 0.0;
+        return (missingCount, outOfRangeCount, typeErrorCount);
+    }
+
+    private static void ValidateFeatureValue(FeatureDefinition schemaFeature, double value, ref int typeErrorCount, ref int outOfRangeCount)
+    {
+        // Type validation
+        if (schemaFeature.DataType == typeof(double) && !double.IsFinite(value))
+        {
+            typeErrorCount++;
+            return;
+        }
+
+        // Range validation
+        if (schemaFeature.MinValue.HasValue && value < schemaFeature.MinValue.Value)
+        {
+            outOfRangeCount++;
+        }
+        
+        if (schemaFeature.MaxValue.HasValue && value > schemaFeature.MaxValue.Value)
+        {
+            outOfRangeCount++;
+        }
+    }
+
+    private static ValidationResult CreateValidationResult(int totalFeatures, (int missingCount, int outOfRangeCount, int typeErrorCount) counts)
+    {
+        var missingnessPct = totalFeatures > 0 ? (double)counts.missingCount / totalFeatures : 0.0;
+        var outOfRangePct = totalFeatures > 0 ? (double)counts.outOfRangeCount / totalFeatures : 0.0;
 
         var isValid = missingnessPct <= MaxMissingnessPct && 
                       outOfRangePct <= MaxOutOfRangePct && 
-                      typeErrorCount == 0;
+                      counts.typeErrorCount == 0;
 
         var reason = !isValid 
-            ? $"Missingness: {missingnessPct:P2}, Out-of-range: {outOfRangePct:P2}, Type errors: {typeErrorCount}"
+            ? $"Missingness: {missingnessPct:P2}, Out-of-range: {outOfRangePct:P2}, Type errors: {counts.typeErrorCount}"
             : "Valid";
 
         return new ValidationResult
@@ -541,7 +578,7 @@ public class FeatureStore : IFeatureStore
             FailureReason = reason,
             MissingnessPct = missingnessPct,
             OutOfRangePct = outOfRangePct,
-            TypeErrorCount = typeErrorCount
+            TypeErrorCount = counts.typeErrorCount
         };
     }
 

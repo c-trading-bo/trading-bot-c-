@@ -40,13 +40,6 @@ public class StartupValidator : IStartupValidator
         LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5006, "TestFailed"),
             "[STARTUP] ❌ {TestName} failed ({ElapsedMs:F2}ms)");
             
-
-            
-
-    private static readonly Action<ILogger, string, double, Exception?> TestFailedException =
-        LoggerMessage.Define<string, double>(LogLevel.Error, new EventId(5016, "TestFailedException"),
-            "[STARTUP] ❌ {TestName} FAILED with exception ({ElapsedMs:F2}ms)");
-            
     private static readonly Action<ILogger, double, Exception?> AllTestsPassed =
         LoggerMessage.Define<double>(LogLevel.Information, new EventId(5017, "AllTestsPassed"),
             "[STARTUP] 🎉 ALL TESTS PASSED - Trading system is ready! Total time: {ElapsedMs:F2}ms");
@@ -209,7 +202,18 @@ public class StartupValidator : IStartupValidator
         var stopwatch = Stopwatch.StartNew();
         
         var result = new StartupValidationResult();
-        var tests = new Dictionary<string, Func<CancellationToken, Task<bool>>>
+        var tests = CreateValidationTests();
+
+        await ExecuteValidationTestsAsync(result, tests, cancellationToken).ConfigureAwait(false);
+
+        CompleteValidationResults(result, stopwatch);
+        
+        return result;
+    }
+
+    private Dictionary<string, Func<CancellationToken, Task<bool>>> CreateValidationTests()
+    {
+        return new Dictionary<string, Func<CancellationToken, Task<bool>>>
         {
             ["DI_Graph"] = ValidateDIGraphAsync,
             ["Feature_Store"] = ValidateFeatureStoreAsync,
@@ -219,89 +223,71 @@ public class StartupValidator : IStartupValidator
             ["Kill_Switch"] = ValidateKillSwitchAsync,
             ["Leader_Election"] = ValidateLeaderElectionAsync
         };
+    }
 
+    private async Task ExecuteValidationTestsAsync(StartupValidationResult result, 
+        Dictionary<string, Func<CancellationToken, Task<bool>>> tests, CancellationToken cancellationToken)
+    {
         foreach (var (testName, testFunc) in tests)
         {
-            var testStopwatch = Stopwatch.StartNew();
-            try
-            {
-                TestStarted(_logger, testName, null);
-                var passed = await testFunc(cancellationToken).ConfigureAwait(false);
-                testStopwatch.Stop();
+            await ExecuteSingleValidationTestAsync(result, testName, testFunc, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
-                result.TestResults[testName] = new TestResult
-                {
-                    Passed = passed,
-                    TestName = testName,
-                    Duration = testStopwatch.Elapsed,
-                    ExecutedAt = DateTime.UtcNow
-                };
+    private async Task ExecuteSingleValidationTestAsync(StartupValidationResult result, string testName, 
+        Func<CancellationToken, Task<bool>> testFunc, CancellationToken cancellationToken)
+    {
+        var testStopwatch = Stopwatch.StartNew();
+        try
+        {
+            TestStarted(_logger, testName, null);
+            var passed = await testFunc(cancellationToken).ConfigureAwait(false);
+            testStopwatch.Stop();
 
-                if (passed)
-                {
-                    TestPassed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
-                }
-                else
-                {
-                    TestFailed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
-                    result.FailureReasons.Add($"{testName} validation failed");
-                }
-            }
-            catch (ArgumentException ex)
+            result.TestResults[testName] = new TestResult
             {
-                testStopwatch.Stop();
-                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
-                
-                result.TestResults[testName] = new TestResult
-                {
-                    Passed = false,
-                    TestName = testName,
-                    Duration = testStopwatch.Elapsed,
-                    ErrorMessage = ex.Message,
-                    ExecutedAt = DateTime.UtcNow
-                };
-                
-                result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
-            }
-            catch (InvalidOperationException ex)
+                Passed = passed,
+                TestName = testName,
+                Duration = testStopwatch.Elapsed,
+                ExecutedAt = DateTime.UtcNow
+            };
+
+            if (passed)
             {
-                testStopwatch.Stop();
-                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
-                
-                result.TestResults[testName] = new TestResult
-                {
-                    Passed = false,
-                    TestName = testName,
-                    Duration = testStopwatch.Elapsed,
-                    ErrorMessage = ex.Message,
-                    ExecutedAt = DateTime.UtcNow
-                };
-                
-                result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
+                TestPassed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
             }
-            catch (TimeoutException ex)
+            else
             {
-                testStopwatch.Stop();
-                TestFailedException(_logger, testName, testStopwatch.ElapsedMilliseconds, ex);
-                
-                result.TestResults[testName] = new TestResult
-                {
-                    Passed = false,
-                    TestName = testName,
-                    Duration = testStopwatch.Elapsed,
-                    ErrorMessage = ex.Message,
-                    ExecutedAt = DateTime.UtcNow
-                };
-                
-                result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
+                TestFailed(_logger, testName, testStopwatch.ElapsedMilliseconds, null);
+                result.FailureReasons.Add($"{testName} validation failed");
             }
         }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or TimeoutException)
+        {
+            HandleTestException(result, testName, testStopwatch, ex);
+        }
+    }
 
+    private static void HandleTestException(StartupValidationResult result, string testName, Stopwatch testStopwatch, Exception ex)
+    {
+        testStopwatch.Stop();
+        result.TestResults[testName] = new TestResult
+        {
+            Passed = false,
+            TestName = testName,
+            Duration = testStopwatch.Elapsed,
+            ErrorMessage = ex.Message,
+            ExecutedAt = DateTime.UtcNow
+        };
+        result.FailureReasons.Add($"{testName} failed with exception: {ex.Message}");
+    }
+
+    private void CompleteValidationResults(StartupValidationResult result, Stopwatch stopwatch)
+    {
         stopwatch.Stop();
         result.TotalDuration = stopwatch.Elapsed;
         result.AllTestsPassed = result.TestResults.Values.All(t => t.Passed);
         
-        // Properly populate IsValid and ValidationErrors properties
         result.IsValid = result.AllTestsPassed;
         result.ValidationErrors.Clear();
         foreach (var reason in result.FailureReasons)
@@ -320,11 +306,8 @@ public class StartupValidator : IStartupValidator
             foreach (var reason in result.FailureReasons)
             {
                 FailureReason(_logger, reason, null);
-                result.ValidationErrors.Add(reason);
             }
         }
-
-        return result;
     }
 
     public async Task<bool> ValidateDIGraphAsync(CancellationToken cancellationToken = default)
