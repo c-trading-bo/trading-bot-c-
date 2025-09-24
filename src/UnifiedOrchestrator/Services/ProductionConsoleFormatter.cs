@@ -98,7 +98,7 @@ public class ProductionConsoleFormatter : ConsoleFormatter
     {
         if (category.Contains("Trading")) return "[TRADE]";
         if (category.Contains("Auth")) return "[AUTH]";
-        if (category.Contains("Hub") || category.Contains("SignalR")) return "[HUB]";
+        if (category.Contains("Hub") || category.Contains("SDK")) return "[SDK]";
         if (category.Contains("ML") || category.Contains("Intelligence")) return "[ML]";
         if (category.Contains("Risk")) return "[RISK]";
         if (category.Contains("Market")) return "[MKT]";

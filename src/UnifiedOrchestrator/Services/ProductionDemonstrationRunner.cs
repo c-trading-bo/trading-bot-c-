@@ -335,7 +335,7 @@ public class ProductionDemonstrationRunner
                 IsConnected = liveStatus.IsConnected,
                 LastDataReceived = liveStatus.LastDataReceived,
                 MessagesPerSecond = liveStatus.MessagesPerSecond,
-                DataSources = new[] { "TopStep Market Data", "SignalR Real-time feeds", "Account status" },
+                DataSources = new[] { "TopStep Market Data", "TopstepX SDK Real-time feeds", "Account status" },
                 Purpose = "Live trading decisions and inference"
             },
             UnifiedPipeline = new

@@ -254,7 +254,7 @@ public class TopstepXAdapterMonitor
     }
 
     /// <summary>
-    /// Reconciles positions between SignalR events and REST API data
+    /// Reconciles positions between TopstepX SDK events and REST API data
     /// </summary>
     private async Task PerformPositionReconciliationAsync()
     {
@@ -281,7 +281,7 @@ public class TopstepXAdapterMonitor
     }
 
     /// <summary>
-    /// Reconciles orders between SignalR events and REST API data
+    /// Reconciles orders between TopstepX SDK events and REST API data
     /// </summary>
     private async Task PerformOrderReconciliationAsync()
     {

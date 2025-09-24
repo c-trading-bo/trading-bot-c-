@@ -136,10 +136,10 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _logger.LogDebug("Intelligence Orchestrator: {Status}", _intelligenceOrchestrator != null ? "Available" : "Not initialized");
         _logger.LogDebug("Data Orchestrator: {Status}", _dataOrchestrator != null ? "Available" : "Not initialized");
         
-        // Check actual TopstepX connection status via SignalR connection manager
+        // Check actual TopstepX connection status via SDK
         try
         {
-            // Get actual connection status from SignalR manager
+            // Get actual connection status from TopstepX SDK
             var userHubConnected = _signalRManager.IsUserHubConnected;
             var marketHubConnected = _signalRManager.IsMarketHubConnected;
             _isConnectedToTopstep = userHubConnected && marketHubConnected;
@@ -576,7 +576,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     
     private void OnConnectionStateChanged(string hubName)
     {
-        // Update connection status when SignalR connection state changes
+        // Update connection status when TopstepX SDK connection state changes
         try
         {
             var userHubConnected = _signalRManager.IsUserHubConnected;

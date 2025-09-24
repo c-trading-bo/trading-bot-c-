@@ -142,16 +142,7 @@ namespace OrchestratorAgent
                 e.AddEventHandler(target, del);
             }
 
-            bool TryWireSignalROn<T>(object hub, string method, Action<T> handler)
-            {
-                var mi = hub.GetType()
-                    .GetMethods()
-                    .FirstOrDefault(m => m.Name == "On" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
-                if (mi == null) return false;
-                var g = mi.MakeGenericMethod(typeof(T));
-                g.Invoke(hub, [method, handler]);
-                return true;
-            }
+            // Method removed - no longer using SignalR fallback
 
             // Predeclare state before wiring any lambdas to avoid definite-assignment issues
             var history = new Dictionary<string, List<BotCore.Models.Bar>>(StringComparer.OrdinalIgnoreCase);
@@ -182,8 +173,8 @@ namespace OrchestratorAgent
             SafeAttachEvent<BotCore.Models.Bar>(_marketHub, "OnBar", b => { lastBar = DateTimeOffset.UtcNow; _status.Set("last.bar", lastBar); HandleBar(b); });
 
             // If _marketHub is a HubConnection, wire SignalR “On” as well (harmless if not)
-            TryWireSignalROn<System.Text.Json.JsonElement>(_marketHub, "Quote", _ => { lastQuote = DateTimeOffset.UtcNow; _status.Set("last.quote", lastQuote); });
-            TryWireSignalROn<System.Text.Json.JsonElement>(_marketHub, "Trade", _ => { lastTrade = DateTimeOffset.UtcNow; _status.Set("last.trade", lastTrade); });
+            // SignalR method call removed - using TopstepX SDK only
+            // SignalR method call removed - using TopstepX SDK only
 
             // 2) User hub events (orders/trades confirmations)
             OrchestratorAgent.OrderRouter router = null!;
