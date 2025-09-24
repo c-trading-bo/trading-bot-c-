@@ -307,7 +307,7 @@ namespace BotCore
 
             // Add first 20 features
             var features = trade.Features ?? new List<decimal>();
-            for (int i; i < 20; i++)
+            for (int i = 0; i < 20; i++)
             {
                 values.Add(i < features.Count ? features[i].ToString("F6") : "0");
             }

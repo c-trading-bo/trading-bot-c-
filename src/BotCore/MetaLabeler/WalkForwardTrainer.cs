@@ -342,10 +342,10 @@ public class WalkForwardTrainer
         }
 
         var correct;
-        var brierSum;
-        var logLossSum;
+        var brierSum = 0m;
+        var logLossSum = 0m;
 
-        for (int i; i < predictions.Count; i++)
+        for (int i = 0; i < predictions.Count; i++)
         {
             var pred = Math.Max(0.001m, Math.Min(0.999m, predictions[i])); // Clip for stability
             var actual = actuals[i];
