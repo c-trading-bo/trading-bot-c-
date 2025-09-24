@@ -46,13 +46,13 @@ cmd_setup() {
     fi
     
     log_info "Restoring NuGet packages..."
-    dotnet restore
+    dotnet restore TopstepX.Bot.sln
     log_success "Development environment ready"
 }
 
 cmd_build() {
     log_info "Building solution (analyzer warnings expected)..."
-    dotnet build --no-restore
+    dotnet build TopstepX.Bot.sln --no-restore
     if [ $? -eq 0 ]; then
         log_success "Build completed (warnings are normal)"
     else
@@ -106,7 +106,7 @@ cmd_run_simple() {
 
 cmd_clean() {
     log_info "Cleaning build artifacts..."
-    dotnet clean
+    dotnet clean TopstepX.Bot.sln
     find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
     find . -name "obj" -type d -exec rm -rf {} + 2>/dev/null || true
     log_success "Clean completed"

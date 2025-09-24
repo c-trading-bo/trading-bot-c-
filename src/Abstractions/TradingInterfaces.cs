@@ -112,3 +112,11 @@ public class HealthStatusChangedEventArgs : EventArgs
         HealthStatus = healthStatus;
     }
 }
+
+// Order Management Interface  
+public interface IOrderService
+{
+    Task<string> PlaceOrderAsync(object order);
+    Task<bool> CancelOrderAsync(string orderId);
+    Task<object> GetOrderStatusAsync(string orderId);
+}
