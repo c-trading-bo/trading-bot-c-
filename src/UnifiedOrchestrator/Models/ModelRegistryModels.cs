@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Models;
 /// <summary>
 /// Represents a versioned, immutable model artifact
 /// </summary>
-public class ModelVersion
+internal class ModelVersion
 {
     public string VersionId { get; set; } = string.Empty;
     public string Algorithm { get; set; } = string.Empty; // PPO, UCB, LSTM
@@ -77,7 +77,7 @@ public class ModelVersion
 /// <summary>
 /// Records a champion promotion event
 /// </summary>
-public class PromotionRecord
+internal class PromotionRecord
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Algorithm { get; set; } = string.Empty;
@@ -107,7 +107,7 @@ public class PromotionRecord
 /// <summary>
 /// Promotion decision with validation details
 /// </summary>
-public class PromotionDecision
+internal class PromotionDecision
 {
     public bool ShouldPromote { get; set; }
     public string Reason { get; set; } = string.Empty;
@@ -139,7 +139,7 @@ public class PromotionDecision
 /// <summary>
 /// Promotion test report for basic shadow testing validation
 /// </summary>
-public class PromotionTestReport
+internal class PromotionTestReport
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string ChallengerVersionId { get; set; } = string.Empty;

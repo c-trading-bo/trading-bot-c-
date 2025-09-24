@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class ShadowSink(string path = "logs/shadow-orders.ndjson") : IExecutionSink
+    internal sealed class ShadowSink(string path = "logs/shadow-orders.ndjson") : IExecutionSink
     {
         private readonly string _path = path;
         private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);

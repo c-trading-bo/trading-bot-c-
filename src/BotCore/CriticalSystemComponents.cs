@@ -670,7 +670,7 @@ namespace TradingBot.Critical
                     await ReconcilePositions(state).ConfigureAwait(false);
                     
                     // Reattach stop losses
-                    await ReattachProtectiveOrders(state).ConfigureAwait(false);
+                    await ReattachProtectiveOrders().ConfigureAwait(false);
                     
                     // Resume strategies
                     await ResumeStrategies(state).ConfigureAwait(false);
@@ -865,26 +865,6 @@ namespace TradingBot.Critical
             return Task.CompletedTask;
         }
         
-        private Task HandleUnknownPosition(Position brokerPos)
-        {
-            _logger.LogCritical("[UNKNOWN_POSITION] Found unexpected position: {Symbol} Qty={Quantity}", brokerPos.Symbol, brokerPos.Quantity);
-            
-            // Log for audit
-            const string sql = @"INSERT INTO UnknownPositions (Timestamp, Symbol, Quantity, Source) 
-                               VALUES (@Timestamp, @Symbol, @Quantity, @Source)";
-            using var cmd = new SQLiteCommand(sql, _database);
-            cmd.Parameters.AddWithValue("@Timestamp", DateTime.UtcNow);
-            cmd.Parameters.AddWithValue("@Symbol", brokerPos.Symbol);
-            cmd.Parameters.AddWithValue("@Quantity", brokerPos.Quantity);
-            cmd.Parameters.AddWithValue("@Source", "BROKER_RECONCILIATION");
-            cmd.ExecuteNonQuery();
-            
-            // Add to active positions with manual tag
-            _activePositions[brokerPos.Symbol] = brokerPos;
-            
-            return Task.CompletedTask;
-        }
-        
         private async Task ReattachProtectiveOrders()
         {
             foreach (var position in _activePositions.Values)
@@ -1031,7 +1011,7 @@ namespace TradingBot.Critical
             SaveCrashDump(exception);
             
             // Attempt emergency position protection
-            Task.Run(async () => await EmergencyPositionProtection().ConfigureAwait(false)).Wait(5000).ConfigureAwait(false);
+            Task.Run(async () => await EmergencyPositionProtection().ConfigureAwait(false)).Wait(5000);
         }
 
         // Additional stub implementations
@@ -1544,7 +1524,7 @@ namespace TradingBot.Critical
                 _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
             }
         }
-        private static decimal CalculateExposure(string symbol, int quantity, string direction) => quantity * 100m;
+        private static decimal CalculateExposure(int quantity) => quantity * 100m;
         private static decimal GetMaxExposure() => 10000m;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
@@ -1554,9 +1534,9 @@ namespace TradingBot.Critical
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));
         }
-        private static decimal CalculatePortfolioConcentration(string symbol, decimal newExposure) => 0.3m;
+        private static decimal CalculatePortfolioConcentration() => 0.3m;
         private static Dictionary<string, List<decimal>> GetRecentPriceData() => new();
-        private static double CalculatePearsonCorrelation(List<decimal> data1, List<decimal> data2) => 0.5;
+        private static double CalculatePearsonCorrelation() => 0.5;
 
         public void UpdateExposure(string symbol, decimal exposure)
         {

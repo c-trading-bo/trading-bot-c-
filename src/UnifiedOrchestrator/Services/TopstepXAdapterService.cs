@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Service that manages the TopstepX Python SDK adapter
 /// Provides C# integration with the Python project-x-py SDK
 /// </summary>
-public interface ITopstepXAdapterService
+internal interface ITopstepXAdapterService
 {
     Task<bool> InitializeAsync(CancellationToken cancellationToken = default);
     Task<decimal> GetPriceAsync(string symbol, CancellationToken cancellationToken = default);
@@ -28,7 +28,7 @@ public interface ITopstepXAdapterService
     double ConnectionHealth { get; }
 }
 
-public record OrderExecutionResult(
+internal record OrderExecutionResult(
     bool Success,
     string? OrderId,
     string? Error,
@@ -39,7 +39,7 @@ public record OrderExecutionResult(
     decimal TakeProfit,
     DateTime Timestamp);
 
-public record HealthScoreResult(
+internal record HealthScoreResult(
     int HealthScore,
     string Status,
     Dictionary<string, object> InstrumentHealth,
@@ -47,18 +47,18 @@ public record HealthScoreResult(
     DateTime LastCheck,
     bool Initialized);
 
-public record PortfolioStatusResult(
+internal record PortfolioStatusResult(
     Dictionary<string, object> Portfolio,
     Dictionary<string, PositionInfo> Positions,
     DateTime Timestamp);
 
-public record PositionInfo(
+internal record PositionInfo(
     int Size,
     decimal AveragePrice,
     decimal UnrealizedPnL,
     decimal RealizedPnL);
 
-public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
+internal class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
 {
     private readonly ILogger<TopstepXAdapterService> _logger;
     private readonly TopstepXConfiguration _config;

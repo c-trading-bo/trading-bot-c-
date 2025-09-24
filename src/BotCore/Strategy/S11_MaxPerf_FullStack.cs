@@ -40,7 +40,7 @@ namespace TopstepX.S11
     public sealed class NullNewsGate : INewsGate { public bool IsBlocked(DateTimeOffset et) => false; }
 
     // --- DATA TYPES ---
-    public readonly struct Bar1m
+    public readonly struct Bar1m : IEquatable<Bar1m>
     {
         public readonly DateTimeOffset TimeET; // ET time
         public readonly long Open, High, Low, Close; // ticks
@@ -67,9 +67,14 @@ namespace TopstepX.S11
         {
             return !(left == right);
         }
+
+        public bool Equals(Bar1m other)
+        {
+            throw new NotImplementedException();
+        }
     }
 
-    public readonly struct DepthLadder
+    public readonly struct DepthLadder : IEquatable<DepthLadder>
     {
         public readonly DateTimeOffset TimeET;
         public readonly long Bid1, Ask1, Bid2, Ask2, Bid3, Ask3; // ticks
@@ -101,6 +106,11 @@ namespace TopstepX.S11
         public static bool operator !=(DepthLadder left, DepthLadder right)
         {
             return !(left == right);
+        }
+
+        public bool Equals(DepthLadder other)
+        {
+            throw new NotImplementedException();
         }
     }
 

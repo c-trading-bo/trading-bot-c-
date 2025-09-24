@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace UnifiedOrchestrator.Services
 {
-    public class MLRLMetricsOptions
+    internal class MLRLMetricsOptions
     {
         public int UpdateIntervalSeconds { get; set; } = 60;
         public double DriftAlertThreshold { get; set; } = 0.05;
@@ -16,7 +16,7 @@ namespace UnifiedOrchestrator.Services
         public int MaxMetricHistory { get; set; } = 1000;
     }
 
-    public class ModelMetrics
+    internal class ModelMetrics
     {
         public string ModelName { get; set; } = "";
         public double AverageLatency { get; set; }
@@ -26,7 +26,7 @@ namespace UnifiedOrchestrator.Services
         public DateTime LastUpdated { get; set; }
     }
 
-    public class MetricsSummary
+    internal class MetricsSummary
     {
         public DateTime GeneratedAt { get; set; }
         public List<ModelMetrics> ModelMetrics { get; } = new();
@@ -34,7 +34,7 @@ namespace UnifiedOrchestrator.Services
         public Dictionary<string, double> AgentPerformance { get; } = new();
     }
 
-    public class MetricAlert
+    internal class MetricAlert
     {
         public string Type { get; set; } = "";
         public string Message { get; set; } = "";
@@ -44,7 +44,7 @@ namespace UnifiedOrchestrator.Services
         public DateTime Timestamp { get; set; }
     }
 
-    public class MLRLMetricsService : IDisposable
+    internal class MLRLMetricsService : IDisposable
     {
         private readonly ILogger<MLRLMetricsService> _logger;
         private readonly MLRLMetricsOptions _options;

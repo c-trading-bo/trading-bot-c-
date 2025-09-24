@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production verification service that provides runtime proof of production-ready configurations
 /// Validates all services are real implementations, not mocks or stubs
 /// </summary>
-public class ProductionVerificationService : IHostedService
+internal class ProductionVerificationService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ProductionVerificationService> _logger;
@@ -316,7 +316,7 @@ public class ProductionVerificationService : IHostedService
     /// <summary>
     /// Verify client has proper error handling and doesn't return null inappropriately
     /// </summary>
-    private Task VerifyClientErrorHandlingAsync(ITopstepXClient client)
+    private Task VerifyClientErrorHandlingAsync()
     {
         _logger.LogInformation("🔍 [CLIENT-VERIFICATION] Verifying client error handling patterns...");
 
@@ -340,7 +340,7 @@ public class ProductionVerificationService : IHostedService
 /// <summary>
 /// Interface for trading database context (to be implemented with Entity Framework Core)
 /// </summary>
-public interface ITradingDbContext
+internal interface ITradingDbContext
 {
     Task TestConnectionAsync();
     Task SaveTradeAsync(TradeRecord trade);
@@ -351,7 +351,7 @@ public interface ITradingDbContext
 /// <summary>
 /// Performance monitor interface for observability
 /// </summary>
-public interface IPerformanceMonitor
+internal interface IPerformanceMonitor
 {
     void RecordLatency(string operation, TimeSpan duration);
     void RecordThroughput(string operation, int count);
@@ -361,7 +361,7 @@ public interface IPerformanceMonitor
 /// <summary>
 /// Production performance metrics data
 /// </summary>
-public class ProductionPerformanceMetrics
+internal class ProductionPerformanceMetrics
 {
     public Dictionary<string, TimeSpan> AverageLatencies { get; } = new();
     public Dictionary<string, int> ThroughputCounts { get; } = new();
@@ -371,7 +371,7 @@ public class ProductionPerformanceMetrics
 /// <summary>
 /// Trade record for database persistence
 /// </summary>
-public class TradeRecord
+internal class TradeRecord
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Symbol { get; set; } = string.Empty;
@@ -387,7 +387,7 @@ public class TradeRecord
 /// <summary>
 /// Position record for database persistence
 /// </summary>
-public class PositionRecord
+internal class PositionRecord
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Symbol { get; set; } = string.Empty;

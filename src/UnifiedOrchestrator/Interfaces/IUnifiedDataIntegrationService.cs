@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for unified data integration service that validates historical and live data connections
 /// </summary>
-public interface IUnifiedDataIntegrationService
+internal interface IUnifiedDataIntegrationService
 {
     /// <summary>
     /// Validate data consistency across all sources
@@ -54,7 +54,7 @@ public interface IUnifiedDataIntegrationService
 /// <summary>
 /// Data integration status
 /// </summary>
-public class UnifiedDataIntegrationStatus
+internal class UnifiedDataIntegrationStatus
 {
     public bool IsHistoricalDataConnected { get; set; }
     public bool IsLiveDataConnected { get; set; }
@@ -68,7 +68,7 @@ public class UnifiedDataIntegrationStatus
 /// <summary>
 /// Data flow event for tracking data integration
 /// </summary>
-public class DataFlowEvent
+internal class DataFlowEvent
 {
     public DateTime Timestamp { get; set; }
     public string EventType { get; set; } = string.Empty;
@@ -80,7 +80,7 @@ public class DataFlowEvent
 /// <summary>
 /// Historical data connection status
 /// </summary>
-public class HistoricalDataStatus
+internal class HistoricalDataStatus
 {
     public bool IsConnected { get; set; }
     public DateTime LastDataReceived { get; set; }
@@ -92,7 +92,7 @@ public class HistoricalDataStatus
 /// <summary>
 /// Live data connection status
 /// </summary>
-public class LiveDataStatus
+internal class LiveDataStatus
 {
     public bool IsConnected { get; set; }
     public DateTime LastDataReceived { get; set; }

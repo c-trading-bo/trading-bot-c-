@@ -11,7 +11,7 @@ namespace TradingBot.UnifiedOrchestrator.Configuration;
 /// <summary>
 /// Configuration for workflow scheduling system
 /// </summary>
-public class WorkflowSchedulingOptions
+internal class WorkflowSchedulingOptions
 {
     public bool Enabled { get; set; } = true;
     public Dictionary<string, WorkflowScheduleConfig> DefaultSchedules { get; } = new();
@@ -22,7 +22,7 @@ public class WorkflowSchedulingOptions
 /// <summary>
 /// Configuration for individual workflow schedule
 /// </summary>
-public class WorkflowScheduleConfig
+internal class WorkflowScheduleConfig
 {
     public string? MarketHours { get; set; }
     public string? ExtendedHours { get; set; }
@@ -45,7 +45,7 @@ public class WorkflowScheduleConfig
 /// <summary>
 /// Configuration for Python integration
 /// </summary>
-public class PythonIntegrationOptions
+internal class PythonIntegrationOptions
 {
     public bool Enabled { get; set; } = true;
     public string PythonPath { get; set; } = "/usr/bin/python3";
@@ -57,7 +57,7 @@ public class PythonIntegrationOptions
 /// <summary>
 /// Configuration for model loading system
 /// </summary>
-public class ModelLoadingOptions
+internal class ModelLoadingOptions
 {
     public bool Enabled { get; set; } = true;
     public bool OnnxEnabled { get; set; } = true;
@@ -70,7 +70,7 @@ public class ModelLoadingOptions
 /// <summary>
 /// Configuration options for DecisionServiceLauncher
 /// </summary>
-public class DecisionServiceLauncherOptions
+internal class DecisionServiceLauncherOptions
 {
     public string ExecutablePath { get; set; } = "decision-service";
     public string WorkingDirectory { get; set; } = "./decision-service";
@@ -90,7 +90,7 @@ public class DecisionServiceLauncherOptions
 /// <summary>
 /// Configuration options for DecisionService
 /// </summary>
-public class DecisionServiceOptions
+internal class DecisionServiceOptions
 {
     public string ServiceUrl { get; set; } = "http://localhost:8080";
     public string BaseUrl { get; set; } = "http://localhost:8080";
@@ -105,7 +105,7 @@ public class DecisionServiceOptions
 /// <summary>
 /// Configuration options for DecisionServiceIntegration
 /// </summary>
-public class DecisionServiceIntegrationOptions
+internal class DecisionServiceIntegrationOptions
 {
     public string IntegrationEndpoint { get; set; } = "http://localhost:8080/integration";
     public string WebhookUrl { get; set; } = string.Empty;
@@ -121,7 +121,7 @@ public class DecisionServiceIntegrationOptions
 /// <summary>
 /// Client for DecisionService with Python integration
 /// </summary>
-public class DecisionServiceClient
+internal class DecisionServiceClient
 {
     private readonly DecisionServiceOptions _options;
     private readonly HttpClient _httpClient;

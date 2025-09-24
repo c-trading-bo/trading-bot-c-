@@ -4,10 +4,10 @@ using BotCore.Config;
 
 namespace SupervisorAgent
 {
-    public static class StrategyDiagnostics
+    internal static class StrategyDiagnostics
     {
-        public sealed record Check(string Name, bool Pass, string Detail);
-        public sealed record Report(string Strategy, string Symbol, List<Check> Checks, string Verdict);
+        internal sealed record Check(string Name, bool Pass, string Detail);
+        internal sealed record Report(string Strategy, string Symbol, List<Check> Checks, string Verdict);
 
         public static Report Explain(TradingProfileConfig cfg, StrategyDef def, BotCore.Models.MarketSnapshot snap)
         {

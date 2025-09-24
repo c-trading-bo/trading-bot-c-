@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Models;
 /// <summary>
 /// Unified backtest configuration for enhanced learning service
 /// </summary>
-public class UnifiedBacktestConfig
+internal class UnifiedBacktestConfig
 {
     public string Symbol { get; set; } = "ES";
     public string Strategy { get; set; } = string.Empty;
@@ -26,7 +26,7 @@ public class UnifiedBacktestConfig
 /// <summary>
 /// Basic backtest configuration for legacy compatibility
 /// </summary>
-public class BacktestConfig
+internal class BacktestConfig
 {
     public string Symbol { get; set; } = "ES";
     public DateTime StartDate { get; set; }
@@ -44,7 +44,7 @@ public class BacktestConfig
 /// <summary>
 /// Unified backtest result with enhanced metrics
 /// </summary>
-public class UnifiedBacktestResult
+internal class UnifiedBacktestResult
 {
     public string BacktestId { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
@@ -74,7 +74,7 @@ public class UnifiedBacktestResult
 /// <summary>
 /// Basic backtest result for legacy compatibility
 /// </summary>
-public class BacktestResult
+internal class BacktestResult
 {
     public string BacktestId { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
@@ -113,7 +113,7 @@ public class BacktestResult
 /// <summary>
 /// Unified backtest state tracking
 /// </summary>
-public class UnifiedBacktestState
+internal class UnifiedBacktestState
 {
     public decimal StartingCapital { get; set; }
     public decimal CurrentCapital { get; set; }
@@ -132,7 +132,7 @@ public class UnifiedBacktestState
 /// <summary>
 /// Historical replay context for unified backtesting
 /// </summary>
-public class UnifiedHistoricalReplayContext
+internal class UnifiedHistoricalReplayContext
 {
     public string ReplayId { get; set; } = string.Empty;
     public string BacktestId { get; set; } = string.Empty;
@@ -151,7 +151,7 @@ public class UnifiedHistoricalReplayContext
 /// <summary>
 /// Unified historical decision for enhanced tracking
 /// </summary>
-public class UnifiedHistoricalDecision
+internal class UnifiedHistoricalDecision
 {
     public DateTime Timestamp { get; set; }
     public string Symbol { get; set; } = string.Empty;
@@ -169,7 +169,7 @@ public class UnifiedHistoricalDecision
 /// <summary>
 /// Training intensity configuration
 /// </summary>
-public class TrainingIntensity
+internal class TrainingIntensity
 {
     public TrainingIntensityLevel Level { get; set; } = TrainingIntensityLevel.Medium;
     public int ParallelJobs { get; set; } = 2;
@@ -184,7 +184,7 @@ public class TrainingIntensity
 /// <summary>
 /// Training intensity level enumeration
 /// </summary>
-public enum TrainingIntensityLevel
+internal enum TrainingIntensityLevel
 {
     Light,
     Medium, 
@@ -195,7 +195,7 @@ public enum TrainingIntensityLevel
 /// <summary>
 /// Adapter statistics for brain adapter monitoring
 /// </summary>
-public class AdapterStatistics
+internal class AdapterStatistics
 {
     public int TotalDecisions { get; set; }
     public int AgreementCount { get; set; }
@@ -208,7 +208,7 @@ public class AdapterStatistics
 /// <summary>
 /// Comparison between champion and challenger decisions
 /// </summary>
-public class DecisionComparison
+internal class DecisionComparison
 {
     public DateTime Timestamp { get; set; }
     public TradingContext Context { get; set; } = null!;
@@ -221,7 +221,7 @@ public class DecisionComparison
 /// <summary>
 /// Validation result class for consistency with interfaces
 /// </summary>
-public class ValidationResult
+internal class ValidationResult
 {
     public string ValidationId { get; set; } = string.Empty;
     public string? ChallengerVersionId { get; set; }
@@ -240,7 +240,7 @@ public class ValidationResult
 /// <summary>
 /// Validation outcome enumeration
 /// </summary>
-public enum ValidationOutcome
+internal enum ValidationOutcome
 {
     Passed,
     Failed,
@@ -255,7 +255,7 @@ public enum ValidationOutcome
 /// <summary>
 /// Enhanced backtest config with unified brain settings
 /// </summary>
-public class UnifiedBacktestConfigEnhanced
+internal class UnifiedBacktestConfigEnhanced
 {
     public bool UseUnifiedBrain { get; set; } = true;
     public LearningMode LearningMode { get; set; } = LearningMode.Active;
@@ -270,7 +270,7 @@ public class UnifiedBacktestConfigEnhanced
 /// <summary>
 /// Learning mode enumeration
 /// </summary>
-public enum LearningMode
+internal enum LearningMode
 {
     Passive,
     Active,
@@ -280,7 +280,7 @@ public enum LearningMode
 /// <summary>
 /// Enhanced historical replay context with unified brain support
 /// </summary>
-public class UnifiedHistoricalReplayContextEnhanced
+internal class UnifiedHistoricalReplayContextEnhanced
 {
     public string BacktestId { get; set; } = string.Empty;
     public UnifiedBacktestConfigEnhanced Config { get; set; } = new();
@@ -296,7 +296,7 @@ public class UnifiedHistoricalReplayContextEnhanced
 /// <summary>
 /// Enhanced historical decision with market context
 /// </summary>
-public class UnifiedHistoricalDecisionEnhanced
+internal class UnifiedHistoricalDecisionEnhanced
 {
     public string Symbol { get; set; } = string.Empty;
     public AbstractionsTradingDecision Decision { get; set; } = new();

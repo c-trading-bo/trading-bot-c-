@@ -6,9 +6,9 @@ namespace OrchestratorAgent.Execution
     /// NEW FEATURE: Volume Analysis Component
     /// Added while bot is running - demonstrates live ML component injection
     /// </summary>
-    public class VolumeAnalyzer
+    internal class VolumeAnalyzer
     {
-        private decimal[] _recentVolumes = new decimal[20];
+        private readonly decimal[] _recentVolumes = new decimal[20];
         private int _index;
 
         public void UpdateVolume(decimal volume)

@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace OrchestratorAgent.Infra;
 
-public static class LearningStateManager
+internal static class LearningStateManager
 {
     private static readonly string StateFile = Path.Combine("state", "learning_state.json");
 
@@ -41,7 +41,7 @@ public static class LearningStateManager
     }
 }
 
-public class LearningState
+internal class LearningState
 {
     public DateTime LastPracticeUtc { get; set; } = DateTime.MinValue;
     public int CycleCount { get; set; }

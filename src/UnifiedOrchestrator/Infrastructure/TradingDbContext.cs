@@ -15,7 +15,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 /// Production-grade database context for trading operations
 /// Implements ACID transactions, proper schema management, and data integrity
 /// </summary>
-public class TradingDbContext : DbContext, ITradingDbContext
+internal class TradingDbContext : DbContext, ITradingDbContext
 {
     private readonly ILogger<TradingDbContext> _logger;
 
@@ -315,7 +315,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
 }
 
 // Database entity classes
-public class TradeEntity
+internal class TradeEntity
 {
     public string Id { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
@@ -328,7 +328,7 @@ public class TradeEntity
     public string Status { get; set; } = string.Empty;
 }
 
-public class PositionEntity
+internal class PositionEntity
 {
     public string Id { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
@@ -339,7 +339,7 @@ public class PositionEntity
     public string AccountId { get; set; } = string.Empty;
 }
 
-public class OrderEntity
+internal class OrderEntity
 {
     public string Id { get; set; } = string.Empty;
     public string OrderId { get; set; } = string.Empty;
@@ -355,7 +355,7 @@ public class OrderEntity
     public DateTime LastUpdated { get; set; }
 }
 
-public class AccountStateEntity
+internal class AccountStateEntity
 {
     public string Id { get; set; } = string.Empty;
     public string AccountId { get; set; } = string.Empty;
@@ -368,7 +368,7 @@ public class AccountStateEntity
     public DateTime Timestamp { get; set; }
 }
 
-public class RiskEventEntity
+internal class RiskEventEntity
 {
     public string Id { get; set; } = string.Empty;
     public string EventType { get; set; } = string.Empty;
@@ -380,7 +380,7 @@ public class RiskEventEntity
     public DateTime Timestamp { get; set; }
 }
 
-public class PerformanceMetricEntity
+internal class PerformanceMetricEntity
 {
     public string Id { get; set; } = string.Empty;
     public string MetricName { get; set; } = string.Empty;
@@ -390,7 +390,7 @@ public class PerformanceMetricEntity
 }
 
 // Supporting data classes
-public class OrderRecord
+internal class OrderRecord
 {
     public string OrderId { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
@@ -405,7 +405,7 @@ public class OrderRecord
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 
-public class RiskEvent
+internal class RiskEvent
 {
     public string EventType { get; set; } = string.Empty;
     public RiskSeverity Severity { get; set; }
@@ -416,7 +416,7 @@ public class RiskEvent
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
-public enum RiskSeverity
+internal enum RiskSeverity
 {
     Low,
     Medium,
@@ -427,7 +427,7 @@ public enum RiskSeverity
 /// <summary>
 /// Database service extensions for dependency injection
 /// </summary>
-public static class DatabaseServiceExtensions
+internal static class DatabaseServiceExtensions
 {
     public static IServiceCollection AddProductionDatabase(this IServiceCollection services, IConfiguration configuration)
     {

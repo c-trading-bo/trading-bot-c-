@@ -117,7 +117,7 @@ namespace TradingBot.BotCore.Services
     /// <summary>
     /// Trading timestamp containing both UTC wall clock and monotonic components
     /// </summary>
-    public struct TradingTimestamp
+    public struct TradingTimestamp : IEquatable<TradingTimestamp>
     {
         public DateTime UtcTime { get; set; }
         public TimeSpan MonotonicTime { get; set; }
@@ -162,6 +162,11 @@ namespace TradingBot.BotCore.Services
         public static bool operator !=(TradingTimestamp left, TradingTimestamp right)
         {
             return !(left == right);
+        }
+
+        public bool Equals(TradingTimestamp other)
+        {
+            throw new NotImplementedException();
         }
     }
 

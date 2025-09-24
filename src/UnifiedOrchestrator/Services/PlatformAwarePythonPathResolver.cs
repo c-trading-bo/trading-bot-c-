@@ -11,14 +11,14 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Platform-specific Python path detection and configuration
 /// Fixes Python path issues on Windows vs Linux environments
 /// </summary>
-public interface IPythonPathResolver
+internal interface IPythonPathResolver
 {
     string GetPythonExecutablePath();
     string GetWorkingDirectory();
     string ResolvePythonScriptPath(string relativePath);
 }
 
-public class PlatformAwarePythonPathResolver : IPythonPathResolver
+internal class PlatformAwarePythonPathResolver : IPythonPathResolver
 {
     private readonly ILogger<PlatformAwarePythonPathResolver> _logger;
     private readonly ITradingLogger _tradingLogger;

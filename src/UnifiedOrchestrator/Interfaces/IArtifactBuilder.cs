@@ -9,7 +9,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for building model artifacts from trained models
 /// </summary>
-public interface IArtifactBuilder
+internal interface IArtifactBuilder
 {
     /// <summary>
     /// Build an artifact from a trained model
@@ -35,7 +35,7 @@ public interface IArtifactBuilder
 /// <summary>
 /// Artifact metadata
 /// </summary>
-public class ArtifactMetadata
+internal class ArtifactMetadata
 {
     public string ModelType { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;

@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Cron expression scheduler for workflow execution timing with CME futures session support
 /// Supports basic cron format: second minute hour day month day-of-week
 /// </summary>
-public static class CronScheduler
+internal static class CronScheduler
 {
     /// <summary>
     /// Calculate next execution time based on cron expression with time zone support

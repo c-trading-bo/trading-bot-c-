@@ -895,46 +895,6 @@ public class AutonomousDecisionEngine : BackgroundService
     }
     
     /// <summary>
-    /// Convert TopstepX market data to Bar format
-    /// </summary>
-    private List<Bar> ConvertTopstepXDataToBars(JsonElement marketData, string symbol)
-    {
-        var bars = new List<Bar>();
-        
-        try
-        {
-            // Extract price from TopstepX market data
-            if (marketData.TryGetProperty("price", out var priceElement))
-            {
-                var price = priceElement.GetDecimal();
-                var currentTime = DateTime.UtcNow;
-                
-                // Create a current bar from real market data
-                var bar = new Bar
-                {
-                    Symbol = symbol,
-                    Start = currentTime,
-                    Ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Open = price,
-                    High = price,
-                    Low = price,
-                    Close = price,
-                    Volume = marketData.TryGetProperty("volume", out var volElement) ? volElement.GetInt32() : 0
-                };
-                
-                bars.Add(bar);
-                _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Converted TopstepX data to {Count} bars for {Symbol}", bars.Count, symbol);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to convert TopstepX data to bars for {Symbol}", symbol);
-        }
-        
-        return bars;
-    }
-    
-    /// <summary>
     /// Get current volume - REQUIRES REAL DATA ONLY
     /// </summary>
     private async Task<long> GetCurrentVolumeAsync(string symbol, CancellationToken cancellationToken)

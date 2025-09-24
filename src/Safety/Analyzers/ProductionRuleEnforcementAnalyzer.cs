@@ -890,8 +890,8 @@ namespace TradingBot.Safety.Analyzers
         private static bool IsNumericLiteral(SyntaxToken token)
         {
             return token.IsKind(SyntaxKind.NumericLiteralToken) && 
-                   !token.ValueText.EndsWith("f") && // Allow float literals like 1.0f
-                   !token.ValueText.EndsWith("F");   // Allow float literals like 1.0F
+                   !token.ValueText.EndsWith('f') && // Allow float literals like 1.0f
+                   !token.ValueText.EndsWith('F');   // Allow float literals like 1.0F
         }
         
         private static int CountMethodLines(BlockSyntax methodBody)
@@ -984,7 +984,7 @@ namespace TradingBot.Safety.Analyzers
                     foreach (var baseType in classDecl.BaseList.Types)
                     {
                         var typeName = baseType.Type.ToString();
-                        if (typeName.StartsWith("I") && char.IsUpper(typeName[1])) // Interface pattern
+                        if (typeName.StartsWith('I') && char.IsUpper(typeName[1])) // Interface pattern
                         {
                             // Check if class has methods matching interface requirements
                             CheckInterfaceImplementation(context, classDecl, typeName);

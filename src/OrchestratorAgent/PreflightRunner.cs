@@ -97,8 +97,8 @@ namespace OrchestratorAgent
             // Step 2: Market data first tick
             Step($"Waiting for first quote/trade on {_primaryCid} (<= {(int)timeout.TotalSeconds}s)…");
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            void qh(string cid, JsonElement _) { if (cid == _primaryCid) tcs.TrySetResult(true); }
-            void th(string cid, JsonElement _) { if (cid == _primaryCid) tcs.TrySetResult(true); }
+            void qh(string cid) { if (cid == _primaryCid) tcs.TrySetResult(true); }
+            void th(string cid) { if (cid == _primaryCid) tcs.TrySetResult(true); }
 
             _marketHub.On<string, JsonElement>("GatewayQuote", qh);
             _marketHub.On<string, JsonElement>("GatewayTrade", th);

@@ -13,7 +13,7 @@ namespace OrchestratorAgent.Infra
     /// Tracks P&L by strategy and symbol for comprehensive performance analysis.
     /// Maintains per-strategy performance metrics for ES, NQ, and other symbols.
     /// </summary>
-    public sealed class StrategyPnlTracker
+    internal sealed class StrategyPnlTracker
     {
         private readonly ILogger _log;
         private readonly ConcurrentDictionary<string, StrategySymbolPnl> _pnlByKey = new(StringComparer.OrdinalIgnoreCase);
@@ -25,7 +25,7 @@ namespace OrchestratorAgent.Infra
             TryLoad();
         }
 
-        public sealed class StrategySymbolPnl
+        internal sealed class StrategySymbolPnl
         {
             public string StrategyId { get; set; } = "";
             public string Symbol { get; set; } = "";

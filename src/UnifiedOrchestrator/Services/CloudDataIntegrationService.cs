@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Cloud data integration service - handles cloud data operations with retry/backoff
 /// </summary>
-public class CloudDataIntegrationService : ICloudDataIntegration
+internal class CloudDataIntegrationService : ICloudDataIntegration
 {
     private readonly ILogger<CloudDataIntegrationService> _logger;
     private readonly ICentralMessageBus _messageBus;

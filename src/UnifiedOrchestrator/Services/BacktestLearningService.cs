@@ -13,7 +13,7 @@ namespace UnifiedOrchestrator.Services
     /// Background service that triggers backtesting and learning when markets are closed
     /// This allows the ML/RL system to learn from historical data
     /// </summary>
-    public class BacktestLearningService : BackgroundService
+    internal class BacktestLearningService : BackgroundService
     {
         private readonly ILogger<BacktestLearningService> _logger;
         private readonly IServiceProvider _serviceProvider;
@@ -166,7 +166,7 @@ namespace UnifiedOrchestrator.Services
             }
         }
 
-        private async Task TriggerAdaptiveLearning(CancellationToken cancellationToken)
+        private async Task TriggerAdaptiveLearning()
         {
             try
             {

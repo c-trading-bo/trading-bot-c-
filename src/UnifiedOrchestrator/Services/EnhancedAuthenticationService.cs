@@ -12,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Enhanced authentication service with comprehensive logging
 /// Tracks authentication attempts, JWT token refresh, account information retrieval
 /// </summary>
-public class EnhancedAuthenticationService : IHostedService
+internal class EnhancedAuthenticationService : IHostedService
 {
     private readonly ILogger<EnhancedAuthenticationService> _logger;
     private readonly ITradingLogger _tradingLogger;

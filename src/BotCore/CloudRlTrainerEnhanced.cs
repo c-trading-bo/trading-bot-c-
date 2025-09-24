@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
+using BotCore.Utilities;
 
 namespace BotCore
 {
@@ -40,12 +41,12 @@ namespace BotCore
             Directory.CreateDirectory(_dataDir);
             Directory.CreateDirectory(_modelDir);
 
-            // Check for model updates every 2 hours (cloud training runs every 30 min)
+            // Check for model updates every 2 hours using TimerHelper
             var pollInterval = TimeSpan.FromSeconds(
                 int.Parse(Environment.GetEnvironmentVariable("MODEL_POLL_SEC") ?? "7200"));
 
-            _timer = new Timer(CheckForModelUpdates, null, TimeSpan.Zero, pollInterval);
-            _log.LogInformation("[CloudRlTrainerEnhanced] Started - checking manifest every {Interval}", pollInterval);
+            _timer = TimerHelper.CreateAsyncTimerWithImmediateStart(CheckForModelUpdates, pollInterval);
+            LoggingHelper.LogServiceStarted(_log, "CloudRlTrainerEnhanced", pollInterval, "checking manifest");
         }
 
         public void Dispose()

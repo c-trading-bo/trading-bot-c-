@@ -8,7 +8,7 @@ using BotCore.Models;
 namespace OrchestratorAgent
 {
     /// <summary>Discovers all IStrategy implementations and runs them on each bar.</summary>
-    public sealed class StrategyManager(ILogger<StrategyManager> log,
+    internal sealed class StrategyManager(ILogger<StrategyManager> log,
                            StrategyContext ctx,
                            OrderRouter router,
                            EvalGates gates,

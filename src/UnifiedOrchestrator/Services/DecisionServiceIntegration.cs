@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Integrates decision service with the trading system
 /// </summary>
-public class DecisionServiceIntegration : IHostedService
+internal class DecisionServiceIntegration : IHostedService
 {
     private readonly ILogger<DecisionServiceIntegration> _logger;
 

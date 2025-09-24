@@ -12,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Data orchestrator service - coordinates data collection and management
 /// </summary>
-public class DataOrchestratorService : BackgroundService, IDataOrchestrator
+internal class DataOrchestratorService : BackgroundService, IDataOrchestrator
 {
     private readonly ILogger<DataOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -53,7 +53,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
         _logger.LogInformation("Data Orchestrator Service stopped");
     }
 
-    private Task ProcessDataOperationsAsync(CancellationToken cancellationToken)
+    private Task ProcessDataOperationsAsync()
     {
         // Process data collection and management operations
         // This will be implemented based on actual data requirements

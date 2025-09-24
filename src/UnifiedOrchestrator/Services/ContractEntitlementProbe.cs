@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Helper class to probe contract entitlements via REST snapshot before attempting TopstepX SDK subscriptions
 /// </summary>
-public static class ContractEntitlementProbe
+internal static class ContractEntitlementProbe
 {
     /// <summary>
     /// Probes a contract ID via REST snapshot to verify entitlements before TopstepX SDK subscription

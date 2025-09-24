@@ -235,16 +235,16 @@ internal sealed class LinUcbArm
         var x = context.ToArray(_dimension);
 
         // Update A = A + x * x^T
-        for (int i; i < _dimension; i++)
+        for (int i = 0; i < _dimension; i++)
         {
-            for (int j; j < _dimension; j++)
+            for (int j = 0; j < _dimension; j++)
             {
                 _A[i, j] += x[i] * x[j];
             }
         }
 
         // Update b = b + reward * x
-        for (int i; i < _dimension; i++)
+        for (int i = 0; i < _dimension; i++)
         {
             _b[i] += reward * x[i];
         }
@@ -281,8 +281,8 @@ internal sealed class LinUcbArm
 
         if (_AInverse == null) return 1m;
 
-        var trace;
-        for (int i; i < _dimension; i++)
+        var trace = 0m;
+        for (int i = 0; i < _dimension; i++)
         {
             trace += _AInverse[i, i];
         }
@@ -310,13 +310,13 @@ internal sealed class LinUcbArm
         try
         {
             _AInverse = InvertMatrix(_A);
-            _inverseNeedsUpdate;
+            _inverseNeedsUpdate = false;
         }
         catch
         {
             // Matrix inversion failed - use identity as fallback
             _AInverse = new decimal[_dimension, _dimension];
-            for (int i; i < _dimension; i++)
+            for (int i = 0; i < _dimension; i++)
             {
                 _AInverse[i, i] = 1m;
             }
@@ -329,9 +329,9 @@ internal sealed class LinUcbArm
         var augmented = new decimal[n, 2 * n];
 
         // Create augmented matrix [A | I]
-        for (int i; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
-            for (int j; j < n; j++)
+            for (int j = 0; j < n; j++)
             {
                 augmented[i, j] = matrix[i, j];
                 augmented[i, j + n] = i == j ? 1m : 0m;
@@ -339,7 +339,7 @@ internal sealed class LinUcbArm
         }
 
         // Gaussian elimination
-        for (int i; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
             // Find pivot
             var maxRow = i;
@@ -354,7 +354,7 @@ internal sealed class LinUcbArm
             // Swap rows
             if (maxRow != i)
             {
-                for (int j; j < 2 * n; j++)
+                for (int j = 0; j < 2 * n; j++)
                 {
                     (augmented[i, j], augmented[maxRow, j]) = (augmented[maxRow, j], augmented[i, j]);
                 }
@@ -368,18 +368,18 @@ internal sealed class LinUcbArm
 
             // Scale pivot row
             var pivot = augmented[i, i];
-            for (int j; j < 2 * n; j++)
+            for (int j = 0; j < 2 * n; j++)
             {
                 augmented[i, j] /= pivot;
             }
 
             // Eliminate column
-            for (int k; k < n; k++)
+            for (int k = 0; k < n; k++)
             {
                 if (k != i)
                 {
                     var factor = augmented[k, i];
-                    for (int j; j < 2 * n; j++)
+                    for (int j = 0; j < 2 * n; j++)
                     {
                         augmented[k, j] -= factor * augmented[i, j];
                     }
@@ -389,9 +389,9 @@ internal sealed class LinUcbArm
 
         // Extract inverse matrix
         var inverse = new decimal[n, n];
-        for (int i; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
-            for (int j; j < n; j++)
+            for (int j = 0; j < n; j++)
             {
                 inverse[i, j] = augmented[i, j + n];
             }
@@ -406,9 +406,9 @@ internal sealed class LinUcbArm
         var cols = matrix.GetLength(1);
         var result = new decimal[rows];
 
-        for (int i; i < rows; i++)
+        for (int i = 0; i < rows; i++)
         {
-            for (int j; j < cols && j < vector.Length; j++)
+            for (int j = 0; j < cols && j < vector.Length; j++)
             {
                 result[i] += matrix[i, j] * vector[j];
             }
@@ -419,10 +419,10 @@ internal sealed class LinUcbArm
 
     private static decimal VectorDotProduct(decimal[] a, decimal[] b)
     {
-        var result;
+        var result = 0m;
         var length = Math.Min(a.Length, b.Length);
 
-        for (int i; i < length; i++)
+        for (int i = 0; i < length; i++)
         {
             result += a[i] * b[i];
         }
@@ -455,7 +455,7 @@ public class ContextVector
         var array = new decimal[dimension];
         var featureKeys = Features.Keys.OrderBy(k => k).ToList();
 
-        for (int i; i < Math.Min(dimension, featureKeys.Count); i++)
+        for (int i = 0; i < Math.Min(dimension, featureKeys.Count); i++)
         {
             array[i] = Features[featureKeys[i]];
         }

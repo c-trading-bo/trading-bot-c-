@@ -7,13 +7,13 @@ namespace OrchestratorAgent.Execution
     /// Intelligent News Trading Engine
     /// Converts news events into profitable trading opportunities using AI prediction
     /// </summary>
-    public class NewsIntelligenceEngine
+    internal class NewsIntelligenceEngine
     {
         private readonly Dictionary<string, NewsEventData> _recentEvents = new();
         private readonly Queue<string> _eventHistory = new();
         private decimal _successRate = 0.65m; // 65% initial success rate
 
-        public struct NewsEventData
+        internal struct NewsEventData : IEquatable<NewsEventData>
         {
             public DateTime Timestamp;
             public string EventType;
@@ -40,6 +40,11 @@ namespace OrchestratorAgent.Execution
             public static bool operator !=(NewsEventData left, NewsEventData right)
             {
                 return !(left == right);
+            }
+
+            public bool Equals(NewsEventData other)
+            {
+                throw new NotImplementedException();
             }
         }
 

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class ParamStoreWatcher : IAsyncDisposable
+internal sealed class ParamStoreWatcher : IAsyncDisposable
 {
     private readonly ILogger _log;
     private readonly FileSystemWatcher _fsw;

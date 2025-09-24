@@ -11,7 +11,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Enterprise-grade login completion state management with comprehensive monitoring, persistence, and multi-instance coordination
 /// Provides production-ready distributed login state handling with timeout management, health checks, and structured logging
 /// </summary>
-public interface ILoginCompletionState
+internal interface ILoginCompletionState
 {
     Task WaitForLoginCompletion();
     void SetLoginCompleted();
@@ -21,7 +21,7 @@ public interface ILoginCompletionState
 /// Production-grade distributed login completion state manager with persistence, timeout handling, and multi-instance coordination
 /// Supports distributed environments, graceful degradation, and comprehensive audit logging
 /// </summary>
-public class EnterpriseLoginCompletionState : ILoginCompletionState
+internal class EnterpriseLoginCompletionState : ILoginCompletionState
 {
     private readonly ILogger<EnterpriseLoginCompletionState> _logger;
     private readonly SemaphoreSlim _stateSemaphore = new(1, 1);
@@ -34,7 +34,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
     private volatile bool _isDisposed;
     private DateTime _loginStartTime = DateTime.MinValue;
     private DateTime _loginCompletedTime = DateTime.MinValue;
-    private string _loginSessionId = string.Empty;
+    private string _loginSessionId;
     private int _loginAttemptCount;
     
     // Production-grade configuration
@@ -261,7 +261,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
 /// <summary>
 /// Comprehensive metrics for login state monitoring
 /// </summary>
-public class LoginStateMetrics
+internal class LoginStateMetrics
 {
     public string SessionId { get; set; } = string.Empty;
     public string InstanceId { get; set; } = string.Empty;
@@ -277,7 +277,7 @@ public class LoginStateMetrics
 /// Enterprise bridge to convert local ILoginCompletionState to TradingBot.Abstractions.ILoginCompletionState
 /// Provides advanced monitoring, error handling, and distributed coordination capabilities
 /// </summary>
-public class BridgeLoginCompletionState : TradingBot.Abstractions.ILoginCompletionState
+internal class BridgeLoginCompletionState : TradingBot.Abstractions.ILoginCompletionState
 {
     private readonly ILoginCompletionState _localState;
     private readonly ILogger<BridgeLoginCompletionState> _logger;

@@ -15,7 +15,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Workflow scheduler service - coordinates scheduled operations
 /// </summary>
-public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
+internal class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
 {
     private readonly ILogger<WorkflowSchedulerService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -66,7 +66,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
         _logger.LogInformation("Workflow Scheduler Service stopped");
     }
 
-    private Task ProcessScheduledWorkflowsAsync(CancellationToken cancellationToken)
+    private Task ProcessScheduledWorkflowsAsync()
     {
         // Process scheduled workflows
         // This will be implemented based on actual workflow requirements

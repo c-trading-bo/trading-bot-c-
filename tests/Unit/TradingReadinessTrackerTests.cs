@@ -11,7 +11,7 @@ namespace TradingBot.Tests.Unit
     /// Tests for the TradingReadinessTracker to ensure BarsSeen counter works correctly
     /// Validates the fix for historical bar seeding pipeline issue
     /// </summary>
-    public class TradingReadinessTrackerTests
+    internal class TradingReadinessTrackerTests
     {
         private readonly ILogger<TradingReadinessTracker> _logger;
         private readonly TradingReadinessConfiguration _config;

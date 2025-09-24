@@ -5,14 +5,14 @@ using OrchestratorAgent.Health;
 
 namespace OrchestratorAgent.Ops
 {
-    public interface IStats
+    internal interface IStats
     {
         int EmittedSignalsTotal { get; }
         TimeSpan Uptime { get; }
     }
-    public interface INotifier { Task Info(string m); Task Warn(string m); Task Error(string m); }
+    internal interface INotifier { Task Info(string m); Task Warn(string m); Task Error(string m); }
 
-    public sealed class AutoPilot(Preflight pf, ModeController mode, IStats stats, INotifier notify,
+    internal sealed class AutoPilot(Preflight pf, ModeController mode, IStats stats, INotifier notify,
         string symbol, int minHealthyPasses, int demoteOnUnhealthy, TimeSpan minDryRun)
     {
         private readonly Preflight _pf = pf;

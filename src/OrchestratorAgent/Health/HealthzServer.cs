@@ -11,7 +11,7 @@ using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent.Health
 {
-    public static class HealthzServer
+    internal static class HealthzServer
     {
         public static void Start(Preflight pf, DstGuard dst, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
             => StartWithMode(pf, dst, null, symbol, prefix, ct);
@@ -21,7 +21,7 @@ namespace OrchestratorAgent.Health
             try
             {
                 var listener = new HttpListener();
-                if (!prefix.EndsWith("/")) prefix += "/";
+                if (!prefix.EndsWith('/')) prefix += "/";
                 listener.Prefixes.Add(prefix);
                 listener.Start();
                 var startedUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();

@@ -13,7 +13,7 @@ namespace TradingBot.UnifiedOrchestrator.Artifacts;
 /// <summary>
 /// ONNX artifact builder for PPO and LSTM models
 /// </summary>
-public class OnnxArtifactBuilder : IArtifactBuilder
+internal class OnnxArtifactBuilder : IArtifactBuilder
 {
     private readonly ILogger<OnnxArtifactBuilder> _logger;
 
@@ -226,7 +226,7 @@ public class OnnxArtifactBuilder : IArtifactBuilder
 /// <summary>
 /// UCB serializer for Neural UCB models
 /// </summary>
-public class UcbSerializer : IArtifactBuilder
+internal class UcbSerializer : IArtifactBuilder
 {
     private readonly ILogger<UcbSerializer> _logger;
 
@@ -351,7 +351,7 @@ public class UcbSerializer : IArtifactBuilder
 
     #region Private Methods
 
-    private async Task<object> LoadUcbModelAsync(string modelPath, CancellationToken cancellationToken)
+    private async Task<object> LoadUcbModelAsync(CancellationToken cancellationToken)
     {
         // Load actual UCB model parameters from trained bandit algorithm
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
@@ -514,7 +514,7 @@ public class UcbSerializer : IArtifactBuilder
 /// <summary>
 /// UCB model artifact structure
 /// </summary>
-public class UcbModelArtifact
+internal class UcbModelArtifact
 {
     public string Version { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

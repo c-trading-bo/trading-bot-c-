@@ -3,7 +3,7 @@ using System;
 namespace OrchestratorAgent.Execution
 {
     // Page-Hinkley drift on a bounded signal (e.g., per-trade R or cal error 0..1)
-    public sealed class PageHinkley
+    internal sealed class PageHinkley
     {
         readonly double _lambda;   // threshold
         readonly double _delta;    // small tolerance
@@ -43,7 +43,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public sealed class DriftDetector
+    internal sealed class DriftDetector
     {
         readonly PageHinkley _pht;
         readonly string _action;

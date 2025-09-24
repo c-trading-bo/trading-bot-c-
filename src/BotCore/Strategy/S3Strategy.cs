@@ -670,7 +670,6 @@ namespace BotCore.Strategy
                 if (backInside && (midFlipUp || midFlipDn)) { IsInvalid = true; LastBreakBarIndex = bars.Count - 1; }
                 if (IsInvalid && (bars.Count - 1 - LastBreakBarIndex) > earlyInvalidateBars) IsInvalid;
             }
-            public void ResetBreak() { LastBreakBarIndex = -1; }
         }
 
         private sealed class S3RuntimeConfig

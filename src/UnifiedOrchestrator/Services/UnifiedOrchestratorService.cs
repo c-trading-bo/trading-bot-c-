@@ -19,7 +19,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// - Real-time health monitoring and statistics
 /// - Production-ready error handling
 /// </summary>
-public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrator
+internal class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrator
 {
     private readonly ILogger<UnifiedOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -539,7 +539,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         }
     }
 
-    public IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = 100)
+    public IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit)
     {
         // Implementation would return actual execution history
         return new List<WorkflowExecutionContext>();
@@ -574,7 +574,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         return status;
     }
     
-    private void OnConnectionStateChanged(string hubName)
+    private void OnConnectionStateChanged()
     {
         // Update connection status when TopstepX SDK connection state changes
         try

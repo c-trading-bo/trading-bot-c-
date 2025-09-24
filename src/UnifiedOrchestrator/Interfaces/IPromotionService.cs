@@ -10,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for shadow testing challenger models against champions
 /// </summary>
-public interface IShadowTester
+internal interface IShadowTester
 {
     /// <summary>
     /// Run shadow A/B test between challenger and champion
@@ -41,7 +41,7 @@ public interface IShadowTester
 /// <summary>
 /// Interface for model promotion service with atomic swaps and rollback
 /// </summary>
-public interface IPromotionService
+internal interface IPromotionService
 {
     /// <summary>
     /// Evaluate whether a challenger should be promoted
@@ -72,7 +72,7 @@ public interface IPromotionService
 /// <summary>
 /// Shadow test configuration
 /// </summary>
-public class ShadowTestConfig
+internal class ShadowTestConfig
 {
     public int MinTrades { get; set; } = 50;
     public int MinSessions { get; set; } = 5;
@@ -86,7 +86,7 @@ public class ShadowTestConfig
 /// <summary>
 /// Shadow test status
 /// </summary>
-public class ShadowTestStatus
+internal class ShadowTestStatus
 {
     public string TestId { get; set; } = string.Empty;
     public string Algorithm { get; set; } = string.Empty;
@@ -104,7 +104,7 @@ public class ShadowTestStatus
 /// <summary>
 /// Promotion status
 /// </summary>
-public class PromotionStatus
+internal class PromotionStatus
 {
     public string Algorithm { get; set; } = string.Empty;
     public string CurrentChampionVersionId { get; set; } = string.Empty;
@@ -120,7 +120,7 @@ public class PromotionStatus
 /// <summary>
 /// Promotion schedule
 /// </summary>
-public class PromotionSchedule
+internal class PromotionSchedule
 {
     public DateTime? ScheduledTime { get; set; } // null = next safe window
     public bool RequireFlat { get; set; } = true;

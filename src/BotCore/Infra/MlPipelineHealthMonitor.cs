@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using BotCore.Utilities;
 
 namespace BotCore.Infra
 {
@@ -43,11 +44,11 @@ namespace BotCore.Infra
             Directory.CreateDirectory(_dataDir);
             Directory.CreateDirectory(_modelDir);
 
-            // Check health every 30 minutes
+            // Check health every 30 minutes using TimerHelper
             var interval = TimeSpan.FromMinutes(30);
-            _checkTimer = new Timer(CheckHealthAsync, null, TimeSpan.Zero, interval);
+            _checkTimer = TimerHelper.CreateHealthCheckTimer(CheckHealthAsync, interval);
 
-            _log.LogInformation("[ML-Health] Started monitoring pipeline health every {Interval}", interval);
+            LoggingHelper.LogServiceStarted(_log, "ML-Health", interval, "monitoring pipeline health");
         }
 
         private async Task CheckHealthAsync()

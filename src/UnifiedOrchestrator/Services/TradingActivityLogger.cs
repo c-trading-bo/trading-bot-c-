@@ -10,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Enhanced trading activity logger with comprehensive signal, order, and position tracking
 /// Integrates with all trading services to provide complete audit trail
 /// </summary>
-public class TradingActivityLogger
+internal class TradingActivityLogger
 {
     private readonly ILogger<TradingActivityLogger> _logger;
     private readonly ITradingLogger _tradingLogger;

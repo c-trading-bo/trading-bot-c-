@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace SupervisorAgent
 {
-    public sealed class StatusService(ILogger<StatusService> log)
+    internal sealed class StatusService(ILogger<StatusService> log)
     {
         private readonly ILogger<StatusService> _log = log;
         private readonly ConcurrentDictionary<string, object> _vals = new();

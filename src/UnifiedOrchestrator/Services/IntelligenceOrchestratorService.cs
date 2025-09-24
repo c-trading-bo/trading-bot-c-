@@ -10,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Intelligence orchestrator service - coordinates ML/RL intelligence operations
 /// </summary>
-public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceOrchestrator
+internal class IntelligenceOrchestratorService : BackgroundService, IIntelligenceOrchestrator
 {
     private readonly ILogger<IntelligenceOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -51,7 +51,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         _logger.LogInformation("Intelligence Orchestrator Service stopped");
     }
 
-    private Task ProcessIntelligenceOperationsAsync(CancellationToken cancellationToken)
+    private Task ProcessIntelligenceOperationsAsync()
     {
         // Process ML/RL intelligence operations
         // This will be implemented based on actual intelligence requirements

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Channels;
 using TradingBot.Abstractions;
+using BotCore.Utilities;
 
 namespace BotCore.ML;
 
@@ -49,8 +50,9 @@ public class BatchedOnnxInferenceService : IDisposable
         // Initialize hardware detection
         InitializeHardwareDetection();
 
-        // Start batch processor
-        _batchProcessor = new Timer(ProcessBatchesAsync, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+        // Start batch processor using TimerHelper to reduce duplication
+        var processingInterval = TimeSpan.FromMilliseconds(100);
+        _batchProcessor = TimerHelper.CreateAsyncTimerWithImmediateStart(ProcessBatchesAsync, processingInterval);
 
         _logger.LogInformation("Batched ONNX inference service initialized - GPU: {GpuAvailable}, Quantization: {QuantizationSupported}, BatchSize: {BatchSize}",
             _gpuAvailable, _quantizedModelsSupported, _batchConfig.ModelInferenceBatchSize);

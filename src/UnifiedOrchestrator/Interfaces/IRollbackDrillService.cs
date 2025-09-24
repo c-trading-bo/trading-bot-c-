@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for rollback drill service
 /// </summary>
-public interface IRollbackDrillService
+internal interface IRollbackDrillService
 {
     /// <summary>
     /// Execute comprehensive rollback drill under simulated trading load

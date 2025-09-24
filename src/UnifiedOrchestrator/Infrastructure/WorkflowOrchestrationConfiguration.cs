@@ -8,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 /// <summary>
 /// Configuration service for workflow orchestration and advanced coordination
 /// </summary>
-public static class WorkflowOrchestrationConfiguration
+internal static class WorkflowOrchestrationConfiguration
 {
     /// <summary>
     /// Register workflow orchestration services

@@ -7,7 +7,7 @@ using BotCore;
 
 namespace OrchestratorAgent.Ops
 {
-    public sealed class EodReconciler
+    internal sealed class EodReconciler
     {
         private readonly ApiClient _api;
         private readonly long _accountId;

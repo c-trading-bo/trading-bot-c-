@@ -458,8 +458,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     // High-performance caching with LRU eviction
     private readonly ConcurrentDictionary<string, CachedFeatureData> _featureCache = new();
     private readonly ConcurrentDictionary<string, FeatureSchema> _schemaRegistry = new();
-    private readonly object _accessOrderLock = new();
-    
+
     // Enterprise features
     private readonly FeatureCompressionService _compressionService;
     private readonly FeatureIndexService _indexService;

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace TopstepX;
 
-public sealed class TopstepProjectXOptions
+internal sealed class TopstepProjectXOptions
 {
     // REAL TopstepX endpoints (not demo)
     public string ApiBaseUrl { get; init; } = "https://api.topstepx.com";

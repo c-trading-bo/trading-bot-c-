@@ -18,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Promotion;
 /// Promotion service with atomic swaps, timing gates, and instant rollback capability
 /// Ensures safe champion/challenger transitions with < 100ms rollback time
 /// </summary>
-public class PromotionService : IPromotionService
+internal class PromotionService : IPromotionService
 {
     private readonly ILogger<PromotionService> _logger;
     private readonly IModelRegistry _modelRegistry;
@@ -450,7 +450,7 @@ public class PromotionService : IPromotionService
         }
     }
 
-    private async Task ValidatePerformanceImprovementAsync(PromotionDecision decision, ModelVersion champion, ModelVersion challenger, CancellationToken cancellationToken)
+    private async Task ValidatePerformanceImprovementAsync(PromotionDecision decision, ModelVersion champion, ModelVersion challenger)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -566,7 +566,7 @@ internal class PromotionContext
 /// <summary>
 /// Position service interface (mock)
 /// </summary>
-public interface IPositionService
+internal interface IPositionService
 {
     Task<bool> IsCurrentlyFlatAsync(CancellationToken cancellationToken = default);
     Task<decimal> GetCurrentPositionAsync(string symbol, CancellationToken cancellationToken = default);
@@ -577,7 +577,7 @@ public interface IPositionService
 /// Production position service implementation
 /// Provides real position tracking via TopstepX API
 /// </summary>
-public class ProductionPositionService : IPositionService
+internal class ProductionPositionService : IPositionService
 {
     private readonly ILogger<ProductionPositionService> _logger;
     private readonly IAccountService _accountService;

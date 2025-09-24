@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// File cleanup service implementing log retention policies
 /// Automatically removes old log files based on configured retention periods
 /// </summary>
-public class LogRetentionService : IHostedService
+internal class LogRetentionService : IHostedService
 {
     private readonly ILogger<LogRetentionService> _logger;
     private readonly ITradingLogger _tradingLogger;
@@ -55,7 +55,7 @@ public class LogRetentionService : IHostedService
         _cleanupTimer?.Dispose();
     }
 
-    private Task PerformCleanup(object? state)
+    private Task PerformCleanup()
     {
         return PerformCleanupAsync();
     }
@@ -160,11 +160,11 @@ public class LogRetentionService : IHostedService
             var filteredLines = lines.Where(line =>
             {
                 // Keep header lines and recent alerts
-                if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line))
+                if (line.StartsWith('#') || string.IsNullOrWhiteSpace(line))
                     return true;
                 
                 // Try to parse timestamp from alert line
-                if (line.StartsWith("[") && line.Contains("]"))
+                if (line.StartsWith('[') && line.Contains("]"))
                 {
                     var timestampEnd = line.IndexOf("]");
                     var timestampStr = line[1..timestampEnd];

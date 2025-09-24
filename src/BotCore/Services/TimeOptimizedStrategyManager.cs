@@ -346,39 +346,6 @@ namespace BotCore.Services
             return (lastPrice - firstPrice) / firstPrice;
         }
 
-        private MLAdjustment GetMLAdjustment(MarketRegime regime, TradingSession session, string instrument)
-        {
-            // ML-based adjustment system using trained parameters
-            var adjustment = new MLAdjustment { SizeMultiplier = 1.0 };
-
-            // Apply regime-based ML adjustments from historical performance
-            adjustment.SizeMultiplier *= CalculateRegimeMultiplier(regime);
-            
-            // Apply session-based ML adjustments
-            adjustment.SizeMultiplier *= CalculateSessionMultiplier(session);
-            
-            // Apply instrument-specific ML model predictions
-            adjustment.SizeMultiplier *= CalculateInstrumentMultiplier(instrument);
-
-            // Adjust based on regime
-            if (regime.Name == "high_vol")
-            {
-                adjustment.SizeMultiplier *= 0.9; // Reduce size in high volatility
-            }
-            else if (regime.Name == "low_vol")
-            {
-                adjustment.SizeMultiplier *= 1.1; // Increase size in low volatility
-            }
-
-            // Adjust based on session
-            if (session.Description.Contains("Opening"))
-            {
-                adjustment.SizeMultiplier *= 1.05; // Slightly increase for opening sessions
-            }
-
-            return adjustment;
-        }
-
         private List<Candidate> GenerateStrategyCandidates(string strategyId, string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             // Use existing AllStrategies system to generate candidates

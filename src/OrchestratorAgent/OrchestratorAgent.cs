@@ -12,7 +12,7 @@ using TradingBot.Abstractions;
 
 namespace OrchestratorAgent
 {
-    public sealed class EvalPolicy
+    internal sealed class EvalPolicy
     {
         public bool Enabled { get; set; } = true;
         public decimal MaxDailyLoss { get; set; } = 850m;
@@ -74,7 +74,7 @@ namespace OrchestratorAgent
         }
     }
 
-    public static class SymbolMeta
+    internal static class SymbolMeta
     {
         private sealed record Meta(decimal TickSize, decimal TickValueUSD);
 
@@ -105,7 +105,7 @@ namespace OrchestratorAgent
         }
     }
     // PURPOSE: Track positions and realized PnL per trading day from trade fills.
-    public sealed class PnLTracker(EvalPolicy policy)
+    internal sealed class PnLTracker(EvalPolicy policy)
     {
         private readonly object _lock = new();
         private readonly EvalPolicy _policy = policy;
@@ -235,7 +235,7 @@ namespace OrchestratorAgent
     }
 
     // PURPOSE: Evaluation-mode gating: session window, daily loss cap, per-symbol and total size caps.
-    public sealed class EvalGuard(EvalPolicy policy, PnLTracker pnl)
+    internal sealed class EvalGuard(EvalPolicy policy, PnLTracker pnl)
     {
         private readonly EvalPolicy _policy = policy;
         private readonly PnLTracker _pnl = pnl;
@@ -279,7 +279,7 @@ namespace OrchestratorAgent
     }
 
     // PURPOSE: Subscribe to TopstepX SDK for trades and stream into PnLTracker.
-    public sealed class TopstepXUserAgent(ILogger<TopstepXUserAgent> log, PnLTracker pnl, ITopstepXClient topstepXClient) : IAsyncDisposable
+    internal sealed class TopstepXUserAgent(ILogger<TopstepXUserAgent> log, PnLTracker pnl, ITopstepXClient topstepXClient) : IAsyncDisposable
     {
         private readonly ILogger<TopstepXUserAgent> _log = log;
         private readonly ITopstepXClient _topstepXClient = topstepXClient;

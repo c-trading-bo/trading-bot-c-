@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-public sealed class ReplayRunner(Action<ReplayRunner.TradeTick> onTick)
+internal sealed class ReplayRunner(Action<ReplayRunner.TradeTick> onTick)
 {
     private readonly Action<TradeTick> _onTick = onTick;
 
@@ -23,5 +23,5 @@ public sealed class ReplayRunner(Action<ReplayRunner.TradeTick> onTick)
         }
     }
 
-    public record TradeTick(string Symbol, DateTime ExchangeTimeUtc, decimal Price, int Size);
+    internal record TradeTick(string Symbol, DateTime ExchangeTimeUtc, decimal Price, int Size);
 }

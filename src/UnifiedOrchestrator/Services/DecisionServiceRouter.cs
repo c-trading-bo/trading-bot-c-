@@ -19,7 +19,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// 2. C# UnifiedDecisionRouter (primary C# logic)
 /// 3. Direct strategy execution (ultimate fallback)
 /// </summary>
-public class DecisionServiceRouter
+internal class DecisionServiceRouter
 {
     private readonly ILogger<DecisionServiceRouter> _logger;
     private readonly HttpClient _httpClient;
@@ -358,7 +358,7 @@ public class DecisionServiceRouter
 
 #region Python Service Models
 
-public class PythonDecisionResponse
+internal class PythonDecisionResponse
 {
     public DecisionDetails? Decision { get; set; }
     public double Confidence { get; set; }
@@ -368,7 +368,7 @@ public class PythonDecisionResponse
     public string? RequestId { get; set; }
 }
 
-public class DecisionDetails
+internal class DecisionDetails
 {
     public string? Action { get; set; }
     public string? Strategy { get; set; }
@@ -376,14 +376,14 @@ public class DecisionDetails
     public Dictionary<string, object>? Metadata { get; set; }
 }
 
-public class FeatureInfo
+internal class FeatureInfo
 {
     public string? Name { get; set; }
     public double Value { get; set; }
     public double Weight { get; set; }
 }
 
-public class ModelInfo
+internal class ModelInfo
 {
     public string? ModelName { get; set; }
     public string? Version { get; set; }
@@ -391,7 +391,7 @@ public class ModelInfo
     public DateTime LastTrained { get; set; }
 }
 
-public class DecisionServiceStatus
+internal class DecisionServiceStatus
 {
     public bool PythonServiceHealthy { get; set; }
     public DateTime LastHealthCheck { get; set; }
@@ -401,7 +401,7 @@ public class DecisionServiceStatus
     public int MaxRetries { get; set; }
 }
 
-public class DecisionServiceOptions
+internal class DecisionServiceOptions
 {
     public string BaseUrl { get; set; } = string.Empty;
     public int TimeoutMs { get; set; } = 5000;

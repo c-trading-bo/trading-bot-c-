@@ -12,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Workflow orchestration manager - manages complex workflows
 /// </summary>
-public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
+internal class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
 {
     private readonly ILogger<WorkflowOrchestrationManager> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -148,14 +148,14 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
     }
 
     // Nested classes for the interface
-    public class ConflictResolution
+    internal class ConflictResolution
     {
         public bool IsResolved { get; set; }
         public int ConflictCount { get; set; }
         public List<string> Conflicts { get; } = new();
     }
 
-    public class WorkflowOrchestrationStatus
+    internal class WorkflowOrchestrationStatus
     {
         public bool IsActive { get; set; }
         public int ActiveWorkflows { get; set; }

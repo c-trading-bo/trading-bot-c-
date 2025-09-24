@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Models;
 /// <summary>
 /// Rollback drill configuration
 /// </summary>
-public class RollbackDrillConfig
+internal class RollbackDrillConfig
 {
     public LoadLevel LoadLevel { get; set; } = LoadLevel.Medium;
     public int TestDurationSeconds { get; set; } = 15;
@@ -21,7 +21,7 @@ public class RollbackDrillConfig
 /// <summary>
 /// Load level enumeration
 /// </summary>
-public enum LoadLevel
+internal enum LoadLevel
 {
     Low,
     Medium,
@@ -32,7 +32,7 @@ public enum LoadLevel
 /// <summary>
 /// Rollback drill result
 /// </summary>
-public class RollbackDrillResult
+internal class RollbackDrillResult
 {
     public string DrillId { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
@@ -53,7 +53,7 @@ public class RollbackDrillResult
 /// <summary>
 /// Rollback event during drill
 /// </summary>
-public class RollbackEvent
+internal class RollbackEvent
 {
     public DateTime Timestamp { get; set; }
     public string EventType { get; set; } = string.Empty;
@@ -65,7 +65,7 @@ public class RollbackEvent
 /// <summary>
 /// Rollback metrics
 /// </summary>
-public class RollbackMetrics
+internal class RollbackMetrics
 {
     public double BaselineLatencyMs { get; set; }
     public int BaselineDecisionsCount { get; set; }
@@ -85,7 +85,7 @@ public class RollbackMetrics
 /// <summary>
 /// Rollback drill summary across all drills
 /// </summary>
-public class RollbackDrillSummary
+internal class RollbackDrillSummary
 {
     public int TotalDrills { get; set; }
     public int SuccessfulDrills { get; set; }

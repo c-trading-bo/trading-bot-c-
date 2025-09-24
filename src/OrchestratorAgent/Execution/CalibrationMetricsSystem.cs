@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Execution
     /// per strategy-config-regime-session combination.
     /// Down-weights poorly calibrated predictions to improve system reliability.
     /// </summary>
-    public class CalibrationMetricsSystem
+    internal class CalibrationMetricsSystem
     {
         private readonly Dictionary<string, CalibrationTracker> _trackers = new();
         private readonly Queue<CalibrationEvent> _recentEvents = new();
@@ -285,7 +285,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public sealed class CalibrationTracker
+    internal sealed class CalibrationTracker
     {
         private readonly string _key;
         private readonly List<CalibrationDataPoint> _dataPoints = new();
@@ -401,7 +401,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class PredictionRecord
+    internal class PredictionRecord
     {
         public string Id { get; set; } = "";
         public double PredictedProbability { get; set; }
@@ -410,7 +410,7 @@ namespace OrchestratorAgent.Execution
         public string Description { get; set; } = "";
     }
 
-    public class PredictionContext
+    internal class PredictionContext
     {
         public string Strategy { get; set; } = "";
         public string Symbol { get; set; } = "";
@@ -419,7 +419,7 @@ namespace OrchestratorAgent.Execution
         public string ConfigHash { get; set; } = "";
     }
 
-    public class CalibrationDataPoint
+    internal class CalibrationDataPoint
     {
         public string Id { get; set; } = "";
         public double PredictedProbability { get; set; }
@@ -428,7 +428,7 @@ namespace OrchestratorAgent.Execution
         public DateTime Timestamp { get; set; }
     }
 
-    public class CalibrationMetrics
+    internal class CalibrationMetrics
     {
         public int SampleSize { get; set; }
         public double BrierScore { get; set; }
@@ -439,14 +439,14 @@ namespace OrchestratorAgent.Execution
         public double? CalibrationIntercept { get; set; }
     }
 
-    public class CalibrationEvent
+    internal class CalibrationEvent
     {
         public string Key { get; set; } = "";
         public PredictionRecord Prediction { get; set; } = new();
         public DateTime Timestamp { get; set; }
     }
 
-    public class CalibrationReport
+    internal class CalibrationReport
     {
         public DateTime GeneratedAt { get; set; }
         public List<ContextCalibrationReport> ContextReports { get; } = new();
@@ -455,7 +455,7 @@ namespace OrchestratorAgent.Execution
         public int TotalPredictions { get; set; }
     }
 
-    public class ContextCalibrationReport
+    internal class ContextCalibrationReport
     {
         public string Context { get; set; } = "";
         public CalibrationMetrics Metrics { get; set; } = new();

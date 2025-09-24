@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Centralized JWT token provider with automatic refresh capability
 /// Fixes authentication token propagation issues across all services
 /// </summary>
-public interface ITokenProvider
+internal interface ITokenProvider
 {
     Task<string?> GetTokenAsync();
     Task RefreshTokenAsync();
@@ -22,7 +22,7 @@ public interface ITokenProvider
     event Action<string> TokenRefreshed;
 }
 
-public class CentralizedTokenProvider : ITokenProvider, IHostedService
+internal class CentralizedTokenProvider : ITokenProvider, IHostedService
 {
     private readonly ILogger<CentralizedTokenProvider> _logger;
     private readonly ITradingLogger _tradingLogger;
@@ -233,7 +233,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
         }
     }
 
-    private Task RefreshTimerCallback(object? state)
+    private Task RefreshTimerCallback()
     {
         return RefreshTokenAsync();
     }

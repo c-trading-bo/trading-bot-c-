@@ -10,7 +10,7 @@ using SupervisorAgent;
 
 namespace OrchestratorAgent.Health
 {
-    public sealed class Preflight(ApiClient api, StatusService status, Preflight.TradingProfileConfig cfg, long accountId)
+    internal sealed class Preflight(ApiClient api, StatusService status, Preflight.TradingProfileConfig cfg, long accountId)
     {
         private readonly ApiClient _api = api;
         private readonly StatusService _status = status;
@@ -18,10 +18,10 @@ namespace OrchestratorAgent.Health
         private readonly TradingProfileConfig _cfg = cfg;
         private readonly DateTimeOffset _startUtc = DateTimeOffset.UtcNow;
 
-        public sealed class TradingProfileConfig
+        internal sealed class TradingProfileConfig
         {
             public RiskConfig Risk { get; set; } = new();
-            public sealed class RiskConfig
+            internal sealed class RiskConfig
             {
                 public decimal DailyLossLimit { get; set; } = 1000m;
                 public int MaxTradesPerDay { get; set; } = 1000;

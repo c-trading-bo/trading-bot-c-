@@ -18,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production readiness validation service that provides actual runtime proof
 /// of all champion/challenger architecture capabilities as requested
 /// </summary>
-public class ProductionReadinessValidationService : IProductionReadinessValidationService
+internal class ProductionReadinessValidationService : IProductionReadinessValidationService
 {
     private readonly ILogger<ProductionReadinessValidationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
@@ -191,7 +191,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     /// <summary>
     /// Validate safe window enforcement with actual CME trading hours
     /// </summary>
-    private async Task<SafeWindowEnforcementResult> ValidateSafeWindowEnforcementAsync(CancellationToken cancellationToken)
+    private async Task<SafeWindowEnforcementResult> ValidateSafeWindowEnforcementAsync()
     {
         var result = new SafeWindowEnforcementResult
         {
@@ -250,7 +250,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     /// <summary>
     /// Validate data integration showing both historical and live data flows
     /// </summary>
-    private async Task<DataIntegrationResult> ValidateDataIntegrationAsync(CancellationToken cancellationToken)
+    private async Task<DataIntegrationResult> ValidateDataIntegrationAsync()
     {
         var result = new DataIntegrationResult
         {
@@ -318,7 +318,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     /// <summary>
     /// Verify all acceptance criteria AC1-AC10 are met
     /// </summary>
-    private async Task<AcceptanceCriteriaResult> VerifyAcceptanceCriteriaAsync(CancellationToken cancellationToken)
+    private async Task<AcceptanceCriteriaResult> VerifyAcceptanceCriteriaAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -483,7 +483,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
 }
 
 // Supporting models for the validation results
-public class ProductionReadinessReport
+internal class ProductionReadinessReport
 {
     public string ReportId { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
@@ -494,7 +494,7 @@ public class ProductionReadinessReport
     public Dictionary<string, object> TestResults { get; } = new();
 }
 
-public class UnifiedTradingBrainIntegrationResult
+internal class UnifiedTradingBrainIntegrationResult
 {
     public bool IsPrimaryDecisionMaker { get; set; }
     public bool IsShadowTestingActive { get; set; }
@@ -504,7 +504,7 @@ public class UnifiedTradingBrainIntegrationResult
     public bool IsValid { get; set; }
 }
 
-public class SafeWindowEnforcementResult
+internal class SafeWindowEnforcementResult
 {
     public DateTime TestTime { get; set; }
     public List<SafeWindowTest> TestResults { get; } = new();
@@ -512,7 +512,7 @@ public class SafeWindowEnforcementResult
     public bool IsValid { get; set; }
 }
 
-public class SafeWindowTest
+internal class SafeWindowTest
 {
     public DateTime TestTime { get; set; }
     public bool IsMarketOpen { get; set; }
@@ -522,7 +522,7 @@ public class SafeWindowTest
     public string PromotionResult { get; set; } = string.Empty;
 }
 
-public class DataIntegrationResult
+internal class DataIntegrationResult
 {
     public DateTime TestTime { get; set; }
     public DataSourceStatus HistoricalDataStatus { get; set; } = new();
@@ -531,7 +531,7 @@ public class DataIntegrationResult
     public bool IsValid { get; set; }
 }
 
-public class DataSourceStatus
+internal class DataSourceStatus
 {
     public bool IsConnected { get; set; }
     public DateTime LastUpdate { get; set; }
@@ -541,7 +541,7 @@ public class DataSourceStatus
     public string? ErrorMessage { get; set; }
 }
 
-public class AcceptanceCriteriaResult
+internal class AcceptanceCriteriaResult
 {
     public DateTime TestTime { get; set; }
     public Dictionary<string, AcceptanceCriteriaItem> Criteria { get; } = new();
@@ -551,7 +551,7 @@ public class AcceptanceCriteriaResult
     public bool IsFullyCompliant { get; set; }
 }
 
-public class AcceptanceCriteriaItem
+internal class AcceptanceCriteriaItem
 {
     public string Description { get; set; } = string.Empty;
     public bool IsMet { get; set; }

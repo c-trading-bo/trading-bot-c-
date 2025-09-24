@@ -519,7 +519,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // PHASE 1: Feature Engineering - Transform raw market data into ML-ready features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 
                 // PHASE 2: Time-Optimized Strategy Selection - Use existing optimization
                 // Note: Simplifying to use available methods
@@ -548,10 +548,10 @@ namespace TopstepX.Bot.Core.Services
                     brainDecision.PriceDirection, brainDecision.PriceProbability, brainDecision.OptimalPositionMultiplier);
                 
                 // PHASE 6: AllStrategies Signal Generation - Generate high-confidence signals using existing sophisticated strategies
-                var marketSnapshot = CreateMarketSnapshot(symbol, marketData, bars);
+                var marketSnapshot = CreateMarketSnapshot(symbol, marketData);
                 
                 // Use AllStrategies for signal generation - this is what the user wants!
-                var allStrategiesSignals = ConvertCandidatesToSignals(mlEnhancedCandidates, symbol);
+                var allStrategiesSignals = ConvertCandidatesToSignals(mlEnhancedCandidates);
 
                 _logger.LogInformation("[ML/RL-STRATEGY] Generated {CandidateCount} base candidates, {EnhancedCount} ML-enhanced, {SignalCount} AllStrategies signals for {Symbol}", 
                     candidates.Count, mlEnhancedCandidates.Count, allStrategiesSignals.Count, symbol);
@@ -689,11 +689,11 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Convert AllStrategies candidates to signals
-                var baseSignals = ConvertCandidatesToSignals(allStrategiesCandidates, symbol);
+                var baseSignals = ConvertCandidatesToSignals(allStrategiesCandidates);
                 aggregatedSignals.AddRange(baseSignals);
 
                 // Add ML-enhanced candidates with higher confidence
-                var enhancedSignals = ConvertCandidatesToSignals(mlEnhancedCandidates, symbol);
+                var enhancedSignals = ConvertCandidatesToSignals(mlEnhancedCandidates);
                 foreach (var signal in enhancedSignals)
                 {
                     var enhancedSignal = signal with { Score = 0.85m, QScore = 0.85m, ProfileName = "ML-Enhanced" };
@@ -775,43 +775,6 @@ namespace TopstepX.Bot.Core.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ML/RL-EXECUTION] Error processing ML/RL enhanced signal for {Symbol}", signal.Symbol);
-            }
-        }
-
-        /// <summary>
-        /// Process a strategy candidate and place order if conditions are met
-        /// </summary>
-        private async Task ProcessStrategyCandidateAsync(Candidate candidate)
-        {
-            try
-            {
-                // Validate candidate
-                if (!ValidateCandidate(candidate))
-                    return;
-
-                // Convert candidate to order request
-                var orderRequest = new PlaceOrderRequest
-                {
-                    Symbol = candidate.symbol,
-                    Side = candidate.side == Side.BUY ? "BUY" : "SELL",
-                    Quantity = (decimal)Math.Abs(candidate.qty),
-                    Price = candidate.entry,
-                    StopPrice = candidate.stop,
-                    TargetPrice = candidate.t1,
-                    CustomTag = candidate.Tag,
-                    AccountId = _config.AccountId
-                };
-
-                // Place the order
-                var result = await PlaceOrderAsync(orderRequest).ConfigureAwait(false);
-                
-                _logger.LogInformation("[STRATEGY] Strategy {StrategyId} signal executed: {Symbol} {Side} Qty={Qty} Entry={Entry} Stop={Stop} Target={Target} Result={Success}",
-                    candidate.strategy_id, candidate.symbol, candidate.side, candidate.qty, 
-                    Px.F2(candidate.entry), Px.F2(candidate.stop), Px.F2(candidate.t1), result.IsSuccess);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[STRATEGY] Error processing candidate for {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
             }
         }
 
@@ -1049,7 +1012,7 @@ namespace TopstepX.Bot.Core.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [ML/RL] Failed to initialize ML/RL components");
-                _mlRlSystemReady;
+                _mlRlSystemReady = false;
             }
         }
 
@@ -1199,7 +1162,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate real-time features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1243,7 +1206,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Simplified trigger logic using available properties
-                if (featureVector.Features.Length > 0)
+                if (featureVector.Features.Count > 0)
                 {
                     // Check for high activity indicators
                     var avgFeatureValue = featureVector.Features.Average();
@@ -1324,123 +1287,6 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// ENHANCED: Fill confirmation handler with position updates
-        /// </summary>
-        private async Task OnFillConfirmed(object fillObj)
-        {
-            try
-            {
-                var fillJson = JsonSerializer.Serialize(fillObj);
-                var fillElement = JsonSerializer.Deserialize<JsonElement>(fillJson);
-
-                if (fillElement.TryGetProperty("orderId", out var orderIdElement) &&
-                    fillElement.TryGetProperty("symbol", out var symbolElement) &&
-                    fillElement.TryGetProperty("quantity", out var qtyElement) &&
-                    fillElement.TryGetProperty("price", out var priceElement) &&
-                    fillElement.TryGetProperty("side", out var sideElement))
-                {
-                    var orderId = orderIdElement.GetString() ?? string.Empty;
-                    var symbol = symbolElement.GetString() ?? string.Empty;
-                    var quantity = qtyElement.GetDecimal();
-                    var price = priceElement.GetDecimal();
-                    var side = sideElement.GetString() ?? string.Empty;
-
-                    // Log fill confirmation per instructions
-                    _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time}",
-                        _config.AccountId, orderId, Px.F2(price), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
-
-                    // Update position tracker - fix parameter types
-                    await _positionTracker.ProcessFillAsync(orderId, symbol, price, (int)quantity).ConfigureAwait(false);
-                    
-                    // ML/RL ENHANCEMENT: Update ML models with fill execution data
-                    await UpdateMlRlSystemWithFillAsync(orderId, symbol, price, quantity, side).ConfigureAwait(false);
-                    
-                    // ML/RL ENHANCEMENT: Trigger position management strategies
-                    await ProcessPostFillPositionManagementAsync(symbol, price, quantity, side).ConfigureAwait(false);
-                    
-                    _logger.LogInformation("✅ [ML/RL-FILL] Position and ML/RL state updated for {Symbol}: {Quantity} @ {Price}", symbol, quantity, Px.F2(price));
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[ML/RL-FILL] Error processing fill confirmation with ML/RL integration");
-            }
-        }
-
-        /// <summary>
-        /// Gateway User Order handler - completing the TopstepX SDK state machine
-        /// </summary>
-        private void OnGatewayUserOrderReceived(object orderObj)
-        {
-            try
-            {
-                var orderJson = JsonSerializer.Serialize(orderObj);
-                var orderElement = JsonSerializer.Deserialize<JsonElement>(orderJson);
-
-                if (orderElement.TryGetProperty("orderId", out var orderIdElement) &&
-                    orderElement.TryGetProperty("status", out var statusElement))
-                {
-                    var orderId = orderIdElement.GetString() ?? string.Empty;
-                    var status = statusElement.GetString() ?? string.Empty;
-                    var customTag = orderElement.TryGetProperty("customTag", out var tagElement) ? tagElement.GetString() ?? string.Empty : string.Empty;
-
-                    // Log order status per instructions
-                    _logger.LogInformation("[ORDER] account={AccountId} status={Status} orderId={OrderId} tag={CustomTag}",
-                        _config.AccountId, status, orderId, customTag);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[ORDER] Error processing GatewayUserOrder event");
-            }
-        }
-
-        /// <summary>
-        /// Gateway User Trade handler - completing the SignalR state machine
-        /// </summary>
-        private void OnGatewayUserTradeReceived(object tradeObj)
-        {
-            try
-            {
-                var tradeJson = JsonSerializer.Serialize(tradeObj);
-                var tradeElement = JsonSerializer.Deserialize<JsonElement>(tradeJson);
-
-                if (tradeElement.TryGetProperty("orderId", out var orderIdElement) &&
-                    tradeElement.TryGetProperty("fillPrice", out var priceElement) &&
-                    tradeElement.TryGetProperty("quantity", out var qtyElement))
-                {
-                    var orderId = orderIdElement.GetString() ?? string.Empty;
-                    var fillPrice = priceElement.GetDecimal();
-                    var quantity = qtyElement.GetDecimal();
-
-                    // Log trade execution per instructions
-                    _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time}",
-                        _config.AccountId, orderId, Px.F2(fillPrice), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[TRADE] Error processing GatewayUserTrade event");
-            }
-        }
-
-        /// <summary>
-        /// Order Update handler - completing the SignalR state machine
-        /// </summary>
-        private void OnOrderUpdateReceived()
-        {
-            try
-            {
-                _logger.LogDebug("[ORDER_UPDATE] Received order update");
-                // Add specific order update processing logic here if needed
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[ORDER_UPDATE] Error processing order update");
-            }
-        }
-
-        /// <summary>
         /// Update ML/RL system with execution data for continuous learning
         /// </summary>
         private Task UpdateMlRlSystemWithFillAsync(string orderId, string symbol, decimal fillPrice, decimal quantity, string side)
@@ -1488,7 +1334,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate features for position management decision
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1506,7 +1352,7 @@ namespace TopstepX.Bot.Core.Services
                 var levels = new Levels();
                 var positionManagementCandidates = new List<Candidate>(); // Simplified - no position management candidates for now
                 
-                var positionSignals = ConvertCandidatesToSignals(positionManagementCandidates, symbol);
+                var positionSignals = ConvertCandidatesToSignals(positionManagementCandidates);
 
                 // Process any immediate position management actions (stops, targets, scaling)
                 foreach (var signal in positionSignals.Where(s => s.Score > 0.7m))

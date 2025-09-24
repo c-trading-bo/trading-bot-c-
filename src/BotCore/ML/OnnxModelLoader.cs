@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using BotCore.Utilities;
 
 namespace BotCore.ML;
 
@@ -70,8 +71,9 @@ public sealed class OnnxModelLoader : IDisposable
         Directory.CreateDirectory(_modelsDirectory);
         Directory.CreateDirectory(_registryPath);
 
-        // Start hot-reload timer (60s polling as per requirement)
-        _hotReloadTimer = new Timer(CheckForModelUpdates, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        // Start hot-reload timer (60s polling as per requirement) using TimerHelper
+        var hotReloadInterval = TimeSpan.FromSeconds(60);
+        _hotReloadTimer = TimerHelper.CreateAsyncTimerWithImmediateStart(CheckForModelUpdates, hotReloadInterval);
 
         _logger.LogInformation("[ONNX-Loader] Initialized with models directory: {ModelsDir}, registry: {RegistryPath}, hot-reload enabled", 
             _modelsDirectory, _registryPath);

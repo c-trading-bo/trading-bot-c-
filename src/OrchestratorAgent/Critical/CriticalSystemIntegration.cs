@@ -18,7 +18,7 @@ namespace OrchestratorAgent.Critical
     /// <summary>
     /// Manages integration and lifecycle of critical trading system components
     /// </summary>
-    public class CriticalSystemManager : IDisposable
+    internal class CriticalSystemManager : IDisposable
     {
         private readonly ILogger<CriticalSystemManager> _logger;
         private ExecutionVerificationSystem? _executionVerificationSystem;
@@ -220,7 +220,7 @@ namespace OrchestratorAgent.Critical
     /// <summary>
     /// Enhanced application environment helper that uses critical system credential management
     /// </summary>
-    public static class CriticalAppEnv
+    internal static class CriticalAppEnv
     {
         public static string Get(string key, string? def = null)
         {

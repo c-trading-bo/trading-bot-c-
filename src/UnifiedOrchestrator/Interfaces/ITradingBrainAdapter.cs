@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for trading brain adapter that bridges old and new architectures
 /// </summary>
-public interface ITradingBrainAdapter
+internal interface ITradingBrainAdapter
 {
     /// <summary>
     /// Make trading decision using champion brain with challenger shadow testing

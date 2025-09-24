@@ -7,7 +7,7 @@ namespace TradingBot.Tests.Unit
     /// Tests for defensive string parsing to prevent ArgumentOutOfRangeException
     /// Validates the fix for substring operations
     /// </summary>
-    public class DefensiveParsingTests
+    internal class DefensiveParsingTests
     {
         [Theory]
         [InlineData("")]

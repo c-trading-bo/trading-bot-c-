@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Promotion;
 /// Shadow tester for validating challenger models against champions
 /// Runs parallel inference and compares performance with statistical significance
 /// </summary>
-public class ShadowTester : IShadowTester
+internal class ShadowTester : IShadowTester
 {
     private readonly ILogger<ShadowTester> _logger;
     private readonly IModelRegistry _modelRegistry;
@@ -247,7 +247,7 @@ public class ShadowTester : IShadowTester
         };
     }
 
-    private async Task<ShadowDecision> GetModelDecisionAsync(object model, Models.TradingContext context, CancellationToken cancellationToken)
+    private async Task<ShadowDecision> GetModelDecisionAsync(Models.TradingContext context, CancellationToken cancellationToken)
     {
         await Task.Delay(Random.Shared.Next(1, 10), cancellationToken).ConfigureAwait(false); // Simulate inference time
         
@@ -338,7 +338,7 @@ public class ShadowTester : IShadowTester
         report.SizeAlignment = 0.80m + (decimal)(Random.Shared.NextDouble() * 0.15);
     }
 
-    private void ValidatePerformanceConstraints(ShadowTest shadowTest, PromotionTestReport report)
+    private void ValidatePerformanceConstraints(PromotionTestReport report)
     {
         // Check latency constraints
         var latencyOk = report.LatencyP95 < 50 && report.LatencyP99 < 100;

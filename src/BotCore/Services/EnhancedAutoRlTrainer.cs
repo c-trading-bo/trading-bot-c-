@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using BotCore.Utilities;
 
 namespace BotCore
 {
@@ -36,11 +37,11 @@ namespace BotCore
             // Find Python executable
             _pythonPath = FindPythonExecutable();
 
-            // Check for training data and train every 2 hours (faster than previous 6 hours)
+            // Check for training data and train every 2 hours using TimerHelper
             var checkInterval = TimeSpan.FromHours(2);
-            _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, checkInterval);
+            _timer = TimerHelper.CreateAsyncTimerWithImmediateStart(CheckAndTrain, checkInterval);
 
-            _logger.LogInformation("[EnhancedAutoRlTrainer] Started - checking every {Interval} for training opportunities", checkInterval);
+            LoggingHelper.LogServiceStarted(_logger, "EnhancedAutoRlTrainer", checkInterval, "checking for training opportunities");
         }
 
         private async Task CheckAndTrain()

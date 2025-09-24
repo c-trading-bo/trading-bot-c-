@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Unified data integration service that ensures historical data and live TopStep data 
 /// are connected together in the main receiving component for both training and inference
 /// </summary>
-public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIntegrationService
+internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIntegrationService
 {
     private readonly ILogger<UnifiedDataIntegrationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
@@ -318,7 +318,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Verify that unified data pipeline is working correctly
     /// </summary>
-    private async Task VerifyUnifiedPipelineAsync(CancellationToken cancellationToken)
+    private async Task VerifyUnifiedPipelineAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -374,7 +374,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Process historical data for training brain
     /// </summary>
-    private async Task ProcessHistoricalDataForTrainingAsync(CancellationToken cancellationToken)
+    private async Task ProcessHistoricalDataForTrainingAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -394,7 +394,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Process live data for inference brain
     /// </summary>
-    private async Task ProcessLiveDataForInferenceAsync(CancellationToken cancellationToken)
+    private async Task ProcessLiveDataForInferenceAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -414,7 +414,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Ensure data flows to both training and inference brains
     /// </summary>
-    private async Task EnsureDataFlowToBrainsAsync(CancellationToken cancellationToken)
+    private async Task EnsureDataFlowToBrainsAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -599,7 +599,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Process historical data batch for training
     /// </summary>
-    private async Task ProcessHistoricalDataBatch(CancellationToken cancellationToken)
+    private async Task ProcessHistoricalDataBatch()
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -746,7 +746,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Monitor data flow health and performance
     /// </summary>
-    private async Task MonitorDataFlow(CancellationToken cancellationToken)
+    private async Task MonitorDataFlow()
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -765,7 +765,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Load recent historical data for brain training
     /// </summary>
-    private async Task<List<MarketDataPoint>> LoadRecentHistoricalDataAsync(CancellationToken cancellationToken)
+    private async Task<List<MarketDataPoint>> LoadRecentHistoricalDataAsync()
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -802,7 +802,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Get latest live market data
     /// </summary>
-    private async Task<LiveDataPoint?> GetLatestLiveDataAsync(CancellationToken cancellationToken)
+    private async Task<LiveDataPoint?> GetLatestLiveDataAsync()
     {
         await Task.Yield().ConfigureAwait(false);
         
@@ -873,7 +873,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
 /// <summary>
 /// Market data point for brain integration
 /// </summary>
-public class MarketDataPoint
+internal class MarketDataPoint
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
@@ -887,7 +887,7 @@ public class MarketDataPoint
 /// <summary>
 /// Live data point for real-time inference
 /// </summary>
-public class LiveDataPoint
+internal class LiveDataPoint
 {
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }

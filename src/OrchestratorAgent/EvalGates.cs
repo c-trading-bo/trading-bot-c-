@@ -4,7 +4,7 @@ using BotCore;
 namespace OrchestratorAgent
 {
     /// <summary>Wraps your previously-added EvalPolicy/PnLTracker checks into a single gate call.</summary>
-    public sealed class EvalGates(EvalPolicy policy, PnLTracker pnl)
+    internal sealed class EvalGates(EvalPolicy policy, PnLTracker pnl)
     {
         private readonly EvalPolicy _policy = policy;
         private readonly PnLTracker _pnl = pnl;

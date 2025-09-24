@@ -11,7 +11,7 @@ namespace OrchestratorAgent.Execution
     /// Optimized parameter configuration for institutional-level performance.
     /// Implements recommended institutional trading parameter settings.
     /// </summary>
-    public static class InstitutionalParameterOptimizer
+    internal static class InstitutionalParameterOptimizer
     {
         /// <summary>
         /// Gets optimized parameters based on institutional best practices
@@ -296,7 +296,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class OptimizedParameters
+    internal class OptimizedParameters
     {
         // Orchestrator parameters
         public int OrchUpdateCooldownBars { get; set; }
@@ -350,7 +350,7 @@ namespace OrchestratorAgent.Execution
         public DateTime LastUpdated { get; set; }
     }
 
-    public class SymbolParameters
+    internal class SymbolParameters
     {
         public string Symbol { get; set; } = "";
         public decimal TickSize { get; set; } = 0.25m;
@@ -362,7 +362,7 @@ namespace OrchestratorAgent.Execution
         public string[] PreferredStrategies { get; set; } = Array.Empty<string>();
     }
 
-    public class SessionParameters
+    internal class SessionParameters
     {
         public SessionType Session { get; set; }
         public double VolatilityMultiplier { get; set; } = 1.0;
@@ -373,7 +373,7 @@ namespace OrchestratorAgent.Execution
         public int TimeoutMinutes { get; set; } = 15;
     }
 
-    public class ParameterProfile
+    internal class ParameterProfile
     {
         public string Symbol { get; set; } = "";
         public SessionType Session { get; set; }

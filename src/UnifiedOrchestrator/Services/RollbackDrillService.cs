@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Rollback drill service that tests rollback capabilities under simulated load
 /// Provides evidence of instant rollback with context preservation
 /// </summary>
-public class RollbackDrillService : IRollbackDrillService
+internal class RollbackDrillService : IRollbackDrillService
 {
     private readonly ILogger<RollbackDrillService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;

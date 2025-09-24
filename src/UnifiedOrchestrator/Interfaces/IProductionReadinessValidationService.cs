@@ -7,7 +7,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for production readiness validation service
 /// </summary>
-public interface IProductionReadinessValidationService
+internal interface IProductionReadinessValidationService
 {
     /// <summary>
     /// Run complete production readiness validation and generate all requested artifacts

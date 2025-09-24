@@ -13,7 +13,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Automatic data scheduler service that starts historical data processing 
 /// based on market hours and configured schedules
 /// </summary>
-public class AutomaticDataSchedulerService : BackgroundService
+internal class AutomaticDataSchedulerService : BackgroundService
 {
     private readonly ILogger<AutomaticDataSchedulerService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -342,7 +342,7 @@ public class AutomaticDataSchedulerService : BackgroundService
 /// <summary>
 /// Market schedule information
 /// </summary>
-public class MarketSchedule
+internal class MarketSchedule
 {
     public bool IsMarketOpen { get; set; }
     public bool IsExtendedHours { get; set; }

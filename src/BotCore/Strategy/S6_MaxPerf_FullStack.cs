@@ -40,7 +40,7 @@ namespace TopstepX.S6
     }
 
     // --- DATA TYPES (ticks internally) ---
-    public readonly struct Bar1m
+    public readonly struct Bar1m : IEquatable<Bar1m>
     {
         public readonly DateTimeOffset TimeET; // end time of bar (ET)
         public readonly long Open, High, Low, Close; // ticks
@@ -67,9 +67,15 @@ namespace TopstepX.S6
         {
             return !(left == right);
         }
+
+        public bool Equals(Bar1m other)
+        {
+            throw new NotImplementedException();
+        }
     }
 
-    public readonly struct DepthLadder // L1-L3 snapshot
+    public readonly struct DepthLadder : IEquatable<DepthLadder>
+    // L1-L3 snapshot
     {
         public readonly DateTimeOffset TimeET;
         public readonly long Bid1, Ask1, Bid2, Ask2, Bid3, Ask3; // ticks
@@ -101,6 +107,11 @@ namespace TopstepX.S6
         public static bool operator !=(DepthLadder left, DepthLadder right)
         {
             return !(left == right);
+        }
+
+        public bool Equals(DepthLadder other)
+        {
+            throw new NotImplementedException();
         }
     }
 

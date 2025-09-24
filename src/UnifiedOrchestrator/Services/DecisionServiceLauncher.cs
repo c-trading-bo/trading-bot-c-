@@ -6,7 +6,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Launches and manages decision service instances
 /// </summary>
-public class DecisionServiceLauncher : IHostedService
+internal class DecisionServiceLauncher : IHostedService
 {
     private readonly ILogger<DecisionServiceLauncher> _logger;
 

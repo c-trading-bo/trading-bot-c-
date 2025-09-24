@@ -5,7 +5,7 @@ namespace TradingBot.UnifiedOrchestrator.Interfaces;
 /// <summary>
 /// Interface for cloud data integration - links GitHub workflows to trading decisions
 /// </summary>
-public interface ICloudDataIntegration
+internal interface ICloudDataIntegration
 {
     /// <summary>
     /// Sync all cloud data from GitHub workflows to the trading system

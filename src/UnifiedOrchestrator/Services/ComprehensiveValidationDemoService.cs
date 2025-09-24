@@ -11,7 +11,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Comprehensive validation demonstration service that runs actual validation reports,
 /// rollback drills, and shows runtime proof as requested by the user
 /// </summary>
-public class ComprehensiveValidationDemoService : BackgroundService
+internal class ComprehensiveValidationDemoService : BackgroundService
 {
     private readonly ILogger<ComprehensiveValidationDemoService> _logger;
     private readonly IValidationService _validationService;
@@ -274,7 +274,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// <summary>
     /// Demonstrate brain adapter functionality with UnifiedTradingBrain parity
     /// </summary>
-    private async Task DemonstrateBrainAdapterAsync(CancellationToken stoppingToken)
+    private async Task DemonstrateBrainAdapterAsync()
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
@@ -313,7 +313,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// <summary>
     /// Show ongoing status of all systems
     /// </summary>
-    private void ShowOngoingStatus(CancellationToken stoppingToken)
+    private void ShowOngoingStatus()
     {
         try
         {

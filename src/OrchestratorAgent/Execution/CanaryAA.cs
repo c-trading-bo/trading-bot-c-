@@ -3,7 +3,7 @@ using System;
 namespace OrchestratorAgent.Execution
 {
     // Sends a fraction of opportunities to a shadow arm; promotes if statistically better.
-    public sealed class CanaryAA
+    internal sealed class CanaryAA
     {
         readonly Random _rng = new();
         readonly double _ratio;  // 0.10

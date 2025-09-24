@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Comprehensive data flow monitoring service that tracks live data reception, 
 /// historical data processing, and identifies connection issues
 /// </summary>
-public class DataFlowMonitoringService : BackgroundService
+internal class DataFlowMonitoringService : BackgroundService
 {
     private readonly ILogger<DataFlowMonitoringService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -94,7 +94,7 @@ public class DataFlowMonitoringService : BackgroundService
     /// <summary>
     /// Monitor SignalR connection status and data reception
     /// </summary>
-    private async Task MonitorSignalRConnections(IServiceScope scope, CancellationToken cancellationToken)
+    private async Task MonitorSignalRConnections(IServiceScope scope)
     {
         try
         {
@@ -181,7 +181,7 @@ public class DataFlowMonitoringService : BackgroundService
     /// <summary>
     /// Monitor backtest learning service for historical data processing
     /// </summary>
-    private async Task MonitorBacktestLearningService(IServiceScope scope, CancellationToken cancellationToken)
+    private async Task MonitorBacktestLearningService()
     {
         try
         {
@@ -215,7 +215,7 @@ public class DataFlowMonitoringService : BackgroundService
     /// <summary>
     /// Check overall connection health and identify issues
     /// </summary>
-    private Task CheckConnectionHealth(CancellationToken cancellationToken)
+    private Task CheckConnectionHealth()
     {
         var healthyConnections = _connectionHealth.Values.Count(h => h.IsHealthy);
         var totalConnections = _connectionHealth.Count;
@@ -244,7 +244,7 @@ public class DataFlowMonitoringService : BackgroundService
     /// <summary>
     /// Report comprehensive data flow status
     /// </summary>
-    private Task ReportDataFlowStatus(CancellationToken cancellationToken)
+    private Task ReportDataFlowStatus()
     {
         var now = DateTime.UtcNow;
         var liveDataCount = _liveDataMetrics.Count;
@@ -382,7 +382,7 @@ public class DataFlowMonitoringService : BackgroundService
 /// <summary>
 /// Data flow metric for tracking events
 /// </summary>
-public class DataFlowMetric
+internal class DataFlowMetric
 {
     public DateTime Timestamp { get; set; }
     public string Source { get; set; } = string.Empty;
@@ -393,7 +393,7 @@ public class DataFlowMetric
 /// <summary>
 /// Connection health information
 /// </summary>
-public class ConnectionHealth
+internal class ConnectionHealth
 {
     public string ConnectionName { get; set; } = string.Empty;
     public bool IsHealthy { get; set; }
@@ -404,7 +404,7 @@ public class ConnectionHealth
 /// <summary>
 /// Comprehensive data flow status report
 /// </summary>
-public class DataFlowStatusReport
+internal class DataFlowStatusReport
 {
     public DateTime GeneratedAt { get; set; }
     public int TotalLiveDataEvents { get; set; }

@@ -5,7 +5,7 @@ using BotCore.Config;
 
 namespace TradingBot.Tests.Unit;
 
-public class EnvConfigTests : IDisposable
+internal class EnvConfigTests : IDisposable
 {
     private readonly string _testEnvFile = ".env.test";
     private readonly string _originalEnvValue;

@@ -14,7 +14,7 @@ namespace TradingBot.UnifiedOrchestrator.Runtime;
 /// <summary>
 /// Atomic model router - thread-safe, lock-free champion model access
 /// </summary>
-public class AtomicModelRouter<T> : IModelRouter<T> where T : class
+internal class AtomicModelRouter<T> : IModelRouter<T> where T : class
 {
     private readonly ILogger<AtomicModelRouter<T>> _logger;
     private readonly string _algorithm;
@@ -154,7 +154,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
 /// <summary>
 /// Factory for creating and managing model routers
 /// </summary>
-public class ModelRouterFactory : IModelRouterFactory
+internal class ModelRouterFactory : IModelRouterFactory
 {
     private readonly ILogger<ModelRouterFactory> _logger;
     private readonly IServiceProvider _serviceProvider;

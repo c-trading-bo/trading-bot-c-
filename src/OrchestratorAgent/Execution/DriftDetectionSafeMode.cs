@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Execution
     /// Uses Page-Hinkley test to detect regime changes and automatically
     /// switches to conservative "safe policy" for session remainder.
     /// </summary>
-    public class DriftDetectionSafeMode
+    internal class DriftDetectionSafeMode
     {
         private readonly Dictionary<string, PageHinkleyDetector> _detectors = new();
         private readonly Dictionary<string, SafeModeState> _safeModeStates = new();
@@ -248,7 +248,7 @@ namespace OrchestratorAgent.Execution
     /// <summary>
     /// Page-Hinkley test for detecting changes in time series mean
     /// </summary>
-    public class PageHinkleyDetector
+    internal class PageHinkleyDetector
     {
         private readonly double _threshold;
         private readonly Queue<double> _values = new();
@@ -326,7 +326,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class SafeModeState
+    internal class SafeModeState
     {
         public bool IsInSafeMode { get; set; }
         public DateTime EntryTime { get; set; }
@@ -334,7 +334,7 @@ namespace OrchestratorAgent.Execution
         public double TriggerSignificance { get; set; }
     }
 
-    public class DriftEvent
+    internal class DriftEvent
     {
         public string Context { get; set; } = "";
         public DateTime Timestamp { get; set; }
@@ -342,7 +342,7 @@ namespace OrchestratorAgent.Execution
         public bool SafeModeTriggered { get; set; }
     }
 
-    public class DriftStatusReport
+    internal class DriftStatusReport
     {
         public DateTime GeneratedAt { get; set; }
         public List<ContextDriftStatus> ContextStatuses { get; } = new();
@@ -350,7 +350,7 @@ namespace OrchestratorAgent.Execution
         public int ActiveSafeModes { get; set; }
     }
 
-    public class ContextDriftStatus
+    internal class ContextDriftStatus
     {
         public string Context { get; set; } = "";
         public double CurrentCUSUM { get; set; }

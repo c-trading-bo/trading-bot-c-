@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Execution
     /// Prevents look-ahead bias and provides credible confidence intervals.
     /// Essential for realistic performance estimation and bandit optimization.
     /// </summary>
-    public class PurgedWalkForwardValidator
+    internal class PurgedWalkForwardValidator
     {
         private readonly List<TradeRecord> _tradeHistory = new();
         private readonly TimeSpan _purgeWindow = TimeSpan.FromHours(4); // Purge 4 hours around test period
@@ -273,7 +273,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class TradeRecord
+    internal class TradeRecord
     {
         public DateTime EntryTime { get; set; }
         public DateTime? ExitTime { get; set; }
@@ -288,7 +288,7 @@ namespace OrchestratorAgent.Execution
         public string ExitReason { get; set; } = "";
     }
 
-    public class StrategyParameters
+    internal class StrategyParameters
     {
         public string StrategyName { get; set; } = "";
         public Dictionary<string, object> Parameters { get; } = new();
@@ -308,7 +308,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class WalkForwardResults
+    internal class WalkForwardResults
     {
         public StrategyParameters Parameters { get; set; } = new();
         public DateTime StartDate { get; set; }
@@ -365,7 +365,7 @@ namespace OrchestratorAgent.Execution
         }
     }
 
-    public class ValidationFold
+    internal class ValidationFold
     {
         public int FoldNumber { get; set; }
         public DateTime TrainingStart { get; set; }
@@ -387,7 +387,7 @@ namespace OrchestratorAgent.Execution
         public int TradeCount { get; set; }
     }
 
-    public class PerformanceMetrics
+    internal class PerformanceMetrics
     {
         public bool HasSufficientData { get; set; }
         public string Message { get; set; } = "";

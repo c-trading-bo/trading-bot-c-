@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Error handling service with graceful degradation and fallback logging
 /// Provides circuit breaker pattern and Windows Event Log fallback for critical errors
 /// </summary>
-public class ErrorHandlingService : IHostedService
+internal class ErrorHandlingService : IHostedService
 {
     private readonly ILogger<ErrorHandlingService> _logger;
     private readonly ITradingLogger _tradingLogger;
@@ -24,7 +24,7 @@ public class ErrorHandlingService : IHostedService
     private readonly EventLog? _eventLog;
     private readonly Timer _circuitBreakerTimer;
     private volatile bool _fileSystemAvailable = true;
-    private volatile bool _eventLogAvailable;
+    private volatile readonly bool _eventLogAvailable;
     private volatile bool _fileLoggingFallbackAvailable;
     private string? _fallbackLogPath;
     private int _consecutiveFileErrors;
@@ -202,7 +202,7 @@ public class ErrorHandlingService : IHostedService
         }
     }
 
-    private async Task CheckCircuitBreaker(object? state)
+    private async Task CheckCircuitBreaker()
     {
         try
         {
