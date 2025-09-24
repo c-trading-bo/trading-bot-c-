@@ -683,9 +683,9 @@ namespace BotCore.Services
             var spread = data.Ask - data.Bid;
             if (spread <= 0) return 0m;
             
-            // Calculate imbalance based on where Last price sits in bid-ask spread
+            // Calculate imbalance based on where Close price sits in bid-ask spread
             var midPoint = (data.Bid + data.Ask) / 2;
-            var pricePosition = data.Last - midPoint;
+            var pricePosition = (decimal)data.Close - midPoint;
             
             // Normalize to -1 to +1 range
             return Math.Max(-1m, Math.Min(1m, pricePosition / (spread / 2)));
@@ -760,8 +760,8 @@ namespace BotCore.Services
             var period = Math.Min(50, bars.Count);
             var recentBars = bars.TakeLast(period).ToList();
             
-            decimal totalVolume;
-            decimal volumeWeightedSum;
+            decimal totalVolume = 0;
+            decimal volumeWeightedSum = 0;
             
             foreach (var bar in recentBars)
             {
