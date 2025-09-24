@@ -474,7 +474,9 @@ public class ModelRegistry : IModelRegistry
             var retentionPeriod = TimeSpan.FromDays(30); // Keep models for 30 days
             var cutoffDate = DateTime.UtcNow - retentionPeriod;
             
+#pragma warning disable S3267 // Loops should be simplified by calling SelectMany when possible - False positive: performing side effects (file deletion), not data transformation
             foreach (var model in activeModels.Where(m => m.CreatedAt < cutoffDate))
+#pragma warning restore S3267
             {
                 try
                 {
