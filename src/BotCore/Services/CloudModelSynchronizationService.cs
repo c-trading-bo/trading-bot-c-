@@ -266,7 +266,7 @@ public class CloudModelSynchronizationService : BackgroundService
             using var zipStream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
             
-            var extracted;
+            var extracted = false;
             foreach (var entry in archive.Entries)
             {
                 if (entry.Name.EndsWith(".onnx") || entry.Name.EndsWith(".pkl") || entry.Name.EndsWith(".json"))
@@ -355,9 +355,14 @@ public class CloudModelSynchronizationService : BackgroundService
             var registry = new ModelRegistry
             {
                 LastUpdated = DateTime.UtcNow,
-                Models = _currentModels.Values.ToList(),
                 TotalModels = _currentModels.Count
             };
+            
+            // Add models to the collection property
+            foreach (var model in _currentModels.Values)
+            {
+                registry.Models.Add(model);
+            }
             
             var json = JsonSerializer.Serialize(registry, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(registryPath, json, cancellationToken).ConfigureAwait(false);

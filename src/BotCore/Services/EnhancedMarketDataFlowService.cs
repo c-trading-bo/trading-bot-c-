@@ -624,7 +624,7 @@ namespace BotCore.Services
             {
                 _healthCheckTimer?.Dispose();
                 _heartbeatTimer?.Dispose();
-                _isMonitoring;
+                _isMonitoring = false;
                 _disposed = true;
             }
         }

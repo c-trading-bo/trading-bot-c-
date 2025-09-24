@@ -267,10 +267,21 @@ public class AutonomousPerformanceTracker
                 LargestWin = todayTrades.Length > 0 ? todayTrades.Where(t => t.PnL > 0).DefaultIfEmpty().Max(t => t?.PnL ?? 0m) : 0m,
                 LargestLoss = todayTrades.Length > 0 ? todayTrades.Where(t => t.PnL < 0).DefaultIfEmpty().Min(t => t?.PnL ?? 0m) : 0m,
                 BestStrategy = GetBestPerformingStrategyForDay(today),
-                WorstStrategy = GetWorstPerformingStrategyForDay(today),
-                TradingInsights = tradingInsights,
-                OptimizationRecommendations = GenerateOptimizationRecommendations()
+                WorstStrategy = GetWorstPerformingStrategyForDay(today)
             };
+            
+            // Add insights to the collection property
+            foreach (var insight in tradingInsights)
+            {
+                report.TradingInsights.Add(insight);
+            }
+            
+            // Add recommendations to the collection property
+            var recommendations = GenerateOptimizationRecommendations();
+            foreach (var recommendation in recommendations)
+            {
+                report.OptimizationRecommendations.Add(recommendation);
+            }
             
             return report;
         }
