@@ -1670,7 +1670,7 @@ namespace BotCore.Brain
         public decimal PriceProbability { get; set; }
         public decimal OptimalPositionMultiplier { get; set; }
         public MarketRegime MarketRegime { get; set; }
-        public List<Candidate> EnhancedCandidates { get; } = new();
+        public List<Candidate> EnhancedCandidates { get; set; } = new();
         public DateTime DecisionTime { get; set; }
         public double ProcessingTimeMs { get; set; }
         public decimal ModelConfidence { get; set; }

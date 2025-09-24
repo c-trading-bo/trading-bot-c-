@@ -361,7 +361,7 @@ namespace BotCore
         public string StrategyUsed { get; set; } = "";
         public decimal StopLoss { get; set; }
         public decimal TakeProfit { get; set; }
-        public List<decimal> Features { get; } = new();
+        public List<decimal> Features { get; set; } = new();
         public string Session { get; set; } = "";
         public string Regime { get; set; } = "";
         public decimal Atr { get; set; }

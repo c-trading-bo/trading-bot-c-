@@ -34,7 +34,7 @@ namespace TopstepX.Bot.Core.Services
             public decimal UnrealizedPnL { get; set; }
             public decimal RealizedPnL { get; set; }
             public DateTime LastUpdate { get; set; }
-            public List<Fill> Fills { get; } = new();
+            public List<Fill> Fills { get; set; } = new();
             public decimal MarketValue { get; set; }
             public decimal DailyPnL { get; set; }
         }
@@ -231,10 +231,14 @@ namespace TopstepX.Bot.Core.Services
                 {
                     Symbol = position.Symbol,
                     ViolationType = "Position Risk",
-                    Violations = violations,
                     Position = position,
                     Timestamp = DateTime.UtcNow
                 };
+                
+                foreach (var violation in violations)
+                {
+                    eventArgs.Violations.Add(violation);
+                }
                 
                 _logger.LogCritical("🚨 RISK VIOLATION: {Symbol} - {Violations}", 
                     position.Symbol, string.Join(", ", violations));
@@ -269,10 +273,14 @@ namespace TopstepX.Bot.Core.Services
                 {
                     Symbol = "ACCOUNT",
                     ViolationType = "Account Risk",
-                    Violations = violations,
                     Position = null,
                     Timestamp = DateTime.UtcNow
                 };
+                
+                foreach (var violation in violations)
+                {
+                    eventArgs.Violations.Add(violation);
+                }
                 
                 _logger.LogCritical("🚨 ACCOUNT RISK VIOLATION: {Violations}", string.Join(", ", violations));
                 RiskViolationDetected?.Invoke(this, eventArgs);
