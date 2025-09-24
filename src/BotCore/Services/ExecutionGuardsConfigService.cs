@@ -37,5 +37,17 @@ namespace TradingBot.BotCore.Services
 
         public int GetCircuitBreakerThreshold() => 
             _config.GetValue("ExecutionGuards:CircuitBreakerThreshold", 10);
+
+        public int GetTradeAnalysisWindowMinutes() => 
+            _config.GetValue("ExecutionGuards:TradeAnalysisWindowMinutes", 5);
+
+        public int GetVolumeAnalysisWindowMinutes() => 
+            _config.GetValue("ExecutionGuards:VolumeAnalysisWindowMinutes", 1);
+
+        public decimal GetMicroVolatilityThreshold() => 
+            _config.GetValue("ExecutionGuards:MicroVolatilityThreshold", 0.002m);
+
+        public decimal GetMaxSpreadBps() => 
+            _config.GetValue("ExecutionGuards:MaxSpreadBps", 2.0m);
     }
 }

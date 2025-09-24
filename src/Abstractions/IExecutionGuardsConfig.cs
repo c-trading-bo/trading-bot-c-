@@ -37,5 +37,25 @@ namespace TradingBot.Abstractions
         /// Circuit breaker threshold for order rejections per minute
         /// </summary>
         int GetCircuitBreakerThreshold();
+
+        /// <summary>
+        /// Trade analysis window in minutes
+        /// </summary>
+        int GetTradeAnalysisWindowMinutes();
+
+        /// <summary>
+        /// Volume analysis window in minutes  
+        /// </summary>
+        int GetVolumeAnalysisWindowMinutes();
+
+        /// <summary>
+        /// Micro volatility threshold for volatile market detection
+        /// </summary>
+        decimal GetMicroVolatilityThreshold();
+
+        /// <summary>
+        /// Maximum spread in basis points for liquid market
+        /// </summary>
+        decimal GetMaxSpreadBps();
     }
 }

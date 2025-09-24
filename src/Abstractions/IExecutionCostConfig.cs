@@ -35,5 +35,15 @@ namespace TradingBot.Abstractions
         /// Cost threshold for order routing decisions
         /// </summary>
         decimal GetRoutingCostThresholdUsd();
+
+        /// <summary>
+        /// Default trade size for calculations when no history available
+        /// </summary>
+        int GetDefaultTradeSize();
+
+        /// <summary>
+        /// Maximum market impact in basis points
+        /// </summary>
+        decimal GetMaxMarketImpactBps();
     }
 }

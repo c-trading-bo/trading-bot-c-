@@ -3,29 +3,46 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace BotCore.Execution;
 
 /// <summary>
 /// Basic microstructure analyzer that predicts execution costs and fill probabilities.
 /// Uses spread, volatility, and volume analysis for execution recommendations.
+/// Now fully configuration-driven instead of hardcoded parameters.
 /// </summary>
 public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 {
     private readonly IMarketDataProvider _marketData;
+    private readonly IExecutionGuardsConfig _executionConfig;
+    private readonly IExecutionCostConfig _costConfig;
+    private readonly ILogger<BasicMicrostructureAnalyzer> _logger;
     private readonly Dictionary<string, List<ExecutionHistory>> _executionHistory = new();
     private readonly object _historyLock = new();
 
-    public BasicMicrostructureAnalyzer(IMarketDataProvider marketData)
+    public BasicMicrostructureAnalyzer(
+        IMarketDataProvider marketData, 
+        IExecutionGuardsConfig executionConfig,
+        IExecutionCostConfig costConfig,
+        ILogger<BasicMicrostructureAnalyzer> logger)
     {
         _marketData = marketData;
+        _executionConfig = executionConfig;
+        _costConfig = costConfig;
+        _logger = logger;
     }
 
     public async Task<MicrostructureState> AnalyzeCurrentStateAsync(string symbol, CancellationToken ct = default)
     {
+        // Get configurable timeframes instead of hardcoded values
+        var tradeAnalysisMinutes = _executionConfig.GetTradeAnalysisWindowMinutes();
+        var volumeAnalysisMinutes = _executionConfig.GetVolumeAnalysisWindowMinutes();
+        
         var quote = await _marketData.GetCurrentQuoteAsync(symbol, ct).ConfigureAwait(false);
-        var recentTrades = await _marketData.GetRecentTradesAsync(symbol, TimeSpan.FromMinutes(5), ct).ConfigureAwait(false);
-        var volume = await _marketData.GetRecentVolumeAsync(symbol, TimeSpan.FromMinutes(1), ct).ConfigureAwait(false);
+        var recentTrades = await _marketData.GetRecentTradesAsync(symbol, TimeSpan.FromMinutes(tradeAnalysisMinutes), ct).ConfigureAwait(false);
+        var volume = await _marketData.GetRecentVolumeAsync(symbol, TimeSpan.FromMinutes(volumeAnalysisMinutes), ct).ConfigureAwait(false);
 
         var spread = quote.AskPrice - quote.BidPrice;
         var midPrice = (quote.BidPrice + quote.AskPrice) / 2;
@@ -53,8 +70,8 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
             Volatility = volatility,
             MicroVolatility = microVolatility,
             TickActivity = tickActivity,
-            IsVolatile = microVolatility > 0.002m, // 20 bps micro-vol threshold
-            IsLiquid = spreadBps < 2m && volume > 1000,
+            IsVolatile = microVolatility > _executionConfig.GetMicroVolatilityThreshold(),
+            IsLiquid = spreadBps < _executionConfig.GetMaxSpreadBps() && volume > _executionConfig.GetMinVolumeThreshold(),
             Session = DetermineMarketSession(),
             RecentTrades = recentTrades.Select(t => new RecentTrade
             {
@@ -81,10 +98,12 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         // Market impact based on order size vs average size
         var avgTradeSize = currentState.RecentTrades.Any()
             ? currentState.RecentTrades.Average(t => t.Size)
-            : 100;
+            : _costConfig.GetDefaultTradeSize();
 
         var sizeRatio = (decimal)quantity / (decimal)Math.Max(1, avgTradeSize);
-        var marketImpactBps = Math.Min(20m, sizeRatio * 2m); // Cap at 20 bps
+        var maxMarketImpactBps = _costConfig.GetMaxMarketImpactBps();
+        var impactMultiplier = _costConfig.GetMarketImpactMultiplier();
+        var marketImpactBps = Math.Min(maxMarketImpactBps, sizeRatio * impactMultiplier);
 
         // Volatility adjustment
         var volatilityAdjustment = currentState.IsVolatile ? 3m : 0m;

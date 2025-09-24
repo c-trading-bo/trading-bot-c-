@@ -41,5 +41,11 @@ namespace TradingBot.BotCore.Services
 
         public decimal GetRoutingCostThresholdUsd() => 
             _config.GetValue("ExecutionCost:RoutingCostThreshold", 5.0m);
+
+        public int GetDefaultTradeSize() => 
+            _config.GetValue("ExecutionCost:DefaultTradeSize", 100);
+
+        public decimal GetMaxMarketImpactBps() => 
+            _config.GetValue("ExecutionCost:MaxMarketImpactBps", 20.0m);
     }
 }

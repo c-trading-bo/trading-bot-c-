@@ -965,6 +965,12 @@ Stack Trace:
         services.AddScoped<TradingBot.Abstractions.IEndpointConfig, TradingBot.BotCore.Services.EndpointConfigService>();
         services.AddScoped<TradingBot.Abstractions.IPathConfig, TradingBot.BotCore.Services.PathConfigService>();
         
+        // Register Configuration Safety and Management Services
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationFailureSafetyService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationSnapshotService>();
+        services.AddSingleton<TradingBot.BotCore.Services.ConfigurationSchemaService>();
+        services.AddHostedService<TradingBot.BotCore.Services.StateDurabilityService>();
+        
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));
         services.AddSingleton<BotCore.Services.ProductionResilienceService>();

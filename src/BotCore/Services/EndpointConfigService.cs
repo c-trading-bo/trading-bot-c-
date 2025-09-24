@@ -20,11 +20,11 @@ namespace TradingBot.BotCore.Services
             _logger = logger;
         }
 
-        public string GetTopstepXApiBaseUrl() => 
-            _config.GetValue("Endpoints:TopstepXApiBaseUrl", "https://api.topstepx.com");
+        public Uri GetTopstepXApiBaseUrl() => 
+            new Uri(_config.GetValue("Endpoints:TopstepXApiBaseUrl", "https://api.topstepx.com"));
 
-        public string GetTopstepXWebSocketUrl() => 
-            _config.GetValue("Endpoints:TopstepXWebSocketUrl", "wss://api.topstepx.com/ws");
+        public Uri GetTopstepXWebSocketUrl() => 
+            new Uri(_config.GetValue("Endpoints:TopstepXWebSocketUrl", "wss://api.topstepx.com/ws"));
 
         public string GetMLServiceEndpoint() => 
             _config.GetValue("Endpoints:MLServiceEndpoint", "http://localhost:8080");

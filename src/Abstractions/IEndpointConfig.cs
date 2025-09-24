@@ -9,12 +9,12 @@ namespace TradingBot.Abstractions
         /// <summary>
         /// TopstepX API base URL
         /// </summary>
-        string GetTopstepXApiBaseUrl();
+        Uri GetTopstepXApiBaseUrl();
 
         /// <summary>
         /// TopstepX WebSocket URL for real-time data
         /// </summary>
-        string GetTopstepXWebSocketUrl();
+        Uri GetTopstepXWebSocketUrl();
 
         /// <summary>
         /// ML service endpoint URL
