@@ -5,10 +5,10 @@
 // PURPOSE: Evaluation-account policy configuration and simple session window helpers.
 using System.Collections.Concurrent;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http.Connections;
 
 using Microsoft.Extensions.Logging;
 using Trading.Safety;
+using TradingBot.Abstractions;
 
 namespace OrchestratorAgent
 {
@@ -278,12 +278,14 @@ namespace OrchestratorAgent
         }
     }
 
-    // PURPOSE: Subscribe to user hub and stream trades into PnLTracker.
-    public sealed class UserHubAgent(ILogger<UserHubAgent> log, PnLTracker pnl) : IAsyncDisposable
+    // PURPOSE: Subscribe to TopstepX SDK for trades and stream into PnLTracker.
+    public sealed class TopstepXUserAgent(ILogger<TopstepXUserAgent> log, PnLTracker pnl, ITopstepXClient topstepXClient) : IAsyncDisposable
     {
-        private readonly ILogger<UserHubAgent> _log = log;
-        private HubConnection? _conn;
+        private readonly ILogger<TopstepXUserAgent> _log = log;
+        private readonly ITopstepXClient _topstepXClient = topstepXClient;
         private readonly PnLTracker _pnl = pnl;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private bool _subscribed;
 
         public async Task ConnectAsync(string authToken, int accountId, CancellationToken ct = default)
         {
