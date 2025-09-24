@@ -942,6 +942,21 @@ Stack Trace:
         services.AddProductionConfigurationValidation(configuration);
         services.AddScoped<TradingBot.BotCore.Services.MLConfigurationService>();
         
+        // Register Execution Configuration Services - Replace hardcoded execution parameters
+        services.AddScoped<TradingBot.Abstractions.IExecutionGuardsConfig, TradingBot.BotCore.Services.ExecutionGuardsConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IExecutionCostConfig, TradingBot.BotCore.Services.ExecutionCostConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IExecutionPolicyConfig, TradingBot.BotCore.Services.ExecutionPolicyConfigService>();
+        
+        // Register Risk and Sizing Configuration Services - Replace hardcoded risk/sizing parameters
+        services.AddScoped<TradingBot.Abstractions.IRiskConfig, TradingBot.BotCore.Services.RiskConfigService>();
+        services.AddScoped<TradingBot.Abstractions.ISizerConfig, TradingBot.BotCore.Services.SizerConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IMetaCostConfig, TradingBot.BotCore.Services.MetaCostConfigService>();
+        
+        // Register Trading Flow Configuration Services - Replace hardcoded trading flow parameters
+        services.AddScoped<TradingBot.Abstractions.IBracketConfig, TradingBot.BotCore.Services.BracketConfigService>();
+        services.AddScoped<TradingBot.Abstractions.ISessionConfig, TradingBot.BotCore.Services.SessionConfigService>();
+        services.AddScoped<TradingBot.Abstractions.IControllerOptionsService, TradingBot.BotCore.Services.ControllerOptionsService>();
+        
         // Register Production Resilience Service - Retry logic, circuit breakers, graceful degradation
         services.Configure<BotCore.Services.ResilienceConfig>(configuration.GetSection("Resilience"));
         services.AddSingleton<BotCore.Services.ProductionResilienceService>();
