@@ -1695,6 +1695,19 @@ namespace BotCore.Brain
         public decimal VolatilityRank { get; set; }
         public decimal Momentum { get; set; }
         public int MarketRegime { get; set; }
+        
+        // Additional properties needed by NeuralUcbExtended
+        public Dictionary<string, double> Features { get; } = new();
+        public double Price { get; set; }
+        public double Bid { get; set; }
+        public double Ask { get; set; }
+        public double SignalStrength { get; set; }
+        public double ConfidenceLevel { get; set; }
+        public double ModelConfidence { get; set; }
+        public double NewsIntensity { get; set; }
+        public Dictionary<string, double> TechnicalIndicators { get; } = new();
+        public bool IsFomcDay { get; set; }
+        public bool IsCpiDay { get; set; }
     }
 
     public class StrategySelection

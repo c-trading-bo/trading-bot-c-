@@ -99,7 +99,7 @@ namespace TradingBot.BotCore.Services
                     values["risk.daily_loss_limit"] = riskConfig.GetDailyLossLimit();
                     values["risk.per_trade_risk"] = riskConfig.GetPerTradeRisk();
                     values["risk.max_drawdown_pct"] = riskConfig.GetMaxDrawdownPercentage();
-                    values["risk.cvar_confidence"] = riskConfig.GetCVaRConfidenceLevel();
+                    values["risk.cvar_confidence"] = riskConfig.GetCvarConfidenceLevel();
                 }
 
                 // Capture Execution Configuration values

@@ -346,7 +346,7 @@ namespace BotCore.Strategy
         private static DateTime AnchorToday(DateTime localDate, TimeSpan time) => localDate.Date + time;
         private static (decimal high, decimal low) InitialBalance(IList<Bar> bars, DateTime startLocal, DateTime endLocal)
         {
-            decimal hi = 0, lo; bool seen;
+            decimal hi = 0, lo = 0; bool seen = false;
             foreach (var b in bars)
             {
                 if (b.Start >= startLocal && b.Start < endLocal)
@@ -369,7 +369,7 @@ namespace BotCore.Strategy
         private static decimal Stdev(decimal[] x, int n)
         {
             if (x.Length < n) return 0m;
-            decimal sum = 0m, sum2;
+            decimal sum = 0m, sum2 = 0;
             for (int i = x.Length - n; i < x.Length; i++) { sum += x[i]; sum2 += x[i] * x[i]; }
             var mean = sum / n; var varv = (sum2 / n) - mean * mean;
             return varv <= 0 ? 0m : (decimal)Math.Sqrt((double)varv);
@@ -377,7 +377,7 @@ namespace BotCore.Strategy
         private static decimal ATR(IList<Bar> b, int n)
         {
             if (b.Count < n + 1) return 0m;
-            decimal atr; int start = b.Count - n;
+            decimal atr = 0; int start = b.Count - n;
             for (int i = start; i < b.Count; i++)
             {
                 var c = b[i]; var p = b[i - 1];
@@ -419,7 +419,7 @@ namespace BotCore.Strategy
                 list.Add((up - dn) / Math.Max(1e-9m, Math.Abs(mid)));
             }
             if (list.Count < look + 2) return false;
-            int desc;
+            int desc = 0;
             for (int i = list.Count - look + 1; i < list.Count; i++) if (list[i] <= list[i - 1] + tol) desc++;
             return desc >= look - 1;
         }
@@ -435,7 +435,7 @@ namespace BotCore.Strategy
             if (trs.Count < minBars) return false;
             var sorted = trs.OrderBy(x => x).ToList();
             var med = sorted[sorted.Count / 2];
-            int cnt;
+            int cnt = 0;
             for (int i = trs.Count - 1; i >= 0 && cnt < minBars; i--)
             {
                 if (trs[i] <= ratio * med) cnt++; else break;
@@ -444,7 +444,7 @@ namespace BotCore.Strategy
         }
         private static int SqueezeRunLength(IList<Bar> bars, int bbLen, decimal bbMult, int kcEma, int kcAtrLen, decimal kcMult)
         {
-            int run;
+            int run = 0;
             var closes = bars.Select(b => b.Close).ToArray();
             for (int i = bars.Count - 1; i >= Math.Max(0, bars.Count - 60); i--)
             {
