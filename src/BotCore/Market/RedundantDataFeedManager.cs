@@ -342,8 +342,7 @@ public class RedundantDataFeedManager : IDisposable
             var consistency = new DataConsistencyResult
             {
                 Symbol = symbol,
-                CheckTime = DateTime.UtcNow,
-                FeedData = new Dictionary<string, MarketDataSnapshot>()
+                CheckTime = DateTime.UtcNow
             };
 
             // Collect data from all healthy feeds
@@ -632,7 +631,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         public string Symbol { get; set; } = string.Empty;
         public DateTime CheckTime { get; set; }
-        public Dictionary<string, MarketDataSnapshot> FeedData { get; set; } = new();
+        public Dictionary<string, MarketDataSnapshot> FeedData { get; } = new();
         public bool IsConsistent { get; set; }
         public decimal PriceDeviation { get; set; }
         public decimal PriceStandardDeviation { get; set; }

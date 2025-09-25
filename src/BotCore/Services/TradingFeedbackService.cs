@@ -109,9 +109,14 @@ public class TradingFeedbackService : BackgroundService
                 RealizedPnL = feedback.ImpactOnPnL,
                 MarketConditions = feedback.MarketContext,
                 ModelConfidence = feedback.OriginalConfidence,
-                ActualOutcome = feedback.ActualOutcome,
-                TradingContext = feedback.TradingContext
+                ActualOutcome = feedback.ActualOutcome
             };
+            
+            // Populate the readonly dictionary
+            foreach (var kvp in feedback.TradingContext)
+            {
+                outcome.TradingContext[kvp.Key] = kvp.Value;
+            }
             
             SubmitTradingOutcome(outcome);
             
@@ -345,14 +350,24 @@ public class TradingFeedbackService : BackgroundService
             var retrainingRequest = new ModelRetrainingRequest
             {
                 Timestamp = DateTime.UtcNow,
-                Strategies = strategies,
                 Reason = "performance_degradation",
-                PerformanceMetrics = _performanceMetrics.Values
-                    .Where(m => strategies.Contains(m.Strategy))
-                    .ToList(),
                 TriggerThreshold = _performanceThreshold,
                 MinSamples = _minFeedbackSamples
             };
+            
+            // Populate readonly collections
+            foreach (var strategy in strategies)
+            {
+                retrainingRequest.Strategies.Add(strategy);
+            }
+            
+            var filteredMetrics = _performanceMetrics.Values
+                .Where(m => strategies.Contains(m.Strategy))
+                .ToList();
+            foreach (var metric in filteredMetrics)
+            {
+                retrainingRequest.PerformanceMetrics.Add(metric);
+            }
             
             // Save retraining request
             var requestPath = Path.Combine(_feedbackDataPath, $"retraining_request_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
@@ -384,10 +399,21 @@ public class TradingFeedbackService : BackgroundService
             {
                 Timestamp = DateTime.UtcNow,
                 Reason = "ensemble_degradation",
-                ModelPerformance = _ensemble.GetModelPerformanceStats(),
-                OverallPerformance = _performanceMetrics.Values.ToList(),
                 TriggerThreshold = _performanceThreshold
             };
+            
+            // Populate readonly collections
+            var modelPerformanceStats = _ensemble.GetModelPerformanceStats();
+            foreach (var kvp in modelPerformanceStats)
+            {
+                ensembleRequest.ModelPerformance[kvp.Key] = kvp.Value;
+            }
+            
+            var overallPerformanceList = _performanceMetrics.Values.ToList();
+            foreach (var metric in overallPerformanceList)
+            {
+                ensembleRequest.OverallPerformance.Add(metric);
+            }
             
             // Save ensemble retraining request
             var requestPath = Path.Combine(_feedbackDataPath, $"ensemble_retraining_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
@@ -494,10 +520,21 @@ public class TradingFeedbackService : BackgroundService
                 .Where(m => m.TotalTrades >= _minFeedbackSamples)
                 .Average(m => m.AverageAccuracy) : 0.0,
             OverallPnL = _performanceMetrics.Values.Sum(m => m.TotalPnL),
-            StrategyMetrics = _performanceMetrics.Values.ToList(),
-            ModelMetrics = _ensemble.GetModelPerformanceStats(),
             LastRetrainingTrigger = _lastRetrainingTrigger
         };
+        
+        // Populate readonly collections
+        var strategyMetrics = _performanceMetrics.Values.ToList();
+        foreach (var metric in strategyMetrics)
+        {
+            summary.StrategyMetrics.Add(metric);
+        }
+        
+        var modelMetrics = _ensemble.GetModelPerformanceStats();
+        foreach (var kvp in modelMetrics)
+        {
+            summary.ModelMetrics[kvp.Key] = kvp.Value;
+        }
         
         return summary;
     }
@@ -516,7 +553,7 @@ public class TradingOutcome
     public string MarketConditions { get; set; } = string.Empty;
     public double ModelConfidence { get; set; }
     public string ActualOutcome { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; set; } = new();
+    public Dictionary<string, object> TradingContext { get; } = new();
 }
 
 public class PredictionFeedback
@@ -562,9 +599,9 @@ public class PerformanceIssue
 public class ModelRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
-    public List<string> Strategies { get; set; } = new();
+    public List<string> Strategies { get; } = new();
     public string Reason { get; set; } = string.Empty;
-    public List<PerformanceMetrics> PerformanceMetrics { get; set; } = new();
+    public List<PerformanceMetrics> PerformanceMetrics { get; } = new();
     public double TriggerThreshold { get; set; }
     public int MinSamples { get; set; }
 }
@@ -573,8 +610,8 @@ public class EnsembleRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public Dictionary<string, ModelPerformance> ModelPerformance { get; set; } = new();
-    public List<PerformanceMetrics> OverallPerformance { get; set; } = new();
+    public Dictionary<string, ModelPerformance> ModelPerformance { get; } = new();
+    public List<PerformanceMetrics> OverallPerformance { get; } = new();
     public double TriggerThreshold { get; set; }
 }
 
@@ -585,8 +622,8 @@ public class PerformanceSummary
     public int TotalTrades { get; set; }
     public double OverallAccuracy { get; set; }
     public decimal OverallPnL { get; set; }
-    public List<PerformanceMetrics> StrategyMetrics { get; set; } = new();
-    public Dictionary<string, ModelPerformance> ModelMetrics { get; set; } = new();
+    public List<PerformanceMetrics> StrategyMetrics { get; } = new();
+    public Dictionary<string, ModelPerformance> ModelMetrics { get; } = new();
     public DateTime LastRetrainingTrigger { get; set; }
 }
 

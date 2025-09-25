@@ -220,7 +220,7 @@ public sealed class OnnxModelValidationService
         var totalMemory = _validationResults.Values.Sum(r => r.MemoryUsage);
         var failedModels = _validationResults.Values.Where(r => !r.IsValid).ToList();
 
-        return new ValidationSummary
+        var summary = new ValidationSummary
         {
             TotalModels = totalModels,
             ValidModels = validModels,
@@ -228,9 +228,16 @@ public sealed class OnnxModelValidationService
             SuccessRate = totalModels > 0 ? (double)validModels / totalModels : 0,
             TotalLoadTimeMs = totalLoadTime,
             TotalMemoryUsageMB = totalMemory / 1024 / 1024,
-            FailedModelPaths = failedModels.Select(f => f.ModelPath).ToList(),
             ValidationDate = DateTime.UtcNow
         };
+        
+        // Populate the readonly collection via Add method
+        foreach (var failedModel in failedModels)
+        {
+            summary.FailedModelPaths.Add(failedModel.ModelPath);
+        }
+        
+        return summary;
     }
 
     public class ValidationSummary
@@ -241,7 +248,7 @@ public sealed class OnnxModelValidationService
         public double SuccessRate { get; set; }
         public double TotalLoadTimeMs { get; set; }
         public long TotalMemoryUsageMB { get; set; }
-        public List<string> FailedModelPaths { get; set; } = new();
+        public List<string> FailedModelPaths { get; } = new();
         public DateTime ValidationDate { get; set; }
     }
 

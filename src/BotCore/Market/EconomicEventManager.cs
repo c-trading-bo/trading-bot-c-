@@ -288,7 +288,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             var template = eventTemplates[i];
             var eventTime = now.AddHours(2 + i * 6); // Space events 6 hours apart
 
-            events.Add(new EconomicEvent
+            var economicEvent = new EconomicEvent
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = template.Name,
@@ -298,9 +298,17 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                 Impact = template.Impact,
                 Category = template.Category,
                 Description = $"Scheduled {template.Name} release",
-                AffectedSymbols = GetAffectedSymbols(template.Currency, template.Impact),
                 IsActual = false
-            });
+            };
+            
+            // Populate the readonly collection
+            var affectedSymbols = GetAffectedSymbols(template.Currency, template.Impact);
+            foreach (var symbol in affectedSymbols)
+            {
+                economicEvent.AffectedSymbols.Add(symbol);
+            }
+            
+            events.Add(economicEvent);
         }
 
         return events;
@@ -362,9 +370,14 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                     {
                         Event = economicEvent,
                         TimeUntilEvent = timeUntilEvent,
-                        AffectedSymbols = economicEvent.AffectedSymbols,
                         RecommendedAction = GetRecommendedAction(economicEvent)
                     };
+                    
+                    // Populate the readonly collection
+                    foreach (var symbol in economicEvent.AffectedSymbols)
+                    {
+                        alert.AffectedSymbols.Add(symbol);
+                    }
 
                     _logger.LogWarning("[EconomicEventManager] High-impact event approaching: {Name} in {TimeUntil}", 
                         economicEvent.Name, timeUntilEvent);

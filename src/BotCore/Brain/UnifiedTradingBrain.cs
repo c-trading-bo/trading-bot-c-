@@ -1697,7 +1697,7 @@ namespace BotCore.Brain
         public int MarketRegime { get; set; }
         
         // Additional properties needed by NeuralUcbExtended
-        public Dictionary<string, double> Features { get; set; } = new();
+        public Dictionary<string, double> Features { get; } = new();
         public double Price { get; set; }
         public double Bid { get; set; }
         public double Ask { get; set; }
@@ -1705,7 +1705,7 @@ namespace BotCore.Brain
         public double ConfidenceLevel { get; set; }
         public double ModelConfidence { get; set; }
         public double NewsIntensity { get; set; }
-        public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
+        public Dictionary<string, double> TechnicalIndicators { get; } = new();
         public bool IsFomcDay { get; set; }
         public bool IsCpiDay { get; set; }
     }
