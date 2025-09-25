@@ -14,3 +14,7 @@
 # These files control analyzer enforcement and cannot be modified without explicit approval
 /.editorconfig @kevinsuero072897-collab
 /Directory.Build.props @kevinsuero072897-collab
+**/*.props                             @kevinsuero072897-collab
+**/*.targets                           @kevinsuero072897-collab
+**/*.csproj                            @kevinsuero072897-collab
+/docs/Analyzer-Fix-Guidebook.md        @kevinsuero072897-collab

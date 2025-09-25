@@ -1,0 +1,31 @@
+name: PR Audit (Analyzer-safe)
+on: [pull_request]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Audit
+        run: |
+          set -euo pipefail
+          mkdir -p tools/analyzers
+          dotnet clean
+          dotnet build -warnaserror > tools/build.log 2>&1 || true
+          dotnet build -warnaserror- /p:errorlog=tools/analyzers/current.sarif >/dev/null 2>&1 || true
+          grep -Eo ' (CS|CA|S)[0-9]{3,5}' tools/build.log | sort | uniq -c | sort -nr > tools/cs_error_counts.txt
+          if command -v jq >/dev/null; then
+            jq -r '.runs[].results[] | [.ruleId, (.locations[0].physicalLocation.artifactLocation.uri // ""), (.locations[0].physicalLocation.region.startLine // 0)] | @tsv' \
+              tools/analyzers/current.sarif > tools/analyzers/rule_map.tsv || true
+          fi
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-audit
+          path: |
+            tools/build.log
+            tools/cs_error_counts.txt
+            tools/analyzers/current.sarif
+            tools/analyzers/rule_map.tsv
