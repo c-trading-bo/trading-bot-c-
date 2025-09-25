@@ -684,7 +684,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new float[totalElements];
                 
                 // Fill with realistic canned trading features
-                for (int i; i < totalElements; i++)
+                for (int i = 0; i < totalElements; i++)
                 {
                     data[i] = i switch
                     {
@@ -711,7 +711,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new long[totalElements];
                 
                 // Fill with appropriate integer values
-                for (int i; i < totalElements; i++)
+                for (int i = 0; i < totalElements; i++)
                 {
                     data[i] = i % 3; // Values 0, 1, 2 for typical categorical features
                 }
@@ -725,7 +725,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var totalElements = shape.Aggregate(1, (a, b) => a * b);
                 var data = new int[totalElements];
                 
-                for (int i; i < totalElements; i++)
+                for (int i = 0; i < totalElements; i++)
                 {
                     data[i] = i % 3;
                 }
@@ -771,7 +771,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         var modelKey = GetModelKey(modelPathOrKey);
         
-        var unloaded;
+        var unloaded = false;
         if (_loadedSessions.TryRemove(modelKey, out var session))
         {
             session.Dispose();

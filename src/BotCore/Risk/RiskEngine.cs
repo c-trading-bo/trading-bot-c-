@@ -184,7 +184,7 @@ namespace BotCore.Risk
                     Description = "Close all positions and halt",
                     Action = async () => await EmergencyCloseAll().ConfigureAwait(false)
                 }
-            }).ConfigureAwait(false);
+            });
         }
         
         public Task InitializeDrawdownProtection(decimal startingBalance)
