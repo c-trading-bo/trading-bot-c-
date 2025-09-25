@@ -86,7 +86,7 @@ namespace BotCore.Infra
             // Report results
             if (issues.Any())
             {
-                _lastHealthCheckPassed;
+                _lastHealthCheckPassed = false;
                 _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}",
                     issues.Count, string.Join("; ", issues));
 
@@ -130,7 +130,7 @@ namespace BotCore.Infra
                 }
                 else
                 {
-                    _consecutiveDataCollectionFailures;
+                    _consecutiveDataCollectionFailures = 0;
                     _lastDataCollection = recentFiles.Max(f => File.GetLastWriteTime(f));
 
                     // Check data quality

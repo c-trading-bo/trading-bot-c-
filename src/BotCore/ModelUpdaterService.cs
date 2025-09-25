@@ -285,7 +285,7 @@ namespace BotCore
                 catch (Exception ex)
                 {
                     _log.LogError(ex, "[ModelUpdater] Error updating model {ModelName}", modelName);
-                    allSuccessful;
+                    allSuccessful = false;
                 }
             }
 

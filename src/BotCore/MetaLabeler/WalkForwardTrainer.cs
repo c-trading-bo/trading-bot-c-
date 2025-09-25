@@ -148,7 +148,7 @@ public class WalkForwardTrainer
             }
 
             // Evaluate model on test set
-            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct).ConfigureAwait(false);
+            var metrics = await EvaluateModelAsync(modelPath, testLabeled).ConfigureAwait(false);
             fold.Metrics = metrics;
             fold.Status = FoldStatus.Completed;
 

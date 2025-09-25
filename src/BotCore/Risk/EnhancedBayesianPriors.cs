@@ -45,7 +45,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
             }
 
             var posterior = _priors[key];
-            var shrunkPosterior = ApplyShrinkage(strategy, config, regime, session, posterior);
+            var shrunkPosterior = ApplyShrinkage(strategy, regime, posterior);
 
             // Create shrinkage estimate for calculations
             var shrinkageEstimate = new ShrinkageEstimate(
@@ -106,7 +106,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
             posterior.TotalObservations++;
 
             // Update hierarchical groups for learning
-            UpdateHierarchicalGroups(strategy, config, regime, session, wasSuccessful);
+            UpdateHierarchicalGroups(strategy, regime, session, wasSuccessful);
 
             Console.WriteLine($"[ENHANCED-PRIORS] Updated {key}: " +
                             $"α={posterior.Alpha:F1} β={posterior.Beta:F1} " +
@@ -188,7 +188,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
         if (!shrinkageTargets.Any())
         {
-            localPosterior.ShrinkageFactor;
+            localPosterior.ShrinkageFactor = 0;
             return localPosterior;
         }
 
