@@ -231,7 +231,7 @@ public sealed class MLSystemConsolidationService
             {
                 mlMemoryManagerStart = i;
                 inMLMemoryManager = true;
-                braceCount;
+                braceCount = 0;
             }
 
             if (inMLMemoryManager)

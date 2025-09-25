@@ -571,7 +571,7 @@ public class UnifiedDecisionRouter
         // Enhance the context with additional properties if not already set
         if (context.Bid == 0 && context.Ask == 0)
         {
-            return new TradingBot.Abstractions.MarketContext
+            var newContext = new TradingBot.Abstractions.MarketContext
             {
                 Symbol = context.Symbol,
                 Price = context.Price,
@@ -579,7 +579,6 @@ public class UnifiedDecisionRouter
                 Bid = context.Price - 0.25,
                 Ask = context.Price + 0.25,
                 Timestamp = context.Timestamp,
-                TechnicalIndicators = context.TechnicalIndicators,
                 // Copy all other properties
                 CurrentRegime = context.CurrentRegime,
                 Regime = context.Regime,
@@ -591,6 +590,14 @@ public class UnifiedDecisionRouter
                 SignalStrength = context.SignalStrength,
                 ConfidenceLevel = context.ConfidenceLevel
             };
+            
+            // Copy TechnicalIndicators dictionary contents
+            foreach (var indicator in context.TechnicalIndicators)
+            {
+                newContext.TechnicalIndicators[indicator.Key] = indicator.Value;
+            }
+            
+            return newContext;
         }
         return context;
     }

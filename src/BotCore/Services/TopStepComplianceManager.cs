@@ -168,7 +168,7 @@ public class TopStepComplianceManager
             if (tradeTime.Date != _lastResetDate)
             {
                 // New trading day - reset daily P&L
-                _todayPnL;
+                _todayPnL = 0m;
                 _lastResetDate = tradeTime.Date;
                 _tradingDaysCompleted++;
                 
@@ -281,7 +281,7 @@ public class TopStepComplianceManager
         var today = DateTime.Today;
         if (_lastResetDate != today)
         {
-            _todayPnL;
+            _todayPnL = 0m;
             _lastResetDate = today;
             _tradingDaysCompleted++;
             
