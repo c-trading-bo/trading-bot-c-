@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -43,7 +44,7 @@ public class SafeHoldDecisionPolicy
                 symbol, strategyId, confidence, _config.BearishThreshold);
             return new TradingDecision
             {
-                Action = TradingAction.SELL,
+                Action = TradingAction.Sell,
                 Confidence = confidence,
                 Reason = $"Below bearish threshold ({_config.BearishThreshold:F3})",
                 Symbol = symbol,
@@ -58,7 +59,7 @@ public class SafeHoldDecisionPolicy
                 symbol, strategyId, confidence, _config.BullishThreshold);
             return new TradingDecision
             {
-                Action = TradingAction.BUY,
+                Action = TradingAction.Buy,
                 Confidence = confidence,
                 Reason = $"Above bullish threshold ({_config.BullishThreshold:F3})",
                 Symbol = symbol,
@@ -73,7 +74,7 @@ public class SafeHoldDecisionPolicy
 
         return new TradingDecision
         {
-            Action = TradingAction.HOLD,
+            Action = TradingAction.Hold,
             Confidence = confidence,
             Reason = $"In neutral zone ({_config.BearishThreshold:F3} - {_config.BullishThreshold:F3})",
             Symbol = symbol,
@@ -152,16 +153,6 @@ public class TradingDecision
     public string StrategyId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public System.Collections.Generic.Dictionary<string, object>? Metadata { get; set; }
-}
-
-/// <summary>
-/// Trading action enum
-/// </summary>
-public enum TradingAction
-{
-    HOLD,
-    BUY,
-    SELL
 }
 
 /// <summary>

@@ -132,7 +132,7 @@ public class TopStepComplianceManager
             var remainingRisk = Math.Min(remainingDailyRisk, remainingDrawdownRisk);
             
             // Calculate maximum position size based on stop distance
-            decimal maxPositionSize;
+            decimal maxPositionSize = 0m;
             if (stopDistance > 0)
             {
                 maxPositionSize = remainingRisk / stopDistance;

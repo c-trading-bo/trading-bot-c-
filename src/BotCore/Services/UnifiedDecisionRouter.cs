@@ -538,7 +538,7 @@ public class UnifiedDecisionRouter
         var volume = (decimal)context.Volume;
         
         // Create synthetic bars for the brain
-        for (int i; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             var variation = (decimal)(_random.NextDouble() - 0.5) * 2;
             bars.Add(new ModelBar
