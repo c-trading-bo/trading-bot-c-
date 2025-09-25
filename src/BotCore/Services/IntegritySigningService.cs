@@ -99,7 +99,7 @@ namespace TradingBot.BotCore.Services
                         var fileInfo = new FileInfo(filePath);
                         var hash = await CalculateFileHashAsync(filePath).ConfigureAwait(false);
                         
-                        manifest.Files[Path.GetFileName(filePath)] = new FileIntegrity
+                        var fileIntegrity = new FileIntegrity
                         {
                             Path = filePath,
                             Hash = hash,
@@ -107,6 +107,7 @@ namespace TradingBot.BotCore.Services
                             LastModified = fileInfo.LastWriteTimeUtc,
                             HashAlgorithm = "SHA256"
                         };
+                        manifest.SetFile(Path.GetFileName(filePath), fileIntegrity);
                     }
                     else
                     {
@@ -139,6 +140,8 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public async Task<ManifestVerificationResult> VerifySignedManifestAsync(SignedManifest manifest)
         {
+            if (manifest is null) throw new ArgumentNullException(nameof(manifest));
+            
             var result = new ManifestVerificationResult
             {
                 IsValid = false,
@@ -265,6 +268,8 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public bool VerifyLogEntry(SignedLogEntry logEntry)
         {
+            if (logEntry is null) throw new ArgumentNullException(nameof(logEntry));
+            
             try
             {
                 var tempEntry = new SignedLogEntry
@@ -377,7 +382,23 @@ namespace TradingBot.BotCore.Services
         public string Name { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public string Version { get; set; } = string.Empty;
-        public Dictionary<string, FileIntegrity> Files { get; set; } = new();
+        private readonly Dictionary<string, FileIntegrity> _files = new();
+        public IReadOnlyDictionary<string, FileIntegrity> Files => _files;
+        
+        public void ReplaceFiles(IEnumerable<KeyValuePair<string, FileIntegrity>> files)
+        {
+            _files.Clear();
+            if (files != null)
+            {
+                foreach (var kvp in files)
+                    _files[kvp.Key] = kvp.Value;
+            }
+        }
+        
+        public void SetFile(string key, FileIntegrity value)
+        {
+            if (key != null) _files[key] = value;
+        }
         public string ContentHash { get; set; } = string.Empty;
         public string Signature { get; set; } = string.Empty;
         public string PublicKey { get; set; } = string.Empty;

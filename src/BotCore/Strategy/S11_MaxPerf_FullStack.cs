@@ -127,7 +127,12 @@ namespace TopstepX.S11
             if (_count == 0) throw new InvalidOperationException("Ring empty");
             int pos = (_idx - 1 - back); if (pos < 0) pos += _buf.Length; return ref _buf[pos];
         }
-        public void ForEachNewest(int n, Action<T> f) { for (int i = Math.Max(0,_count - n); i < _count; i++) { int pos = ( (_idx - _count + i) % _buf.Length + _buf.Length ) % _buf.Length; f(_buf[pos]); } }
+        public void ForEachNewest(int n, Action<T> f) 
+        { 
+            if (f is null) throw new ArgumentNullException(nameof(f));
+            
+            for (int i = Math.Max(0,_count - n); i < _count; i++) { int pos = ( (_idx - _count + i) % _buf.Length + _buf.Length ) % _buf.Length; f(_buf[pos]); } 
+        }
         public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i = 0; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
     }
 
