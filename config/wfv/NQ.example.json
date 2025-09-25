@@ -1,0 +1,57 @@
+{
+  "symbol": "NQ",
+  "description": "Walk-forward validation configuration for E-mini NASDAQ-100 futures",
+  "trainingWindowDays": 30,
+  "validationWindowDays": 7,
+  "stepSizeDays": 7,
+  "purgeDays": 1,
+  "embargoDays": 1,
+  "minSharpeThreshold": 0.5,
+  "maxDrawdownLimit": 0.15,
+  "minTradesPerFold": 10,
+  "modelFamily": "NQStrategy",
+  "initialCapital": 100000,
+  "commissionPerContract": 2.50,
+  "baseSlippagePercent": 0.5,
+  "maxPositionSizePercent": 0.02,
+  "validationPeriods": [
+    {
+      "name": "Q1_2024",
+      "startDate": "2024-01-01",
+      "endDate": "2024-03-31",
+      "description": "Q1 2024 validation period"
+    },
+    {
+      "name": "Q2_2024", 
+      "startDate": "2024-04-01",
+      "endDate": "2024-06-30",
+      "description": "Q2 2024 validation period"
+    },
+    {
+      "name": "Q3_2024",
+      "startDate": "2024-07-01", 
+      "endDate": "2024-09-30",
+      "description": "Q3 2024 validation period"
+    }
+  ],
+  "validationGates": {
+    "minSharpeRatio": 0.5,
+    "maxDrawdown": 0.15,
+    "minWinRate": 0.4,
+    "minProfitableFolds": 0.6,
+    "minTradesPerFold": 10,
+    "maxConsecutiveLosses": 5
+  },
+  "riskLimits": {
+    "maxDailyLoss": 0.02,
+    "maxPositionSize": 10,
+    "stopLossMultiplier": 2.0,
+    "takeProfitMultiplier": 3.0
+  },
+  "executionSettings": {
+    "orderType": "MARKET",
+    "timeInForce": "DAY", 
+    "slippageModel": "SPREAD_BASED",
+    "marketImpactModel": "LINEAR"
+  }
+}

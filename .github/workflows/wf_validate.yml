@@ -1,0 +1,172 @@
+name: Walk-Forward Validation
+
+on:
+  push:
+    paths:
+      - 'models/**'
+      - 'src/Strategies/**'
+      - 'config/wfv/**'
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: 'Symbol to validate (ES, MES, etc.)'
+        required: false
+        default: 'ES'
+      model_family:
+        description: 'Model family to validate'
+        required: false
+        default: 'ESStrategy'
+      validation_days:
+        description: 'Number of days to validate'
+        required: false
+        default: '90'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  walk-forward-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    
+    strategy:
+      matrix:
+        symbol: [ES, NQ]  # PRODUCTION: Only ES and NQ contracts supported
+        model_family: [ESStrategy, NQStrategy]
+      fail-fast: false
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore TopstepX.Bot.sln
+      
+    - name: Build solution
+      run: dotnet build TopstepX.Bot.sln --configuration Release --no-restore
+      
+    - name: Setup historical data
+      run: |
+        mkdir -p data/historical
+        # In production: Download or sync historical data
+        echo "Historical data setup for ${{ matrix.symbol }}"
+        
+    - name: Run walk-forward validation
+      run: |
+        dotnet run --project app/TradingBot/ProductionApp.csproj \
+          --configuration Release \
+          -- backtest wfv \
+          --symbol ${{ matrix.symbol }} \
+          --model-family ${{ matrix.model_family }} \
+          --validation-days ${{ inputs.validation_days || '90' }} \
+          --config-file config/wfv/${{ matrix.symbol }}.example.json \
+          --output reports/wfv/${{ matrix.symbol }}_${{ matrix.model_family }}.json
+          
+    - name: Validate results
+      run: |
+        # Check if validation passed gates
+        SHARPE=$(cat reports/wfv/${{ matrix.symbol }}_${{ matrix.model_family }}.json | jq -r '.ciCdMetrics.sharpe_ratio // 0')
+        PASSES=$(cat reports/wfv/${{ matrix.symbol }}_${{ matrix.model_family }}.json | jq -r '.passesValidationGates // false')
+        
+        echo "Sharpe Ratio: $SHARPE"
+        echo "Passes Gates: $PASSES"
+        
+        if [ "$PASSES" != "true" ]; then
+          echo "❌ Walk-forward validation failed for ${{ matrix.symbol }} ${{ matrix.model_family }}"
+          cat reports/wfv/${{ matrix.symbol }}_${{ matrix.model_family }}.json | jq -r '.validationFailures[]'
+          exit 1
+        else
+          echo "✅ Walk-forward validation passed for ${{ matrix.symbol }} ${{ matrix.model_family }}"
+        fi
+        
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: wfv-report-${{ matrix.symbol }}-${{ matrix.model_family }}
+        path: |
+          reports/wfv/${{ matrix.symbol }}_${{ matrix.model_family }}.json
+          reports/metrics/
+        retention-days: 30
+        
+    - name: Update model deployment status
+      if: success()
+      run: |
+        # In production: Update model registry with validation results
+        echo "Model ${{ matrix.model_family }} for ${{ matrix.symbol }} passed validation"
+        echo "Ready for deployment consideration"
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "🚨 Walk-forward validation failed for ${{ matrix.symbol }} ${{ matrix.model_family }}"
+        echo "Model deployment blocked until validation passes"
+        
+  aggregate-results:
+    needs: walk-forward-validation
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Aggregate validation results
+      run: |
+        echo "📊 Walk-Forward Validation Summary"
+        echo "================================="
+        
+        for report in artifacts/*/reports/wfv/*.json; do
+          if [ -f "$report" ]; then
+            SYMBOL=$(basename "$report" | cut -d'_' -f1)
+            MODEL=$(basename "$report" | cut -d'_' -f2 | sed 's/.json//')
+            PASSES=$(jq -r '.passesValidationGates // false' "$report")
+            SHARPE=$(jq -r '.ciCdMetrics.sharpe_ratio // 0' "$report")
+            RETURN=$(jq -r '.ciCdMetrics.total_return // 0' "$report")
+            
+            if [ "$PASSES" = "true" ]; then
+              STATUS="✅ PASS"
+            else  
+              STATUS="❌ FAIL"
+            fi
+            
+            echo "$STATUS | $SYMBOL | $MODEL | Sharpe: $SHARPE | Return: $RETURN"
+          fi
+        done
+        
+    - name: Create deployment gate
+      run: |
+        # Count passing validations
+        TOTAL=0
+        PASSED=0
+        
+        for report in artifacts/*/reports/wfv/*.json; do
+          if [ -f "$report" ]; then
+            TOTAL=$((TOTAL + 1))
+            PASSES=$(jq -r '.passesValidationGates // false' "$report")
+            if [ "$PASSES" = "true" ]; then
+              PASSED=$((PASSED + 1))
+            fi
+          fi
+        done
+        
+        echo "Validation Results: $PASSED/$TOTAL passed"
+        
+        if [ $PASSED -eq $TOTAL ] && [ $TOTAL -gt 0 ]; then
+          echo "🟢 All validations passed - deployment gate OPEN"
+          echo "deployment_approved=true" >> $GITHUB_OUTPUT
+        else
+          echo "🔴 Some validations failed - deployment gate CLOSED" 
+          echo "deployment_approved=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
