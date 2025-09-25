@@ -572,7 +572,7 @@ public class ConfigurationHealthCheck : IHealthCheck
         _logger = logger;
     }
 
-    public async Task<HealthCheckResult> CheckHealthAsync(
+    public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, 
         CancellationToken cancellationToken = default)
     {
@@ -619,17 +619,17 @@ public class ConfigurationHealthCheck : IHealthCheck
 
             if (issues.Count == 0)
             {
-                return HealthCheckResult.Healthy("Configuration valid", data);
+                return Task.FromResult(HealthCheckResult.Healthy("Configuration valid", data));
             }
             else
             {
-                return HealthCheckResult.Unhealthy($"Configuration issues: {string.Join("; ", issues)}", data: data);
+                return Task.FromResult(HealthCheckResult.Unhealthy($"Configuration issues: {string.Join("; ", issues)}", data: data));
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Configuration health check failed");
-            return HealthCheckResult.Unhealthy($"Configuration check error: {ex.Message}", ex);
+            return Task.FromResult(HealthCheckResult.Unhealthy($"Configuration check error: {ex.Message}", ex));
         }
     }
 }
