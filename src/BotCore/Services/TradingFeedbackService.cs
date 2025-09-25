@@ -553,7 +553,21 @@ public class TradingOutcome
     public string MarketConditions { get; set; } = string.Empty;
     public double ModelConfidence { get; set; }
     public string ActualOutcome { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; } = new();
+    
+    private readonly Dictionary<string, object> _tradingContext = new();
+    public IReadOnlyDictionary<string, object> TradingContext => _tradingContext;
+    
+    public void ReplaceTradingContext(IDictionary<string, object> context)
+    {
+        _tradingContext.Clear();
+        if (context != null)
+        {
+            foreach (var kvp in context)
+            {
+                _tradingContext[kvp.Key] = kvp.Value;
+            }
+        }
+    }
 }
 
 public class PredictionFeedback

@@ -86,8 +86,10 @@ public class EnhancedTradingBrainIntegration
             }
             
             // Step 2: Get ensemble predictions to enhance the decision
-            var contextVector = ExtractContextVector(marketContext);
-            var marketFeatures = ExtractMarketFeatures(marketContext);
+            // Convert dictionary marketContext to proper MarketContext object
+            var brainMarketContext = ConvertToMarketContext(marketContext);
+            var contextVector = ExtractContextVector(brainMarketContext);
+            var marketFeatures = ExtractMarketFeatures(brainMarketContext);
             
             // Get ensemble strategy prediction
             var strategyPrediction = await _ensembleService.GetStrategySelectionPredictionAsync(
@@ -99,7 +101,7 @@ public class EnhancedTradingBrainIntegration
             
             // Get ensemble CVaR action
             var convertedDecision = ConvertBrainToTradingDecision(originalBrainDecision);
-            var state = CreateStateVector(convertedDecision, marketContext);
+            var state = CreateStateVector(convertedDecision, brainMarketContext);
             var ensembleAction = await _ensembleService.GetEnsembleActionAsync(
                 state, true, cancellationToken).ConfigureAwait(false);
             
@@ -110,13 +112,13 @@ public class EnhancedTradingBrainIntegration
                 pricePrediction, 
                 ensembleAction,
                 symbol,
-                marketContext);
+                brainMarketContext);
             
             // Step 4: Log the enhancement
             LogDecisionEnhancement(convertedDecision, enhancedDecision, symbol);
             
             // Step 5: Track prediction for feedback
-            TrackPredictionForFeedback(enhancedDecision, symbol, marketContext);
+            TrackPredictionForFeedback(enhancedDecision, symbol, brainMarketContext);
             
             return enhancedDecision;
         }
@@ -297,7 +299,7 @@ public class EnhancedTradingBrainIntegration
     /// </summary>
     private decimal EnhanceRiskLevel(decimal originalRisk, double cvarEstimate, EnsemblePrediction pricePrediction)
     {
-        var riskAdjustment;
+        var riskAdjustment = 0.0m; // Initialize the variable
         
         // Adjust based on CVaR
         if (cvarEstimate < -0.2)
@@ -396,9 +398,9 @@ public class EnhancedTradingBrainIntegration
                 Symbol = symbol,
                 PredictionAccuracy = accuracy,
                 RealizedPnL = realizedPnL,
-                MarketConditions = JsonSerializer.Serialize(context),
-                TradingContext = context
+                MarketConditions = JsonSerializer.Serialize(context)
             };
+            outcome.ReplaceTradingContext(context);
             
             _feedbackService.SubmitTradingOutcome(outcome);
             
@@ -468,7 +470,7 @@ public class EnhancedTradingBrainIntegration
             _logger.LogError(ex, "🧠 [ENHANCED-BRAIN] Error initializing enhanced trading brain");
             
             // Disable enhancement on initialization failure
-            _isEnhancementActive;
+            _isEnhancementActive = false;
             _logger.LogWarning("🧠 [ENHANCED-BRAIN] Enhancement disabled due to initialization failure");
         }
     }
@@ -569,17 +571,55 @@ public class EnhancedTradingBrainIntegration
 
     private double[] CreateStateVector(BotCore.Brain.TradingDecision decision, BotCore.Brain.MarketContext marketContext)
     {
-        // Create state vector for CVaR-PPO
+        // Create state vector for CVaR-PPO using available properties
         return new double[] { 
             (double)decision.Confidence, // Decision confidence
             (double)marketContext.CurrentPrice, // Current price
             (double)marketContext.Volume, // Market volume
             (double)marketContext.Volatility, // Volatility
-            decision.Action == BotCore.Brain.TradingAction.Buy ? 1.0 : 
-            decision.Action == BotCore.Brain.TradingAction.Sell ? -1.0 : 0.0 // Action encoding
+            // Use strategy as action encoding instead of Action property (which doesn't exist)
+            decision.Strategy.Contains("S3", StringComparison.OrdinalIgnoreCase) ? 1.0 : 
+            decision.Strategy.Contains("S6", StringComparison.OrdinalIgnoreCase) ? -1.0 : 0.0 // Strategy-based encoding
         };
     }
-        return new double[] { (double)decision.Confidence, 1.0, 0.5, 0.3 }; // Use default 1.0 since no PositionSize property
+
+    /// <summary>
+    /// Convert Dictionary marketContext to BotCore.Brain.MarketContext
+    /// </summary>
+    private BotCore.Brain.MarketContext ConvertToMarketContext(Dictionary<string, object> marketContext)
+    {
+        var brainContext = new BotCore.Brain.MarketContext();
+        
+        if (marketContext.TryGetValue("Symbol", out var symbol) && symbol is string symbolStr)
+            brainContext.Symbol = symbolStr;
+        
+        if (marketContext.TryGetValue("CurrentPrice", out var price) && price is decimal priceDecimal)
+            brainContext.CurrentPrice = priceDecimal;
+        else if (price is double priceDouble)
+            brainContext.CurrentPrice = (decimal)priceDouble;
+        
+        if (marketContext.TryGetValue("Volume", out var volume) && volume is decimal volumeDecimal)
+            brainContext.Volume = volumeDecimal;
+        else if (volume is double volumeDouble)
+            brainContext.Volume = (decimal)volumeDouble;
+        
+        if (marketContext.TryGetValue("Volatility", out var volatility) && volatility is decimal volatilityDecimal)
+            brainContext.Volatility = volatilityDecimal;
+        else if (volatility is double volatilityDouble)
+            brainContext.Volatility = (decimal)volatilityDouble;
+        else
+            brainContext.Volatility = 0.15m; // Default volatility
+        
+        if (marketContext.TryGetValue("TimeOfDay", out var timeOfDay) && timeOfDay is TimeSpan timeSpan)
+            brainContext.TimeOfDay = timeSpan;
+        else
+            brainContext.TimeOfDay = DateTime.UtcNow.TimeOfDay;
+        
+        brainContext.DayOfWeek = DateTime.UtcNow.DayOfWeek;
+        brainContext.VolumeRatio = 1.0m; // Default
+        brainContext.PriceChange = 0.0m; // Default
+        
+        return brainContext;
     }
 
     private Env CreateSampleEnv()
@@ -616,7 +656,7 @@ public class EnhancedTradingBrainIntegration
         var basePrice = 4500.0m;
         var currentTime = DateTime.UtcNow;
         
-        for (int i; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             var variation = (decimal)(Random.Shared.NextDouble() - 0.5) * 5;
             var openPrice = basePrice + variation;
