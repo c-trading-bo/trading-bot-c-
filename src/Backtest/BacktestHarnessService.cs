@@ -83,6 +83,33 @@ namespace TradingBot.Backtest
             string modelFamily,
             CancellationToken cancellationToken = default)
         {
+            // SECURITY: Comprehensive input validation
+            if (string.IsNullOrWhiteSpace(symbol))
+                throw new ArgumentException("Symbol cannot be null or empty", nameof(symbol));
+            
+            if (string.IsNullOrWhiteSpace(modelFamily))
+                throw new ArgumentException("Model family cannot be null or empty", nameof(modelFamily));
+
+            if (startDate >= endDate)
+                throw new ArgumentException("Start date must be before end date", nameof(endDate));
+
+            if (endDate > DateTime.UtcNow.Date)
+                throw new ArgumentException("End date cannot be in the future", nameof(endDate));
+
+            var timeSpan = endDate - startDate;
+            if (timeSpan.TotalDays < 1)
+                throw new ArgumentException("Backtest period must be at least 1 day", nameof(endDate));
+
+            if (timeSpan.TotalDays > 365)
+                throw new ArgumentException("Backtest period cannot exceed 365 days", nameof(endDate));
+
+            // SECURITY: Sanitize inputs
+            if (!System.Text.RegularExpressions.Regex.IsMatch(symbol, @"^[A-Z0-9]+$"))
+                throw new ArgumentException("Symbol must contain only uppercase letters and numbers", nameof(symbol));
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(modelFamily, @"^[A-Za-z0-9_]+$"))
+                throw new ArgumentException("Model family must contain only letters, numbers, and underscores", nameof(modelFamily));
+
             _logger.LogInformation("Starting backtest for {Symbol} from {StartDate} to {EndDate} using {ModelFamily}",
                 symbol, startDate, endDate, modelFamily);
 
@@ -98,6 +125,8 @@ namespace TradingBot.Backtest
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // 1. Validate data availability
                 if (!await _dataProvider.IsDataAvailableAsync(symbol, startDate, endDate, cancellationToken))
                 {

@@ -68,6 +68,33 @@ namespace TradingBot.Backtest
             DateTime endDate,
             CancellationToken cancellationToken = default)
         {
+            // SECURITY: Comprehensive input validation
+            if (string.IsNullOrWhiteSpace(symbol))
+                throw new ArgumentException("Symbol cannot be null or empty", nameof(symbol));
+            
+            if (string.IsNullOrWhiteSpace(modelFamily))
+                throw new ArgumentException("Model family cannot be null or empty", nameof(modelFamily));
+
+            if (startDate >= endDate)
+                throw new ArgumentException("Start date must be before end date", nameof(endDate));
+
+            if (endDate > DateTime.UtcNow.Date)
+                throw new ArgumentException("End date cannot be in the future", nameof(endDate));
+
+            var timeSpan = endDate - startDate;
+            if (timeSpan.TotalDays < _options.TrainingWindowDays + _options.ValidationWindowDays)
+                throw new ArgumentException($"Date range must be at least {_options.TrainingWindowDays + _options.ValidationWindowDays} days for walk-forward validation", nameof(endDate));
+
+            if (timeSpan.TotalDays > 1095) // 3 years maximum
+                throw new ArgumentException("Walk-forward validation period cannot exceed 3 years", nameof(endDate));
+
+            // SECURITY: Sanitize inputs
+            if (!System.Text.RegularExpressions.Regex.IsMatch(symbol, @"^[A-Z0-9]+$"))
+                throw new ArgumentException("Symbol must contain only uppercase letters and numbers", nameof(symbol));
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(modelFamily, @"^[A-Za-z0-9_]+$"))
+                throw new ArgumentException("Model family must contain only letters, numbers, and underscores", nameof(modelFamily));
+
             _logger.LogInformation("Starting walk-forward validation for {ModelFamily} on {Symbol} from {StartDate} to {EndDate}",
                 modelFamily, symbol, startDate, endDate);
 
@@ -88,8 +115,17 @@ namespace TradingBot.Backtest
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Generate validation folds
                 var folds = GenerateValidationFolds(startDate, endDate);
+                
+                // SECURITY: Validate fold count is reasonable
+                if (folds.Count > 100)
+                {
+                    throw new InvalidOperationException($"Too many validation folds generated ({folds.Count}). Maximum is 100.");
+                }
+
                 _logger.LogInformation("Generated {FoldCount} validation folds", folds.Count);
 
                 // Run each fold

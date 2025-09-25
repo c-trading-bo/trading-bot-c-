@@ -11,6 +11,10 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
