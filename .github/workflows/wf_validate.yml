@@ -31,8 +31,8 @@ jobs:
     
     strategy:
       matrix:
-        symbol: [ES, MES]
-        model_family: [ESStrategy, MomentumModel]
+        symbol: [ES, NQ]  # PRODUCTION: Only ES and NQ contracts supported
+        model_family: [ESStrategy, NQStrategy]
       fail-fast: false
       
     steps:

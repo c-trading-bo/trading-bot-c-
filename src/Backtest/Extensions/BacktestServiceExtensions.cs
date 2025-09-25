@@ -16,7 +16,7 @@ namespace TradingBot.Backtest.Extensions
         /// <summary>
         /// Add comprehensive backtest services to DI container
         /// This replaces fake simulation methods with real historical data processing
-        /// UPDATED: Now uses REAL TopstepX data instead of mock data
+        /// PRODUCTION: ES and NQ contracts only, no mock implementations
         /// </summary>
         public static IServiceCollection AddProductionBacktestServices(this IServiceCollection services, string metricsPath = "reports/bt")
         {
@@ -31,11 +31,11 @@ namespace TradingBot.Backtest.Extensions
             services.AddSingleton<IMetricSink>(sp =>
                 new JsonMetricSink(metricsPath, sp.GetRequiredService<ILogger<JsonMetricSink>>()));
 
-            // 🔴 CRITICAL CHANGE: Use REAL TopstepX data provider instead of mock
+            // 🔴 REAL TopstepX data provider (ES and NQ only)
             services.AddTopstepXHistoricalDataProvider();
 
-            // Model registry - Mock for now, replace with actual model storage
-            services.AddSingleton<IModelRegistry, MockModelRegistry>();
+            // 🟢 PRODUCTION Model Registry (ES and NQ only) - NO MOCK
+            services.AddProductionModelRegistry();
 
             // Configuration
             services.Configure<BacktestOptions>(options =>
@@ -64,33 +64,19 @@ namespace TradingBot.Backtest.Extensions
             return services;
         }
 
-        /// <summary>
-        /// Add minimal backtest services for testing/development
-        /// Lighter weight registration for development scenarios
-        /// </summary>
-        public static IServiceCollection AddMockBacktestServices(this IServiceCollection services)
-        {
-            // Mock implementations only
-            services.AddSingleton<IHistoricalDataProvider, MockHistoricalDataProvider>();
-            services.AddSingleton<IModelRegistry, MockModelRegistry>();
-            services.AddSingleton<IExecutionSimulator, SimpleExecutionSimulator>();
-            services.AddSingleton<IMetricSink>(sp =>
-                new JsonMetricSink("/tmp/mock_metrics", sp.GetRequiredService<ILogger<JsonMetricSink>>()));
-
-            return services;
-        }
+        // REMOVED: AddMockBacktestServices() - No mock implementations allowed in production
 
         /// <summary>
         /// Add real production adapters for live TopstepX integration
-        /// NOW IMPLEMENTED: Real TopstepX historical data provider
+        /// PRODUCTION: ES and NQ contracts only, no mock implementations
         /// </summary>
         public static IServiceCollection AddRealProductionAdapters(this IServiceCollection services)
         {
-            // 🟢 NOW IMPLEMENTED: Real TopstepX historical data provider
+            // 🟢 PRODUCTION: Real TopstepX historical data provider (ES and NQ only)
             services.AddTopstepXHistoricalDataProvider();
             
-            // TODO: Replace with real model registry when available
-            services.AddSingleton<IModelRegistry, MockModelRegistry>();
+            // 🟢 PRODUCTION: Real model registry (ES and NQ only) - NO MOCK
+            services.AddProductionModelRegistry();
 
             return services;
         }

@@ -173,37 +173,29 @@ namespace TradingBot.Backtest.Adapters
 
         /// <summary>
         /// Map trading symbols to TopstepX contract IDs
+        /// PRODUCTION: Only ES and NQ contracts supported as per user requirement
         /// </summary>
         private string MapSymbolToContractId(string symbol)
         {
             return symbol switch
             {
-                "ES" => "ES",
-                "MES" => "MES", 
-                "NQ" => "NQ",
-                "MNQ" => "MNQ",
-                "YM" => "YM",
-                "MYM" => "MYM",
-                "RTY" => "RTY",
-                "M2K" => "M2K",
-                _ => symbol // Default to symbol as-is
+                "ES" => "ES",  // E-mini S&P 500
+                "NQ" => "NQ",  // E-mini NASDAQ-100
+                _ => throw new ArgumentException($"Unsupported contract symbol: {symbol}. Only ES and NQ contracts are supported.", nameof(symbol))
             };
         }
 
         /// <summary>
         /// Calculate realistic spread estimate based on symbol
+        /// PRODUCTION: Only ES and NQ contracts supported as per user requirement
         /// </summary>
         private decimal CalculateSpreadEstimate(decimal price, string symbol)
         {
             return symbol switch
             {
                 "ES" => 0.25m, // E-mini S&P 500: 0.25 point tick size
-                "MES" => 0.25m, // Micro E-mini S&P 500: same tick size
-                "NQ" => 0.25m, // E-mini NASDAQ: 0.25 point tick size  
-                "MNQ" => 0.25m, // Micro E-mini NASDAQ: same tick size
-                "YM" => 1.0m, // E-mini Dow: 1 point tick size
-                "MYM" => 1.0m, // Micro E-mini Dow: same tick size
-                _ => Math.Max(0.01m, price * 0.0001m) // Default: 1 basis point
+                "NQ" => 0.25m, // E-mini NASDAQ-100: 0.25 point tick size  
+                _ => throw new ArgumentException($"Unsupported contract symbol: {symbol}. Only ES and NQ contracts are supported.", nameof(symbol))
             };
         }
 
