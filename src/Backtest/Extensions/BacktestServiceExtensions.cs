@@ -16,6 +16,7 @@ namespace TradingBot.Backtest.Extensions
         /// <summary>
         /// Add comprehensive backtest services to DI container
         /// This replaces fake simulation methods with real historical data processing
+        /// UPDATED: Now uses REAL TopstepX data instead of mock data
         /// </summary>
         public static IServiceCollection AddProductionBacktestServices(this IServiceCollection services, string metricsPath = "reports/bt")
         {
@@ -30,8 +31,8 @@ namespace TradingBot.Backtest.Extensions
             services.AddSingleton<IMetricSink>(sp =>
                 new JsonMetricSink(metricsPath, sp.GetRequiredService<ILogger<JsonMetricSink>>()));
 
-            // Data provider - Mock for now, replace with TopstepX integration
-            services.AddSingleton<IHistoricalDataProvider, MockHistoricalDataProvider>();
+            // 🔴 CRITICAL CHANGE: Use REAL TopstepX data provider instead of mock
+            services.AddTopstepXHistoricalDataProvider();
 
             // Model registry - Mock for now, replace with actual model storage
             services.AddSingleton<IModelRegistry, MockModelRegistry>();
@@ -80,17 +81,15 @@ namespace TradingBot.Backtest.Extensions
         }
 
         /// <summary>
-        /// Add real production adapters (placeholder for future implementation)
-        /// This is where TopstepX integration and real model storage would be wired
+        /// Add real production adapters for live TopstepX integration
+        /// NOW IMPLEMENTED: Real TopstepX historical data provider
         /// </summary>
         public static IServiceCollection AddRealProductionAdapters(this IServiceCollection services)
         {
-            // TODO: Replace with real implementations
-            // services.AddSingleton<IHistoricalDataProvider, TopstepXHistoricalDataProvider>();
-            // services.AddSingleton<IModelRegistry, DatabaseModelRegistry>();
+            // 🟢 NOW IMPLEMENTED: Real TopstepX historical data provider
+            services.AddTopstepXHistoricalDataProvider();
             
-            // For now, use mock implementations
-            services.AddSingleton<IHistoricalDataProvider, MockHistoricalDataProvider>();
+            // TODO: Replace with real model registry when available
             services.AddSingleton<IModelRegistry, MockModelRegistry>();
 
             return services;
