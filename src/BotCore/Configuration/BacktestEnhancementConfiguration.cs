@@ -14,6 +14,31 @@ namespace BotCore.Configuration
         public const double MAX_VOLATILITY_MULTIPLIER = 3.0;
         public const double MIN_VOLATILITY_MULTIPLIER = 1.0;
         
+        // ES/NQ slippage range constants
+        public const double MIN_ES_NQ_SLIPPAGE_BPS = 0.0;
+        public const double MAX_ES_NQ_SLIPPAGE_BPS = 2.0;
+        
+        // Latency range constants
+        public const int MIN_LATENCY_MS = 5;
+        public const int MAX_LATENCY_MS = 100;
+        public const int MIN_JITTER_MS = 0;
+        public const int MAX_JITTER_MS = 20;
+        
+        // Commission range constants
+        public const double MIN_COMMISSION_PER_CONTRACT = 2.0;
+        public const double MAX_COMMISSION_PER_CONTRACT = 50.0;
+        
+        // Processing delay constants
+        public const int MIN_PROCESSING_DELAY_MS = 50;
+        public const int MAX_PROCESSING_DELAY_MS = 500;
+        
+        // Strategy constants
+        public const int MIN_STRATEGY_COUNT = 5;
+        
+        // Commission range constants  
+        public const double MIN_COMMISSION_RANGE = 0.0;
+        public const double MAX_COMMISSION_RANGE = 5.0;
+        
         /// <summary>
         /// Enable market friction simulation in backtests
         /// </summary>
@@ -62,13 +87,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES-specific slippage in basis points
         /// </summary>
-        [Range(0.0, 2.0)]
+        [Range(MIN_ES_NQ_SLIPPAGE_BPS, MAX_ES_NQ_SLIPPAGE_BPS)]
         public double ESSlippageBps { get; set; } = 0.25;
 
         /// <summary>
         /// NQ-specific slippage in basis points
         /// </summary>
-        [Range(0.0, 2.0)]
+        [Range(MIN_ES_NQ_SLIPPAGE_BPS, MAX_ES_NQ_SLIPPAGE_BPS)]
         public double NQSlippageBps { get; set; } = 0.5;
 
 
@@ -97,25 +122,25 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base latency in milliseconds
         /// </summary>
-        [Range(5, 100)]
+        [Range(MIN_LATENCY_MS, MAX_LATENCY_MS)]
         public int BaseLatencyMs { get; set; } = 15;
 
         /// <summary>
         /// Network jitter variance in milliseconds
         /// </summary>
-        [Range(0, 20)]
+        [Range(MIN_JITTER_MS, MAX_JITTER_MS)]
         public int NetworkJitterMs { get; set; } = 5;
 
         /// <summary>
         /// Order processing delay in milliseconds
         /// </summary>
-        [Range(2, 50)]
+        [Range(MIN_COMMISSION_PER_CONTRACT, MAX_COMMISSION_PER_CONTRACT)]
         public int OrderProcessingMs { get; set; } = 8;
 
         /// <summary>
         /// Maximum allowable latency in milliseconds
         /// </summary>
-        [Range(50, 500)]
+        [Range(MIN_PROCESSING_DELAY_MS, MAX_PROCESSING_DELAY_MS)]
         public int MaxLatencyMs { get; set; } = 100;
 
         /// <summary>
@@ -138,13 +163,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES commission per contract
         /// </summary>
-        [Range(0.0, 5.0)]
+        [Range(MIN_COMMISSION_RANGE, MAX_COMMISSION_RANGE)]
         public decimal ESCommission { get; set; } = 0.62m;
 
         /// <summary>
         /// NQ commission per contract
         /// </summary>
-        [Range(0.0, 5.0)]
+        [Range(MIN_COMMISSION_RANGE, MAX_COMMISSION_RANGE)]
         public decimal NQCommission { get; set; } = 0.62m;
 
 

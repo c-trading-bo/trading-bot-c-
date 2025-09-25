@@ -139,6 +139,21 @@ public class TradingConfiguration
 /// </summary>
 public class TopstepXConfiguration
 {
+    // Timeout configuration constants
+    private const int MIN_HTTP_TIMEOUT_SECONDS = 5;
+    private const int MAX_HTTP_TIMEOUT_SECONDS = 300;
+    private const int DEFAULT_HTTP_TIMEOUT_SECONDS = 30;
+
+    // Retry configuration constants
+    private const int MIN_MAX_RETRIES = 3;
+    private const int MAX_MAX_RETRIES = 30;
+    private const int DEFAULT_MAX_RETRIES = 5;
+
+    // SignalR configuration constants
+    private const int MIN_SIGNALR_RECONNECT_DELAY_MS = 1000;
+    private const int MAX_SIGNALR_RECONNECT_DELAY_MS = 60000;
+    private const int DEFAULT_SIGNALR_RECONNECT_DELAY_MS = 5000;
+
     [Required]
     [Url]
     public string ApiBaseUrl { get; set; } = "https://api.topstepx.com";
@@ -152,16 +167,16 @@ public class TopstepXConfiguration
     public string MarketHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/market";
 
     [Required]
-    [Range(5, 300)]
-    public int HttpTimeoutSeconds { get; set; } = 30;
+    [Range(MIN_HTTP_TIMEOUT_SECONDS, MAX_HTTP_TIMEOUT_SECONDS)]
+    public int HttpTimeoutSeconds { get; set; } = DEFAULT_HTTP_TIMEOUT_SECONDS;
 
     [Required]
-    [Range(3, 30)]
-    public int MaxRetries { get; set; } = 5;
+    [Range(MIN_MAX_RETRIES, MAX_MAX_RETRIES)]
+    public int MaxRetries { get; set; } = DEFAULT_MAX_RETRIES;
 
     [Required]
-    [Range(1000, 60000)]
-    public int SignalRReconnectDelayMs { get; set; } = 5000;
+    [Range(MIN_SIGNALR_RECONNECT_DELAY_MS, MAX_SIGNALR_RECONNECT_DELAY_MS)]
+    public int SignalRReconnectDelayMs { get; set; } = DEFAULT_SIGNALR_RECONNECT_DELAY_MS;
 }
 
 /// <summary>

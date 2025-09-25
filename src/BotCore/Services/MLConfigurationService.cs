@@ -19,6 +19,9 @@ namespace TradingBot.BotCore.Services
 
         public MLConfigurationService(IOptions<TradingConfiguration> config)
         {
+            if (config == null)
+                throw new ArgumentNullException(nameof(config));
+
             _config = config.Value;
         }
 

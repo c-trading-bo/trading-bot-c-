@@ -304,9 +304,14 @@ namespace TopstepX.Bot.Core.Services
                 // Regular trading hours (continuous except maintenance)
                 return true;
             }
-            catch (Exception ex)
+            catch (ArgumentOutOfRangeException ex)
             {
-                _logger.LogError(ex, "Error checking market hours, defaulting to closed");
+                _logger.LogError(ex, "Invalid date/time argument in market hours check, defaulting to closed");
+                return false;
+            }
+            catch (InvalidTimeZoneException ex)
+            {
+                _logger.LogError(ex, "Time zone conversion error in market hours check, defaulting to closed");
                 return false;
             }
         }
