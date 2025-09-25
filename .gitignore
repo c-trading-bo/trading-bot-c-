@@ -57,3 +57,9 @@ CRITICAL_ALERT_*.txt
 agent_*.log
 dev_notes.md
 scratch_*.txt
+
+# Analyzer audit temporary files
+tools/build.log
+tools/cs_error_counts.txt
+tools/analyzers/*.sarif
+tools/analyzers/*.tsv
