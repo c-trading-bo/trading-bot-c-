@@ -136,7 +136,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
         if (!_isMonitoring)
             return;
 
-        _isMonitoring;
+        _isMonitoring = false; // Stop monitoring
         _stalenessCheckTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
         var stopData = new

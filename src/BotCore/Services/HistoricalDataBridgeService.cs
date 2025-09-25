@@ -71,8 +71,8 @@ namespace BotCore.Services
 
             _logger.LogInformation("[HISTORICAL-BRIDGE] Starting historical data seeding for {ContractCount} contracts", contractIds.Length);
 
-            var successCount;
-            var totalSeeded;
+            var successCount = 0;
+            var totalSeeded = 0;
 
             foreach (var contractId in contractIds)
             {
