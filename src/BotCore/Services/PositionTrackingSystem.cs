@@ -42,7 +42,19 @@ namespace TopstepX.Bot.Core.Services
             public decimal UnrealizedPnL { get; set; }
             public decimal RealizedPnL { get; set; }
             public DateTime LastUpdate { get; set; }
-            public List<Fill> Fills { get; set; } = new();
+            private readonly List<Fill> _fills = new();
+            public IReadOnlyList<Fill> Fills => _fills;
+            
+            public void ReplaceFills(IEnumerable<Fill> fills)
+            {
+                _fills.Clear();
+                if (fills != null) _fills.AddRange(fills);
+            }
+            
+            public void AddFill(Fill fill)
+            {
+                if (fill != null) _fills.Add(fill);
+            }
             public decimal MarketValue { get; set; }
             public decimal DailyPnL { get; set; }
         }
@@ -123,8 +135,7 @@ namespace TopstepX.Bot.Core.Services
                             AveragePrice = 0,
                             UnrealizedPnL = 0,
                             RealizedPnL = 0,
-                            LastUpdate = DateTime.UtcNow,
-                            Fills = new List<Fill>()
+                            LastUpdate = DateTime.UtcNow
                         };
                         _positions[symbol] = position;
                     }
@@ -161,7 +172,7 @@ namespace TopstepX.Bot.Core.Services
             var oldAvgPrice = position.AveragePrice;
             
             // Add fill to history
-            position.Fills.Add(fill);
+            position.AddFill(fill);
             
             // Update net quantity
             position.NetQuantity += fill.Quantity;

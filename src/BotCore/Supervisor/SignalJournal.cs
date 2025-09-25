@@ -35,6 +35,9 @@ namespace BotCore.Supervisor
 
         public void Append(BotCore.Models.Signal s, string stage, string? cid = null)
         {
+            if (s is null) throw new ArgumentNullException(nameof(s));
+            if (stage is null) throw new ArgumentNullException(nameof(stage));
+            
             var line = string.Join(',', [
                 DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
                 s.StrategyId,
