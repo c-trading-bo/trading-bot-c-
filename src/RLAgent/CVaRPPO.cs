@@ -687,8 +687,7 @@ public class CVaRPPO : IDisposable
         {
             if (disposing)
             {
-                _policyNetwork?.Dispose();
-                _valueNetwork?.Dispose();
+                // PolicyNetwork and ValueNetwork no longer implement IDisposable
                 _cvarNetwork?.Dispose();
                 
                 LogMessages.CVaRPPODisposed(_logger);
@@ -837,7 +836,7 @@ public class PerformanceMetrics
 /// <summary>
 /// Simplified Policy Network
 /// </summary>
-public class PolicyNetwork : IDisposable
+public class PolicyNetwork
 {
     private const double WEIGHT_RANGE_MULTIPLIER = 2.0;
     private const double LEARNING_RATE = 0.001;
@@ -969,23 +968,12 @@ public class PolicyNetwork : IDisposable
         InitializeWeights(); // Reset to defaults for now
         return Task.FromResult(0); // Proper async completion without async keyword
     }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        // Nothing to dispose in this simplified implementation
-    }
 }
 
 /// <summary>
 /// Simplified Value Network
 /// </summary>
-public class ValueNetwork : IDisposable
+public class ValueNetwork
 {
     private const double WeightInitializationRange = 2.0;
     private const double OutputWeightInitializationScale = 0.1;
@@ -1098,17 +1086,6 @@ public class ValueNetwork : IDisposable
         InitializeWeights(); // Reset to defaults for now
         return Task.FromResult(0); // Proper async completion
     }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        // Nothing to dispose in this simplified implementation
-    }
 }
 
 /// <summary>
@@ -1151,10 +1128,7 @@ public class CVaRNetwork : IDisposable
     
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _valueNetwork?.Dispose();
-        }
+        // ValueNetwork no longer implements IDisposable since it has no resources to dispose
     }
 }
 
