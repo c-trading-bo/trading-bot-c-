@@ -1,0 +1,34 @@
+name: Analyzer Posture Gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Posture checks
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.sha }}"
+
+          # .editorconfig severity downgrades
+          if git diff "$base" "$head" -- .editorconfig '**/*.editorconfig' |
+             grep -E '^\+.*dotnet_(diagnostic|analyzer_diagnostic)\..*\.severity\s*=\s*(hidden|silent|none|suggestion|info|warning)'; then
+            echo "::error title=Analyzer severity lowered::.editorconfig lowered severity"; exit 1; fi
+
+          # MSBuild analyzer toggles & NoWarn
+          if git diff "$base" "$head" -- '**/*.props' '**/*.targets' '**/*.csproj' |
+             grep -E '^\+.*(TreatWarningsAsErrors\s*=\s*false|EnableNETAnalyzers\s*=\s*false|RunAnalyzers.*=\s*false|<NoWarn>)'; then
+            echo "::error title=Analyzers weakened::Build settings weaken posture"; exit 1; fi
+
+          # New suppressions in code
+          if git diff "$base" "$head" -- '**/*.cs' |
+             grep -E '^\+.*(#pragma\s+warning\s+disable|\[SuppressMessage\(|GlobalSuppressions\.cs)'; then
+            echo "::error title=New suppressions::Suppressions detected"; exit 1; fi
+
+          echo "✅ Posture clean"

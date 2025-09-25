@@ -1,23 +1,14 @@
-@copilot  
-Follow the guardrails in .github/copilot-instructions.md without exception.  
-No shortcuts, no config changes, no suppressions.
+### Summary
+What rules (IDs) were fixed and why.
 
-## Summary
+### Proof
+- [ ] `dotnet build -warnaserror` green
+- [ ] `dotnet test` green
+- [ ] Attached `tools/analyzers/current.sarif`
+- [ ] Read and followed **docs/Analyzer-Fix-Guidebook.md v1.0**
+- [ ] No posture edits (.editorconfig/props/csproj)
+- [ ] No suppressions (#pragma / SuppressMessage / NoWarn)
+- [ ] No new public setters on collections/domain state
 
-<!-- Brief description of what this PR does -->
-
-## Changes
-
-<!-- List of specific changes made -->
-
-## Testing
-
-<!-- How you tested these changes -->
-
-## Checklist
-
-- [ ] Follows .github/copilot-instructions.md guardrails
-- [ ] No analyzer config changes
-- [ ] No suppressions added
-- [ ] All tests pass
-- [ ] Production safety maintained
+### Notes
+List 3–5 examples: Rule → file:line → brief "correct fix".
