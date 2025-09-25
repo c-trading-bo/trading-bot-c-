@@ -1564,6 +1564,8 @@ namespace TradingBot.Critical
         
         public static string GetCredential(string key, string? defaultValue = null)
         {
+            if (key is null) throw new ArgumentNullException(nameof(key));
+
             // Priority order: Environment Variables -> Azure Key Vault -> AWS Secrets Manager -> Default
             
             // 1. Check environment variables first
