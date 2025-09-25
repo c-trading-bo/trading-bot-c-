@@ -183,7 +183,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         {
             foreach (var arm in _arms.Values)
             {
-                if (arm is IDisposable disposableArm)
+                if (arm != null && arm is IDisposable disposableArm)
                 {
                     disposableArm.Dispose();
                 }

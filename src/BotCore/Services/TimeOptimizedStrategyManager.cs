@@ -250,7 +250,7 @@ namespace BotCore.Services
                 (decimal)volatility, (decimal)trend, (decimal)momentum, (decimal)rsi,
                 (decimal)volume.AverageVolume, bidAskSpread, imbalance,
                 hourOfDay, timeToClose,
-                data.Close / 5000m, // Normalized price
+                (decimal)data.Close / 5000m, // Normalized price
                 CalculateATRNormalized(bars), CalculateBollingerPosition(bars),
                 CalculateVWAP(bars), CalculateMarketStress(bars)
             });
@@ -652,10 +652,10 @@ namespace BotCore.Services
             
             // Calculate imbalance based on where Close price sits in bid-ask spread
             var midPoint = (data.Bid + data.Ask) / 2;
-            var pricePosition = (decimal)data.Close - midPoint;
+            var pricePosition = data.Close - (double)midPoint;
             
             // Normalize to -1 to +1 range
-            return Math.Max(-1m, Math.Min(1m, pricePosition / (spread / 2)));
+            return Math.Max(-1m, Math.Min(1m, (decimal)pricePosition / ((decimal)spread / 2)));
         }
 
         private decimal CalculateTimeToClose()

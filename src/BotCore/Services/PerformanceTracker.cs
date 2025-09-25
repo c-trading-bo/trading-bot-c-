@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -110,7 +111,7 @@ public class PerformanceTracker
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
 
             // Load existing metrics
-            var metrics = await LoadPersonalMetricsAsync().ConfigureAwait(false) ?? new PersonalMetrics().ConfigureAwait(false);
+            var metrics = await LoadPersonalMetricsAsync().ConfigureAwait(false) ?? new PersonalMetrics();
 
             // Update trade counts
             metrics.TotalTrades++;
@@ -188,7 +189,7 @@ public class PerformanceTracker
                 // Additional ML features
                 MarketConditions = new
                 {
-                    VolumeAtEntry = GetVolumeContext(trade.EntryTime),
+                    VolumeAtEntry = GetVolumeContext(trade.EntryTime, trade.Symbol),
                     VolatilityAtEntry = GetVolatilityContext(trade.EntryTime),
                     TrendDirection = GetTrendContext(trade.Symbol, trade.EntryTime),
                     TimeOfDay = trade.EntryTime.Hour,
