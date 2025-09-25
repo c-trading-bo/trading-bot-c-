@@ -45,7 +45,7 @@ namespace TradingBot.BotCore.Services
                 {
                     // No migration needed
                     var result = JsonSerializer.Deserialize<T>(jsonContent);
-                    if (object.Equals(result, default(T)))
+                    if (result is null)
                         throw new InvalidOperationException($"Failed to deserialize {configType} configuration");
                         
                     _logger.LogInformation("✅ [SCHEMA] Configuration validated, no migration needed");
@@ -59,7 +59,7 @@ namespace TradingBot.BotCore.Services
                 var migratedJson = MigrateConfiguration(jsonContent, configType, currentVersion, targetVersion);
                 var migratedResult = JsonSerializer.Deserialize<T>(migratedJson);
                 
-                if (object.Equals(migratedResult, default(T)))
+                if (migratedResult is null)
                     throw new InvalidOperationException($"Failed to deserialize migrated {configType} configuration");
 
                 _logger.LogInformation("✅ [SCHEMA] Configuration migrated successfully");

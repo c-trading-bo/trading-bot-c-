@@ -26,7 +26,7 @@ namespace BotCore.Strategy
         private readonly RiskEngine _risk;
         private readonly IOrderService _orderService;
         private readonly ILogger<BridgeOrderRouter> _logger;
-        private readonly ITopstepXAdapterService _topstepXAdapter;
+        private readonly ITopstepXAdapterService? _topstepXAdapter;
         private readonly Dictionary<string, Position> _positionCache;
         private readonly SemaphoreSlim _positionCacheLock;
         private readonly string _configSnapshotId;
@@ -154,7 +154,7 @@ namespace BotCore.Strategy
                     instrument, side, qty, _configSnapshotId);
                 
                 // Re-throw with production error handling
-                throw ExceptionHelper.CreateWithLogging(_logger, "Order placement failed", ex);
+                throw new InvalidOperationException("Order placement failed", ex);
             }
         }
 
@@ -269,7 +269,7 @@ namespace BotCore.Strategy
             }
         }
 
-        private async Task<Position> GetPositionInternalAsync(string instrument)
+        private async Task<Position?> GetPositionInternalAsync(string instrument)
         {
             try
             {
@@ -340,7 +340,7 @@ namespace BotCore.Strategy
             };
         }
 
-        private async Task<bool> ValidateRiskLimitsAsync(string instrument, string side, int qty)
+        private Task<bool> ValidateRiskLimitsAsync(string instrument, string side, int qty)
         {
             try
             {
@@ -348,13 +348,13 @@ namespace BotCore.Strategy
                 if (qty <= 0 || qty > 1000)
                 {
                     _logger.LogWarning("[S6S11_BRIDGE] Risk limit violation: Invalid quantity {Qty} for {Instrument}", qty, instrument);
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(instrument) || string.IsNullOrWhiteSpace(side))
                 {
                     _logger.LogWarning("[S6S11_BRIDGE] Risk limit violation: Invalid parameters");
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 // Additional risk engine validation if available
@@ -363,12 +363,12 @@ namespace BotCore.Strategy
                     // Implement additional risk checks here
                 }
 
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[S6S11_BRIDGE] Risk validation error");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -408,9 +408,9 @@ namespace BotCore.Strategy
     /// </summary>
     public static class S6S11Bridge
     {
-        private static TopstepX.S6.S6Strategy _s6Strategy;
-        private static TopstepX.S11.S11Strategy _s11Strategy;
-        private static BridgeOrderRouter _router;
+        private static TopstepX.S6.S6Strategy? _s6Strategy;
+        private static TopstepX.S11.S11Strategy? _s11Strategy;
+        private static BridgeOrderRouter? _router;
 
         /// <summary>
         /// Initialize the bridge with production services
@@ -442,7 +442,7 @@ namespace BotCore.Strategy
                 var instrument = symbol.Contains("ES") ? TopstepX.S6.Instrument.ES : TopstepX.S6.Instrument.NQ;
 
                 // Get position to determine if we can place orders
-                var currentPosition = _router.GetPosition(instrument);
+                var currentPosition = _router?.GetPosition(instrument) ?? (TopstepX.S6.Side.Flat, 0, 0.0, DateTimeOffset.UtcNow, string.Empty);
 
                 // S6 operates 09:28-10:00 ET - production time validation
                 var currentTime = DateTimeOffset.UtcNow;
@@ -509,7 +509,7 @@ namespace BotCore.Strategy
                 var instrument = symbol.Contains("ES") ? TopstepX.S11.Instrument.ES : TopstepX.S11.Instrument.NQ;
 
                 // Get position to determine if we can place orders
-                var currentPosition = _router.GetPosition(instrument);
+                var currentPosition = _router?.GetPosition(instrument) ?? (TopstepX.S11.Side.Flat, 0, 0.0, DateTimeOffset.UtcNow, string.Empty);
 
                 // S11 operates 13:30-15:30 ET - production time validation
                 var currentTime = DateTimeOffset.UtcNow;

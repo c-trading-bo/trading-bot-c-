@@ -1023,20 +1023,20 @@ namespace TopstepX.Bot.Core.Services
         /// ENHANCED IMPLEMENTATION: Perform all trading prechecks with progressive readiness
         /// Uses new TradingReadinessConfiguration for flexible validation
         /// </summary>
-        private Task<bool> PerformTradingPrechecksAsync()
+        private async Task<bool> PerformTradingPrechecksAsync()
         {
             // Check emergency stop
             if (_emergencyStop.IsEmergencyStop)
             {
                 _logger.LogDebug("[PRECHECK] Failed - emergency stop active");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Check kill.txt
             if (File.Exists("kill.txt"))
             {
                 _logger.LogDebug("[PRECHECK] Failed - kill.txt detected");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Use progressive readiness validation
@@ -1046,28 +1046,28 @@ namespace TopstepX.Bot.Core.Services
             if (!validation.IsReady)
             {
                 _logger.LogDebug("[PRECHECK] Failed - {Reason} (Score: {Score:F2})", validation.Reason, validation.ReadinessScore);
-                return Task.FromResult(false);
+                return false;
             }
 
             // Check adapter connection using TopstepX adapter
             var adapterConnected = _topstepXAdapter.IsConnected;
-            var adapterHealth = _topstepXAdapter.ConnectionHealth;
+            var adapterHealthScore = await _topstepXAdapter.GetHealthScoreAsync().ConfigureAwait(false);
             
-            if (!adapterConnected || adapterHealth < 80)
+            if (!adapterConnected || adapterHealthScore < 80)
             {
                 _logger.LogDebug("[PRECHECK] Failed - adapter not ready. Connected: {Connected}, Health: {Health}%",
-                    adapterConnected, adapterHealth);
-                return Task.FromResult(false);
+                    adapterConnected, adapterHealthScore);
+                return false;
             }
 
             // Check market hours
             if (!IsMarketOpen())
             {
                 _logger.LogDebug("[PRECHECK] Failed - market is closed");
-                return Task.FromResult(false);
+                return false;
             }
 
-            return Task.FromResult(true);
+            return true;
         }
 
         /// <summary>
@@ -1580,20 +1580,13 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Initialize the TopstepX adapter service
-                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 
-                if (initialized)
-                {
-                    _logger.LogInformation("✅ TopstepX adapter initialized successfully");
+                _logger.LogInformation("✅ TopstepX adapter initialized successfully");
                     
-                    // Check adapter health
-                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}%", healthScore);
-                }
-                else
-                {
-                    _logger.LogError("❌ Failed to initialize TopstepX adapter");
-                }
+                // Check adapter health
+                var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}%", healthScore);
             }
             catch (Exception ex)
             {
@@ -1642,7 +1635,8 @@ namespace TopstepX.Bot.Core.Services
             
             // Reduce score for poor adapter health
             if (!_topstepXAdapter.IsConnected) score -= 0.3;
-            if (_topstepXAdapter.ConnectionHealth < 80) score -= 0.3;
+            if (double.TryParse(_topstepXAdapter.ConnectionHealth.Replace("%", ""), out var healthValue) && healthValue < 80) 
+                score -= 0.3;
             
             // Reduce score for stale data
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;
@@ -1664,16 +1658,6 @@ namespace TopstepX.Bot.Core.Services
             _logger.LogInformation("🧹 Cleaning up trading system resources...");
             
             _tradingEvaluationTimer?.Dispose();
-            
-            if (_userHubConnection != null)
-            {
-                await _userHubConnection.DisposeAsync().ConfigureAwait(false);
-            }
-            
-            if (_marketHubConnection != null)
-            {
-                await _marketHubConnection.DisposeAsync().ConfigureAwait(false);
-            }
             
             _orderConfirmation?.Dispose();
             

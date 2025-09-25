@@ -118,8 +118,8 @@ namespace TradingBot.BotCore.Services
                 {
                     values["bracket.default_stop_atr_multiple"] = bracketConfig.GetDefaultStopAtrMultiple();
                     values["bracket.default_target_atr_multiple"] = bracketConfig.GetDefaultTargetAtrMultiple();
-                    values["bracket.trailing_stop_enabled"] = bracketConfig.EnableTrailingStop();
-                    values["bracket.reduce_only_mode"] = bracketConfig.ReduceOnlyMode();
+                    values["bracket.trailing_stop_enabled"] = bracketConfig.EnableTrailingStop;
+                    values["bracket.reduce_only_mode"] = bracketConfig.ReduceOnlyMode;
                 }
 
             }

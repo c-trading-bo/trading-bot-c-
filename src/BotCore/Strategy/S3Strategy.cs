@@ -483,7 +483,7 @@ namespace BotCore.Strategy
         {
             if (bars == null || bars.Count == 0 || n <= 1) return bars?.ToList() ?? [];
             var res = new List<Bar>();
-            int i;
+            int i = 0; // Initialize variable
             while (i < bars.Count)
             {
                 int j = Math.Min(i + n, bars.Count) - 1;
@@ -512,16 +512,16 @@ namespace BotCore.Strategy
         }
         private static (decimal vwap, decimal wvar, decimal wvol) AnchoredVwap(IList<Bar> bars, DateTime anchorLocal)
         {
-            decimal wv = 0m, vol; int idx0;
-            for (int i; i < bars.Count; i++) { if (bars[i].Start >= anchorLocal) { idx0 = i; break; } }
+            decimal wv = 0m, vol = 0m; int idx0 = 0;
+            for (int i = 0; i < bars.Count; i++) { if (bars[i].Start >= anchorLocal) { idx0 = i; break; } }
             for (int i = idx0; i < bars.Count; i++) { var b = bars[i]; var tp = (b.High + b.Low + b.Close) / 3m; var v = Math.Max(0, b.Volume); wv += tp * v; vol += v; }
             if (vol <= 0) return (0m, 0m, 0m);
-            var vwap = wv / vol; decimal num;
+            var vwap = wv / vol; decimal num = 0m;
             for (int i = idx0; i < bars.Count; i++) { var b = bars[i]; var tp = (b.High + b.Low + b.Close) / 3m; var v = Math.Max(0, b.Volume); var d = tp - vwap; num += d * d * v; }
             var wvar = num / vol; return (vwap, wvar, vol);
         }
         private static bool HoldsAroundVwap(IList<Bar> b, decimal vwap, bool above, int need)
-        { int ok; for (int i = b.Count - need; i < b.Count; i++) { var c = b[i].Close; if (above ? c >= vwap : c <= vwap) ok++; } return ok >= need; }
+        { int ok = 0; for (int i = b.Count - need; i < b.Count; i++) { var c = b[i].Close; if (above ? c >= vwap : c <= vwap) ok++; } return ok >= need; }
         private static decimal SwingLow(IList<Bar> b, int look) => Enumerable.Range(1, Math.Min(look, b.Count)).Select(i => b[^i].Low).Min();
         private static decimal SwingHigh(IList<Bar> b, int look) => Enumerable.Range(1, Math.Min(look, b.Count)).Select(i => b[^i].High).Max();
         private static bool BreakBarQualityOk(Bar c, decimal minClosePos, decimal maxOppWick, out decimal score)
