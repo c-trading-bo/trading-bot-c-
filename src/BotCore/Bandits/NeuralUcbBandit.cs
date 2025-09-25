@@ -16,7 +16,7 @@ namespace BotCore.Bandits;
 /// Uses deep learning to model complex non-linear relationships in high-dimensional contexts.
 /// More powerful than LinUCB but requires more data and computation.
 /// </summary>
-public class NeuralUcbBandit : IFunctionApproximationBandit
+public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
 {
     private readonly Dictionary<string, NeuralUcbArm> _arms = new();
     private readonly NeuralUcbConfig _config;
@@ -175,6 +175,21 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
             ActiveArms = _arms.Count(kvp => kvp.Value.UpdateCount > 0),
             GeneratedAt = DateTime.UtcNow
         };
+    }
+
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            foreach (var arm in _arms.Values)
+            {
+                if (arm is IDisposable disposableArm)
+                {
+                    disposableArm.Dispose();
+                }
+            }
+            _arms.Clear();
+        }
     }
 }
 

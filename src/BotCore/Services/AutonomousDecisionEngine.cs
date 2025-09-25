@@ -197,7 +197,7 @@ public class AutonomousDecisionEngine : BackgroundService
         // Check compliance limits first
         if (!await _complianceManager.CanTradeAsync(_todayPnL, _currentAccountBalance, cancellationToken).ConfigureAwait(false))
         {
-            return false.ConfigureAwait(false);
+            return false;
         }
         
         // Check market hours and optimal trading times

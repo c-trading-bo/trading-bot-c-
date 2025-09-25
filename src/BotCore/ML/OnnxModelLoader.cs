@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using BotCore.Utilities;
+using System.Globalization;
 
 namespace BotCore.ML;
 
@@ -986,8 +987,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         var report = new ModelHealthReport
         {
-            Timestamp = DateTime.UtcNow,
-            ModelStatuses = new List<ModelHealthStatus>()
+            Timestamp = DateTime.UtcNow
         };
 
         try
@@ -1002,8 +1002,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var status = new ModelHealthStatus
                 {
                     ModelName = modelName,
-                    IsHealthy = false,
-                    Issues = new List<string>()
+                    IsHealthy = false
                 };
 
                 if (latestModel == null)
@@ -1047,7 +1046,7 @@ public sealed class OnnxModelLoader : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX-Registry] Failed to perform health check");
-            report.IsHealthy;
+            report.IsHealthy = false;
         }
 
         return report;
@@ -1103,7 +1102,7 @@ public sealed class OnnxModelLoader : IDisposable
         // Compress model file using GZip compression
         await Task.Run(() =>
         {
-            var compressedPath = modelPath + ".gz".ConfigureAwait(false);
+            var compressedPath = modelPath + ".gz";
             
             using (var originalFileStream = File.OpenRead(modelPath))
             using (var compressedFileStream = File.Create(compressedPath))
