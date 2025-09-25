@@ -96,7 +96,7 @@ public class TripleBarrierLabeler
                 Label = result.Label,
 
                 // Features for ML model
-                Features = ExtractFeatures(signal, priceData.First()),
+                Features = ExtractFeatures(signal),
 
                 // Outcome metrics
                 HoldingPeriod = result.ExitTime - signal.Timestamp,

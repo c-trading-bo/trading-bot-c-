@@ -307,7 +307,7 @@ namespace BotCore
 
             // Add first 20 features
             var features = trade.Features ?? new List<decimal>();
-            for (int i; i < 20; i++)
+            for (int i = 0; i < 20; i++)
             {
                 values.Add(i < features.Count ? features[i].ToString("F6") : "0");
             }
@@ -361,7 +361,7 @@ namespace BotCore
         public string StrategyUsed { get; set; } = "";
         public decimal StopLoss { get; set; }
         public decimal TakeProfit { get; set; }
-        public List<decimal> Features { get; } = new();
+        public List<decimal> Features { get; set; } = new();
         public string Session { get; set; } = "";
         public string Regime { get; set; } = "";
         public decimal Atr { get; set; }

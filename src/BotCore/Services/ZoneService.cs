@@ -44,8 +44,8 @@ public class ZoneData
 {
     public string Symbol { get; set; } = string.Empty;
     public decimal CurrentPrice { get; set; }
-    public List<Zone> SupplyZones { get; } = new();
-    public List<Zone> DemandZones { get; } = new();
+    public List<Zone> SupplyZones { get; set; } = new();
+    public List<Zone> DemandZones { get; set; } = new();
     public decimal POC { get; set; }
     public ValueArea ValueArea { get; set; } = new();
     public DateTime LastUpdated { get; set; }

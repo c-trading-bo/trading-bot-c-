@@ -75,10 +75,10 @@ namespace BotCore.Infra
             CheckModelFreshness(issues, warnings);
 
             // Check training activity
-            CheckTrainingActivity(issues, warnings);
+            CheckTrainingActivity(warnings);
 
             // Check GitHub Actions pipeline
-            await CheckGitHubPipelineAsync(issues, warnings).ConfigureAwait(false);
+            await CheckGitHubPipelineAsync(warnings).ConfigureAwait(false);
 
             // Check file system health
             CheckFileSystemHealth(issues, warnings);
@@ -86,7 +86,7 @@ namespace BotCore.Infra
             // Report results
             if (issues.Any())
             {
-                _lastHealthCheckPassed;
+                _lastHealthCheckPassed = false;
                 _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}",
                     issues.Count, string.Join("; ", issues));
 
@@ -130,7 +130,7 @@ namespace BotCore.Infra
                 }
                 else
                 {
-                    _consecutiveDataCollectionFailures;
+                    _consecutiveDataCollectionFailures = 0;
                     _lastDataCollection = recentFiles.Max(f => File.GetLastWriteTime(f));
 
                     // Check data quality

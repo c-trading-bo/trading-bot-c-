@@ -13,7 +13,7 @@ namespace BotCore.Strategy
         {
             if (bars is null || bars.Count < 2) return 1m;
             int start = Math.Max(0, bars.Count - look);
-            decimal up = 0, dn;
+            decimal up = 0, dn = 0;
             for (int i = start; i < bars.Count; i++)
             {
                 var b = bars[i];
@@ -29,8 +29,8 @@ namespace BotCore.Strategy
         {
             if (bars == null || bars.Count == 0) return (0m, 0m);
             var prevDate = nowLocal.Date.AddDays(-1);
-            bool found; decimal hi = 0m, lo;
-            for (int i; i < bars.Count; i++)
+            bool found = false; decimal hi = 0m, lo = 0;
+            for (int i = 0; i < bars.Count; i++)
             {
                 var d = bars[i].Start.Date;
                 if (d != prevDate) continue;
@@ -81,7 +81,7 @@ namespace BotCore.Strategy
         // Adaptive sigma threshold: lift threshold on strong 5-bar slope / high volz / NQ; small relax late morning
         public static decimal DynamicSigmaThreshold(decimal baseSigma, decimal volz, decimal slope5, DateTime nowLocal, string sym)
         {
-            decimal adj;
+            decimal adj = 0;
             var absSlope = Math.Abs(slope5);
             if (absSlope > 0.25m) adj += 0.3m;       // strong trend on 1m EMA20 slope proxy
             if (volz > 1.5m) adj += 0.2m;       // high-vol regime
@@ -105,7 +105,7 @@ namespace BotCore.Strategy
         {
             if (b == null || b.Count < 5) return (0m, 0m);
             int start = Math.Max(2, b.Count - lookback);
-            decimal lastHi = 0m, lastLo;
+            decimal lastHi = 0m, lastLo = 0m;
             for (int i = start; i < b.Count - 2; i++)
             {
                 bool swingHi = b[i].High > b[i - 1].High && b[i].High > b[i - 2].High && b[i].High > b[i + 1].High && b[i].High > b[i + 2].High;
@@ -132,8 +132,8 @@ namespace BotCore.Strategy
         {
             if (bars == null || bars.Count == 0) return (0m, 0m);
             var prev = nowLocal.Date.AddDays(-1);
-            decimal wv = 0m, vol; decimal lastClose; bool seen;
-            for (int i; i < bars.Count; i++)
+            decimal wv = 0m, vol = 0, lastClose = 0; bool seen = false;
+            for (int i = 0; i < bars.Count; i++)
             {
                 var d = bars[i].Start.Date;
                 if (d != prev) continue;

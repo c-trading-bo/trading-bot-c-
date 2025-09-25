@@ -189,7 +189,7 @@ public class TopStepComplianceManager
         }
         
         // Check for compliance violations outside the lock
-        await CheckComplianceViolationsAsync(cancellationToken).ConfigureAwait(false);
+        await CheckComplianceViolationsAsync().ConfigureAwait(false);
     }
     
     /// <summary>

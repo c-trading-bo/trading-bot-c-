@@ -218,7 +218,7 @@ namespace BotCore.Risk
                 tracker.PeakValue = currentBalance;
                 tracker.PeakTime = DateTime.UtcNow;
                 _peakBalance = currentBalance;
-                _consecutiveLosses; // Reset on new peak
+                _consecutiveLosses = 0; // Reset on new peak
                 _positionSizeMultiplier = 1.0m; // Reset position sizing
             }
             
@@ -240,7 +240,7 @@ namespace BotCore.Risk
             }
             else if (lastTrade != null && lastTrade.PnL > 0)
             {
-                _consecutiveLosses;
+                _consecutiveLosses = 0;
                 tracker.LossSequence.Clear();
             }
             

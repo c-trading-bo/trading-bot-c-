@@ -100,7 +100,7 @@ namespace BotCore.Services
                     throw new ArgumentException($"Unknown contract base symbol: {baseSymbol}");
                 }
 
-                var expirationDate = CalculateExpirationDate(baseSymbol, monthCode, year);
+                var expirationDate = CalculateExpirationDate(monthCode, year);
                 var isActive = await IsContractActiveAsync(contractSymbol).ConfigureAwait(false);
                 var daysToExpiration = (expirationDate - DateTime.UtcNow).Days;
 
@@ -234,7 +234,7 @@ namespace BotCore.Services
                     foreach (var monthCode in spec.MonthSequence)
                     {
                         var contractSymbol = $"{baseSymbol}{monthCode}{year % 100:D2}";
-                        var expirationDate = CalculateExpirationDate(baseSymbol, monthCode, year);
+                        var expirationDate = CalculateExpirationDate(monthCode, year);
                         
                         // Only include contracts that haven't expired and are within 12 months
                         if (expirationDate > currentDate && expirationDate <= currentDate.AddMonths(12))
@@ -263,7 +263,7 @@ namespace BotCore.Services
             var monthCode = ExtractMonthCode(contractSymbol);
             var year = ExtractYear(contractSymbol);
 
-            return CalculateExpirationDate(baseSymbol, monthCode, year);
+            return CalculateExpirationDate(monthCode, year);
         }
 
         /// <summary>
@@ -349,7 +349,7 @@ namespace BotCore.Services
             var monthCode = spec.MonthSequence[monthIndex];
             
             // Check if we're too close to expiration and should use next contract
-            var expirationDate = CalculateExpirationDate(baseSymbol, monthCode, currentDate.Year);
+            var expirationDate = CalculateExpirationDate(monthCode, currentDate.Year);
             if ((expirationDate - currentDate).Days <= _config.ContractRolloverDays)
             {
                 // Move to next quarter

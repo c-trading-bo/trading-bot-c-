@@ -119,7 +119,7 @@ public class WalkForwardTrainer
         try
         {
             // Get training data
-            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct).ConfigureAwait(false);
+            var trainSignals = await GetHistoricalSignalsAsync().ConfigureAwait(false);
             var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct).ConfigureAwait(false);
 
             fold.TrainingSamples = trainLabeled.Count;
@@ -136,7 +136,7 @@ public class WalkForwardTrainer
             fold.ModelPath = modelPath;
 
             // Get test data (respecting embargo period)
-            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct).ConfigureAwait(false);
+            var testSignals = await GetHistoricalSignalsAsync().ConfigureAwait(false);
             var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct).ConfigureAwait(false);
 
             fold.TestSamples = testLabeled.Count;
@@ -148,7 +148,7 @@ public class WalkForwardTrainer
             }
 
             // Evaluate model on test set
-            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct).ConfigureAwait(false);
+            var metrics = await EvaluateModelAsync(modelPath, testLabeled).ConfigureAwait(false);
             fold.Metrics = metrics;
             fold.Status = FoldStatus.Completed;
 
@@ -342,10 +342,10 @@ public class WalkForwardTrainer
         }
 
         var correct;
-        var brierSum;
-        var logLossSum;
+        var brierSum = 0m;
+        var logLossSum = 0m;
 
-        for (int i; i < predictions.Count; i++)
+        for (int i = 0; i < predictions.Count; i++)
         {
             var pred = Math.Max(0.001m, Math.Min(0.999m, predictions[i])); // Clip for stability
             var actual = actuals[i];

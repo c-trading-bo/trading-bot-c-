@@ -50,5 +50,11 @@ namespace TradingBot.Abstractions
         /// Partial fill handling for bracket orders
         /// </summary>
         string GetPartialFillHandling();
+        
+        // Additional methods needed by consuming code
+        double GetDefaultStopAtrMultiple();
+        double GetDefaultTargetAtrMultiple();
+        bool EnableTrailingStop { get; }
+        bool ReduceOnlyMode { get; }
     }
 }

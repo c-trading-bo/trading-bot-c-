@@ -870,25 +870,25 @@ namespace TradingBot.Critical
             foreach (var position in _activePositions.Values)
             {
                 // Check if stop loss exists
-                var stopLossExists = await CheckOrderExists(position.StopLossOrderId).ConfigureAwait(false);
+                var stopLossExists = await CheckOrderExists().ConfigureAwait(false);
                 
                 if (!stopLossExists)
                 {
                     // Reattach stop loss
                     var stopPrice = CalculateStopLoss(position);
-                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice).ConfigureAwait(false);
+                    var stopOrder = await PlaceStopLossOrder().ConfigureAwait(false);
                     position.StopLossOrderId = stopOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached stop loss for {position.Symbol} at {stopPrice}");
                 }
                 
                 // Check take profit
-                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId).ConfigureAwait(false);
+                var takeProfitExists = await CheckOrderExists().ConfigureAwait(false);
                 
                 if (!takeProfitExists)
                 {
                     var targetPrice = CalculateTakeProfit(position);
-                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice).ConfigureAwait(false);
+                    var targetOrder = await PlaceTakeProfitOrder().ConfigureAwait(false);
                     position.TakeProfitOrderId = targetOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached take profit for {position.Symbol} at {targetPrice}");
@@ -1364,7 +1364,7 @@ namespace TradingBot.Critical
         public async Task<bool> ValidateNewPosition(string symbol, int quantity, string direction)
         {
             // Calculate new exposure
-            var newExposure = CalculateExposure(symbol, quantity, direction);
+            var newExposure = CalculateExposure(quantity);
             
             // Get current exposures
             var currentTotalExposure = _exposures.Values.Sum(e => Math.Abs(e.DirectionalExposure));
@@ -1408,7 +1408,7 @@ namespace TradingBot.Critical
             }
             
             // Check portfolio concentration
-            var concentration = CalculatePortfolioConcentration(symbol, newExposure);
+            var concentration = CalculatePortfolioConcentration();
             
             if (concentration > 0.5m) // No single direction > 50% of portfolio
             {
@@ -1462,10 +1462,7 @@ namespace TradingBot.Critical
                     {
                         if (symbol1 != symbol2)
                         {
-                            var correlation = CalculatePearsonCorrelation(
-                                priceData[symbol1],
-                                priceData[symbol2]
-                            );
+                            var correlation = CalculatePearsonCorrelation();
                             
                             _correlationMatrix[symbol1][symbol2] = correlation;
                         }

@@ -562,7 +562,7 @@ namespace TopstepX.Bot.Core.Services
                 // PHASE 8: Process validated signals for order placement
                 foreach (var signal in aggregatedSignals.Where(s => s.Score > 0.6m && s.Size > 0))
                 {
-                    await ProcessMlRlEnhancedSignalAsync(signal, featureVector).ConfigureAwait(false);
+                    await ProcessMlRlEnhancedSignalAsync(signal).ConfigureAwait(false);
                 }
                 
                 // Update active signals cache for continuous monitoring
@@ -1380,17 +1380,17 @@ namespace TopstepX.Bot.Core.Services
                 if (signal.StrategyId.Contains("STOP"))
                 {
                     // Update stop loss using ML-optimized levels
-                    await UpdateStopLossAsync(signal, featureVector).ConfigureAwait(false);
+                    await UpdateStopLossAsync(signal).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("TARGET"))
                 {
                     // Update take profit using ML-optimized levels
-                    await UpdateTakeProfitAsync(signal, featureVector).ConfigureAwait(false);
+                    await UpdateTakeProfitAsync(signal).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("SCALE"))
                 {
                     // Handle position scaling (add/reduce) using ML risk management
-                    await ProcessPositionScalingAsync(signal, featureVector).ConfigureAwait(false);
+                    await ProcessPositionScalingAsync(signal).ConfigureAwait(false);
                 }
 
                 _logger.LogDebug("[ML/RL-POS-MGMT-SIGNAL] Processed position management signal for {Symbol}: {Strategy}", 
@@ -1588,8 +1588,7 @@ namespace TopstepX.Bot.Core.Services
                     
                     // Check adapter health
                     var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}% - Status: {Status}", 
-                        healthScore.HealthScore, healthScore.Status);
+                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}%", healthScore);
                 }
                 else
                 {
@@ -1657,7 +1656,7 @@ namespace TopstepX.Bot.Core.Services
         private void OnEmergencyStopTriggered(object? sender, EmergencyStopEventArgs e)
         {
             _logger.LogCritical("🚨 EMERGENCY STOP TRIGGERED - All trading halted. Reason: {Reason}", e.Reason);
-            _isTradingEnabled;
+            _isTradingEnabled = false;
         }
 
         private async Task CleanupAsync()
@@ -1888,7 +1887,7 @@ namespace TopstepX.Bot.Core.Services
             // Additional validations
             if (context.TimeSinceLastData.TotalSeconds > _readinessConfig.MarketDataTimeoutSeconds)
             {
-                result.IsReady;
+                result.IsReady = false;
                 result.Reason += " (stale data)";
                 score *= 0.5;
                 recommendations.Add("Check market data flow");
@@ -1896,7 +1895,7 @@ namespace TopstepX.Bot.Core.Services
 
             if (!context.HubsConnected)
             {
-                result.IsReady;
+                result.IsReady = false;
                 result.Reason += " (hubs disconnected)";
                 score *= 0.3;
                 recommendations.Add("Check SignalR connections");

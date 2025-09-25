@@ -68,7 +68,7 @@ namespace BotCore.Integrations
                     ExitPrice = exitPrice,
                     ExitTime = exitTime,
                     HoldingTimeMinutes = (decimal)holdingTime.TotalMinutes,
-                    ActualRMultiple = CalculateRMultiple(entryPrice, exitPrice, pnl, isWin),
+                    ActualRMultiple = CalculateRMultiple(entryPrice, exitPrice, pnl),
                     MaxDrawdown = Math.Min(0, pnl) // Simplified - could be enhanced with real-time tracking
                 };
 
@@ -131,9 +131,9 @@ namespace BotCore.Integrations
                 Strategy = signal.Strategy,
                 StopLoss = currentBar.Close * 0.99m, // Simplified stop loss
                 TakeProfit = currentBar.Close * 1.02m, // Simplified take profit
-                Regime = DetermineMarketRegime(currentBar, snapshot),
+                Regime = DetermineMarketRegime(currentBar),
                 Atr = CalculateAtr(currentBar),
-                Rsi = CalculateRsi(currentBar),
+                Rsi = CalculateRsi(),
                 Ema20 = currentBar.Close, // Simplified - could use actual EMA
                 Ema50 = currentBar.Close, // Simplified - could use actual EMA
                 Momentum = CalculateMomentum(currentBar),

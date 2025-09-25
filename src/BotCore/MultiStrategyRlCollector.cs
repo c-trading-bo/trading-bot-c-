@@ -362,7 +362,7 @@ namespace BotCore
             var priceChange = (price - priorPrice) / priorPrice * 100m;
             features.MomentumScore = Math.Abs(priceChange) * (volume / 1000m);
             features.TrendStrength = Math.Min(Math.Abs(rsi - 50m) / 25m, 1m);
-            features.AccelerationDivergence; // Would need more bars to calculate
+            features.AccelerationDivergence = 0; // Would need more bars to calculate
             features.MomentumSustainability = CalculateMomentumSustainability(priceChange, atr);
 
             return features;

@@ -219,7 +219,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
         {
-            health.IsHealthy;
+            health.IsHealthy = false;
             health.ErrorCount++;
             
             _logger.LogError(ex, "[DataFeed] Feed {FeedName} failed (Error count: {ErrorCount})", 
@@ -294,7 +294,7 @@ public class RedundantDataFeedManager : IDisposable
                     {
                         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
                         {
-                            health.IsHealthy;
+                            health.IsHealthy = false;
                             health.ErrorCount++;
                         }
                         
@@ -342,8 +342,7 @@ public class RedundantDataFeedManager : IDisposable
             var consistency = new DataConsistencyResult
             {
                 Symbol = symbol,
-                CheckTime = DateTime.UtcNow,
-                FeedData = new Dictionary<string, MarketDataSnapshot>()
+                CheckTime = DateTime.UtcNow
             };
 
             // Collect data from all healthy feeds

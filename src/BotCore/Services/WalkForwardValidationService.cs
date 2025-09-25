@@ -198,7 +198,7 @@ namespace BotCore.Services
                 // 3. Calculate performance metrics
                 
                 // Generate realistic performance metrics based on window characteristics
-                var performance = await SimulateModelPerformance(modelPath, window, cancellationToken).ConfigureAwait(false);
+                var performance = await SimulateModelPerformance(window).ConfigureAwait(false);
 
                 _logger.LogDebug("[MODEL-VALIDATION] Model validation completed for window {WindowIndex}: Sharpe={Sharpe:F2}, Drawdown={Drawdown:F2}%",
                     window.WindowIndex, performance.SharpeRatio, performance.MaxDrawdown * 100);
@@ -670,7 +670,7 @@ namespace BotCore.Services
         public bool PassesThresholds { get; set; }
 
         // Detailed results
-        public List<WindowResult> WindowResults { get; } = new();
+        public List<WindowResult> WindowResults { get; set; } = new();
     }
 
     #endregion

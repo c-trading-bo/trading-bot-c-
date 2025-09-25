@@ -98,7 +98,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             {
                 try
                 {
-                    await MonitorDataIntegrationAsync(stoppingToken).ConfigureAwait(false);
+                    await MonitorDataIntegrationAsync().ConfigureAwait(false);
                     await CheckContractRolloverAsync(stoppingToken).ConfigureAwait(false);
                     await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken).ConfigureAwait(false);
                 }
@@ -221,7 +221,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 symbol, _config.MinHistoricalBars, contractId);
             
             // Generate historical bars (in production, this would fetch from data provider)
-            var historicalBars = GenerateHistoricalBars(symbol, contractId, _config.MinHistoricalBars);
+            var historicalBars = GenerateHistoricalBars(symbol, _config.MinHistoricalBars);
             
             // Process bars through the SAME pipeline as live data
             var barsProcessed;
@@ -307,8 +307,8 @@ public class UnifiedDataIntegrationService : BackgroundService
             _logger.LogInformation("📡 [LIVE-DATA] Starting live data integration...");
             
             // Subscribe to live data for same contracts as historical
-            await SubscribeToLiveDataAsync(_currentESContract, cancellationToken).ConfigureAwait(false);
-            await SubscribeToLiveDataAsync(_currentNQContract, cancellationToken).ConfigureAwait(false);
+            await SubscribeToLiveDataAsync(_currentESContract).ConfigureAwait(false);
+            await SubscribeToLiveDataAsync(_currentNQContract).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [LIVE-DATA] Live data integration started");
         }
@@ -507,7 +507,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             await SeedHistoricalDataAsync(symbol, newContract, cancellationToken).ConfigureAwait(false);
             
             // Re-subscribe to live data for new contract
-            await SubscribeToLiveDataAsync(newContract, cancellationToken).ConfigureAwait(false);
+            await SubscribeToLiveDataAsync(newContract).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [CONTRACT-ROLLOVER] Completed {Symbol} rollover to {NewContract}", symbol, newContract);
         }

@@ -77,7 +77,7 @@ namespace BotCore
 
         public void Stop()
         {
-            _isRunning;
+            _isRunning = false;
             _updateTimer?.Dispose();
             _log.LogInformation("[ModelUpdater] Service stopped");
         }
@@ -96,7 +96,7 @@ namespace BotCore
             try
             {
                 await CheckForModelUpdates(CancellationToken.None).ConfigureAwait(false);
-                _consecutiveFailures;
+                _consecutiveFailures = 0;
                 _lastSuccessfulCheck = DateTime.UtcNow;
             }
             catch (Exception ex)
@@ -273,7 +273,7 @@ namespace BotCore
                     var success = await UpdateSingleModelAsync(modelName, modelInfo, cancellationToken).ConfigureAwait(false);
                     if (!success)
                     {
-                        allSuccessful;
+                        allSuccessful = false;
                         _log.LogError("[ModelUpdater] Failed to update model: {ModelName}", modelName);
                     }
                     else
@@ -285,7 +285,7 @@ namespace BotCore
                 catch (Exception ex)
                 {
                     _log.LogError(ex, "[ModelUpdater] Error updating model {ModelName}", modelName);
-                    allSuccessful;
+                    allSuccessful = false;
                 }
             }
 
@@ -303,7 +303,7 @@ namespace BotCore
                 using var response = await _http.GetAsync(modelInfo.Url, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                await using var fileStream = File.Create(tempPath).ConfigureAwait(false);
+                await using var fileStream = File.Create(tempPath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
                 await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 fileStream.Close();

@@ -51,6 +51,7 @@ public class MarketContext
     // Required properties mentioned in production readiness requirements
     public double SignalStrength { get; set; }
     public double ConfidenceLevel { get; set; }
+    public Dictionary<string, double> Features { get; } = new();
 }
 
 public class MarketData

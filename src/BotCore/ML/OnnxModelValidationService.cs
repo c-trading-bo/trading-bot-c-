@@ -106,7 +106,7 @@ public sealed class OnnxModelValidationService
             
             if (!result.IsValid)
             {
-                allValid;
+                allValid = false;
                 _logger.LogError("[ONNX-Validation] Model validation FAILED: {ModelPath} - {Error}", 
                     result.ModelPath, result.ErrorMessage);
             }
@@ -166,34 +166,34 @@ public sealed class OnnxModelValidationService
                 // Additional validation checks
                 if (result.InputCount == 0)
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.ErrorMessage = "Model has no inputs";
                 }
                 else if (result.OutputCount == 0)
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.ErrorMessage = "Model has no outputs";
                 }
                 else if (result.LoadTime.TotalSeconds > 30)
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.ErrorMessage = $"Model load time too slow: {result.LoadTime.TotalSeconds:F1}s";
                 }
                 else if (result.MemoryUsage > 2L * 1024 * 1024 * 1024) // 2GB limit per model
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.ErrorMessage = $"Model memory usage too high: {result.MemoryUsage / 1024 / 1024}MB";
                 }
             }
             else
             {
-                result.IsValid;
+                result.IsValid = false;
                 result.ErrorMessage = "Failed to load model";
             }
         }
         catch (Exception ex)
         {
-            result.IsValid;
+            result.IsValid = false;
             result.ErrorMessage = ex.Message;
             _logger.LogError(ex, "[ONNX-Validation] Exception validating model: {ModelPath}", modelPath);
         }
@@ -220,7 +220,7 @@ public sealed class OnnxModelValidationService
         var totalMemory = _validationResults.Values.Sum(r => r.MemoryUsage);
         var failedModels = _validationResults.Values.Where(r => !r.IsValid).ToList();
 
-        return new ValidationSummary
+        var summary = new ValidationSummary
         {
             TotalModels = totalModels,
             ValidModels = validModels,
@@ -228,9 +228,16 @@ public sealed class OnnxModelValidationService
             SuccessRate = totalModels > 0 ? (double)validModels / totalModels : 0,
             TotalLoadTimeMs = totalLoadTime,
             TotalMemoryUsageMB = totalMemory / 1024 / 1024,
-            FailedModelPaths = failedModels.Select(f => f.ModelPath).ToList(),
             ValidationDate = DateTime.UtcNow
         };
+        
+        // Populate the readonly collection via Add method
+        foreach (var failedModel in failedModels)
+        {
+            summary.FailedModelPaths.Add(failedModel.ModelPath);
+        }
+        
+        return summary;
     }
 
     public class ValidationSummary

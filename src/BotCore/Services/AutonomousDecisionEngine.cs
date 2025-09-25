@@ -141,13 +141,13 @@ public class AutonomousDecisionEngine : BackgroundService
         await LoadHistoricalPerformanceAsync(cancellationToken).ConfigureAwait(false);
         
         // Initialize strategy metrics
-        await UpdateStrategyMetricsAsync(cancellationToken).ConfigureAwait(false);
+        await UpdateStrategyMetricsAsync().ConfigureAwait(false);
         
         // Analyze current market conditions
         await AnalyzeMarketConditionsAsync(cancellationToken).ConfigureAwait(false);
         
         // Select initial strategy
-        await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
+        await SelectOptimalStrategyAsync().ConfigureAwait(false);
         
         _logger.LogInformation("✅ [AUTONOMOUS-ENGINE] Autonomous systems initialized successfully");
     }
@@ -267,13 +267,13 @@ public class AutonomousDecisionEngine : BackgroundService
                 previousRegime, _currentAutonomousMarketRegime);
             
             // Trigger strategy re-evaluation when market regime changes
-            await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
+            await SelectOptimalStrategyAsync().ConfigureAwait(false);
         }
     }
     
     private async Task UpdateStrategySelectionAsync(CancellationToken cancellationToken)
     {
-        var optimalStrategy = await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var optimalStrategy = await SelectOptimalStrategyAsync().ConfigureAwait(false);
         
         if (optimalStrategy != _currentStrategy)
         {
@@ -283,7 +283,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _currentStrategy = optimalStrategy;
             
             // Update risk parameters for new strategy
-            await UpdateRiskParametersAsync(cancellationToken).ConfigureAwait(false);
+            await UpdateRiskParametersAsync().ConfigureAwait(false);
         }
     }
     
@@ -690,10 +690,10 @@ public class AutonomousDecisionEngine : BackgroundService
         await _performanceTracker.UpdateMetricsAsync(_recentTrades.ToArray(), cancellationToken).ConfigureAwait(false);
         
         // Update strategy metrics
-        await UpdateStrategyMetricsAsync(cancellationToken).ConfigureAwait(false);
+        await UpdateStrategyMetricsAsync().ConfigureAwait(false);
         
         // Update risk parameters based on performance
-        await UpdateRiskParametersAsync(cancellationToken).ConfigureAwait(false);
+        await UpdateRiskParametersAsync().ConfigureAwait(false);
         
         // Generate periodic reports
         await GeneratePerformanceReportIfNeededAsync(cancellationToken).ConfigureAwait(false);

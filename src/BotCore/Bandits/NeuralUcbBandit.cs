@@ -153,7 +153,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
             foreach (var kvp in armImportance)
             {
                 if (!featureImportance.ContainsKey(kvp.Key))
-                    featureImportance[kvp.Key];
+                    featureImportance[kvp.Key] = 0;
 
                 featureImportance[kvp.Key] += kvp.Value * armWeight;
             }
@@ -274,11 +274,11 @@ internal sealed class NeuralUcbArm
             var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct).ConfigureAwait(false);
 
             var featureKeys = context.Features.Keys.OrderBy(k => k).ToList();
-            for (int i; i < Math.Min(gradients.Length, featureKeys.Count); i++)
+            for (int i = 0; i < Math.Min(gradients.Length, featureKeys.Count); i++)
             {
                 var featureName = featureKeys[i];
                 if (!importance.ContainsKey(featureName))
-                    importance[featureName];
+                    importance[featureName] = 0;
 
                 importance[featureName] += Math.Abs(gradients[i]);
             }
@@ -306,7 +306,7 @@ internal sealed class NeuralUcbArm
         // Estimate uncertainty using ensemble prediction variance
         var predictions = new List<decimal>();
 
-        for (int i; i < _config.UncertaintyEstimationSamples; i++)
+        for (int i = 0; i < _config.UncertaintyEstimationSamples; i++)
         {
             var features = context.ToArray(_config.InputDimension);
             var prediction = await _network.PredictWithDropoutAsync(features, ct).ConfigureAwait(false);
@@ -525,7 +525,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         var epsilon = 0.001m;
         var basePrediction = await PredictAsync(features).ConfigureAwait(false);
         
-        for (int i; i < features.Length; i++)
+        for (int i = 0; i < features.Length; i++)
         {
             var perturbedFeatures = features.ToArray();
             perturbedFeatures[i] += epsilon;
@@ -559,7 +559,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         var weighted_sum;
         var weights = new decimal[] { 0.3m, 0.2m, 0.15m, 0.1m, 0.1m, 0.05m, 0.05m, 0.03m, 0.01m, 0.01m };
         
-        for (int i; i < Math.Min(features.Length, weights.Length); i++)
+        for (int i = 0; i < Math.Min(features.Length, weights.Length); i++)
         {
             weighted_sum += features[i] * weights[i];
         }
@@ -607,7 +607,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             _session.Dispose();
             _session = null;
         }
-        _isInitialized;
+        _isInitialized = false;
     }
 }
 

@@ -50,5 +50,12 @@ namespace TradingBot.Abstractions
         /// Regime-specific drawdown multipliers
         /// </summary>
         double GetRegimeDrawdownMultiplier(string regimeType);
+        
+        // Additional methods needed by consuming code
+        decimal GetMaxPositionSize();
+        decimal GetDailyLossLimit();
+        decimal GetPerTradeRisk();
+        decimal GetMaxDrawdownPercentage();
+        // Note: GetCvarConfidenceLevel() already exists above
     }
 }

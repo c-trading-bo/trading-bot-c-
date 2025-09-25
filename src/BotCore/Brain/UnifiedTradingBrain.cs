@@ -201,24 +201,24 @@ namespace BotCore.Brain
             try
             {
                 // 1. CREATE MARKET CONTEXT from current data
-                var context = CreateMarketContext(symbol, env, levels, bars);
+                var context = CreateMarketContext(symbol, env, bars);
                 _marketContexts[symbol] = context;
                 
                 // 2. DETECT MARKET REGIME using Meta Classifier
-                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken).ConfigureAwait(false);
+                var marketRegime = await DetectMarketRegimeAsync(context).ConfigureAwait(false);
                 
                 // 3. SELECT OPTIMAL STRATEGY using Neural UCB
                 var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken).ConfigureAwait(false);
                 
                 // 4. PREDICT PRICE MOVEMENT using LSTM
-                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken).ConfigureAwait(false);
+                var priceDirection = await PredictPriceDirectionAsync(context, bars).ConfigureAwait(false);
                 
                 // 5. OPTIMIZE POSITION SIZE using RL
-                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false);
+                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, cancellationToken).ConfigureAwait(false);
                 
                 // 6. GENERATE ENHANCED CANDIDATES using brain intelligence
                 var enhancedCandidates = await GenerateEnhancedCandidatesAsync(
-                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken).ConfigureAwait(false);
+                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize).ConfigureAwait(false);
                 
                 var decision = new BrainDecision
                 {
@@ -289,7 +289,7 @@ namespace BotCore.Brain
                     await _strategySelector.UpdateArmAsync(strategy, contextVector, reward, cancellationToken).ConfigureAwait(false);
                     
                     // 🚀 MULTI-STRATEGY LEARNING: Update ALL strategies with this market condition
-                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, pnl, cancellationToken).ConfigureAwait(false);
+                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Update performance tracking for the specific strategy
@@ -700,7 +700,7 @@ namespace BotCore.Brain
                     var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken).ConfigureAwait(false);
                     
                     // Convert CVaR-PPO action to contract sizing
-                    var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts, context);
+                    var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts);
                     
                     // Apply CVaR risk controls
                     var riskAdjustedContracts = ApplyCVaRRiskControls(cvarContracts, actionResult, context);
@@ -790,8 +790,8 @@ namespace BotCore.Brain
         /// </summary>
         public void ResetDaily()
         {
-            _dailyPnl;
-            _currentDrawdown;
+            _dailyPnl = 0;
+            _currentDrawdown = 0;
             _lastResetDate = DateTime.UtcNow.Date;
             
             _logger.LogInformation("🌅 [DAILY-RESET] Daily P&L and drawdown reset for new trading day");
@@ -1123,7 +1123,7 @@ namespace BotCore.Brain
                 UpdateOptimalConditionsFromPerformance(performanceAnalysis);
                 
                 // Cross-pollinate successful patterns between strategies
-                await CrossPollinateStrategyPatternsAsync(cancellationToken).ConfigureAwait(false);
+                await CrossPollinateStrategyPatternsAsync().ConfigureAwait(false);
                 
                 _logger.LogInformation("✅ [UNIFIED-LEARNING] Completed unified learning update");
             }
@@ -1670,7 +1670,7 @@ namespace BotCore.Brain
         public decimal PriceProbability { get; set; }
         public decimal OptimalPositionMultiplier { get; set; }
         public MarketRegime MarketRegime { get; set; }
-        public List<Candidate> EnhancedCandidates { get; } = new();
+        public List<Candidate> EnhancedCandidates { get; set; } = new();
         public DateTime DecisionTime { get; set; }
         public double ProcessingTimeMs { get; set; }
         public decimal ModelConfidence { get; set; }
@@ -1695,6 +1695,19 @@ namespace BotCore.Brain
         public decimal VolatilityRank { get; set; }
         public decimal Momentum { get; set; }
         public int MarketRegime { get; set; }
+        
+        // Additional properties needed by NeuralUcbExtended
+        public Dictionary<string, double> Features { get; } = new();
+        public double Price { get; set; }
+        public double Bid { get; set; }
+        public double Ask { get; set; }
+        public double SignalStrength { get; set; }
+        public double ConfidenceLevel { get; set; }
+        public double ModelConfidence { get; set; }
+        public double NewsIntensity { get; set; }
+        public Dictionary<string, double> TechnicalIndicators { get; } = new();
+        public bool IsFomcDay { get; set; }
+        public bool IsCpiDay { get; set; }
     }
 
     public class StrategySelection
