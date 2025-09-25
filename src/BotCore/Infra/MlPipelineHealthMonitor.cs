@@ -196,11 +196,17 @@ namespace BotCore.Infra
                     if (timeSinceTraining.TotalHours > 8) // Should train every 6 hours
                     {
                         warnings.Add($"No training activity detected in {timeSinceTraining.TotalHours:F1} hours");
+                        _consecutiveTrainingFailures++; // Track consecutive failures
+                    }
+                    else
+                    {
+                        _consecutiveTrainingFailures = 0; // Reset on successful training
                     }
                 }
                 else
                 {
                     warnings.Add("No evidence of recent training activity");
+                    _consecutiveTrainingFailures++; // Track consecutive failures
                 }
             }
             catch (Exception ex)

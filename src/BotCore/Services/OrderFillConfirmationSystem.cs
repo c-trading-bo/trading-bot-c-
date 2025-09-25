@@ -368,6 +368,21 @@ namespace TopstepX.Bot.Core.Services
         {
             _verificationTimer?.Dispose();
         }
+
+        protected virtual void OnOrderConfirmedEvent(OrderConfirmedEventArgs args)
+        {
+            OrderConfirmed?.Invoke(this, args);
+        }
+
+        protected virtual void OnOrderRejectedEvent(OrderRejectedEventArgs args)
+        {
+            OrderRejected?.Invoke(this, args);
+        }
+
+        protected virtual void OnFillConfirmedEvent(FillConfirmedEventArgs args)
+        {
+            FillConfirmed?.Invoke(this, args);
+        }
     }
     
     // Supporting classes for API integration

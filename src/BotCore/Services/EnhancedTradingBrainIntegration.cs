@@ -28,7 +28,7 @@ public class EnhancedTradingBrainIntegration
     // Integration state
     private readonly Dictionary<string, DateTime> _lastPredictions = new();
     private readonly Dictionary<string, double> _predictionAccuracies = new();
-    private readonly bool _isEnhancementActive = true;
+    private bool _isEnhancementActive = true;
     
     public EnhancedTradingBrainIntegration(
         ILogger<EnhancedTradingBrainIntegration> logger,

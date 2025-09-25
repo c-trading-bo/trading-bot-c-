@@ -733,6 +733,16 @@ public class TopstepXDataFeed : IDataFeed
         await Task.Delay(50).ConfigureAwait(false);
         return new OrderBook { Symbol = symbol, Timestamp = DateTime.UtcNow };
     }
+
+    protected virtual void OnDataReceivedEvent(MarketData data)
+    {
+        OnDataReceived?.Invoke(this, data);
+    }
+
+    protected virtual void OnErrorEvent(Exception error)
+    {
+        OnError?.Invoke(this, error);
+    }
 }
 
 /// <summary>
@@ -772,5 +782,15 @@ public class BackupDataFeed : IDataFeed
     {
         await Task.Delay(100).ConfigureAwait(false);
         return new OrderBook { Symbol = symbol, Timestamp = DateTime.UtcNow };
+    }
+
+    protected virtual void OnDataReceivedEvent(MarketData data)
+    {
+        OnDataReceived?.Invoke(this, data);
+    }
+
+    protected virtual void OnErrorEvent(Exception error)
+    {
+        OnError?.Invoke(this, error);
     }
 }

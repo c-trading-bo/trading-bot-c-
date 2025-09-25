@@ -250,7 +250,9 @@ namespace BotCore.Services
                 var barData = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
                 var bars = new List<BotCore.Models.Bar>();
 
-                foreach (var bar in barData)
+                if (barData != null)
+                {
+                    foreach (var bar in barData)
                 {
                     try
                     {
@@ -274,6 +276,7 @@ namespace BotCore.Services
                         _logger.LogWarning("[HISTORICAL-BRIDGE] Failed to parse bar data: {Error}", ex.Message);
                     }
                 }
+                } // Close the null check
 
                 _logger.LogInformation("[HISTORICAL-BRIDGE] Retrieved {Count} bars via SDK adapter for {ContractId}", bars.Count, contractId);
                 return bars;

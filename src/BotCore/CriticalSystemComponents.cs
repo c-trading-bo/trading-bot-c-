@@ -602,6 +602,7 @@ namespace TradingBot.Critical
         public DisasterRecoverySystem(ILogger<DisasterRecoverySystem> logger)
         {
             _logger = logger;
+            _database = null; // Initialize to null - database connection not required for basic functionality
             _statePersistenceTimer = new Timer(PersistState, null, Timeout.Infinite, Timeout.Infinite);
         }
         

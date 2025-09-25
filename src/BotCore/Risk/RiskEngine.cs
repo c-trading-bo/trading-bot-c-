@@ -114,6 +114,11 @@ namespace BotCore.Risk
         private bool _tradingHalted;
         private decimal _positionSizeMultiplier = 1.0m;
         
+        /// <summary>
+        /// Gets whether trading is currently halted due to risk management
+        /// </summary>
+        public bool IsTradingHalted => _tradingHalted;
+        
         public class DrawdownTracker
         {
             public string TrackerId { get; set; } = string.Empty;

@@ -325,7 +325,7 @@ namespace BotCore.Services
             }
             finally
             {
-                _isMonitoring;
+                _isMonitoring = false; // Set to false to indicate monitoring stopped
             }
         }
 
@@ -525,7 +525,7 @@ namespace BotCore.Services
                 if (healthStatusAfterRecovery.IsHealthy)
                 {
                     _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
-                    _recoveryAttempts; // Reset attempts on success
+                    _recoveryAttempts = 0; // Reset attempts on success
                     
                     // Notify recovery
                     foreach (var symbol in unhealthySymbols)
