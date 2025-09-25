@@ -183,10 +183,8 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         {
             foreach (var arm in _arms.Values)
             {
-                if (arm != null && arm is IDisposable disposableArm)
-                {
-                    disposableArm.Dispose();
-                }
+                // NeuralUcbArm doesn't implement IDisposable, no disposal needed
+                // The arm will be cleaned up when the dictionary is cleared
             }
             _arms.Clear();
         }

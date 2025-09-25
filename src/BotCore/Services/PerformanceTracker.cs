@@ -190,7 +190,7 @@ public class PerformanceTracker
                 MarketConditions = new
                 {
                     VolumeAtEntry = GetVolumeContext(trade.EntryTime, trade.Symbol),
-                    VolatilityAtEntry = GetVolatilityContext(trade.EntryTime),
+                    VolatilityAtEntry = GetVolatilityContext(trade.EntryTime, trade.Symbol),
                     TrendDirection = GetTrendContext(trade.Symbol, trade.EntryTime),
                     TimeOfDay = trade.EntryTime.Hour,
                     DayOfWeek = trade.EntryTime.DayOfWeek.ToString(),

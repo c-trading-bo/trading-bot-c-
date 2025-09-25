@@ -32,7 +32,7 @@ public class ProductionMonitoringService : IHealthCheck
             var healthChecks = new List<(string Name, bool IsHealthy, string Message)>();
 
             // Check model health
-            var modelHealth = await CheckModelHealthAsync(cancellationToken).ConfigureAwait(false);
+            var modelHealth = await CheckModelHealthAsync().ConfigureAwait(false);
             healthChecks.Add(("Models", modelHealth.IsHealthy, modelHealth.Message));
 
             // Check GitHub API connectivity

@@ -817,7 +817,7 @@ namespace BotCore.Strategy
             // Use the full-stack S6 implementation via bridge
             try
             {
-                return S6S11Bridge.GetS6Candidates(symbol, env, levels, bars, risk);
+                return S6S11Bridge.GetS6Candidates(symbol, env, levels, bars, risk, null!, null!, null!);
             }
             catch (Exception ex)
             {
@@ -898,7 +898,7 @@ namespace BotCore.Strategy
             // Use the full-stack S11 implementation via bridge
             try
             {
-                return S6S11Bridge.GetS11Candidates(symbol, env, levels, bars, risk);
+                return S6S11Bridge.GetS11Candidates(symbol, env, levels, bars, risk, null!, null!, null!);
             }
             catch (Exception ex)
             {

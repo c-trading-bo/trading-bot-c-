@@ -63,8 +63,8 @@ public class ProductionOrderEvidenceService
             _logger.LogInformation("✅ [ORDER-EVIDENCE] Evidence 2: Fill event present - OrderId: {EventOrderId}, FillPrice: {FillPrice}, Qty: {Qty}", 
                 fillEvent?.OrderId ?? "unknown", fillEvent?.FillPrice ?? 0, fillEvent?.Quantity ?? 0);
             result.EvidenceTypes.Add("FillEvent");
-            result.FillPrice = fillEvent.FillPrice;
-            result.Quantity = fillEvent.Quantity;
+            result.FillPrice = fillEvent?.FillPrice ?? 0;
+            result.Quantity = fillEvent?.Quantity ?? 0;
         }
         else
         {

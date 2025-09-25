@@ -237,7 +237,7 @@ namespace BotCore.Services
             var volume = CalculateVolumeProfile(bars);
             
             // Market microstructure features
-            var bidAskSpread = data.Bid > 0 && data.Ask > 0 ? (data.Ask - data.Bid) / data.Bid : 0.001m;
+            var bidAskSpread = data.Bid > 0 && data.Ask > 0 ? (decimal)((data.Ask - data.Bid) / data.Bid) : 0.001m;
             var imbalance = CalculateOrderBookImbalance(data);
             
             // Time-based features

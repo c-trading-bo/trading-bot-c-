@@ -51,7 +51,7 @@ public class ModelEnsembleService
             var predictions = new List<StrategyPrediction>();
             
             // Get predictions from all loaded strategy selection models
-            var strategyModels = await GetActiveModelsAsync("strategy_selection", cancellationToken).ConfigureAwait(false);
+            var strategyModels = await GetActiveModelsAsync("strategy_selection").ConfigureAwait(false);
             
             foreach (var model in strategyModels)
             {
@@ -107,7 +107,7 @@ public class ModelEnsembleService
             var predictions = new List<PriceDirectionPrediction>();
             
             // Get predictions from all loaded price prediction models
-            var priceModels = await GetActiveModelsAsync("price_prediction", cancellationToken).ConfigureAwait(false);
+            var priceModels = await GetActiveModelsAsync("price_prediction").ConfigureAwait(false);
             
             foreach (var model in priceModels)
             {
