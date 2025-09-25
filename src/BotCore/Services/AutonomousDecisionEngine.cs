@@ -17,6 +17,23 @@ using System.Globalization;
 namespace BotCore.Services;
 
 /// <summary>
+/// Interface for market data service
+/// </summary>
+public interface IMarketDataService
+{
+    Task<OrderBook?> GetOrderBookAsync(string symbol);
+}
+
+/// <summary>
+/// Order book data
+/// </summary>
+public class OrderBook
+{
+    public decimal BidSize { get; set; }
+    public decimal AskSize { get; set; }
+}
+
+/// <summary>
 /// 🚀 AUTONOMOUS TOPSTEP PROFIT-MAXIMIZING DECISION ENGINE 🚀
 /// 
 /// This is the core autonomous trading brain that operates independently to maximize profits
@@ -795,11 +812,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 
                 // Copy recent trades to read-only collection
                 var recentTrades = strategyTrades.TakeLast(20).ToList();
-                metrics.RecentTrades.Clear();
-                foreach (var trade in recentTrades)
-                {
-                    metrics.RecentTrades.Add(trade);
-                }
+                metrics.ReplaceRecentTrades(recentTrades);
             }
         }
         return Task.CompletedTask;
@@ -961,7 +974,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 {
                     var volume = orderBook.BidSize + orderBook.AskSize;
                     _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved order book volume {Volume} for {Symbol}", volume, symbol);
-                    return volume;
+                    return (long)volume; // Cast decimal to long for method return type
                 }
             }
             
@@ -1283,7 +1296,8 @@ public class AutonomousDecisionEngine : BackgroundService
                 metrics.TotalLoss = performance.AverageLoss * metrics.LosingTrades;
                 
                 // Generate some recent synthetic trades for immediate operation
-                metrics.RecentTrades = GenerateRecentTradesFromPerformance(strategy, performance);
+                var generatedTrades = GenerateRecentTradesFromPerformance(strategy, performance);
+                metrics.ReplaceRecentTrades(generatedTrades);
                 
                 _logger.LogInformation("📊 [AUTONOMOUS-ENGINE] Initialized {Strategy}: {Trades} trades, {WinRate:P} win rate, ${PnL:F0} P&L",
                     strategy, metrics.TotalTrades, performance.WinRate, performance.TotalPnL);
@@ -1302,7 +1316,7 @@ public class AutonomousDecisionEngine : BackgroundService
         var random = new Random();
         var tradesCount = Math.Min(20, performance.TotalTrades); // Last 20 trades or total if less
         
-        for (int i; i < tradesCount; i++)
+        for (int i = 0; i < tradesCount; i++)
         {
             var isWin = random.NextDouble() < (double)performance.WinRate;
             var pnl = isWin ? 
@@ -1350,7 +1364,8 @@ public class AutonomousDecisionEngine : BackgroundService
                 metrics.LosingTrades = baselineData.TotalTrades - metrics.WinningTrades;
                 metrics.TotalProfit = baselineData.AverageWin * metrics.WinningTrades;
                 metrics.TotalLoss = baselineData.AverageLoss * metrics.LosingTrades;
-                metrics.RecentTrades = GenerateRecentTradesFromPerformance(strategy, baselineData);
+                var generatedTrades = GenerateRecentTradesFromPerformance(strategy, baselineData);
+                metrics.ReplaceRecentTrades(generatedTrades);
                 
                 _logger.LogInformation("📊 [AUTONOMOUS-ENGINE] Initialized default metrics for {Strategy}: {Trades} trades, {WinRate:P} win rate",
                     strategy, metrics.TotalTrades, baselineData.WinRate);
@@ -1606,7 +1621,7 @@ public class AutonomousDecisionEngine : BackgroundService
             if (position.UnrealizedPnL < 0)
             {
                 _consecutiveLosses++;
-                _consecutiveWins;
+                _consecutiveWins = 0; // Reset consecutive wins
             }
             
             // Update today's P&L
@@ -1734,7 +1749,18 @@ public class AutonomousStrategyMetrics
     public int LosingTrades { get; set; }
     public decimal TotalProfit { get; set; }
     public decimal TotalLoss { get; set; }
-    public List<AutonomousTradeOutcome> RecentTrades { get; } = new();
+    
+    private readonly List<AutonomousTradeOutcome> _recentTrades = new();
+    public IReadOnlyList<AutonomousTradeOutcome> RecentTrades => _recentTrades;
+    
+    public void ReplaceRecentTrades(IEnumerable<AutonomousTradeOutcome> trades)
+    {
+        _recentTrades.Clear();
+        if (trades != null)
+        {
+            _recentTrades.AddRange(trades);
+        }
+    }
 }
 
 /// <summary>

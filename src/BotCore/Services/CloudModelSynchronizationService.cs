@@ -133,8 +133,8 @@ public class CloudModelSynchronizationService : BackgroundService
             // Get completed workflow runs
             var workflowRuns = await GetCompletedWorkflowRunsAsync(cancellationToken).ConfigureAwait(false);
             
-            var syncedCount;
-            var newModelCount;
+            var syncedCount = 0;
+            var newModelCount = 0;
             
             foreach (var run in workflowRuns)
             {

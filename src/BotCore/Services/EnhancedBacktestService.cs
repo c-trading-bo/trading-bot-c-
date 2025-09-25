@@ -54,7 +54,6 @@ namespace BotCore.Services
                 StrategyName = request.StrategyName,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
-                Trades = new List<Trade>(),
                 TotalRealisticCommissions = 0m,
                 TotalSlippage = 0m,
                 AverageLatencyMs = 0,
@@ -74,7 +73,7 @@ namespace BotCore.Services
                     
                     if (trade != null)
                     {
-                        result.Trades.Add(trade);
+                        result.AddTrade(trade);
                         result.TotalRealisticCommissions += trade.Commission;
                         result.TotalSlippage += Math.Abs(trade.Slippage);
                         result.AverageLatencyMs = (result.AverageLatencyMs * (result.Trades.Count - 1) + trade.ExecutionLatencyMs) / result.Trades.Count;
@@ -450,7 +449,26 @@ namespace BotCore.Services
         public string StrategyName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<Trade> Trades { get; } = new();
+        
+        private readonly List<Trade> _trades = new();
+        public IReadOnlyList<Trade> Trades => _trades;
+        
+        public void ReplaceTrades(IEnumerable<Trade> trades)
+        {
+            _trades.Clear();
+            if (trades != null)
+            {
+                _trades.AddRange(trades);
+            }
+        }
+        
+        public void AddTrade(Trade trade)
+        {
+            if (trade != null)
+            {
+                _trades.Add(trade);
+            }
+        }
         
         // Basic metrics
         public int TotalTrades { get; set; }

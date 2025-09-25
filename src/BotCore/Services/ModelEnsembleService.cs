@@ -57,7 +57,14 @@ public class ModelEnsembleService
             {
                 try
                 {
-                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVector, availableStrategies, cancellationToken).ConfigureAwait(false);
+                    // Convert double array to ContextVector
+                    var contextVectorObj = new ContextVector();
+                    for (int i = 0; i < contextVector.Length; i++)
+                    {
+                        contextVectorObj.Features[$"feature_{i}"] = (decimal)contextVector[i];
+                    }
+                    
+                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVectorObj, availableStrategies, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -113,7 +120,16 @@ public class ModelEnsembleService
             {
                 try
                 {
-                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatures, cancellationToken).ConfigureAwait(false);
+                    // Convert double array to MarketFeatureVector
+                    var marketFeatureVector = new MarketFeatureVector
+                    {
+                        Price = marketFeatures.Length > 0 ? (decimal)marketFeatures[0] : 0m,
+                        Volume = marketFeatures.Length > 1 ? (decimal)marketFeatures[1] : 0m,
+                        Volatility = marketFeatures.Length > 2 ? (decimal)marketFeatures[2] : 0m,
+                        Momentum = marketFeatures.Length > 3 ? (decimal)marketFeatures[3] : 0m
+                    };
+                    
+                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatureVector, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -293,7 +309,7 @@ public class ModelEnsembleService
     /// <summary>
     /// Get active models for a specific prediction type
     /// </summary>
-    private Task<List<LoadedModel>> GetActiveModelsAsync(string predictionType)
+    private Task<List<LoadedModel>> GetActiveModelsAsync(string predictionType, CancellationToken cancellationToken = default)
     {
         var activeModels = new List<LoadedModel>();
         
@@ -357,7 +373,7 @@ public class ModelEnsembleService
             
             if (!strategyVotes.ContainsKey(prediction.SelectedStrategy))
             {
-                strategyVotes[prediction.SelectedStrategy];
+                strategyVotes[prediction.SelectedStrategy] = 0.0;
             }
             
             strategyVotes[prediction.SelectedStrategy] += weight * prediction.Confidence;
@@ -440,7 +456,7 @@ public class ModelEnsembleService
         }
         
         // Weighted averaging of action probabilities
-        var actionCount = actions.First().ActionProbabilities?.Length ?? 4;
+        var actionCount = actions.First().ActionProbabilities?.Count ?? 4;
         var blendedProbs = new double[actionCount];
         var totalWeight = 0.0;
         
@@ -453,7 +469,7 @@ public class ModelEnsembleService
             
             if (action.ActionProbabilities != null)
             {
-                for (int i; i < Math.Min(actionCount, action.ActionProbabilities.Length); i++)
+                for (int i = 0; i < Math.Min(actionCount, action.ActionProbabilities.Count); i++)
                 {
                     blendedProbs[i] += action.ActionProbabilities[i] * weight;
                 }
@@ -467,7 +483,7 @@ public class ModelEnsembleService
         // Normalize probabilities
         if (totalWeight > 0)
         {
-            for (int i; i < actionCount; i++)
+            for (int i = 0; i < actionCount; i++)
             {
                 blendedProbs[i] /= totalWeight;
             }
@@ -575,7 +591,7 @@ public class ModelEnsembleService
         };
     }
 
-    private Task<StrategyPrediction?> GetSingleStrategyPredictionAsync(LoadedModel model, List<string> availableStrategies)
+    private Task<StrategyPrediction?> GetSingleStrategyPredictionAsync(LoadedModel model, ContextVector contextVector, List<string> availableStrategies, CancellationToken cancellationToken)
     {
         /// <summary>
         /// Single strategy prediction using ensemble model inference
@@ -599,7 +615,7 @@ public class ModelEnsembleService
         });
     }
 
-    private Task<PriceDirectionPrediction?> GetSinglePricePredictionAsync(LoadedModel model)
+    private Task<PriceDirectionPrediction?> GetSinglePricePredictionAsync(LoadedModel model, MarketFeatureVector marketFeatures, CancellationToken cancellationToken)
     {
         // Implementation would depend on model type
         // For now, return a simple prediction
@@ -677,6 +693,43 @@ public enum ModelSource
     Cloud,
     Local,
     Adaptive
+}
+
+public class ContextVector
+{
+    public Dictionary<string, decimal> Features { get; init; } = new();
+    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+    
+    public decimal[] ToArray(int dimension)
+    {
+        var array = new decimal[dimension];
+        var keys = Features.Keys.ToArray();
+        for (int i = 0; i < Math.Min(dimension, keys.Length); i++)
+        {
+            array[i] = Features[keys[i]];
+        }
+        return array;
+    }
+}
+
+public class MarketFeatureVector
+{
+    public decimal Price { get; set; }
+    public decimal Volume { get; set; }
+    public decimal Volatility { get; set; }
+    public decimal Momentum { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    
+    public double[] ToArray()
+    {
+        return new double[]
+        {
+            (double)Price,
+            (double)Volume,
+            (double)Volatility,
+            (double)Momentum
+        };
+    }
 }
 
 #endregion
