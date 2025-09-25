@@ -169,7 +169,7 @@ namespace TopstepX.Bot.Core.Services
                 // Position closed - realize P&L
                 var realizedPnL = (fill.Price - oldAvgPrice) * Math.Abs(fill.Quantity);
                 position.RealizedPnL += realizedPnL;
-                position.AveragePrice = newAvgPrice;
+                position.AveragePrice = 0; // Position closed, no average price
             }
             
             position.LastUpdate = DateTime.UtcNow;

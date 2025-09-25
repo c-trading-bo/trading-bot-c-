@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Globalization;
 using BotCore.Utilities;
 
 namespace BotCore

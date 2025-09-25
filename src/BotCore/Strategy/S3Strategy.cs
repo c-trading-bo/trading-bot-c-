@@ -778,7 +778,7 @@ namespace BotCore.Strategy
                     foreach (var b in bases.Distinct())
                     {
                         var dir = new DirectoryInfo(b);
-                        for (int i; i < 7 && dir != null; i++, dir = dir.Parent)
+                        for (int i = 0; i < 7 && dir != null; i++, dir = dir.Parent)
                         {
                             var c1 = Path.Combine(dir.FullName, "src", "BotCore", "Strategy", "S3-StrategyConfig.json");
                             var c2 = Path.Combine(dir.FullName, "BotCore", "Strategy", "S3-StrategyConfig.json");

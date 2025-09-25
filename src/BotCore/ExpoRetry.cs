@@ -19,7 +19,7 @@ namespace BotCore
                 {
                     MaxRetryAttempts = 4,
                     BackoffType = DelayBackoffType.Exponential,
-                    BaseDelay = TimeSpan.FromSeconds(1),
+                    Delay = TimeSpan.FromSeconds(1),
                     MaxDelay = TimeSpan.FromSeconds(30)
                 })
                 .Build();
