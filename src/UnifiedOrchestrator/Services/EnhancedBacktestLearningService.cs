@@ -611,39 +611,79 @@ internal class EnhancedBacktestLearningService : BackgroundService
     }
 
     /// <summary>
-    /// Load historical data with identical formatting to live data
+    /// Load historical data using TopstepX API instead of JSON files
     /// </summary>
     private async Task<List<HistoricalDataPoint>> LoadHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
     {
         try
         {
-            _logger.LogInformation("[HISTORICAL-DATA] Loading historical data for {Symbol} from {StartDate} to {EndDate}", 
+            _logger.LogInformation("[HISTORICAL-DATA] Loading historical data from TopstepX API for {Symbol} from {StartDate} to {EndDate}", 
                 config.Symbol, config.StartDate, config.EndDate);
             
-            // Real implementation: Load from database or file system
-            var dataDirectory = Path.Combine(Environment.GetEnvironmentVariable("DATA_ROOT") ?? "data", "historical");
-            var dataFile = Path.Combine(dataDirectory, $"{config.Symbol}_{config.StartDate:yyyyMMdd}_{config.EndDate:yyyyMMdd}.json");
-            
-            if (File.Exists(dataFile))
+            // Use TopstepXHistoricalDataProvider for real data
+            var historicalDataProvider = _serviceProvider.GetService<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>();
+            if (historicalDataProvider != null)
             {
-                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
-                var historicalData = JsonSerializer.Deserialize<List<HistoricalDataPoint>>(jsonData);
-                if (historicalData != null && historicalData.Any())
+                var quotes = historicalDataProvider.GetHistoricalQuotesAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken);
+                var dataPoints = new List<HistoricalDataPoint>();
+                
+                await foreach (var quote in quotes)
                 {
-                    _logger.LogInformation("[HISTORICAL-DATA] Loaded {Count} data points from file", historicalData.Count);
-                    return historicalData;
+                    if (cancellationToken.IsCancellationRequested) break;
+                    
+                    dataPoints.Add(new HistoricalDataPoint
+                    {
+                        Timestamp = quote.Timestamp,
+                        Symbol = quote.Symbol,
+                        Price = quote.Price,
+                        Volume = quote.Volume,
+                        Bid = quote.Bid,
+                        Ask = quote.Ask
+                    });
+                }
+                
+                if (dataPoints.Any())
+                {
+                    _logger.LogInformation("[HISTORICAL-DATA] Loaded {Count} data points from TopstepX API", dataPoints.Count);
+                    return dataPoints;
                 }
             }
             
-            // Log that no historical data file was found
-            _logger.LogWarning("[HISTORICAL-DATA] Historical data file not found for {Symbol}", config.Symbol);
+            // Fallback: Try bridge service
+            var bridgeService = _serviceProvider.GetService<BotCore.Services.IHistoricalDataBridgeService>();
+            if (bridgeService != null)
+            {
+                _logger.LogInformation("[HISTORICAL-DATA] Using HistoricalDataBridgeService as fallback for {Symbol}", config.Symbol);
+                
+                var contractId = config.Symbol == "ES" ? 
+                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_ES_ID") ?? "default-es" :
+                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_NQ_ID") ?? "default-nq";
+                
+                var bars = await bridgeService.GetHistoricalBarsAsync(contractId, 1000, cancellationToken).ConfigureAwait(false);
+                var dataPoints = bars.Select(bar => new HistoricalDataPoint
+                {
+                    Timestamp = bar.End,
+                    Symbol = config.Symbol,
+                    Price = bar.Close,
+                    Volume = (int)bar.Volume,
+                    Bid = bar.Close - 0.25m, // ES/NQ tick size
+                    Ask = bar.Close + 0.25m
+                }).ToList();
+                
+                if (dataPoints.Any())
+                {
+                    _logger.LogInformation("[HISTORICAL-DATA] Loaded {Count} data points from bridge service", dataPoints.Count);
+                    return dataPoints;
+                }
+            }
             
-            // Return empty list instead of generating synthetic data
+            // Log that no real data was available
+            _logger.LogWarning("[HISTORICAL-DATA] No TopstepX historical data available for {Symbol}", config.Symbol);
             return new List<HistoricalDataPoint>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL-DATA] Error loading historical data for {Symbol}", config.Symbol);
+            _logger.LogError(ex, "[HISTORICAL-DATA] Error loading historical data from TopstepX API for {Symbol}", config.Symbol);
             throw;
         }
     }
@@ -1201,32 +1241,78 @@ internal class EnhancedBacktestLearningService : BackgroundService
     /// Load historical bars for backtest using unified configuration
     /// Now generates 1-minute bars with full 24-hour coverage including overnight sessions
     /// </summary>
+    /// <summary>
+    /// Load historical bars using TopstepX API instead of JSON files
+    /// </summary>
     private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
         await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
-            _logger.LogDebug("[UNIFIED-BACKTEST] Loading historical bars for {Symbol} from {StartDate} to {EndDate}", 
+            _logger.LogInformation("[UNIFIED-BACKTEST] Loading historical bars from TopstepX API for {Symbol} from {StartDate} to {EndDate}", 
                 config.Symbol, config.StartDate, config.EndDate);
                 
-            // Try to load from actual data files first
-            var dataDirectory = Path.Combine(Environment.GetEnvironmentVariable("DATA_ROOT") ?? "data", "bars");
-            var dataFile = Path.Combine(dataDirectory, $"{config.Symbol}_1min_{config.StartDate:yyyyMMdd}_{config.EndDate:yyyyMMdd}.json");
-            
-            if (File.Exists(dataFile))
+            // Use bridge service to get real TopstepX data
+            var bridgeService = _serviceProvider.GetService<BotCore.Services.IHistoricalDataBridgeService>();
+            if (bridgeService != null)
             {
-                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
-                var historicalBars = JsonSerializer.Deserialize<List<BotCore.Models.Bar>>(jsonData);
-                if (historicalBars != null && historicalBars.Any())
+                var contractId = config.Symbol == "ES" ? 
+                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_ES_ID") ?? "default-es" :
+                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_NQ_ID") ?? "default-nq";
+                
+                var bars = await bridgeService.GetHistoricalBarsAsync(contractId, 2000, cancellationToken).ConfigureAwait(false);
+                
+                if (bars.Any())
                 {
-                    _logger.LogInformation("[UNIFIED-BACKTEST] Loaded {Count} historical bars from file", historicalBars.Count);
-                    return historicalBars;
+                    // Filter bars to the requested date range
+                    var filteredBars = bars.Where(bar => 
+                        bar.Start.Date >= config.StartDate.Date && 
+                        bar.Start.Date <= config.EndDate.Date).ToList();
+                    
+                    _logger.LogInformation("[UNIFIED-BACKTEST] Loaded {Count} historical bars from TopstepX API (filtered from {Total})", 
+                        filteredBars.Count, bars.Count);
+                    return filteredBars;
                 }
             }
             
-            // Log that no historical bars data file was found
-            _logger.LogWarning("[UNIFIED-BACKTEST] Historical bars data file not found for {Symbol}", config.Symbol);
+            // Fallback: Try TopstepXHistoricalDataProvider
+            var historicalDataProvider = _serviceProvider.GetService<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>();
+            if (historicalDataProvider != null)
+            {
+                _logger.LogInformation("[UNIFIED-BACKTEST] Using TopstepXHistoricalDataProvider as fallback for {Symbol}", config.Symbol);
+                
+                var quotes = historicalDataProvider.GetHistoricalQuotesAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken);
+                var bars = new List<BotCore.Models.Bar>();
+                
+                await foreach (var quote in quotes)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    
+                    // Convert quotes to bars (simplified - group by minute)
+                    bars.Add(new BotCore.Models.Bar
+                    {
+                        Start = quote.Timestamp,
+                        End = quote.Timestamp.AddMinutes(1),
+                        Symbol = quote.Symbol,
+                        Open = quote.Price,
+                        High = quote.Price,
+                        Low = quote.Price,
+                        Close = quote.Price,
+                        Volume = quote.Volume
+                    });
+                }
+                
+                if (bars.Any())
+                {
+                    _logger.LogInformation("[UNIFIED-BACKTEST] Converted {Count} quotes to bars from TopstepX API", bars.Count);
+                    return bars;
+                }
+            }
+            
+            // Log that no real bars data was available
+            _logger.LogWarning("[UNIFIED-BACKTEST] No TopstepX historical bars available for {Symbol}", config.Symbol);
+            return new List<BotCore.Models.Bar>();
             
             // Return empty list instead of generating synthetic data
             return new List<BotCore.Models.Bar>();

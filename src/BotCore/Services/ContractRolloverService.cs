@@ -227,7 +227,7 @@ namespace BotCore.Services
                 var currentYear = currentDate.Year;
 
                 // Check contracts for current and next year
-                for (int yearOffset; yearOffset <= 1; yearOffset++)
+                for (int yearOffset = 0; yearOffset <= 1; yearOffset++)
                 {
                     var year = currentYear + yearOffset;
                     

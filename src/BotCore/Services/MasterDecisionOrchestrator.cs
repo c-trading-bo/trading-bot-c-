@@ -249,7 +249,20 @@ public class MasterDecisionOrchestrator : BackgroundService
             {
                 try
                 {
-                    bundleSelection = await _neuralUcbExtended.SelectBundleAsync(marketContext, cancellationToken)
+                    // Convert TradingBot.Abstractions.MarketContext to BotCore.Brain.MarketContext
+                    var brainMarketContext = new BotCore.Brain.MarketContext
+                    {
+                        Symbol = marketContext.Symbol,
+                        CurrentPrice = (decimal)marketContext.Price,
+                        Volume = (decimal)marketContext.Volume,
+                        Volatility = 0.15m, // Default value
+                        TimeOfDay = marketContext.Timestamp.TimeOfDay,
+                        DayOfWeek = marketContext.Timestamp.DayOfWeek,
+                        VolumeRatio = 1.0m, // Default value
+                        PriceChange = 0.0m // Default value
+                    };
+                    
+                    bundleSelection = await _neuralUcbExtended.SelectBundleAsync(brainMarketContext, cancellationToken)
                         .ConfigureAwait(false);
                     
                     _logger.LogInformation("🎯 [BUNDLE-SELECTION] Selected: {BundleId} " +
@@ -296,7 +309,7 @@ public class MasterDecisionOrchestrator : BackgroundService
             _logger.LogError(ex, "❌ [MASTER-DECISION] Failed to make decision for {Symbol}", symbol);
             
             // Emergency fallback decision
-            return CreateEmergencyDecision(symbol, marketContext, decisionId, startTime);
+            return CreateEmergencyDecision(symbol, decisionId, startTime);
         }
     }
     
@@ -329,9 +342,9 @@ public class MasterDecisionOrchestrator : BackgroundService
                 WasCorrect = wasCorrect,
                 HoldTime = holdTime,
                 DecisionSource = decisionSource,
-                Metadata = metadata,
                 Timestamp = DateTime.UtcNow
             };
+            learningEvent.ReplaceMetadata(metadata);
             
             // Add to learning queue
             lock (_stateLock)
@@ -369,10 +382,10 @@ public class MasterDecisionOrchestrator : BackgroundService
                 OverallWinRate = CalculateOverallWinRate(),
                 LearningQueueSize = _learningQueue.Count,
                 ServiceStatus = _serviceStatus,
-                BrainPerformance = _performanceTracking.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                 SystemHealthy = IsSystemHealthy(),
                 Timestamp = DateTime.UtcNow
             };
+            status.ReplaceBrainPerformance(_performanceTracking.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
             
             return status;
         }
@@ -587,7 +600,8 @@ public class MasterDecisionOrchestrator : BackgroundService
     /// This enables continuous learning of optimal parameter combinations
     /// </summary>
     private async Task UpdateBundlePerformanceAsync(
-                decimal realizedPnL,
+        string decisionId,
+        decimal realizedPnL,
         bool wasCorrect,
         Dictionary<string, object> metadata,
         CancellationToken cancellationToken)
@@ -604,11 +618,24 @@ public class MasterDecisionOrchestrator : BackgroundService
                 var reward = CalculateBundleReward(realizedPnL, wasCorrect, metadata);
                 
                 // Create a simple market context for the update (we could store the original context if needed)
-                var marketContext = CreateMarketContextFromMetadata(metadata);
+                var abstractionsMarketContext = CreateMarketContextFromMetadata(metadata);
+                
+                // Convert to BotCore.Brain.MarketContext
+                var brainMarketContext = new BotCore.Brain.MarketContext
+                {
+                    Symbol = abstractionsMarketContext.Symbol,
+                    CurrentPrice = (decimal)abstractionsMarketContext.Price,
+                    Volume = (decimal)abstractionsMarketContext.Volume,
+                    Volatility = 0.15m, // Default value
+                    TimeOfDay = abstractionsMarketContext.Timestamp.TimeOfDay,
+                    DayOfWeek = abstractionsMarketContext.Timestamp.DayOfWeek,
+                    VolumeRatio = 1.0m, // Default value
+                    PriceChange = 0.0m // Default value
+                };
                 
                 // Update bundle performance in Neural UCB Extended
                 await _neuralUcbExtended.UpdateBundlePerformanceAsync(
-                    bundleId, marketContext, reward, metadata, cancellationToken).ConfigureAwait(false);
+                    bundleId, brainMarketContext, reward, metadata, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("📊 [BUNDLE-FEEDBACK] Updated bundle {BundleId} with reward {Reward:F3} " +
                                      "from PnL {PnL:C2} correct={Correct}",
@@ -761,9 +788,11 @@ public class MasterDecisionOrchestrator : BackgroundService
     }
     
     private Task UpdatePerformanceTrackingAsync(
-                string decisionSource,
+        string decisionId,
+        string decisionSource,
         decimal realizedPnL,
-        bool wasCorrect
+        bool wasCorrect,
+        CancellationToken cancellationToken = default
         )
     {
         lock (_stateLock)
@@ -942,7 +971,22 @@ public class LearningEvent
     public bool WasCorrect { get; set; }
     public TimeSpan HoldTime { get; set; }
     public string DecisionSource { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; } = new();
+    
+    private readonly Dictionary<string, object> _metadata = new();
+    public IReadOnlyDictionary<string, object> Metadata => _metadata;
+    
+    public void ReplaceMetadata(IDictionary<string, object> metadata)
+    {
+        _metadata.Clear();
+        if (metadata != null)
+        {
+            foreach (var kvp in metadata)
+            {
+                _metadata[kvp.Key] = kvp.Value;
+            }
+        }
+    }
+    
     public DateTime Timestamp { get; set; }
 }
 
@@ -977,7 +1021,22 @@ public class MasterOrchestratorStatus
     public decimal OverallWinRate { get; set; }
     public int LearningQueueSize { get; set; }
     public TradingBot.Abstractions.DecisionServiceStatus ServiceStatus { get; set; } = new();
-    public Dictionary<string, DecisionPerformance> BrainPerformance { get; } = new();
+    
+    private readonly Dictionary<string, DecisionPerformance> _brainPerformance = new();
+    public IReadOnlyDictionary<string, DecisionPerformance> BrainPerformance => _brainPerformance;
+    
+    public void ReplaceBrainPerformance(IDictionary<string, DecisionPerformance> performance)
+    {
+        _brainPerformance.Clear();
+        if (performance != null)
+        {
+            foreach (var kvp in performance)
+            {
+                _brainPerformance[kvp.Key] = kvp.Value;
+            }
+        }
+    }
+    
     public bool SystemHealthy { get; set; }
     public DateTime Timestamp { get; set; }
 }

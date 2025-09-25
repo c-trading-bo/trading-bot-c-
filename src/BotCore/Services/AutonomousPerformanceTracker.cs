@@ -413,7 +413,7 @@ public class AutonomousPerformanceTracker
         return stdDev > 0 ? avgReturn / stdDev * (decimal)Math.Sqrt(252) : 0m; // Annualized
     }
     
-    private static decimal CalculateMaxDrawdown()
+    private decimal CalculateMaxDrawdown()
     {
         if (_allTrades.Count == 0) return 0m;
         
@@ -469,8 +469,7 @@ public class AutonomousPerformanceTracker
         {
             _strategyLearning[strategy] = new StrategyLearning
             {
-                StrategyName = strategy,
-                Insights = new List<LearningInsight>()
+                StrategyName = strategy
             };
         }
     }
@@ -485,23 +484,26 @@ public class AutonomousPerformanceTracker
             AutonomousTradeOutcome = trade,
             InsightType = trade.PnL > 0 ? "SUCCESS_PATTERN" : "LOSS_PATTERN",
             Description = $"{trade.Strategy} {trade.Direction} {trade.Symbol} resulted in ${trade.PnL:F2}",
-            Confidence = trade.Confidence,
-            MarketConditions = new Dictionary<string, object>
-            {
-                ["Regime"] = trade.MarketRegime.ToString(),
-                ["EntryTime"] = trade.EntryTime.ToString("HH:mm", CultureInfo.InvariantCulture),
-                ["Direction"] = trade.Direction
-            }
+            Confidence = trade.Confidence
         };
+        
+        var conditions = new Dictionary<string, object>
+        {
+            ["Regime"] = trade.MarketRegime.ToString(),
+            ["EntryTime"] = trade.EntryTime.ToString("HH:mm", CultureInfo.InvariantCulture),
+            ["Direction"] = trade.Direction
+        };
+        insight.ReplaceMarketConditions(conditions);
         
         if (_strategyLearning.ContainsKey(trade.Strategy))
         {
-            _strategyLearning[trade.Strategy].Insights.Add(insight);
+            _strategyLearning[trade.Strategy].AddInsight(insight);
             
             // Keep limited insights per strategy
             while (_strategyLearning[trade.Strategy].Insights.Count > 100)
             {
-                _strategyLearning[trade.Strategy].Insights.RemoveAt(0);
+                var insights = _strategyLearning[trade.Strategy].Insights.Skip(1).ToList();
+                _strategyLearning[trade.Strategy].ReplaceInsights(insights);
             }
         }
 
@@ -800,7 +802,21 @@ public class LearningInsight
     public string InsightType { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Confidence { get; set; }
-    public Dictionary<string, object> MarketConditions { get; } = new();
+    
+    private readonly Dictionary<string, object> _marketConditions = new();
+    public IReadOnlyDictionary<string, object> MarketConditions => _marketConditions;
+    
+    public void ReplaceMarketConditions(IDictionary<string, object> conditions)
+    {
+        _marketConditions.Clear();
+        if (conditions != null)
+        {
+            foreach (var kvp in conditions)
+            {
+                _marketConditions[kvp.Key] = kvp.Value;
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -809,7 +825,26 @@ public class LearningInsight
 public class StrategyLearning
 {
     public string StrategyName { get; set; } = "";
-    public List<LearningInsight> Insights { get; } = new();
+    
+    private readonly List<LearningInsight> _insights = new();
+    public IReadOnlyList<LearningInsight> Insights => _insights;
+    
+    public void ReplaceInsights(IEnumerable<LearningInsight> insights)
+    {
+        _insights.Clear();
+        if (insights != null)
+        {
+            _insights.AddRange(insights);
+        }
+    }
+    
+    public void AddInsight(LearningInsight insight)
+    {
+        if (insight != null)
+        {
+            _insights.Add(insight);
+        }
+    }
 }
 
 /// <summary>

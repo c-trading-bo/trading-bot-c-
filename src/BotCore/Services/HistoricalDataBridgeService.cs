@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.IO;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace BotCore.Services
 {
@@ -71,8 +72,8 @@ namespace BotCore.Services
 
             _logger.LogInformation("[HISTORICAL-BRIDGE] Starting historical data seeding for {ContractCount} contracts", contractIds.Length);
 
-            var successCount;
-            var totalSeeded;
+            var successCount = 0;
+            var totalSeeded = 0;
 
             foreach (var contractId in contractIds)
             {
@@ -249,19 +250,24 @@ namespace BotCore.Services
                 var barData = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
                 var bars = new List<BotCore.Models.Bar>();
 
-                foreach (var bar in barData)
+                if (barData != null)
+                {
+                    foreach (var bar in barData)
                 {
                     try
                     {
                         var botBar = new BotCore.Models.Bar
                         {
-                            ContractId = contractId,
+                            Symbol = contractId, // Use contractId as Symbol since ContractId doesn't exist
                             Open = Convert.ToDecimal(bar["open"]),
                             High = Convert.ToDecimal(bar["high"]),
                             Low = Convert.ToDecimal(bar["low"]),
                             Close = Convert.ToDecimal(bar["close"]),
-                            Volume = Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
-                            Ts = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow
+                            Volume = Convert.ToInt32(bar.GetValueOrDefault("volume", 0)), // Convert to int
+                            Ts = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? 
+                                ((DateTimeOffset)ts).ToUnixTimeMilliseconds() : // Convert DateTime to long
+                                ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds(),
+                            Start = DateTime.TryParse(bar["timestamp"]?.ToString(), out var startTime) ? startTime : DateTime.UtcNow
                         };
                         bars.Add(botBar);
                     }
@@ -270,6 +276,7 @@ namespace BotCore.Services
                         _logger.LogWarning("[HISTORICAL-BRIDGE] Failed to parse bar data: {Error}", ex.Message);
                     }
                 }
+                } // Close the null check
 
                 _logger.LogInformation("[HISTORICAL-BRIDGE] Retrieved {Count} bars via SDK adapter for {ContractId}", bars.Count, contractId);
                 return bars;
@@ -362,7 +369,7 @@ namespace BotCore.Services
             }
         }
 
-        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId)
+        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId, int barCount)
         {
             try
             {

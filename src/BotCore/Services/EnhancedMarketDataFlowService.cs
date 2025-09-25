@@ -124,7 +124,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-DATA-FLOW] ❌ Failed to initialize enhanced market data flow");
-                _isHealthy;
+                _isHealthy = false; // Fix CS0201: assign the value
                 return Task.FromResult(false);
             }
         }
@@ -137,7 +137,7 @@ namespace BotCore.Services
             try
             {
                 var currentTime = DateTime.UtcNow;
-                var healthySymbols;
+                var healthySymbols = 0; // Fix CS0818: initialize variable
                 var totalSymbols = _flowMetrics.Count;
                 var issues = new List<string>();
 
@@ -171,23 +171,24 @@ namespace BotCore.Services
                     HealthySymbolCount = healthySymbols,
                     TotalSymbolCount = totalSymbols,
                     HealthPercentage = totalSymbols > 0 ? (double)healthySymbols / totalSymbols : 0.0,
-                    Status = overallHealthy ? "Healthy" : "Degraded",
-                    Issues = issues,
-                    SymbolMetrics = _flowMetrics.Values.ToList()
+                    Status = overallHealthy ? "Healthy" : "Degraded"
                 };
+                status.ReplaceIssues(issues);
+                status.ReplaceSymbolMetrics(_flowMetrics.Values.ToList());
 
                 return Task.FromResult(status);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-DATA-FLOW] Error getting health status");
-                return Task.FromResult(new MarketDataHealthStatus
+                var errorStatus = new MarketDataHealthStatus
                 {
                     IsHealthy = false,
                     LastUpdate = DateTime.UtcNow,
-                    Status = "Error",
-                    Issues = new List<string> { $"Health check error: {ex.Message}" }
-                });
+                    Status = "Error"
+                };
+                errorStatus.ReplaceIssues(new List<string> { $"Health check error: {ex.Message}" });
+                return Task.FromResult(errorStatus);
             }
         }
 
@@ -205,7 +206,7 @@ namespace BotCore.Services
                 if (healthStatus.IsHealthy)
                 {
                     _logger.LogDebug("[DATA-FLOW-RECOVERY] Data flow is healthy ({HealthPercentage:P1})", healthStatus.HealthPercentage);
-                    _recoveryAttempts; // Reset recovery attempts
+                    _recoveryAttempts = 0; // Reset recovery attempts
                     return;
                 }
 
@@ -324,7 +325,7 @@ namespace BotCore.Services
             }
             finally
             {
-                _isMonitoring;
+                _isMonitoring = false; // Set to false to indicate monitoring stopped
             }
         }
 
@@ -524,7 +525,7 @@ namespace BotCore.Services
                 if (healthStatusAfterRecovery.IsHealthy)
                 {
                     _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
-                    _recoveryAttempts; // Reset attempts on success
+                    _recoveryAttempts = 0; // Reset attempts on success
                     
                     // Notify recovery
                     foreach (var symbol in unhealthySymbols)
@@ -645,8 +646,24 @@ namespace BotCore.Services
         public int HealthySymbolCount { get; set; }
         public int TotalSymbolCount { get; set; }
         public double HealthPercentage { get; set; }
-        public List<string> Issues { get; } = new();
-        public List<DataFlowMetrics> SymbolMetrics { get; } = new();
+        
+        private readonly List<string> _issues = new();
+        public IReadOnlyList<string> Issues => _issues;
+        
+        private readonly List<DataFlowMetrics> _symbolMetrics = new();
+        public IReadOnlyList<DataFlowMetrics> SymbolMetrics => _symbolMetrics;
+        
+        public void ReplaceIssues(IEnumerable<string> issues)
+        {
+            _issues.Clear();
+            if (issues != null) _issues.AddRange(issues);
+        }
+        
+        public void ReplaceSymbolMetrics(IEnumerable<DataFlowMetrics> metrics)
+        {
+            _symbolMetrics.Clear();
+            if (metrics != null) _symbolMetrics.AddRange(metrics);
+        }
     }
 
     /// <summary>

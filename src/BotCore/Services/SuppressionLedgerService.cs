@@ -11,6 +11,7 @@ namespace TradingBot.BotCore.Services
     /// <summary>
     /// Suppression ledger service for tracking and justifying analyzer suppressions
     /// Maintains a central record of all suppressions with justifications
+    /// Uses LoggerMessage delegates for improved performance (CA1848 compliance)
     /// </summary>
     public class SuppressionLedgerService
     {
@@ -19,13 +20,58 @@ namespace TradingBot.BotCore.Services
         private readonly List<SuppressionEntry> _suppressions = new();
         private readonly object _ledgerLock = new();
 
+        // LoggerMessage delegates for improved performance (CA1848 compliance)
+        private static readonly Action<ILogger, int, Exception?> _logLedgerInitialized = 
+            LoggerMessage.Define<int>(LogLevel.Information, new EventId(2001, "LedgerInit"), 
+                "📋 [SUPPRESSION] Suppression ledger initialized with {Count} entries");
+                
+        private static readonly Action<ILogger, string, string, int, string, string, Exception?> _logSuppressionRecorded = 
+            LoggerMessage.Define<string, string, int, string, string>(LogLevel.Warning, new EventId(2002, "SuppressionRecorded"), 
+                "⚠️ [SUPPRESSION] Recorded suppression {RuleId} in {File}:{Line} by {Author}: {Justification}");
+                
+        private static readonly Action<ILogger, Guid, string, string, Exception?> _logSuppressionReviewed = 
+            LoggerMessage.Define<Guid, string, string>(LogLevel.Information, new EventId(2003, "SuppressionReviewed"), 
+                "📋 [SUPPRESSION] Reviewed suppression {Id} by {Reviewer}: {Status}");
+                
+        private static readonly Action<ILogger, Guid, DateTime, string, Exception?> _logSuppressionExpiration = 
+            LoggerMessage.Define<Guid, DateTime, string>(LogLevel.Information, new EventId(2004, "SuppressionExpiration"), 
+                "⏰ [SUPPRESSION] Set expiration for suppression {Id}: {Date} - {Reason}");
+                
+        private static readonly Action<ILogger, Exception?> _logAllSuppressionsValid = 
+            LoggerMessage.Define(LogLevel.Information, new EventId(2005, "AllSuppressionsValid"), 
+                "✅ [SUPPRESSION] All code suppressions have ledger entries");
+                
+        private static readonly Action<ILogger, int, Exception?> _logMissingEntries = 
+            LoggerMessage.Define<int>(LogLevel.Warning, new EventId(2006, "MissingEntries"), 
+                "⚠️ [SUPPRESSION] {Count} suppressions missing ledger entries");
+                
+        private static readonly Action<ILogger, Exception?> _logValidationError = 
+            LoggerMessage.Define(LogLevel.Error, new EventId(2007, "ValidationError"), 
+                "🚨 [SUPPRESSION] Error validating code suppressions");
+                
+        private static readonly Action<ILogger, Exception?> _logLoadError = 
+            LoggerMessage.Define(LogLevel.Error, new EventId(2008, "LoadError"), 
+                "Error loading existing suppression ledger");
+                
+        private static readonly Action<ILogger, Exception?> _logSaveError = 
+            LoggerMessage.Define(LogLevel.Error, new EventId(2009, "SaveError"), 
+                "Error saving suppression ledger");
+                
+        private static readonly Action<ILogger, string, Exception?> _logAlertCreated = 
+            LoggerMessage.Define<string>(LogLevel.Warning, new EventId(2010, "AlertCreated"), 
+                "🚨 [SUPPRESSION] Alert created: {AlertPath}");
+                
+        private static readonly Action<ILogger, Exception?> _logAlertError = 
+            LoggerMessage.Define(LogLevel.Error, new EventId(2011, "AlertError"), 
+                "Error creating suppression alert");
+
         public SuppressionLedgerService(ILogger<SuppressionLedgerService> logger)
         {
             _logger = logger;
             _ledgerPath = Path.Combine(Environment.CurrentDirectory, "ANALYZER_SUPPRESSION_LEDGER.json");
             
             LoadExistingLedger();
-            _logger.LogInformation("📋 [SUPPRESSION] Suppression ledger initialized with {Count} entries", _suppressions.Count);
+            _logLedgerInitialized(_logger, _suppressions.Count, null);
         }
 
         /// <summary>

@@ -223,12 +223,18 @@ namespace TopstepX.S6
 
         public void WarmupDaily(Instrument instr, IEnumerable<(DateTime dateEt, double high, double low)> days)
         {
+            if (days == null)
+                throw new ArgumentNullException(nameof(days));
+
             var s = Get(instr); s.DailyForAdr.Clear();
             int k=0; foreach (var d in days){ s.DailyForAdr.Add((d.dateEt, d.high, d.low)); if(++k>=_cfg.AdrLookbackDays) break; }
             s.Adr = s.ComputeADR();
         }
         public void Warmup1m(Instrument instr, IEnumerable<(DateTimeOffset tEt,double o,double h,double l,double c,double v)> bars)
         {
+            if (bars == null)
+                throw new ArgumentNullException(nameof(bars));
+
             var s = Get(instr); long tick = s.Tick; foreach (var b in bars)
             { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
@@ -562,6 +568,9 @@ namespace TopstepX.S6
         public bool TryPost(in T item) => _ch.Writer.TryWrite(item);
         public async Task Run(Func<T, bool> onEvent, CancellationToken ct)
         {
+            if (onEvent == null)
+                throw new ArgumentNullException(nameof(onEvent));
+
             var r = _ch.Reader;
             while (await r.WaitToReadAsync(ct).ConfigureAwait(false))
                 while (r.TryRead(out var ev)) 

@@ -280,9 +280,9 @@ public class PerformanceTracker
     }
     
     // Helper methods for ML feature extraction
-    private decimal GetVolumeContext() => 100000m; // Implement with real volume data
-    private decimal GetVolatilityContext() => 0.15m; // Implement with real volatility calculation  
-    private string GetTrendContext() => "BULLISH"; // Implement with real trend analysis
+    private decimal GetVolumeContext(DateTime entryTime, string symbol) => 100000m; // Implement with real volume data
+    private decimal GetVolatilityContext(DateTime entryTime, string symbol) => 0.15m; // Implement with real volatility calculation  
+    private string GetTrendContext(string symbol, DateTime entryTime) => "BULLISH"; // Implement with real trend analysis
 
     /// <summary>
     /// Get personal trading metrics

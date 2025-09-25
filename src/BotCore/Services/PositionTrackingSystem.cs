@@ -23,6 +23,14 @@ namespace TopstepX.Bot.Core.Services
         private readonly Timer _reconciliationTimer;
         private readonly object _lockObject = new();
         
+        // Risk management constants (S109 compliance)
+        private const decimal DEFAULT_MAX_DAILY_LOSS = -1000m; // $1000 max daily loss
+        private const decimal DEFAULT_MAX_POSITION_SIZE = 5m; // 5 contracts max
+        private const decimal DEFAULT_MAX_DRAWDOWN = -2000m; // $2000 max drawdown
+        private const int DEFAULT_MAX_ORDERS_PER_MINUTE = 10;
+        private const decimal DEFAULT_ACCOUNT_BALANCE = 50000m; // Account size
+        private const decimal DEFAULT_MAX_RISK_PER_TRADE = 200m; // $200 max per trade
+        
         public event EventHandler<PositionUpdateEventArgs>? PositionUpdated;
         public event EventHandler<RiskViolationEventArgs>? RiskViolationDetected;
         
@@ -64,12 +72,12 @@ namespace TopstepX.Bot.Core.Services
         
         public class RiskLimits
         {
-            public decimal MaxDailyLoss { get; set; } = -1000m; // $1000 max daily loss
-            public decimal MaxPositionSize { get; set; } = 5; // 5 contracts max
-            public decimal MaxDrawdown { get; set; } = -2000m; // $2000 max drawdown
-            public int MaxOrdersPerMinute { get; set; } = 10;
-            public decimal AccountBalance { get; set; } = 50000m; // Account size
-            public decimal MaxRiskPerTrade { get; set; } = 200m; // $200 max per trade
+            public decimal MaxDailyLoss { get; set; } = DEFAULT_MAX_DAILY_LOSS;
+            public decimal MaxPositionSize { get; set; } = DEFAULT_MAX_POSITION_SIZE;
+            public decimal MaxDrawdown { get; set; } = DEFAULT_MAX_DRAWDOWN;
+            public int MaxOrdersPerMinute { get; set; } = DEFAULT_MAX_ORDERS_PER_MINUTE;
+            public decimal AccountBalance { get; set; } = DEFAULT_ACCOUNT_BALANCE;
+            public decimal MaxRiskPerTrade { get; set; } = DEFAULT_MAX_RISK_PER_TRADE;
         }
         
         public PositionTrackingSystem(ILogger<PositionTrackingSystem> logger, RiskLimits? riskLimits = null)

@@ -112,11 +112,8 @@ public class TradingFeedbackService : BackgroundService
                 ActualOutcome = feedback.ActualOutcome
             };
             
-            // Populate the readonly dictionary
-            foreach (var kvp in feedback.TradingContext)
-            {
-                outcome.TradingContext[kvp.Key] = kvp.Value;
-            }
+            // Populate the readonly dictionary using the replace method
+            outcome.ReplaceTradingContext(feedback.TradingContext);
             
             SubmitTradingOutcome(outcome);
             
@@ -553,7 +550,21 @@ public class TradingOutcome
     public string MarketConditions { get; set; } = string.Empty;
     public double ModelConfidence { get; set; }
     public string ActualOutcome { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; } = new();
+    
+    private readonly Dictionary<string, object> _tradingContext = new();
+    public IReadOnlyDictionary<string, object> TradingContext => _tradingContext;
+    
+    public void ReplaceTradingContext(IDictionary<string, object> context)
+    {
+        _tradingContext.Clear();
+        if (context != null)
+        {
+            foreach (var kvp in context)
+            {
+                _tradingContext[kvp.Key] = kvp.Value;
+            }
+        }
+    }
 }
 
 public class PredictionFeedback

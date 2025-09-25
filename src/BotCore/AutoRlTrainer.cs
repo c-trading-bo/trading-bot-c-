@@ -21,9 +21,6 @@ namespace BotCore
     {
         private readonly ILogger _log;
         private readonly Timer? _timer;
-        private readonly string? _dataDir;
-        private readonly string? _modelDir;
-        private readonly string? _pythonScriptDir;
         private bool _disposed;
 
         public AutoRlTrainer(ILogger logger)
@@ -38,9 +35,6 @@ namespace BotCore
 
             // Initialize as null since this is deprecated
             _timer = null;
-            _dataDir = null;
-            _modelDir = null;
-            _pythonScriptDir = null;
         }
 
         public void Dispose()
