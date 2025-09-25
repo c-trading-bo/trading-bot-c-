@@ -489,8 +489,8 @@ public class AutonomousDecisionEngine : BackgroundService
             };
             
             // Try to get real market data, use defaults if unavailable
-            double currentPrice;
-            double currentVolume;
+            double currentPrice = 4500.0; // Default ES price
+            double currentVolume = 1000.0; // Default volume
             
             try
             {
@@ -511,9 +511,14 @@ public class AutonomousDecisionEngine : BackgroundService
                 Symbol = "ES",
                 Price = currentPrice,
                 Volume = currentVolume,
-                Timestamp = DateTime.UtcNow,
-                TechnicalIndicators = technicalIndicators
+                Timestamp = DateTime.UtcNow
             };
+            
+            // Copy technical indicators to read-only collection
+            foreach (var indicator in technicalIndicators)
+            {
+                marketContext.TechnicalIndicators[indicator.Key] = indicator.Value;
+            }
             
             var decision = await _decisionRouter.RouteDecisionAsync("ES", marketContext, cancellationToken).ConfigureAwait(false);
             

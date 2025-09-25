@@ -317,7 +317,7 @@ namespace BotCore.Services
                 throw exception;
             }
 
-            await Task.Yield().ConfigureAwait(false); // Allow retry logic to continue
+            await Task.Yield(); // Allow retry logic to continue
         }
     }
 }

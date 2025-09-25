@@ -63,7 +63,7 @@ public class ProductionResilienceService
                 if (circuitBreaker.State == CircuitState.HalfOpen)
                 {
                     circuitBreaker.State = CircuitState.Closed;
-                    circuitBreaker.FailureCount;
+                    circuitBreaker.FailureCount = 0;
                     _logger.LogInformation("✅ [RESILIENCE] Circuit breaker CLOSED for {Operation} - recovery successful", operationName);
                 }
                 

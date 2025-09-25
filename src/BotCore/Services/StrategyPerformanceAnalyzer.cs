@@ -86,7 +86,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_regimePerformance[trade.AnalyzerMarketRegime].ContainsKey(strategy))
                 {
-                    _regimePerformance[trade.AnalyzerMarketRegime][strategy];
+                    _regimePerformance[trade.AnalyzerMarketRegime][strategy] = 0m;
                 }
                 _regimePerformance[trade.AnalyzerMarketRegime][strategy] += trade.PnL;
                 
@@ -98,7 +98,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_timeBasedPerformance[timeKey].ContainsKey(strategy))
                 {
-                    _timeBasedPerformance[timeKey][strategy];
+                    _timeBasedPerformance[timeKey][strategy] = 0m;
                 }
                 _timeBasedPerformance[timeKey][strategy] += trade.PnL;
             }
@@ -176,18 +176,27 @@ public class StrategyPerformanceAnalyzer
         var bestStrategy = strategyScores.OrderByDescending(kvp => kvp.Value).First();
         var confidence = CalculateRecommendationConfidence(strategyScores);
         
-        return new StrategyRecommendation
+        var recommendation = new StrategyRecommendation
         {
             RecommendedStrategy = bestStrategy.Key,
             Score = bestStrategy.Value,
             Confidence = confidence,
-            Reasoning = GenerateRecommendationReasoning(bestStrategy.Key, regime, currentTime, volatility),
-            AlternativeStrategies = strategyScores
-                .Where(kvp => kvp.Key != bestStrategy.Key)
-                .OrderByDescending(kvp => kvp.Value)
-                .Take(2)
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            Reasoning = GenerateRecommendationReasoning(bestStrategy.Key, regime, currentTime, volatility)
         };
+        
+        // Copy alternative strategies to read-only collection
+        var alternatives = strategyScores
+            .Where(kvp => kvp.Key != bestStrategy.Key)
+            .OrderByDescending(kvp => kvp.Value)
+            .Take(2)
+            .ToList();
+            
+        foreach (var alt in alternatives)
+        {
+            recommendation.AlternativeStrategies[alt.Key] = alt.Value;
+        }
+        
+        return recommendation;
     }
     
     /// <summary>
@@ -359,7 +368,6 @@ public class StrategyPerformanceAnalyzer
         _strategyAnalysis[strategy] = new StrategyAnalysis
         {
             StrategyName = strategy,
-            AllTrades = new List<AnalyzerTradeOutcome>(),
             OverallScore = 0.5m // Default neutral score
         };
         
@@ -441,9 +449,9 @@ public class StrategyPerformanceAnalyzer
     {
         if (trades.Count == 0) return 0m;
         
-        var runningPnL;
-        var peak;
-        var maxDrawdown;
+        var runningPnL = 0m;
+        var peak = 0m;
+        var maxDrawdown = 0m;
         
         foreach (var trade in trades.OrderBy(t => t.EntryTime))
         {
@@ -495,7 +503,7 @@ public class StrategyPerformanceAnalyzer
         }
     }
     
-    private Task GenerateStrategyInsightsAsync(string strategy)
+    private Task GenerateStrategyInsightsAsync(string strategy, CancellationToken cancellationToken = default)
     {
         // Generate insights based on recent performance changes
         var analysis = _strategyAnalysis[strategy];
