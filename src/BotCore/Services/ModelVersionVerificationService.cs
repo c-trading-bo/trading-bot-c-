@@ -66,7 +66,7 @@ namespace BotCore.Services
 
                 if (!File.Exists(modelPath))
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.ValidationErrors.Add("Model file does not exist");
                     return result;
                 }
@@ -82,7 +82,7 @@ namespace BotCore.Services
                 var existingVersion = registry.Versions.FirstOrDefault(v => v.ModelHash == result.ModelHash);
                 if (existingVersion != null)
                 {
-                    result.IsValid;
+                    result.IsValid = false;
                     result.IsDuplicate = true;
                     result.ValidationErrors.Add($"Duplicate model detected. Identical to version {existingVersion.Version} created at {existingVersion.CreatedAt}");
                     
@@ -108,7 +108,7 @@ namespace BotCore.Services
                     var isSignificantlyDifferent = await ValidateSignificantDifferenceAsync(modelPath, registry).ConfigureAwait(false);
                     if (!isSignificantlyDifferent)
                     {
-                        result.IsValid;
+                        result.IsValid = false;
                         result.ValidationErrors.Add($"Model does not meet minimum difference threshold of {_config.MinWeightChangePct}%");
                     }
                 }
@@ -159,12 +159,13 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[MODEL-VERSION] Error verifying model version for {ModelPath}", modelPath);
-                return new ModelVersionResult
+                var errorResult = new ModelVersionResult
                 {
                     ModelPath = modelPath,
-                    IsValid = false,
-                    ValidationErrors = new List<string> { $"Verification error: {ex.Message}" }
+                    IsValid = false
                 };
+                errorResult.ValidationErrors.Add($"Verification error: {ex.Message}");
+                return errorResult;
             }
         }
 

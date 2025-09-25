@@ -135,7 +135,7 @@ public static class ProductionPriceService
             if (result.IsValid)
             {
                 logger?.LogInformation("✅ [PRICE-SERVICE] Valid trade setup: {Symbol} entry={Entry} stop={Stop} target={Target} R={R:0.00}", 
-                    symbol, F2(result.RoundedEntry), F2(result.RoundedStop), F2(result.RoundedTarget), result.RMultiple.Value);
+                    symbol, F2(result.RoundedEntry), F2(result.RoundedStop), F2(result.RoundedTarget), (double)(result.RMultiple ?? 0m));
             }
             else
             {

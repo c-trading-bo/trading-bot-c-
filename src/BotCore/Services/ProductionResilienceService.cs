@@ -63,7 +63,7 @@ public class ProductionResilienceService
                 if (circuitBreaker.State == CircuitState.HalfOpen)
                 {
                     circuitBreaker.State = CircuitState.Closed;
-                    circuitBreaker.FailureCount;
+                    circuitBreaker.FailureCount = 0;
                     _logger.LogInformation("✅ [RESILIENCE] Circuit breaker CLOSED for {Operation} - recovery successful", operationName);
                 }
                 
@@ -122,7 +122,7 @@ public class ProductionResilienceService
     {
         return ExecuteWithResilienceAsync(operationName, async (ct) =>
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct).ConfigureAwait(false);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(_config.HttpTimeout);
             
             return await httpOperation(httpClient, timeoutCts.Token).ConfigureAwait(false);

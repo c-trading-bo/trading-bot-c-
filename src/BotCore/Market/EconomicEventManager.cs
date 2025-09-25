@@ -485,9 +485,11 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             IsRestricted = true,
             Reason = $"High-impact event: {economicEvent.Name}",
             RestrictedUntil = restrictedUntil,
-            CausingEvents = new List<EconomicEvent> { economicEvent },
             MaxImpact = economicEvent.Impact
         };
+        
+        // Add the economic event to the read-only CausingEvents collection
+        restriction.CausingEvents.Add(economicEvent);
 
         var isNewRestriction = !_tradingRestrictions.ContainsKey(symbol);
         _tradingRestrictions.AddOrUpdate(symbol, restriction, (key, existing) => restriction);

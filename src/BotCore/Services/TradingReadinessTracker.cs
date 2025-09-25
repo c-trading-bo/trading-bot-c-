@@ -184,24 +184,24 @@ namespace BotCore.Services
             else if (_context.LiveTicks > 0)
             {
                 _context.State = TradingReadinessState.LiveTickReceived;
-                _context.CanTrade;
+                _context.CanTrade = true;
             }
             else if (_context.SeededBars > 0)
             {
                 _context.State = TradingReadinessState.Seeded;
-                _context.CanTrade;
+                _context.CanTrade = false;
             }
             else
             {
                 _context.State = TradingReadinessState.Initializing;
-                _context.CanTrade;
+                _context.CanTrade = false;
             }
 
             // Check for data timeout
             if (_context.TimeSinceLastData.TotalSeconds > _config.MarketDataTimeoutSeconds)
             {
                 _context.State = TradingReadinessState.Degraded;
-                _context.CanTrade;
+                _context.CanTrade = false;
             }
 
             if (oldState != _context.State)

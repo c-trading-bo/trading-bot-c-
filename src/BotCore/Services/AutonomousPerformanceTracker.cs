@@ -102,7 +102,7 @@ public class AutonomousPerformanceTracker
             var tradeDate = trade.EntryTime.Date;
             if (!_dailyPnL.ContainsKey(tradeDate))
             {
-                _dailyPnL[tradeDate];
+                _dailyPnL[tradeDate] = 0m;
             }
             _dailyPnL[tradeDate] += trade.PnL;
             
@@ -417,9 +417,9 @@ public class AutonomousPerformanceTracker
     {
         if (_allTrades.Count == 0) return 0m;
         
-        var runningPnL;
-        var peak;
-        var maxDrawdown;
+        var runningPnL = 0m;
+        var peak = 0m;
+        var maxDrawdown = 0m;
         
         foreach (var trade in _allTrades.OrderBy(t => t.EntryTime))
         {
@@ -475,7 +475,7 @@ public class AutonomousPerformanceTracker
         }
     }
     
-    private Task RecordLearningInsightAsync(AutonomousTradeOutcome trade)
+    private Task RecordLearningInsightAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
     {
         // Generate learning insights from trade outcome
         var insight = new LearningInsight
@@ -546,7 +546,7 @@ public class AutonomousPerformanceTracker
         return strategyPnL.OrderBy(kvp => kvp.Value).First().Key;
     }
     
-    private async Task<List<string>> GenerateTradingInsightsAsync(AutonomousTradeOutcome[] trades)
+    private async Task<List<string>> GenerateTradingInsightsAsync(AutonomousTradeOutcome[] trades, CancellationToken cancellationToken = default)
     {
         var insights = new List<string>();
         

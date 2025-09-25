@@ -74,8 +74,8 @@ public class BatchedOnnxInferenceService : IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to detect hardware capabilities");
-            _gpuAvailable;
-            _quantizedModelsSupported;
+            _gpuAvailable = false;
+            _quantizedModelsSupported = false;
         }
     }
 

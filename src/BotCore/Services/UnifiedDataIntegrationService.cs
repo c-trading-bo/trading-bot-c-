@@ -224,7 +224,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             var historicalBars = GenerateHistoricalBars(symbol, _config.MinHistoricalBars);
             
             // Process bars through the SAME pipeline as live data
-            var barsProcessed;
+            var barsProcessed = 0;
             foreach (var bar in historicalBars)
             {
                 // Process through unified pipeline
@@ -526,7 +526,6 @@ public class UnifiedDataIntegrationService : BackgroundService
         {
             var status = new DataIntegrationStatus
             {
-                ContractStatuses = _contractStatus.Values.ToList(),
                 CurrentESContract = _currentESContract,
                 CurrentNQContract = _currentNQContract,
                 ConfiguredMinBars = _config.MinHistoricalBars,
@@ -535,6 +534,12 @@ public class UnifiedDataIntegrationService : BackgroundService
                 ContractRolloverEnabled = _config.ContractRolloverEnabled,
                 LastUpdated = DateTime.UtcNow
             };
+            
+            // Copy contract statuses to read-only collection
+            foreach (var contractStatus in _contractStatus.Values)
+            {
+                status.ContractStatuses.Add(contractStatus);
+            }
             
             status.SystemReady = status.ContractStatuses.All(s => s.IsReady);
             return status;

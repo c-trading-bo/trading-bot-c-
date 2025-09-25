@@ -244,7 +244,7 @@ public class MLMemoryManager : IMLMemoryManager
     /// </summary>
     private async Task PerformIntelligentCleanupAsync()
     {
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         // Remove models that haven't been used recently and have low usage counts
         var candidatesForRemoval = _activeModels.Values
@@ -384,12 +384,11 @@ public class MLMemoryManager : IMLMemoryManager
             var snapshot = new MemorySnapshot
             {
                 TotalMemory = GC.GetTotalMemory(false),
-                UsedMemory = Process.GetCurrentProcess().WorkingSet64,
-                MemoryLeaks = new List<string>()
+                UsedMemory = Process.GetCurrentProcess().WorkingSet64
             };
             
             // Calculate ML memory usage
-            long mlMemory;
+            long mlMemory = 0;
             foreach (var model in _activeModels.Values)
             {
                 snapshot.ModelMemory[model.ModelId] = model.MemoryFootprint;
@@ -534,11 +533,10 @@ public class MLMemoryManager : IMLMemoryManager
         {
             TotalMemory = GC.GetTotalMemory(false),
             UsedMemory = Process.GetCurrentProcess().WorkingSet64,
-            LoadedModels = _activeModels.Count,
-            MemoryLeaks = new List<string>()
+            LoadedModels = _activeModels.Count
         };
         
-        long mlMemory;
+        long mlMemory = 0;
         foreach (var model in _activeModels.Values)
         {
             snapshot.ModelMemory[model.ModelId] = model.MemoryFootprint;

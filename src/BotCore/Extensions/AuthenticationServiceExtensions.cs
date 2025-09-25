@@ -7,9 +7,102 @@ using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
 using BotCore.Services;
+using BotCore.Auth;
 using TopstepX.Bot.Authentication;
 
 namespace BotCore.Extensions;
+
+/// <summary>
+/// Wrapper to make SimpleTopstepAuth implement ITopstepAuth interface
+/// </summary>
+internal sealed class SimpleTopstepAuthWrapper : ITopstepAuth, IAsyncDisposable
+{
+    private readonly Auth.SimpleTopstepAuth _auth;
+
+    public SimpleTopstepAuthWrapper(HttpClient httpClient, ILogger<Auth.SimpleTopstepAuth> logger)
+    {
+        _auth = new Auth.SimpleTopstepAuth(httpClient, logger);
+    }
+
+    public Task<(string jwt, DateTimeOffset expiresUtc)> GetFreshJwtAsync(CancellationToken ct = default)
+    {
+        return _auth.GetFreshJwtAsync(ct);
+    }
+
+    public Task EnsureFreshTokenAsync(CancellationToken ct = default)
+    {
+        return _auth.EnsureFreshTokenAsync(ct);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return _auth.DisposeAsync();
+    }
+}
+
+/// <summary>
+/// Wrapper for custom auth provider functions
+/// </summary>
+internal sealed class FuncTopstepAuthWrapper : ITopstepAuth
+{
+    private readonly Func<CancellationToken, Task<string>> _authProvider;
+    private string _lastJwt = string.Empty;
+    private DateTimeOffset _lastExpiry = DateTimeOffset.MinValue;
+
+    public FuncTopstepAuthWrapper(Func<CancellationToken, Task<string>> authProvider)
+    {
+        _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
+    }
+
+    public async Task<(string jwt, DateTimeOffset expiresUtc)> GetFreshJwtAsync(CancellationToken ct = default)
+    {
+        var jwt = await _authProvider(ct).ConfigureAwait(false);
+        var expiry = GetJwtExpiryUtc(jwt);
+        
+        _lastJwt = jwt;
+        _lastExpiry = expiry;
+        
+        return (jwt, expiry);
+    }
+
+    public async Task EnsureFreshTokenAsync(CancellationToken ct = default)
+    {
+        await GetFreshJwtAsync(ct).ConfigureAwait(false);
+    }
+
+    private static DateTimeOffset GetJwtExpiryUtc(string jwt)
+    {
+        try
+        {
+            var parts = jwt.Split('.');
+            if (parts.Length < 2) return DateTimeOffset.UtcNow.AddHours(1); // Default fallback
+            
+            string payloadJson = System.Text.Encoding.UTF8.GetString(Base64UrlDecode(parts[1]));
+            using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+            if (doc.RootElement.TryGetProperty("exp", out var expProp))
+            {
+                long exp = expProp.GetInt64();
+                return DateTimeOffset.FromUnixTimeSeconds(exp);
+            }
+        }
+        catch
+        {
+            // Fallback on parse errors
+        }
+        return DateTimeOffset.UtcNow.AddHours(1);
+    }
+
+    private static byte[] Base64UrlDecode(string s)
+    {
+        s = s.Replace('-', '+').Replace('_', '/');
+        switch (s.Length % 4) 
+        { 
+            case 2: s += "=="; break; 
+            case 3: s += "="; break; 
+        }
+        return Convert.FromBase64String(s);
+    }
+}
 
 /// <summary>
 /// Extension methods for registering authentication and HTTP client services
@@ -71,8 +164,16 @@ public static class AuthenticationServiceExtensions
             });
         });
 
-        // Register cached auth service as singleton
-        services.AddSingleton<ITopstepAuth>(authFactory);
+        // Register cached auth service as singleton using SimpleTopstepAuth
+        services.AddSingleton<ITopstepAuth>(serviceProvider =>
+        {
+            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("Topstep");
+            var logger = serviceProvider.GetRequiredService<ILogger<BotCore.Auth.SimpleTopstepAuth>>();
+            
+            // Create wrapper that implements ITopstepAuth interface
+            return new SimpleTopstepAuthWrapper(httpClient, logger);
+        });
 
         // Register HTTP client service as singleton using factory
         services.AddSingleton<ITopstepXHttpClient>(serviceProvider =>
@@ -104,9 +205,13 @@ public static class AuthenticationServiceExtensions
             httpClient.Timeout = TimeSpan.FromSeconds(30);
         });
 
-        // Use custom auth provider
+        // Use custom auth provider with proper wrapper
         services.AddSingleton(customAuthProvider);
-        services.AddSingleton<ITopstepAuth>(customAuthProvider);
+        services.AddSingleton<ITopstepAuth>(serviceProvider => 
+        {
+            var authProvider = serviceProvider.GetRequiredService<Func<CancellationToken, Task<string>>>();
+            return new FuncTopstepAuthWrapper(authProvider);
+        });
 
         services.AddSingleton<ITopstepXHttpClient>(serviceProvider =>
         {

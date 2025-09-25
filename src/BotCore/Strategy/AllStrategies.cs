@@ -542,9 +542,10 @@ namespace BotCore.Strategy
             try { S2Quantiles.Observe(symbol, nowLocal, Math.Abs(z)); } catch { }
 
             // ADR guards: compute simple rolling ADR and today's realized range
-            decimal adr;
+            decimal adr = 0m;
             int look = Math.Max(5, S2RuntimeConfig.AdrGuardEnabled ? S2RuntimeConfig.AdrGuardLen : S2RuntimeConfig.AdrLookbackDays);
-            int daysCounted; decimal sumAdr;
+            int daysCounted = 0; 
+            decimal sumAdr = 0m;
             for (int i = bars.Count - 1; i >= 0 && daysCounted < look; i--)
             {
                 var day = bars[i].Start.Date;
@@ -559,9 +560,10 @@ namespace BotCore.Strategy
             }
             if (daysCounted > 0) adr = sumAdr / daysCounted;
             // Today's realized range
-            decimal todayHi = 0m, todayLo; bool todayInit;
+            decimal todayHi = 0m, todayLo = 0m; 
+            bool todayInit = false;
             var today = nowLocal.Date;
-            for (int i; i < bars.Count; i++)
+            for (int i = 0; i < bars.Count; i++)
             {
                 if (bars[i].Start.Date != today) continue;
                 if (!todayInit) { todayHi = bars[i].High; todayLo = bars[i].Low; todayInit = true; }
@@ -815,7 +817,7 @@ namespace BotCore.Strategy
             // Use the full-stack S6 implementation via bridge
             try
             {
-                return S6S11Bridge.GetS6Candidates(symbol, env, levels, bars, risk);
+                return S6S11Bridge.GetS6Candidates(symbol, env, levels, bars, risk, null!, null!, null!);
             }
             catch (Exception ex)
             {
@@ -896,7 +898,7 @@ namespace BotCore.Strategy
             // Use the full-stack S11 implementation via bridge
             try
             {
-                return S6S11Bridge.GetS11Candidates(symbol, env, levels, bars, risk);
+                return S6S11Bridge.GetS11Candidates(symbol, env, levels, bars, risk, null!, null!, null!);
             }
             catch (Exception ex)
             {

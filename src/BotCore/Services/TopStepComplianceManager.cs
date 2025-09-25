@@ -132,7 +132,7 @@ public class TopStepComplianceManager
             var remainingRisk = Math.Min(remainingDailyRisk, remainingDrawdownRisk);
             
             // Calculate maximum position size based on stop distance
-            decimal maxPositionSize;
+            decimal maxPositionSize = 0m;
             if (stopDistance > 0)
             {
                 maxPositionSize = remainingRisk / stopDistance;
@@ -168,7 +168,7 @@ public class TopStepComplianceManager
             if (tradeTime.Date != _lastResetDate)
             {
                 // New trading day - reset daily P&L
-                _todayPnL;
+                _todayPnL = 0m;
                 _lastResetDate = tradeTime.Date;
                 _tradingDaysCompleted++;
                 
@@ -260,16 +260,24 @@ public class TopStepComplianceManager
         var profitTarget = GetProfitTarget();
         var progressToTarget = (status.AccountBalance - 50000m) / profitTarget * 100m;
         
-        return new ComplianceReport
+        var report = new ComplianceReport
         {
             Date = DateTime.Today,
             Status = status,
             ProfitTarget = profitTarget,
             ProgressToTarget = Math.Max(0, progressToTarget),
             IsOnTrack = status.IsCompliant && progressToTarget > 0,
-            MinimumDaysRemaining = Math.Max(0, GetMinimumTradingDays() - _tradingDaysCompleted),
-            Recommendations = GenerateRecommendations(status)
+            MinimumDaysRemaining = Math.Max(0, GetMinimumTradingDays() - _tradingDaysCompleted)
         };
+        
+        // Add recommendations to the read-only collection
+        var recommendations = GenerateRecommendations(status);
+        foreach (var recommendation in recommendations)
+        {
+            report.Recommendations.Add(recommendation);
+        }
+        
+        return report;
     }
     
     private void UpdateAccountState(decimal currentPnL, decimal accountBalance)
@@ -281,7 +289,7 @@ public class TopStepComplianceManager
         var today = DateTime.Today;
         if (_lastResetDate != today)
         {
-            _todayPnL;
+            _todayPnL = 0m;
             _lastResetDate = today;
             _tradingDaysCompleted++;
             

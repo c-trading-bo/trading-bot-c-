@@ -32,7 +32,7 @@ public class ProductionMonitoringService : IHealthCheck
             var healthChecks = new List<(string Name, bool IsHealthy, string Message)>();
 
             // Check model health
-            var modelHealth = await CheckModelHealthAsync(cancellationToken).ConfigureAwait(false);
+            var modelHealth = await CheckModelHealthAsync().ConfigureAwait(false);
             healthChecks.Add(("Models", modelHealth.IsHealthy, modelHealth.Message));
 
             // Check GitHub API connectivity
@@ -181,22 +181,31 @@ public class ProductionMonitoringService : IHealthCheck
         {
             var process = Process.GetCurrentProcess();
             
-            return new SystemMetrics
+            var metrics = new SystemMetrics
             {
                 Timestamp = DateTime.UtcNow,
                 MemoryUsageMB = process.WorkingSet64 / 1024 / 1024,
                 CpuTimeMs = process.TotalProcessorTime.TotalMilliseconds,
                 UptimeHours = (DateTime.UtcNow - process.StartTime).TotalHours,
-                HealthMetrics = _healthMetrics.Values.ToList(),
-                PerformanceMetrics = _performanceMetrics.Values.ToList(),
-                ThreadCount = process.Threads.Count,
-                GCCollections = new Dictionary<int, long>
-                {
-                    { 0, GC.CollectionCount(0) },
-                    { 1, GC.CollectionCount(1) },
-                    { 2, GC.CollectionCount(2) }
-                }
+                ThreadCount = process.Threads.Count
             };
+            
+            // Populate read-only collections
+            foreach (var health in _healthMetrics.Values)
+            {
+                metrics.HealthMetrics.Add(health);
+            }
+            
+            foreach (var performance in _performanceMetrics.Values)
+            {
+                metrics.PerformanceMetrics.Add(performance);
+            }
+            
+            metrics.GCCollections[0] = GC.CollectionCount(0);
+            metrics.GCCollections[1] = GC.CollectionCount(1);
+            metrics.GCCollections[2] = GC.CollectionCount(2);
+            
+            return metrics;
         }
     }
 

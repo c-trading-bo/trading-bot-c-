@@ -442,6 +442,8 @@ public class MemoryHealthCheck : IHealthCheck
         HealthCheckContext context, 
         CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask.ConfigureAwait(false);
+        
         try
         {
             var process = System.Diagnostics.Process.GetCurrentProcess();
@@ -501,11 +503,13 @@ public class MLModelHealthCheck : IHealthCheck
         HealthCheckContext context, 
         CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask.ConfigureAwait(false);
+        
         try
         {
             var modelDirectory = Path.Combine(Directory.GetCurrentDirectory(), "models");
-            var modelsFound;
-            var modelsLoaded;
+            var modelsFound = 0;
+            var modelsLoaded = 0;
 
             var data = new Dictionary<string, object>
             {
