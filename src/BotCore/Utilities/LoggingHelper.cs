@@ -6,9 +6,35 @@ namespace BotCore.Utilities
     /// <summary>
     /// Utility class to reduce code duplication in logging patterns
     /// Addresses SonarCloud duplication concerns by providing standardized logging methods
+    /// Uses LoggerMessage delegates for improved performance (CA1848 compliance)
     /// </summary>
     public static class LoggingHelper
     {
+        // LoggerMessage delegates for improved performance (CA1848 compliance)
+        private static readonly Action<ILogger, string, string, Exception?> _logInitializationSimple = 
+            LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(1001, "ComponentInit"), 
+                "[{Component}] {ComponentName} initialized");
+                
+        private static readonly Action<ILogger, string, string, string, Exception?> _logInitializationWithInfo = 
+            LoggerMessage.Define<string, string, string>(LogLevel.Information, new EventId(1002, "ComponentInitInfo"), 
+                "[{Component}] {ComponentName} initialized - {Info}");
+                
+        private static readonly Action<ILogger, string, string, TimeSpan, Exception?> _logServiceStarted = 
+            LoggerMessage.Define<string, string, TimeSpan>(LogLevel.Information, new EventId(1003, "ServiceStarted"), 
+                "[{Service}] Started - {Description} every {Interval}");
+                
+        private static readonly Action<ILogger, string, string, object?, Exception?> _logErrorWithContext = 
+            LoggerMessage.Define<string, string, object?>(LogLevel.Error, new EventId(1004, "ErrorWithContext"), 
+                "[{Component}] Failed to {Operation}: {Context}");
+                
+        private static readonly Action<ILogger, string, string, Exception?> _logErrorSimple = 
+            LoggerMessage.Define<string, string>(LogLevel.Error, new EventId(1005, "ErrorSimple"), 
+                "[{Component}] Failed to {Operation}");
+                
+        private static readonly Action<ILogger, string, string, string, Exception?> _logDeprecation = 
+            LoggerMessage.Define<string, string, string>(LogLevel.Warning, new EventId(1006, "Deprecation"), 
+                "[{Component}] DEPRECATED: {Reason}. Use {Alternative} instead.");
+
         /// <summary>
         /// Logs component initialization with standardized format
         /// Eliminates duplication of initialization logging patterns
@@ -20,11 +46,11 @@ namespace BotCore.Utilities
         {
             if (string.IsNullOrEmpty(additionalInfo))
             {
-                logger.LogInformation("[{Component}] {Component} initialized", componentName, componentName);
+                _logInitializationSimple(logger, componentName, componentName, null);
             }
             else
             {
-                logger.LogInformation("[{Component}] {Component} initialized - {Info}", componentName, componentName, additionalInfo);
+                _logInitializationWithInfo(logger, componentName, componentName, additionalInfo, null);
             }
         }
 
@@ -37,7 +63,7 @@ namespace BotCore.Utilities
         /// <param name="description">Description of what the service does</param>
         public static void LogServiceStarted(ILogger logger, string serviceName, TimeSpan interval, string description)
         {
-            logger.LogInformation("[{Service}] Started - {Description} every {Interval}", serviceName, description, interval);
+            _logServiceStarted(logger, serviceName, description, interval, null);
         }
 
         /// <summary>
@@ -53,11 +79,11 @@ namespace BotCore.Utilities
         {
             if (additionalContext != null)
             {
-                logger.LogError(exception, "[{Component}] Failed to {Operation}: {Context}", componentName, operation, additionalContext);
+                _logErrorWithContext(logger, componentName, operation, additionalContext, exception);
             }
             else
             {
-                logger.LogError(exception, "[{Component}] Failed to {Operation}", componentName, operation);
+                _logErrorSimple(logger, componentName, operation, exception);
             }
         }
 
@@ -70,7 +96,7 @@ namespace BotCore.Utilities
         /// <param name="alternative">Recommended alternative</param>
         public static void LogDeprecation(ILogger logger, string componentName, string reason, string alternative)
         {
-            logger.LogWarning("[{Component}] DEPRECATED: {Reason}. Use {Alternative} instead.", componentName, reason, alternative);
+            _logDeprecation(logger, componentName, reason, alternative, null);
         }
     }
 }

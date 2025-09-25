@@ -8,6 +8,12 @@ namespace BotCore.Configuration
     /// </summary>
     public class BacktestEnhancementConfiguration
     {
+        // Constants for validation ranges (S109 compliance)
+        public const double MAX_BASE_SLIPPAGE_BPS = 10.0;
+        public const double MIN_BASE_SLIPPAGE_BPS = 0.0;
+        public const double MAX_VOLATILITY_MULTIPLIER = 3.0;
+        public const double MIN_VOLATILITY_MULTIPLIER = 1.0;
+        
         /// <summary>
         /// Enable market friction simulation in backtests
         /// </summary>
@@ -37,14 +43,14 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base slippage in basis points (1 bp = 0.01%)
         /// </summary>
-        [Range(0.0, 10.0)]
+        [Range(BacktestEnhancementConfiguration.MIN_BASE_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_BASE_SLIPPAGE_BPS)]
         public double BaseSlippageBps { get; set; } = 0.5;
 
         /// <summary>
         /// Volatility multiplier for slippage calculation
         /// Higher volatility = more slippage
         /// </summary>
-        [Range(1.0, 3.0)]
+        [Range(BacktestEnhancementConfiguration.MIN_VOLATILITY_MULTIPLIER, BacktestEnhancementConfiguration.MAX_VOLATILITY_MULTIPLIER)]
         public double VolatilityMultiplier { get; set; } = 1.2;
 
         /// <summary>
