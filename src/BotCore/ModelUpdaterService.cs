@@ -155,7 +155,7 @@ namespace BotCore
             // Safety check: only update when flat
             if (!await IsPositionFlat(cancellationToken).ConfigureAwait(false))
             {
-                _log.LogInformation("[ModelUpdater] Skipping update - active positions detected").ConfigureAwait(false);
+                _log.LogInformation("[ModelUpdater] Skipping update - active positions detected");
                 return;
             }
 
@@ -370,7 +370,7 @@ namespace BotCore
         private static async Task<string> ComputeFileChecksumAsync(string filePath)
         {
             using var sha256 = SHA256.Create();
-            await using var fileStream = File.OpenRead(filePath).ConfigureAwait(false);
+            await using var fileStream = File.OpenRead(filePath);
             var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }

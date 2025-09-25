@@ -77,7 +77,7 @@ namespace BotCore
                 // Check if we have this version already
                 var currentVersionFile = Path.Combine(_modelDir, "current_version.txt");
                 var currentVersion = File.Exists(currentVersionFile) ?
-                    await File.ReadAllTextAsync(currentVersionFile).ConfigureAwait(false) : "".ConfigureAwait(false);
+                    await File.ReadAllTextAsync(currentVersionFile).ConfigureAwait(false) : "";
 
                 if (manifest.Version == currentVersion.Trim())
                 {
@@ -231,7 +231,7 @@ namespace BotCore
         private static async Task<string> ComputeFileChecksumAsync(string filePath)
         {
             using var sha256 = SHA256.Create();
-            await using var fileStream = File.OpenRead(filePath).ConfigureAwait(false);
+            await using var fileStream = File.OpenRead(filePath);
             var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }

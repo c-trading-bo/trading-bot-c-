@@ -572,7 +572,7 @@ public class ConfigurationHealthCheck : IHealthCheck
         _logger = logger;
     }
 
-    public async Task<HealthCheckResult> CheckHealthAsync(
+    public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, 
         CancellationToken cancellationToken = default)
     {
@@ -619,17 +619,17 @@ public class ConfigurationHealthCheck : IHealthCheck
 
             if (issues.Count == 0)
             {
-                return HealthCheckResult.Healthy("Configuration valid", data);
+                return Task.FromResult(HealthCheckResult.Healthy("Configuration valid", data));
             }
             else
             {
-                return HealthCheckResult.Unhealthy($"Configuration issues: {string.Join("; ", issues)}", data: data);
+                return Task.FromResult(HealthCheckResult.Unhealthy($"Configuration issues: {string.Join("; ", issues)}", data: data));
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Configuration health check failed");
-            return HealthCheckResult.Unhealthy($"Configuration check error: {ex.Message}", ex);
+            return Task.FromResult(HealthCheckResult.Unhealthy($"Configuration check error: {ex.Message}", ex));
         }
     }
 }
@@ -646,7 +646,7 @@ public class SecurityHealthCheck : IHealthCheck
         _logger = logger;
     }
 
-    public async Task<HealthCheckResult> CheckHealthAsync(
+    public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, 
         CancellationToken cancellationToken = default)
     {
@@ -671,16 +671,16 @@ public class SecurityHealthCheck : IHealthCheck
             // Check for hardcoded secrets in environment
             var suspiciousVars = Environment.GetEnvironmentVariables()
                 .Cast<System.Collections.DictionaryEntry>()
-                .Where(kv => kv.Key.ToString().ToLower().Contains("password") || 
-                           kv.Key.ToString().ToLower().Contains("secret"))
-                .Select(kv => kv.Key.ToString())
+                .Where(kv => kv.Key?.ToString()?.ToLower().Contains("password") == true || 
+                           kv.Key?.ToString()?.ToLower().Contains("secret") == true)
+                .Select(kv => kv.Key?.ToString() ?? string.Empty)
                 .ToList();
 
             data["suspiciousEnvironmentVariables"] = suspiciousVars.Count;
 
             // Check file permissions on sensitive files
             var sensitiveFiles = new[] { "appsettings.json", "appsettings.Production.json", ".env" };
-            var secureFiles;
+            var secureFiles = 0;
             
             foreach (var file in sensitiveFiles)
             {
@@ -695,17 +695,17 @@ public class SecurityHealthCheck : IHealthCheck
 
             if (issues.Count == 0)
             {
-                return HealthCheckResult.Healthy("Security configuration acceptable", data);
+                return Task.FromResult(HealthCheckResult.Healthy("Security configuration acceptable", data));
             }
             else
             {
-                return HealthCheckResult.Unhealthy($"Security issues: {string.Join("; ", issues)}", data: data);
+                return Task.FromResult(HealthCheckResult.Unhealthy($"Security issues: {string.Join("; ", issues)}", data: data));
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Security health check failed");
-            return HealthCheckResult.Unhealthy($"Security check error: {ex.Message}", ex);
+            return Task.FromResult(HealthCheckResult.Unhealthy($"Security check error: {ex.Message}", ex));
         }
     }
 }

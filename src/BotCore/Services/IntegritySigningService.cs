@@ -231,7 +231,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Sign trading logs with integrity guarantee
         /// </summary>
-        public async Task<SignedLogEntry> SignLogEntryAsync(string logContent, string logSource)
+        public Task<SignedLogEntry> SignLogEntryAsync(string logContent, string logSource)
         {
             try
             {
@@ -248,7 +248,7 @@ namespace TradingBot.BotCore.Services
                 entry.PublicKey = _publicKeyPem;
 
                 _logger.LogDebug("📝 [INTEGRITY] Signed log entry from {Source}", logSource);
-                return entry;
+                return Task.FromResult(entry);
             }
             catch (Exception ex)
             {

@@ -103,7 +103,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         var sizeRatio = (decimal)quantity / (decimal)Math.Max(1, avgTradeSize);
         var maxMarketImpactBps = _costConfig.GetMaxMarketImpactBps();
         var impactMultiplier = _costConfig.GetMarketImpactMultiplier();
-        var marketImpactBps = Math.Min(maxMarketImpactBps, sizeRatio * impactMultiplier);
+        var marketImpactBps = Math.Min(maxMarketImpactBps, sizeRatio * (decimal)impactMultiplier);
 
         // Volatility adjustment
         var volatilityAdjustment = currentState.IsVolatile ? 3m : 0m;
@@ -186,7 +186,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
             ? await EstimateLimitOrderFillProbabilityAsync(
                 intent.Symbol, intent.LimitPrice.Value, intent.Quantity,
                 intent.IsBuy, intent.MaxWaitTime, currentState, ct).ConfigureAwait(false)
-            : 0m.ConfigureAwait(false);
+            : 0m;
 
         // Calculate expected values
         var marketOrderEV = CalculateExpectedValue(intent, marketSlippage, 1.0m);

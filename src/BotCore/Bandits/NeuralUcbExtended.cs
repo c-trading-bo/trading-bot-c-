@@ -365,7 +365,7 @@ public class NeuralUcbExtended : IDisposable
         var timeScore = CalculateBracketTimeScore(DateTime.UtcNow);
         
         // Use traditional volume if available, otherwise estimate from context
-        var volume = marketContext.Features.TryGetValue("volume", out var vol) ? vol : (decimal)marketContext.Volume / 1000000m;
+        var volume = marketContext.Features.TryGetValue("volume", out var vol) ? (decimal)vol : (decimal)marketContext.Volume / 1000000m;
         
         // Enhanced condition logic with bracket considerations
         return (volatility, volume, trend, momentum, riskEnvironment, timeScore) switch
@@ -374,10 +374,10 @@ public class NeuralUcbExtended : IDisposable
             var (v, _, _, _, risk, _) when v > 0.7m || risk > 0.8m => MarketCondition.Volatile,
             
             // High volume scenarios - can support aggressive brackets
-            var (_, vol, _, _, _, _) when vol > 0.8m => MarketCondition.HighVolume,
+            var (_, volLevel, _, _, _, _) when volLevel > 0.8m => MarketCondition.HighVolume,
             
             // Low volume scenarios - favor tight brackets
-            var (_, vol, _, _, _, _) when vol < 0.3m => MarketCondition.LowVolume,
+            var (_, volLevel, _, _, _, _) when volLevel < 0.3m => MarketCondition.LowVolume,
             
             // Strong trending scenarios - favor swing/aggressive brackets
             var (_, _, t, m, _, _) when t > 0.6m && m > 0.6m => MarketCondition.Trending,

@@ -651,7 +651,7 @@ namespace BotCore.Brain
                 context.Volatility,
                 context.VolumeRatio,
                 context.TrendStrength
-            }).ConfigureAwait(false) : 0.5m.ConfigureAwait(false);
+            }).ConfigureAwait(false) : 0.5m;
             
             var confidenceMultiplier = modelConfidence;
 
@@ -1066,8 +1066,8 @@ namespace BotCore.Brain
         {
             if (bars.Count < period + 1) return 50;
             
-            var gains;
-            var losses;
+            var gains = 0m;
+            var losses = 0m;
             
             for (int i = bars.Count - period; i < bars.Count; i++)
             {

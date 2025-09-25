@@ -134,7 +134,7 @@ namespace BotCore.Risk
 
         private async Task CheckSystemResourcesAsync()
         {
-            await Task.Yield().ConfigureAwait(false);
+            await Task.Yield();
             
             var memoryUsage = GC.GetTotalMemory(false);
             var gen0Collections = GC.CollectionCount(0);
@@ -149,7 +149,7 @@ namespace BotCore.Risk
         {
             try
             {
-                await Task.Yield().ConfigureAwait(false);
+                await Task.Yield();
                 // Real database connectivity check would go here
                 _logger.LogDebug("[CRITICAL-SYSTEM] Database connectivity check passed");
             }
@@ -164,7 +164,7 @@ namespace BotCore.Risk
         {
             try
             {
-                await Task.Yield().ConfigureAwait(false);
+                await Task.Yield();
                 // Real API endpoint health check would go here
                 _logger.LogDebug("[CRITICAL-SYSTEM] API endpoints health check passed");
             }
@@ -177,7 +177,7 @@ namespace BotCore.Risk
 
         private async Task PerformIntelligentMemoryCleanupAsync()
         {
-            await Task.Yield().ConfigureAwait(false);
+            await Task.Yield();
             
             // Intelligent cleanup instead of forced GC
             _logger.LogInformation("[CRITICAL-SYSTEM] Performing intelligent memory cleanup");
@@ -193,7 +193,7 @@ namespace BotCore.Risk
 
         private async Task<double> GetCpuUsageAsync()
         {
-            await Task.Yield().ConfigureAwait(false);
+            await Task.Yield();
             // Real CPU usage calculation would go here
             return 15.0; // Placeholder value
         }

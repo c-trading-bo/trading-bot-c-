@@ -100,7 +100,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            await Task.Yield().ConfigureAwait(false); // Ensure async behavior
+            await Task.Yield(); // Ensure async behavior
             
             // In production, this would fetch from TopstepX API or data provider
             // For now, return synthetic data based on current market structure
@@ -437,7 +437,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            await Task.Yield().ConfigureAwait(false); // Ensure async behavior
+            await Task.Yield(); // Ensure async behavior
             
             _logger.LogInformation("[ZONE-SERVICE] Zone interaction recorded: Price={Price}, Outcome={Outcome}", 
                 price, outcome);
@@ -477,7 +477,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     // Helper methods
     private async Task<decimal> GetCurrentPriceAsync(string symbol)
     {
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         // In production, fetch from TopstepX or data provider
         return symbol switch
         {

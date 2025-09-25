@@ -398,7 +398,7 @@ namespace BotCore.Strategy
 
         private static int IndexFromLocalAnchor(IList<Bar> bars, DateTime anchorLocal)
         {
-            for (int i; i < bars.Count; i++)
+            for (int i = 0; i < bars.Count; i++)
             {
                 var t = bars[i].Start; // Start assumed local; if UTC adjust upstream
                 if (t >= anchorLocal) return i;
@@ -408,7 +408,7 @@ namespace BotCore.Strategy
 
         private static (decimal vwap, decimal wvar, decimal wvol) SessionVwapAndVar(IList<Bar> bars, DateTime anchorLocal)
         {
-            decimal wv = 0m, vol;
+            decimal wv = 0m, vol = 0m;
             var idx0 = IndexFromLocalAnchor(bars, anchorLocal);
             if (idx0 < 0) return (0m, 0m, 0m);
             for (int i = idx0; i < bars.Count; i++)
@@ -421,7 +421,7 @@ namespace BotCore.Strategy
             }
             if (vol <= 0) return (0m, 0m, 0m);
             var vwap = wv / vol;
-            decimal num;
+            decimal num = 0m;
             for (int i = idx0; i < bars.Count; i++)
             {
                 var b = bars[i];
@@ -447,8 +447,8 @@ namespace BotCore.Strategy
 
         private static (decimal high, decimal low) InitialBalance(IList<Bar> bars, DateTime startLocal, DateTime endLocal)
         {
-            decimal hi = 0m, lo; bool init;
-            for (int i; i < bars.Count; i++)
+            decimal hi = 0m, lo = 0m; bool init = false;
+            for (int i = 0; i < bars.Count; i++)
             {
                 var t = bars[i].Start;
                 if (t < startLocal) continue;
@@ -460,9 +460,9 @@ namespace BotCore.Strategy
         }
 
         private static int AboveVWAPCount(IList<Bar> b, decimal vwap, int look)
-        { int cnt; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close > vwap) cnt++; return cnt; }
+        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close > vwap) cnt++; return cnt; }
         private static int BelowVWAPCount(IList<Bar> b, decimal vwap, int look)
-        { int cnt; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close < vwap) cnt++; return cnt; }
+        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close < vwap) cnt++; return cnt; }
 
         private static bool BullConfirm(IList<Bar> b)
         {
