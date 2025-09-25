@@ -632,7 +632,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         public string Symbol { get; set; } = string.Empty;
         public DateTime CheckTime { get; set; }
-        public Dictionary<string, MarketDataSnapshot> FeedData { get; } = new();
+        public Dictionary<string, MarketDataSnapshot> FeedData { get; set; } = new();
         public bool IsConsistent { get; set; }
         public decimal PriceDeviation { get; set; }
         public decimal PriceStandardDeviation { get; set; }

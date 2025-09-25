@@ -241,7 +241,7 @@ public sealed class OnnxModelValidationService
         public double SuccessRate { get; set; }
         public double TotalLoadTimeMs { get; set; }
         public long TotalMemoryUsageMB { get; set; }
-        public List<string> FailedModelPaths { get; } = new();
+        public List<string> FailedModelPaths { get; set; } = new();
         public DateTime ValidationDate { get; set; }
     }
 
