@@ -654,7 +654,7 @@ namespace BotCore.Strategy
                     SegmentId = segId;
                     SegmentStartLocal = nowLocal;
                     BoxHigh = hi; BoxLow = lo;
-                    FilledThisSegment; IsInvalid; LastBreakBarIndex = -1;
+                    FilledThisSegment = false; IsInvalid = false; LastBreakBarIndex = -1;
                 }
             }
             public void MarkFilled(int segId, Side side, DateTime nowLocal)
@@ -668,7 +668,7 @@ namespace BotCore.Strategy
                 bool backInside = bars[^1].Close < boxHigh && bars[^1].Close > boxLow;
                 bool midFlipUp = kcMid > bars[^1].Close; bool midFlipDn = kcMid < bars[^1].Close;
                 if (backInside && (midFlipUp || midFlipDn)) { IsInvalid = true; LastBreakBarIndex = bars.Count - 1; }
-                if (IsInvalid && (bars.Count - 1 - LastBreakBarIndex) > earlyInvalidateBars) IsInvalid;
+                if (IsInvalid && (bars.Count - 1 - LastBreakBarIndex) > earlyInvalidateBars) IsInvalid = false;
             }
         }
 

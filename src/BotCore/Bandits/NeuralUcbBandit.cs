@@ -140,7 +140,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
     {
         var featureImportance = new Dictionary<string, decimal>();
-        var totalWeight;
+        var totalWeight = 0m;
 
         foreach (var arm in _arms.Values.ToList())
         {
@@ -255,7 +255,7 @@ internal sealed class NeuralUcbArm
             AverageUncertainty = await GetAverageUncertaintyAsync(ct).ConfigureAwait(false),
             LastUpdated = LastUpdated,
             LastTraining = LastTraining
-        }.ConfigureAwait(false);
+        };
     }
 
     public async Task<Dictionary<string, decimal>> ComputeFeatureImportanceAsync(CancellationToken ct = default)
@@ -556,7 +556,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private static decimal PredictFallback(decimal[] features)
     {
         // Sophisticated fallback using feature analysis
-        var weighted_sum;
+        var weighted_sum = 0m;
         var weights = new decimal[] { 0.3m, 0.2m, 0.15m, 0.1m, 0.1m, 0.05m, 0.05m, 0.03m, 0.01m, 0.01m };
         
         for (int i = 0; i < Math.Min(features.Length, weights.Length); i++)

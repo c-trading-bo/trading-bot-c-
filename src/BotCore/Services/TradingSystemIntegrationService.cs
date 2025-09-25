@@ -1653,7 +1653,7 @@ namespace TopstepX.Bot.Core.Services
             _isTradingEnabled = false;
         }
 
-        private async Task CleanupAsync()
+        private Task CleanupAsync()
         {
             _logger.LogInformation("🧹 Cleaning up trading system resources...");
             
@@ -1662,6 +1662,7 @@ namespace TopstepX.Bot.Core.Services
             _orderConfirmation?.Dispose();
             
             _logger.LogInformation("✅ Trading system cleanup completed");
+            return Task.CompletedTask;
         }
 
         #region Production Readiness Helper Methods
@@ -1717,7 +1718,7 @@ namespace TopstepX.Bot.Core.Services
         private void SetupLiveMarketDataTracking()
         {
             // Track when live data starts flowing
-            var isLiveDataStarted;
+            var isLiveDataStarted = false;
             
             // Monitor for first live tick to start live counting
             _marketDataFlow.OnMarketDataReceived += (type, data) =>
