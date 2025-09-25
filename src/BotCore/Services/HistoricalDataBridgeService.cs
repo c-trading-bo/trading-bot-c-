@@ -362,7 +362,7 @@ namespace BotCore.Services
             }
         }
 
-        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId)
+        private async Task<List<BotCore.Models.Bar>> TryGetCorrelationManagerBarsAsync(string contractId, int barCount)
         {
             try
             {

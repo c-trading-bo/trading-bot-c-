@@ -124,7 +124,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-DATA-FLOW] ❌ Failed to initialize enhanced market data flow");
-                _isHealthy;
+                _isHealthy = false; // Fix CS0201: assign the value
                 return Task.FromResult(false);
             }
         }
@@ -137,7 +137,7 @@ namespace BotCore.Services
             try
             {
                 var currentTime = DateTime.UtcNow;
-                var healthySymbols;
+                var healthySymbols = 0; // Fix CS0818: initialize variable
                 var totalSymbols = _flowMetrics.Count;
                 var issues = new List<string>();
 

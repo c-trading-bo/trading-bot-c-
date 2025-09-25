@@ -99,7 +99,7 @@ public class EnhancedTradingBrainIntegration
             
             // Get ensemble CVaR action
             var convertedDecision = ConvertBrainToTradingDecision(originalBrainDecision);
-            var state = CreateStateVector(marketContext, convertedDecision);
+            var state = CreateStateVector(convertedDecision, marketContext);
             var ensembleAction = await _ensembleService.GetEnsembleActionAsync(
                 state, true, cancellationToken).ConfigureAwait(false);
             
@@ -172,7 +172,8 @@ public class EnhancedTradingBrainIntegration
         EnsemblePrediction strategyPrediction,
         EnsemblePrediction pricePrediction,
         EnsembleActionResult ensembleAction,
-                Dictionary<string, object> marketContext)
+        string symbol,
+        BotCore.Brain.MarketContext marketContext)
     {
         var enhancedDecision = new EnhancedTradingDecision
         {
@@ -320,7 +321,7 @@ public class EnhancedTradingBrainIntegration
     /// <summary>
     /// Calculate market timing signal
     /// </summary>
-    private string CalculateMarketTiming(EnsemblePrediction pricePrediction, EnsembleActionResult ensembleAction)
+    private string CalculateMarketTiming(EnsemblePrediction pricePrediction, EnsembleActionResult ensembleAction, BotCore.Brain.MarketContext marketContext)
     {
         if (pricePrediction.Result is PriceDirectionPrediction pricePred)
         {
@@ -346,7 +347,8 @@ public class EnhancedTradingBrainIntegration
     /// Generate human-readable enhancement reason
     /// </summary>
     private string GenerateEnhancementReason(
-                EnsemblePrediction strategyPred, 
+        BotCore.Brain.TradingDecision originalDecision,
+        EnsemblePrediction strategyPred, 
         EnsemblePrediction pricePred, 
         EnsembleActionResult action)
     {
@@ -508,7 +510,7 @@ public class EnhancedTradingBrainIntegration
     /// <summary>
     /// Track prediction for feedback analysis
     /// </summary>
-    private void TrackPredictionForFeedback(EnhancedTradingDecision decision, string symbol)
+    private void TrackPredictionForFeedback(EnhancedTradingDecision decision, string symbol, BotCore.Brain.MarketContext marketContext)
     {
         try
         {
@@ -540,24 +542,43 @@ public class EnhancedTradingBrainIntegration
 
     #region Helper Methods
 
-    private double[] ExtractContextVector()
+    private double[] ExtractContextVector(BotCore.Brain.MarketContext marketContext)
     {
         // Extract and normalize market context into feature vector
-        // This is a simplified implementation
-        return new double[] { 0.5, 0.3, 0.7, 0.2, 0.8 };
+        return new double[] { 
+            (double)marketContext.CurrentPrice / 5000.0, // Normalized price
+            (double)marketContext.Volume / 100000.0, // Normalized volume
+            (double)marketContext.Volatility, // Volatility
+            marketContext.TimeOfDay.TotalHours / 24.0, // Time of day
+            (double)marketContext.VolumeRatio // Volume ratio
+        };
     }
 
-    private double[] ExtractMarketFeatures()
+    private double[] ExtractMarketFeatures(BotCore.Brain.MarketContext marketContext)
     {
         // Extract market features for price prediction
-        // This is a simplified implementation
-        return new double[] { 0.6, 0.4, 0.9, 0.1, 0.5, 0.7 };
+        return new double[] { 
+            (double)marketContext.CurrentPrice, // Current price
+            (double)marketContext.Volume, // Volume
+            (double)marketContext.Volatility, // Volatility
+            (double)marketContext.PriceChange, // Price change
+            (double)marketContext.VolumeRatio, // Volume ratio
+            marketContext.TimeOfDay.TotalHours // Time factor
+        };
     }
 
-    private double[] CreateStateVector(BotCore.Brain.TradingDecision decision)
+    private double[] CreateStateVector(BotCore.Brain.TradingDecision decision, BotCore.Brain.MarketContext marketContext)
     {
         // Create state vector for CVaR-PPO
-        // This is a simplified implementation
+        return new double[] { 
+            (double)decision.Confidence, // Decision confidence
+            (double)marketContext.CurrentPrice, // Current price
+            (double)marketContext.Volume, // Market volume
+            (double)marketContext.Volatility, // Volatility
+            decision.Action == BotCore.Brain.TradingAction.Buy ? 1.0 : 
+            decision.Action == BotCore.Brain.TradingAction.Sell ? -1.0 : 0.0 // Action encoding
+        };
+    }
         return new double[] { (double)decision.Confidence, 1.0, 0.5, 0.3 }; // Use default 1.0 since no PositionSize property
     }
 
