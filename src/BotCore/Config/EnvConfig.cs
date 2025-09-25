@@ -253,7 +253,7 @@ public static class EnvConfig
             return new PrecheckResult 
             { 
                 IsValid = false, 
-                FailureReason = "SignalR hubs not connected" 
+                FailureReason = "SDK connections not established" 
             };
         }
 

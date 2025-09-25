@@ -344,6 +344,8 @@ namespace TradingBot.Critical
 
         public void AddPendingOrder(OrderRecord order)
         {
+            if (order is null) throw new ArgumentNullException(nameof(order));
+            
             _pendingOrders[order.OrderId] = order;
             _logger.LogInformation("[ORDER] Added pending order {OrderId} {Symbol} {Side} {Qty}@{Price}", 
                 order.OrderId, order.Symbol, order.Side, order.Quantity, order.Price);
