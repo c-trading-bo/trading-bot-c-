@@ -152,7 +152,7 @@ namespace BotCore.Services
                 // Add ES/NQ correlation check
                 if (ShouldCheckCorrelation(instrument))
                 {
-                    var correlation = CheckES_NQ_Correlation(instrument, bestSignal, data);
+                    var correlation = CheckES_NQ_Correlation(instrument);
                     if (correlation.ShouldVeto)
                     {
                         _logger.LogInformation($"Signal vetoed due to ES/NQ correlation: {correlation.Reason}");
@@ -200,7 +200,7 @@ namespace BotCore.Services
             try
             {
                 // Professional ML-based regime detection using existing ONNX infrastructure
-                var features = ExtractRegimeFeatures(instrument, data, bars);
+                var features = ExtractRegimeFeatures(data, bars);
                 
                 // Use existing ONNX model for regime classification
                 if (_onnxLoader != null)
@@ -219,7 +219,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[TIME-STRATEGY] Error in ML regime detection, using fallback");
-                return GetRegimeFallback(ExtractRegimeFeatures(instrument, data, bars));
+                return GetRegimeFallback(ExtractRegimeFeatures(data, bars));
             }
         }
 
@@ -351,8 +351,8 @@ namespace BotCore.Services
             // Use existing AllStrategies system to generate candidates
             try
             {
-                var env = CreateEnvironment(data, bars);
-                var levels = CreateLevels(bars);
+                var env = CreateEnvironment(bars);
+                var levels = CreateLevels();
                 var riskEngine = new BotCore.Risk.RiskEngine();
 
                 return AllStrategies.generate_candidates(instrument, env, levels, bars.ToList(), riskEngine)
@@ -532,7 +532,7 @@ namespace BotCore.Services
         private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument)
         {
             // ES/NQ correlation analysis using advanced statistical methods
-            var correlation = CalculateRealTimeCorrelation(instrument);
+            var correlation = CalculateRealTimeCorrelation();
             
             var result = new ES_NQ_Correlation
             {

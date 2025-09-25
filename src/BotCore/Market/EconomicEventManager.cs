@@ -214,7 +214,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
 
             if (!string.IsNullOrEmpty(economicDataSource) && !string.IsNullOrEmpty(economicApiKey))
             {
-                events = await LoadFromExternalSourceAsync(economicDataSource, economicApiKey).ConfigureAwait(false);
+                events = await LoadFromExternalSourceAsync(economicDataSource).ConfigureAwait(false);
             }
             else
             {
@@ -419,7 +419,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                     foreach (var symbol in economicEvent.AffectedSymbols)
                     {
                         affectedSymbols.Add(symbol);
-                        UpdateRestrictionForSymbol(symbol, economicEvent, timeUntilEvent);
+                        UpdateRestrictionForSymbol(symbol, economicEvent);
                     }
                 }
             }
