@@ -26,15 +26,19 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public ConfigSnapshot CreateSnapshot(string positionId, IServiceProvider serviceProvider)
         {
+            if (positionId is null) throw new ArgumentNullException(nameof(positionId));
+            if (serviceProvider is null) throw new ArgumentNullException(nameof(serviceProvider));
+            
             lock (_snapshotLock)
             {
                 var snapshot = new ConfigSnapshot
                 {
                     Id = Guid.NewGuid().ToString("N")[..12], // 12-character snapshot ID
                     PositionId = positionId,
-                    CreatedAt = DateTime.UtcNow,
-                    Values = CaptureConfigurationValues(serviceProvider)
+                    CreatedAt = DateTime.UtcNow
                 };
+                
+                snapshot.ReplaceValues(CaptureConfigurationValues(serviceProvider));
 
                 _activeSnapshots[positionId] = snapshot;
 
@@ -155,7 +159,23 @@ namespace TradingBot.BotCore.Services
         public string Id { get; set; } = string.Empty;
         public string PositionId { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-        public Dictionary<string, object> Values { get; set; } = new();
+        private readonly Dictionary<string, object> _values = new();
+        public IReadOnlyDictionary<string, object> Values => _values;
+        
+        public void ReplaceValues(IEnumerable<KeyValuePair<string, object>> values)
+        {
+            _values.Clear();
+            if (values != null)
+            {
+                foreach (var kvp in values)
+                    _values[kvp.Key] = kvp.Value;
+            }
+        }
+        
+        public void SetValue(string key, object value)
+        {
+            if (key != null) _values[key] = value;
+        }
 
         /// <summary>
         /// Get a typed configuration value from the snapshot

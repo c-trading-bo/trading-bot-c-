@@ -1302,6 +1302,8 @@ namespace TradingBot.Critical
 
         public void AddPosition(Position position)
         {
+            if (position is null) throw new ArgumentNullException(nameof(position));
+            
             _activePositions[position.Symbol] = position;
         }
 

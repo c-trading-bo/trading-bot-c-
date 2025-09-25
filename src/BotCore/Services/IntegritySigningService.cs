@@ -78,6 +78,9 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public async Task<SignedManifest> CreateSignedManifestAsync(string manifestName, IEnumerable<string> filePaths)
         {
+            if (manifestName is null) throw new ArgumentNullException(nameof(manifestName));
+            if (filePaths is null) throw new ArgumentNullException(nameof(filePaths));
+            
             try
             {
                 var manifest = new SignedManifest

@@ -56,6 +56,11 @@ namespace BotCore.Strategy
             IList<Bar> bars,
             string? customSignalId = null)
         {
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            if (strategyId is null) throw new ArgumentNullException(nameof(strategyId));
+            if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             try
             {
                 if (!StrategyTypeMapping.TryGetValue(strategyId, out var strategyType))
