@@ -504,8 +504,8 @@ public class MLModelHealthCheck : IHealthCheck
         try
         {
             var modelDirectory = Path.Combine(Directory.GetCurrentDirectory(), "models");
-            var modelsFound;
-            var modelsLoaded;
+            var modelsFound = 0;
+            var modelsLoaded = 0;
 
             var data = new Dictionary<string, object>
             {

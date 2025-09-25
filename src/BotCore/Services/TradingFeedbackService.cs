@@ -137,7 +137,7 @@ public class TradingFeedbackService : BackgroundService
     /// </summary>
     private async Task ProcessFeedbackQueue(CancellationToken cancellationToken)
     {
-        var processedCount;
+        var processedCount = 0;
         var outcomes = new List<TradingOutcome>();
         
         // Dequeue all pending outcomes

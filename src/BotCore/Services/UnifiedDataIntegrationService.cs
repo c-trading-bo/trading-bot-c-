@@ -224,7 +224,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             var historicalBars = GenerateHistoricalBars(symbol, _config.MinHistoricalBars);
             
             // Process bars through the SAME pipeline as live data
-            var barsProcessed;
+            var barsProcessed = 0;
             foreach (var bar in historicalBars)
             {
                 // Process through unified pipeline

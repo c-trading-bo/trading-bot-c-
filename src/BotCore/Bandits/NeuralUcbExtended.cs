@@ -437,7 +437,7 @@ public class NeuralUcbExtended : IDisposable
         features["bracketTimeScore"] = CalculateBracketTimeScore(DateTime.UtcNow);
         features["bracketRiskEnvironment"] = CalculateBracketRiskEnvironment(marketContext);
         
-        return new ContextVector(features);
+        return new ContextVector { Features = features };
     }
     
     /// <summary>
@@ -459,7 +459,7 @@ public class NeuralUcbExtended : IDisposable
             
         // Volume volatility indicator
         var volumeVolatility = marketContext.Volume > 0 
-            ? (decimal)Math.Min(marketContext.Volume / 1000000, 1.0) // Normalize volume
+            ? (decimal)Math.Min(marketContext.Volume / 1000000.0, 1.0) // Normalize volume
             : 0m;
         
         // Weighted combination favoring spread and ATR
