@@ -58,7 +58,7 @@ public class WalkForwardTrainer
         };
 
         var currentDate = startDate;
-        var foldNumber;
+        var foldNumber = 0;
 
         Console.WriteLine($"[WALK-FORWARD] Starting training from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
         Console.WriteLine($"[WALK-FORWARD] Training window: {_config.TrainingWindowDays} days, " +
@@ -342,7 +342,7 @@ public class WalkForwardTrainer
             return new ValidationMetrics();
         }
 
-        var correct;
+        var correct = 0;
         var brierSum = 0m;
         var logLossSum = 0m;
 

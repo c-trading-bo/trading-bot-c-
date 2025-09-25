@@ -693,7 +693,7 @@ namespace BotCore
         /// </summary>
         public static int GetTotalTrainingSampleCount()
         {
-            var totalCount;
+            var totalCount = 0;
 
             try
             {

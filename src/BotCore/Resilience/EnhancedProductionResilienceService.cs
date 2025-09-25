@@ -130,7 +130,7 @@ public class EnhancedProductionResilienceService
         
         return policy.ExecuteAsync(async (ct) =>
         {
-            _logger.LogDebug("🔧 [RESILIENCE] Executing {Operation} with resilience protection", operationName).ConfigureAwait(false);
+            _logger.LogDebug("🔧 [RESILIENCE] Executing {Operation} with resilience protection", operationName);
             return await operation(ct).ConfigureAwait(false);
         }, cancellationToken);
     }
@@ -147,7 +147,7 @@ public class EnhancedProductionResilienceService
         
         return policy.ExecuteAsync(async (ct) =>
         {
-            _logger.LogDebug("🌐 [RESILIENCE] Executing HTTP {Operation} with full resilience stack", operationName).ConfigureAwait(false);
+            _logger.LogDebug("🌐 [RESILIENCE] Executing HTTP {Operation} with full resilience stack", operationName);
             return await httpOperation(ct).ConfigureAwait(false);
         }, cancellationToken);
     }

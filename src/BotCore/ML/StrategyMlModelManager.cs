@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 
 namespace BotCore.ML
 {
@@ -170,7 +171,8 @@ namespace BotCore.ML
                 {
                     try
                     {
-                        // Load model asynchronously with proper await var session = await _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false).ConfigureAwait(false);
+                        // Load model asynchronously with proper await
+                        var session = await _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false).ConfigureAwait(false);
                         if (session != null)
                         {
                             // Create simple feature array for the model
@@ -383,8 +385,8 @@ namespace BotCore.ML
         {
             if (bars.Count < period + 1) return 50m;
 
-            var gains;
-            var losses;
+            var gains = 0m;
+            var losses = 0m;
 
             for (int i = bars.Count - period; i < bars.Count; i++)
             {
