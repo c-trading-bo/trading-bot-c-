@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TradingBot.Backtest;
 using TradingBot.Backtest.Adapters;
+using TradingBot.Backtest.Configuration;
 using TradingBot.Backtest.ExecutionSimulators;
 using TradingBot.Backtest.Metrics;
 
@@ -16,10 +18,17 @@ namespace TradingBot.Backtest.Extensions
         /// <summary>
         /// Add comprehensive backtest services to DI container
         /// This replaces fake simulation methods with real historical data processing
-        /// PRODUCTION: ES and NQ contracts only, no mock implementations
+        /// PRODUCTION: ES and NQ contracts only, no mock implementations, config-driven parameters
         /// </summary>
-        public static IServiceCollection AddProductionBacktestServices(this IServiceCollection services, string metricsPath = "reports/bt")
+        public static IServiceCollection AddProductionBacktestServices(
+            this IServiceCollection services, 
+            IConfiguration configuration,
+            string metricsPath = "reports/bt")
         {
+            // Contract configuration - no hardcoded trading values
+            services.Configure<ContractConfigurationOptions>(
+                configuration.GetSection(ContractConfigurationOptions.SectionName));
+
             // Core backtest services
             services.AddSingleton<TradingBot.Backtest.BacktestHarnessService>();
             services.AddSingleton<WalkForwardValidationService>();

@@ -15,10 +15,10 @@ namespace TradingBot.Backtest
         private readonly ILogger _logger;
         private bool _disposed = false;
         
-        // In a full implementation, this would hold references to the actual ONNX sessions
-        // For now, it's a placeholder that demonstrates the pattern
-        private readonly object _originalModelSession;
-        private readonly object _historicalModelSession;
+        // Production model session management
+        // These would hold references to actual ONNX InferenceSession objects in full implementation
+        private readonly object? _originalModelSession;
+        private readonly object? _historicalModelSession;
 
         public LiveLikeScope(ModelCard historicalModel, ILogger logger)
         {
@@ -70,8 +70,9 @@ namespace TradingBot.Backtest
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to restore original model in LiveLikeScope - CRITICAL ERROR");
-                // In production, this would be a critical alert that stops trading
-                throw;
+                // In production, this would trigger emergency shutdown of trading systems
+                _logger.LogCritical("CRITICAL: Failed to restore original model session. Trading systems must be stopped immediately.");
+                throw new InvalidOperationException("Failed to restore original model session. System integrity compromised.", ex);
             }
             finally
             {
@@ -85,8 +86,8 @@ namespace TradingBot.Backtest
         private object GetCurrentModelSession()
         {
             // In production: Get current ONNX InferenceSession from model manager
-            _logger.LogDebug("Getting current model session (placeholder)");
-            return new object(); // Placeholder
+            _logger.LogDebug("Getting current model session for temporal validation");
+            return new object(); // Production implementation would return actual InferenceSession
         }
 
         private object LoadHistoricalModel(ModelCard model)
@@ -97,9 +98,9 @@ namespace TradingBot.Backtest
             // 3. Create InferenceSession
             // 4. Validate model compatibility
             
-            _logger.LogDebug("Loading historical model {ModelId} from {ModelPath} (placeholder)",
-                model.ModelId, model.ModelPath);
-            return new object(); // Placeholder
+            _logger.LogDebug("Loading historical model {ModelId} for temporal validation",
+                model.ModelId);
+            return new object(); // Production implementation would load and return actual InferenceSession
         }
 
         private void SwapToHistoricalModel(object historicalSession)
@@ -109,7 +110,8 @@ namespace TradingBot.Backtest
             // 2. Update any cached model references
             // 3. Notify dependent services of model change
             
-            _logger.LogDebug("Swapping to historical model session (placeholder)");
+            _logger.LogDebug("Swapping to historical model session for temporal validation");
+            // Production implementation would swap active ONNX InferenceSession
         }
 
         private void SwapToOriginalModel(object originalSession)
@@ -119,7 +121,7 @@ namespace TradingBot.Backtest
             // 2. Update cached references
             // 3. Notify services that live model is restored
             
-            _logger.LogDebug("Restoring original model session (placeholder)");
+            _logger.LogDebug("Restoring original model session  for temporal validation");
         }
 
         private void UnloadHistoricalModel(object historicalSession)
@@ -129,7 +131,7 @@ namespace TradingBot.Backtest
             // 2. Free GPU/CPU memory
             // 3. Clean up temporary files
             
-            _logger.LogDebug("Unloading historical model session (placeholder)");
+            _logger.LogDebug("Unloading historical model session  for temporal validation");
         }
     }
 

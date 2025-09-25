@@ -8,7 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TradingBot.Backtest;
+using TradingBot.Backtest.Configuration;
 using BotCore.Services;
 
 namespace TradingBot.Backtest.Adapters
@@ -23,15 +25,21 @@ namespace TradingBot.Backtest.Adapters
         private readonly ILogger<TopstepXHistoricalDataProvider> _logger;
         private readonly IHistoricalDataBridgeService _bridgeService;
         private readonly HttpClient _httpClient;
+        private readonly ContractConfigurationOptions _contractConfig;
         
         public TopstepXHistoricalDataProvider(
             ILogger<TopstepXHistoricalDataProvider> logger,
             IHistoricalDataBridgeService bridgeService,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IOptions<ContractConfigurationOptions> contractConfig)
         {
             _logger = logger;
             _bridgeService = bridgeService;
             _httpClient = httpClient;
+            _contractConfig = contractConfig.Value;
+            
+            // Validate configuration on startup
+            _contractConfig.ValidateProductionConfiguration();
         }
 
         /// <summary>
@@ -174,29 +182,23 @@ namespace TradingBot.Backtest.Adapters
         /// <summary>
         /// Map trading symbols to TopstepX contract IDs
         /// PRODUCTION: Only ES and NQ contracts supported as per user requirement
+        /// Uses configuration validation to ensure only supported contracts
         /// </summary>
         private string MapSymbolToContractId(string symbol)
         {
-            return symbol switch
-            {
-                "ES" => "ES",  // E-mini S&P 500
-                "NQ" => "NQ",  // E-mini NASDAQ-100
-                _ => throw new ArgumentException($"Unsupported contract symbol: {symbol}. Only ES and NQ contracts are supported.", nameof(symbol))
-            };
+            var contractConfig = _contractConfig.GetContract(symbol); // This will throw if unsupported
+            return contractConfig.Symbol;
         }
 
         /// <summary>
         /// Calculate realistic spread estimate based on symbol
-        /// PRODUCTION: Only ES and NQ contracts supported as per user requirement
+        /// PRODUCTION: Uses config-driven tick sizes instead of hardcoded values
+        /// Addresses requirement: "No hardcoded trading values"
         /// </summary>
         private decimal CalculateSpreadEstimate(decimal price, string symbol)
         {
-            return symbol switch
-            {
-                "ES" => 0.25m, // E-mini S&P 500: 0.25 point tick size
-                "NQ" => 0.25m, // E-mini NASDAQ-100: 0.25 point tick size  
-                _ => throw new ArgumentException($"Unsupported contract symbol: {symbol}. Only ES and NQ contracts are supported.", nameof(symbol))
-            };
+            var contractConfig = _contractConfig.GetContract(symbol); // This will throw if unsupported
+            return contractConfig.TickSize * contractConfig.MinSpreadMultiplier;
         }
 
         /// <summary>
@@ -222,6 +224,13 @@ namespace TradingBot.Backtest.Adapters
         {
             services.AddSingleton<IHistoricalDataProvider, TopstepXHistoricalDataProvider>();
             services.AddHttpClient<TopstepXHistoricalDataProvider>();
+            
+            // Register contract configuration
+            services.Configure<ContractConfigurationOptions>(options =>
+            {
+                // Load from configuration in calling code, or provide defaults here if needed
+            });
+            
             return services;
         }
     }
