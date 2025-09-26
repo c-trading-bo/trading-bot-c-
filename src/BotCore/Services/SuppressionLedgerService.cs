@@ -307,9 +307,21 @@ namespace TradingBot.BotCore.Services
                         result.MissingLedgerEntries.Count);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "🚨 [SUPPRESSION] Error validating code suppressions");
+                _logger.LogError(ex, "🚨 [SUPPRESSION] File I/O error validating code suppressions");
+                result.ValidationError = ex.Message;
+                result.IsValid = false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "🚨 [SUPPRESSION] Access denied validating code suppressions");
+                result.ValidationError = ex.Message;
+                result.IsValid = false;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "🚨 [SUPPRESSION] Invalid argument validating code suppressions");
                 result.ValidationError = ex.Message;
                 result.IsValid = false;
             }
@@ -366,9 +378,17 @@ namespace TradingBot.BotCore.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error loading existing suppression ledger");
+                _logger.LogError(ex, "File I/O error loading existing suppression ledger");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied loading existing suppression ledger");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error loading existing suppression ledger");
             }
         }
 
@@ -384,9 +404,17 @@ namespace TradingBot.BotCore.Services
                 
                 await File.WriteAllTextAsync(_ledgerPath, json).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error saving suppression ledger");
+                _logger.LogError(ex, "File I/O error saving suppression ledger");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied saving suppression ledger");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error saving suppression ledger");
             }
         }
 
