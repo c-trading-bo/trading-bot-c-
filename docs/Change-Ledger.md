@@ -418,7 +418,46 @@ private decimal SampleBeta(decimal alpha, decimal beta) { ... }
 private static decimal SampleBeta(decimal alpha, decimal beta) { ... }
 ```
 
-**Rationale**: Applied immutable-by-default collection patterns for domain integrity and made utility methods static for performance optimization. Fixed compilation errors to maintain Phase 1 completion.
+#### Round 11 - Magic Numbers & Collection Immutability Continuation (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 3152 | ~3147 | NeuralUcbExtended.cs, EnhancedProductionResilienceService.cs | Named constants for scalping hours and resilience configuration ranges |
+| CA1002 | 200 | 197 | IntegritySigningService.cs, OnnxModelCompatibilityService.cs | Applied read-only collection pattern with Replace/Add methods |
+| CA1822 | 334 | 331 | WalkForwardTrainer.cs, TripleBarrierLabeler.cs | Made utility methods static for ML validation and barrier calculations |
+
+**Example Pattern - Magic Number Constants (S109)**:
+```csharp
+// Before (Violation)
+public (int Start, int End) ScalpingHours { get; init; } = (9, 16);
+[Range(1, 10)] public int MaxRetries { get; set; } = 3;
+
+// After (Compliant)
+private const int DefaultScalpingStartHour = 9;
+private const int DefaultScalpingEndHour = 16;
+private const int MinRetries = 1;
+private const int MaxRetriesLimit = 10;
+
+public (int Start, int End) ScalpingHours { get; init; } = (DefaultScalpingStartHour, DefaultScalpingEndHour);
+[Range(MinRetries, MaxRetriesLimit)] public int MaxRetries { get; set; } = 3;
+```
+
+**Example Pattern - ML Model Collection Safety (CA1002)**:
+```csharp
+// Before (Violation)
+public List<TensorSpec> InputSpecs { get; set; } = new();
+
+// After (Compliant)
+private readonly List<TensorSpec> _inputSpecs = new();
+public IReadOnlyList<TensorSpec> InputSpecs => _inputSpecs;
+
+public void ReplaceInputSpecs(IEnumerable<TensorSpec> specs)
+{
+    _inputSpecs.Clear();
+    if (specs != null) _inputSpecs.AddRange(specs);
+}
+```
+
+**Rationale**: Continued systematic Phase 2 execution targeting high-priority violations. Applied configuration-driven constants for trading hours and resilience settings, enhanced ML model safety with immutable collections, and optimized statistical calculations for performance.
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |

@@ -301,7 +301,7 @@ public class WalkForwardTrainer
     /// <summary>
     /// Fallback evaluation using feature-based prediction when ONNX fails
     /// </summary>
-    private async Task<ValidationMetrics> EvaluateWithFeatureBasedPrediction(List<LabeledTradeData> testData)
+    private static async Task<ValidationMetrics> EvaluateWithFeatureBasedPrediction(List<LabeledTradeData> testData)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -376,7 +376,7 @@ public class WalkForwardTrainer
         };
     }
 
-    private ValidationMetrics CalculateOverallMetrics(List<ValidationFold> folds)
+    private static ValidationMetrics CalculateOverallMetrics(List<ValidationFold> folds)
     {
         var completedFolds = folds.Where(f => f.Status == FoldStatus.Completed && f.Metrics != null).ToList();
 

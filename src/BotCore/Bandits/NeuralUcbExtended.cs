@@ -711,7 +711,11 @@ public record BracketSelectionConfig
     /// <summary>
     /// Market hours when scalping brackets are preferred (24-hour format)
     /// </summary>
-    public (int Start, int End) ScalpingHours { get; init; } = (9, 16); // 9 AM to 4 PM EST
+    public (int Start, int End) ScalpingHours { get; init; } = (DefaultScalpingStartHour, DefaultScalpingEndHour); // 9 AM to 4 PM EST
+
+    // Constants for scalping hours
+    private const int DefaultScalpingStartHour = 9;  // 9 AM EST
+    private const int DefaultScalpingEndHour = 16;   // 4 PM EST
 }
 
 /// <summary>
