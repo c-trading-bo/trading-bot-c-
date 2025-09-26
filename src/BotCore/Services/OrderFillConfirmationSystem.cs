@@ -196,7 +196,7 @@ namespace TopstepX.Bot.Core.Services
                 };
                 
                 var json = JsonSerializer.Serialize(orderPayload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
                 // FIXED: Use correct ProjectX endpoint
                 var response = await _httpClient.PostAsync("/api/Order/place", content).ConfigureAwait(false);

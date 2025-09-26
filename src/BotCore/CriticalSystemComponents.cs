@@ -1057,8 +1057,8 @@ namespace TradingBot.Critical
         private static Task<bool> CheckOrderExists() => Task.FromResult(false);
         private static decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
         private static decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
-        private Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
-        private Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
+        private static Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
+        private static Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);
         private async Task ExecuteEmergencyOrder(Order order) 
         {

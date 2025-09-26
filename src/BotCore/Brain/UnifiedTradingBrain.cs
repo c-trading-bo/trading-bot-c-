@@ -429,7 +429,7 @@ namespace BotCore.Brain
             return Math.Clamp(baseReward * (decimal)learningStrength, 0m, 1m);
         }
         
-        private string[] GetCurrentMarketConditions(MarketContext context)
+        private static string[] GetCurrentMarketConditions(MarketContext context)
         {
             var conditions = new List<string>();
             
@@ -993,7 +993,7 @@ namespace BotCore.Brain
             return availableStrategies;
         }
 
-        private Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>> GetStrategyFunction(string strategy)
+        private static Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>> GetStrategyFunction(string strategy)
         {
             // Map to your ACTUALLY USED strategy functions in AllStrategies.cs
             return strategy switch

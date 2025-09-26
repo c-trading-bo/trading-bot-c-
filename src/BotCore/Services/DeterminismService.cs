@@ -72,9 +72,8 @@ namespace TradingBot.BotCore.Services
             var globalSeed = _config.GetValue("Determinism:GlobalSeed", 42);
             
             // Create deterministic hash from global seed and component name
-            using var sha256 = SHA256.Create();
             var input = Encoding.UTF8.GetBytes($"{globalSeed}-{componentName}");
-            var hash = sha256.ComputeHash(input);
+            var hash = SHA256.HashData(input);
             
             // Convert first 4 bytes of hash to int
             return BitConverter.ToInt32(hash, 0);
@@ -195,9 +194,8 @@ namespace TradingBot.BotCore.Services
 
             var globalSeed = _config.GetValue("Determinism:GlobalSeed", 42);
             
-            using var sha256 = SHA256.Create();
             var seedInput = Encoding.UTF8.GetBytes($"{globalSeed}-{input}");
-            var hash = sha256.ComputeHash(seedInput);
+            var hash = SHA256.HashData(seedInput);
             
             // Take first 16 bytes for GUID
             var guidBytes = new byte[16];

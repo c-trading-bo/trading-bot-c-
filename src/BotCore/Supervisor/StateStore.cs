@@ -7,6 +7,9 @@ namespace BotCore.Supervisor
     {
         private readonly string _path = path ?? Path.Combine(AppContext.BaseDirectory, "bot_state.json");
 
+        // Cached JsonSerializerOptions for performance (CA1869 compliance)
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
         public sealed class Snapshot
         {
             public Dictionary<string, DateTime>? RecentRoutes { get; set; }
@@ -30,7 +33,7 @@ namespace BotCore.Supervisor
         {
             try
             {
-                var json = JsonSerializer.Serialize(snap, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(snap, JsonOptions);
                 File.WriteAllText(_path, json);
             }
             catch { }

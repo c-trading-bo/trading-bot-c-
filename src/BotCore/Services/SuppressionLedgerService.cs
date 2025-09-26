@@ -20,6 +20,13 @@ namespace TradingBot.BotCore.Services
         private readonly List<SuppressionEntry> _suppressions = new();
         private readonly object _ledgerLock = new();
 
+        // Cached JsonSerializerOptions for performance (CA1869 compliance)
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        { 
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
         // LoggerMessage delegates for improved performance (CA1848 compliance)
         private static readonly Action<ILogger, int, Exception?> _logLedgerInitialized = 
             LoggerMessage.Define<int>(LogLevel.Information, new EventId(2001, "LedgerInit"), 
@@ -223,13 +230,13 @@ namespace TradingBot.BotCore.Services
                 // Group by rule
                 foreach (var suppression in _suppressions)
                 {
-                    if (report.SuppressionsByRule.ContainsKey(suppression.RuleId))
-                        report.SuppressionsByRule[suppression.RuleId]++;
+                    if (report.SuppressionsByRule.TryGetValue(suppression.RuleId, out var ruleCount))
+                        report.SuppressionsByRule[suppression.RuleId] = ruleCount + 1;
                     else
                         report.SuppressionsByRule[suppression.RuleId] = 1;
 
-                    if (report.SuppressionsByAuthor.ContainsKey(suppression.Author))
-                        report.SuppressionsByAuthor[suppression.Author]++;
+                    if (report.SuppressionsByAuthor.TryGetValue(suppression.Author, out var authorCount))
+                        report.SuppressionsByAuthor[suppression.Author] = authorCount + 1;
                     else
                         report.SuppressionsByAuthor[suppression.Author] = 1;
                 }
@@ -307,9 +314,21 @@ namespace TradingBot.BotCore.Services
                         result.MissingLedgerEntries.Count);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "🚨 [SUPPRESSION] Error validating code suppressions");
+                _logger.LogError(ex, "🚨 [SUPPRESSION] File I/O error validating code suppressions");
+                result.ValidationError = ex.Message;
+                result.IsValid = false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "🚨 [SUPPRESSION] Access denied validating code suppressions");
+                result.ValidationError = ex.Message;
+                result.IsValid = false;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "🚨 [SUPPRESSION] Invalid argument validating code suppressions");
                 result.ValidationError = ex.Message;
                 result.IsValid = false;
             }
@@ -366,9 +385,17 @@ namespace TradingBot.BotCore.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error loading existing suppression ledger");
+                _logger.LogError(ex, "File I/O error loading existing suppression ledger");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied loading existing suppression ledger");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error loading existing suppression ledger");
             }
         }
 
@@ -376,17 +403,21 @@ namespace TradingBot.BotCore.Services
         {
             try
             {
-                var json = JsonSerializer.Serialize(_suppressions, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true,
-                    Converters = { new JsonStringEnumConverter() }
-                });
+                var json = JsonSerializer.Serialize(_suppressions, JsonOptions);
                 
                 await File.WriteAllTextAsync(_ledgerPath, json).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error saving suppression ledger");
+                _logger.LogError(ex, "File I/O error saving suppression ledger");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied saving suppression ledger");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error saving suppression ledger");
             }
         }
 

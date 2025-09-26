@@ -76,7 +76,7 @@ namespace BotCore.Auth
                 _logger.LogInformation("Refreshing TopstepX JWT token...");
 
                 // Use TopstepX API endpoint for authentication
-                var request = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
+                using var request = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
                 {
                     Content = new StringContent(
                         JsonSerializer.Serialize(new { userName = _username, apiKey = _apiKey }),

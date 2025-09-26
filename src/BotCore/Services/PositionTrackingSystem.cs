@@ -166,7 +166,7 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
-        private void UpdatePositionFromFill(Position position, Fill fill)
+        private static void UpdatePositionFromFill(Position position, Fill fill)
         {
             var oldQuantity = position.NetQuantity;
             var oldAvgPrice = position.AveragePrice;

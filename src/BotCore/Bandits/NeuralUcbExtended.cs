@@ -577,7 +577,7 @@ public class NeuralUcbExtended : IDisposable
             
             _bundleSelectionCount[bundleId] = _bundleSelectionCount.GetValueOrDefault(bundleId, 0) + 1;
             
-            if (!_bundlePerformance.ContainsKey(bundleId))
+            if (!_bundlePerformance.TryGetValue(bundleId, out var _))
             {
                 _bundlePerformance[bundleId] = new BundlePerformance
                 {

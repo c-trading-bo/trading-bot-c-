@@ -41,6 +41,8 @@ public class TripleBarrierLabeler
         List<HistoricalTradeSignal> signals,
         CancellationToken ct = default)
     {
+        if (signals is null) throw new ArgumentNullException(nameof(signals));
+        
         var labeled = new List<LabeledTradeData>();
 
         foreach (var signal in signals)
