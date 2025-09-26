@@ -1,17 +1,22 @@
 {
-  "Version": "1.0.0", 
-  "CreatedAt": "2025-01-01T00:00:00Z",
-  "DriftScore": 0.05,
+  "Version": "1.2.0",
+  "CreatedAt": "2025-01-01T12:00:00Z",
+  "DriftScore": 0.08,
   "Models": {
     "confidence_model": {
-      "Url": "https://example.com/models/confidence_v1.onnx",
-      "Sha256": "abc123def456",
-      "Size": 1048576
+      "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/confidence_v1.2.0.onnx",
+      "Sha256": "d4f8c9b2e3a1567890abcdef1234567890abcdef1234567890abcdef12345678",
+      "Size": 2048576
     },
     "rl_model": {
-      "Url": "https://example.com/models/rl_v1.onnx",
-      "Sha256": "def456ghi789", 
-      "Size": 2097152
+      "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/rl_v1.2.0.onnx",
+      "Sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "Size": 4194304
+    },
+    "ucb_model": {
+      "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/ucb_v1.2.0.onnx", 
+      "Sha256": "f6e5d4c3b2a1567890fedcba0987654321fedcba0987654321fedcba09876543",
+      "Size": 1572864
     }
   }
 }

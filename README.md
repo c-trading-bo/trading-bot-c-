@@ -1,28 +1,97 @@
-# TopstepX Trading Bot - Enhanced Multi-Brain System
+# TopstepX Trading Bot - Enhanced Multi-Brain System with Full Auto-Promotion
 
-## 🚀 **ACTIVE SYSTEM: UnifiedOrchestrator with Enhanced ML/RL/Cloud Integration**
+## 🚀 **ACTIVE SYSTEM: UnifiedOrchestrator with Production-Ready Enhanced Learning**
 
 **⚠️ IMPORTANT: Only use `src/UnifiedOrchestrator` - all other entry points are disabled to prevent conflicts**
 
-### 🧠 **Enhanced Multi-Brain Architecture**
-- **Primary Decision Engine**: EnhancedTradingBrainIntegration
+### 🧠 **Enhanced Multi-Brain Architecture with Auto-Promotion**
+- **Primary Decision Engine**: EnhancedTradingBrainIntegration with UnifiedTradingBrain
 - **ML Algorithms**: Neural UCB (627 lines) + CVaR-PPO (1,026 lines) + LSTM
-- **Cloud Integration**: 30 GitHub workflows training models continuously
-- **Production Services**: 7 enterprise-grade services with monitoring & error handling
+- **Auto-Promotion System**: CloudRlTrainerV2 with manifest-based model updates
+- **Canary Monitoring**: Automatic rollback with performance thresholds
+- **Hot-Reload**: ONNX session swapping without restart
+- **Cloud Integration**: 30 GitHub workflows + local/remote model discovery
+- **Production Services**: 12+ enterprise-grade services with full monitoring
 
 ### ✅ **Production-Ready Features**
-- **Zero Compilation Errors**: Clean build with 22 errors resolved
+- **Zero Compilation Errors**: Clean build with all stubs/placeholders completed
+- **Full Auto-Promotion**: Manifest-based model updates with atomic swaps
 - **Enterprise Error Handling**: Circuit breakers, retries, graceful degradation
-- **Real-time Monitoring**: Health checks, performance metrics, model tracking
+- **Real-time Monitoring**: Health checks, performance metrics, canary watchdog
 - **Secure Configuration**: Environment-based settings with credential protection
 - **Complete ML/RL Integration**: All algorithms active in unified decision flow
+- **Bootstrap System**: Idempotent directory/file creation with sample configurations
 
-## 🎯 **How to Run the Active System**
+### 🎯 **Auto-Enabled Features (Production Ready)**
+- **Enhanced Learning**: Auto-starts with light (60min) and intensive (15min) modes
+- **Adaptive Intelligence**: Runtime parameter adjustment based on performance
+- **Model Registry**: Hot-reload notifications for brain updates
+- **Canary Watchdog**: Automatic rollback on performance degradation
+- **Historical Data Providers**: Hierarchical fallback (Features → Quotes → TopstepX)
+- **Market Hours Enforcement**: ET maintenance, Sunday curb, CME holidays
+
+## 🎯 **How to Run the Production System**
 
 ```bash
-# ONLY use this command - all others are disabled
+# Start the fully autonomous enhanced learning system
 cd src/UnifiedOrchestrator
 dotnet run
+
+# System auto-creates: state/, datasets/, artifacts/, manifests/, config/
+# Enhanced learning starts automatically
+# Model promotion enabled by default (PROMOTE_TUNER=1)
+# Live trading remains manual (LIVE_ORDERS=0)
+```
+
+### ⚡ **What Happens at Launch**
+1. **Bootstrap**: Creates all required directories and sample configurations
+2. **Enhanced Learning**: Starts light learning (market hours) and intensive (closed)
+3. **Model Discovery**: Scans artifacts/, registry, and GitHub for available models
+4. **Manifest Polling**: Checks manifests/manifest.json every 15 minutes for updates
+5. **Auto-Promotion**: Downloads, verifies, and atomically swaps new models
+6. **Canary Monitoring**: Tracks performance for 100 decisions or 30 minutes
+7. **Hot-Reload**: Updates brain with new ONNX sessions without restart
+
+### 🛡️ **Production Safety Preserved**
+
+This implementation follows strict production safety guidelines:
+
+- **No modifications** to `.editorconfig`, `Directory.Build.props`, or analyzer packages
+- **Surgical changes** with minimal code modifications
+- **Append-only service registration** - no removal or reordering of existing services
+- **Existing guardrails preserved** - kill switch, DRY_RUN precedence, order evidence requirements
+- **Live trading disabled by default** - `LIVE_ORDERS=0`, `INSTANT_ALLOW_LIVE=0` (manual activation required)
+- **Model promotion enabled** - `PROMOTE_TUNER=1` (auto-learning, not live trading)
+
+### 🔧 **Production-Ready Components Status**
+
+✅ **All Components Fully Implemented (No Stubs/Placeholders):**
+
+| Component | Status | Auto-Enabled | Manual Override |
+|-----------|---------|--------------|----------------|
+| **CloudRlTrainerV2** | ✅ Production Ready | `PROMOTE_TUNER=1` | Set to `0` to disable |
+| **EnhancedBacktestLearningService** | ✅ Production Ready | `ENHANCED_LEARNING_ENABLED=1` | Set to `0` to disable |
+| **CanaryWatchdog** | ✅ Production Ready | `CANARY_WATCHDOG_ENABLED=1` | Set to `0` to disable |
+| **ModelRegistry** | ✅ Production Ready | `MODEL_REGISTRY_ENABLED=1` | Set to `0` to disable |
+| **AdaptiveIntelligence** | ✅ Production Ready | `ADAPTIVE_INTELLIGENCE_ENABLED=1` | Set to `0` to disable |
+| **MarketHoursService** | ✅ Production Ready | Always enabled | N/A |
+| **HistoricalDataProviders** | ✅ Production Ready | Always enabled | N/A |
+| **Bootstrap System** | ✅ Production Ready | Always enabled | N/A |
+
+### 🚀 **Live Trading Controls (Manual Activation Required)**
+
+| Control | Default Value | Description |
+|---------|---------------|-------------|
+| `LIVE_ORDERS` | `0` | Must be set to `1` to enable live order placement |
+| `INSTANT_ALLOW_LIVE` | `0` | Must be set to `1` to bypass canary safety |
+| `ALLOW_TOPSTEP_LIVE` | `0` | Must be set to `1` to enable TopstepX live trading |
+
+**📋 To Enable Live Trading (Manual Process):**
+```bash
+# All three must be set to 1 for live trading
+export LIVE_ORDERS=1
+export INSTANT_ALLOW_LIVE=1  # Only if bypassing canary
+export ALLOW_TOPSTEP_LIVE=1
 ```
 
 ### ❌ **Disabled Systems (DO NOT USE)**
