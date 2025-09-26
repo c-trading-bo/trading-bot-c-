@@ -219,25 +219,30 @@ namespace TradingBot.BotCore.Services
                     PendingReview = _suppressions.FindAll(s => s.Status == SuppressionStatus.PendingReview).Count,
                     Rejected = _suppressions.FindAll(s => s.Status == SuppressionStatus.Rejected).Count,
                     ExpiredSuppressions = GetExpiredSuppressions().Count,
-                    SuppressionsByRule = new Dictionary<string, int>(),
-                    SuppressionsByAuthor = new Dictionary<string, int>(),
                     OldestSuppression = null,
                     NewestSuppression = null
                 };
 
                 // Group by rule
+                var ruleDict = new Dictionary<string, int>();
+                var authorDict = new Dictionary<string, int>();
+                
                 foreach (var suppression in _suppressions)
                 {
-                    if (report.SuppressionsByRule.TryGetValue(suppression.RuleId, out var ruleCount))
-                        report.SuppressionsByRule[suppression.RuleId] = ruleCount + 1;
+                    if (ruleDict.TryGetValue(suppression.RuleId, out var ruleCount))
+                        ruleDict[suppression.RuleId] = ruleCount + 1;
                     else
-                        report.SuppressionsByRule[suppression.RuleId] = 1;
+                        ruleDict[suppression.RuleId] = 1;
 
-                    if (report.SuppressionsByAuthor.TryGetValue(suppression.Author, out var authorCount))
-                        report.SuppressionsByAuthor[suppression.Author] = authorCount + 1;
+                    if (authorDict.TryGetValue(suppression.Author, out var authorCount))
+                        authorDict[suppression.Author] = authorCount + 1;
                     else
-                        report.SuppressionsByAuthor[suppression.Author] = 1;
+                        authorDict[suppression.Author] = 1;
                 }
+                
+                // Set the dictionaries using Replace methods
+                report.ReplaceSuppressionsByRule(ruleDict);
+                report.ReplaceSuppressionsByAuthor(authorDict);
 
                 // Find oldest and newest
                 if (_suppressions.Count > 0)
@@ -258,10 +263,7 @@ namespace TradingBot.BotCore.Services
         {
             var result = new SuppressionValidationResult
             {
-                ValidatedAt = DateTime.UtcNow,
-                MissingLedgerEntries = new List<string>(),
-                OrphanedLedgerEntries = new List<SuppressionEntry>(),
-                InvalidSuppressions = new List<string>()
+                ValidatedAt = DateTime.UtcNow
             };
 
             try
@@ -284,7 +286,7 @@ namespace TradingBot.BotCore.Services
                             var ruleId = ExtractRuleFromPragma(line);
                             if (!HasLedgerEntry(ruleId, file, i + 1))
                             {
-                                result.MissingLedgerEntries.Add($"{file}:{i + 1} - {ruleId}");
+                                result.AddMissingLedgerEntry($"{file}:{i + 1} - {ruleId}");
                             }
                         }
                         
@@ -294,7 +296,7 @@ namespace TradingBot.BotCore.Services
                             var ruleId = ExtractRuleFromSuppressMessage(line);
                             if (!HasLedgerEntry(ruleId, file, i + 1))
                             {
-                                result.MissingLedgerEntries.Add($"{file}:{i + 1} - {ruleId}");
+                                result.AddMissingLedgerEntry($"{file}:{i + 1} - {ruleId}");
                             }
                         }
                     }

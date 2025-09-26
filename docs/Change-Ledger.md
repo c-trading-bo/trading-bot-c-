@@ -675,5 +675,44 @@ public decimal VolZMin { get; init; } = DefaultVolZMin;
 
 **Rationale**: Optimized calculation-heavy microstructure analysis and trading brain methods for performance by making them static. Systematically eliminated magic numbers in strategy configuration and resilience settings, ensuring all trading parameters are configuration-driven for production readiness.
 
+#### Round 16 - Phase 1 Completion & Collection Immutability Continued (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS0200/CS1061/CS0411 | 42 | 0 | SuppressionLedgerService.cs, SecretsValidationService.cs | Fixed read-only collection usage patterns - replaced direct property access with Add/Replace methods |
+| CA2227 | ~220 | ~214 | DeterminismService.cs, ProductionEnhancementConfiguration.cs | Applied read-only dictionary pattern with Replace methods for controlled mutation |
+
+**Example Pattern - Phase 1 CS Error Resolution**:
+```csharp
+// Before (CS0200 Error)  
+report.SuppressionsByRule[suppression.RuleId] = ruleCount + 1;
+result.MissingLedgerEntries.Add($"{file}:{i + 1} - {ruleId}");
+
+// After (Compliant)
+var ruleDict = new Dictionary<string, int>();
+ruleDict[suppression.RuleId] = ruleCount + 1;
+report.ReplaceSuppressionsByRule(ruleDict);
+result.AddMissingLedgerEntry($"{file}:{i + 1} - {ruleId}");
+```
+
+**Example Pattern - Dictionary Immutability (CA2227)**:
+```csharp
+// Before (Violation)
+public Dictionary<string, int> SeedRegistry { get; set; } = new();
+public Dictionary<string, string> FrontMonthMapping { get; set; } = new();
+
+// After (Compliant)
+private readonly Dictionary<string, int> _seedRegistry = new();
+public IReadOnlyDictionary<string, int> SeedRegistry => _seedRegistry;
+
+public void ReplaceSeedRegistry(IEnumerable<KeyValuePair<string, int>> items) {
+    _seedRegistry.Clear();
+    if (items != null) {
+        foreach (var item in items) _seedRegistry[item.Key] = item.Value;
+    }
+}
+```
+
+**Rationale**: Completed Phase 1 by fixing all compilation errors caused by read-only collection changes. Applied systematic immutable dictionary patterns to configuration classes, ensuring domain state cannot be mutated without controlled access methods.
+
 ---
-*Updated: Current Session - Systematic Phase 2 implementation in progress with performance and configuration optimizations*
+*Updated: Current Session - Phase 1 completion + continued Phase 2 collection immutability implementation*

@@ -69,7 +69,7 @@ namespace TradingBot.BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🚨 [SECRETS] Critical error during secrets validation");
-                result.Errors.Add($"Critical validation error: {ex.Message}");
+                result.AddError($"Critical validation error: {ex.Message}");
                 result.IsValid = false;
             }
 
@@ -133,12 +133,12 @@ namespace TradingBot.BotCore.Services
                 
                 if (string.IsNullOrEmpty(endpointValue))
                 {
-                    result.MissingSecrets.Add(endpointKey);
+                    result.AddMissingSecret(endpointKey);
                     _logger.LogError("🚨 [SECRETS] Missing endpoint configuration: {Key}", endpointKey);
                 }
                 else if (IsHardcodedEndpoint(endpointValue))
                 {
-                    result.Errors.Add($"Hardcoded endpoint detected: {endpointKey}");
+                    result.AddError($"Hardcoded endpoint detected: {endpointKey}");
                     _logger.LogError("🚨 [SECRETS] Hardcoded endpoint detected: {Key} = {Value}", endpointKey, MaskSensitiveValue(endpointValue));
                 }
                 else
@@ -171,7 +171,7 @@ namespace TradingBot.BotCore.Services
                 }
                 else if (ContainsHardcodedCredentials(connString))
                 {
-                    result.Errors.Add($"Hardcoded credentials in connection string: {connKey}");
+                    result.AddError($"Hardcoded credentials in connection string: {connKey}");
                     _logger.LogError("🚨 [SECRETS] Hardcoded credentials in connection string: {Key}", connKey);
                 }
                 else
@@ -197,7 +197,7 @@ namespace TradingBot.BotCore.Services
                 {
                     if (rule.Pattern.IsMatch(provider.ToString() ?? ""))
                     {
-                        result.Errors.Add($"Potential hardcoded secret detected: {rule.Name}");
+                        result.AddError($"Potential hardcoded secret detected: {rule.Name}");
                         _logger.LogError("🚨 [SECRETS] Potential hardcoded secret detected: {Rule}", rule.Name);
                     }
                 }
@@ -230,14 +230,14 @@ namespace TradingBot.BotCore.Services
                         _logger.LogDebug("✅ [SECRETS] Using environment variables for secrets");
                         break;
                     default:
-                        result.Errors.Add($"Unknown secret store type: {secretStoreType}");
+                        result.AddError($"Unknown secret store type: {secretStoreType}");
                         _logger.LogError("🚨 [SECRETS] Unknown secret store type: {Type}", secretStoreType);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                result.Errors.Add($"Secret store validation error: {ex.Message}");
+                result.AddError($"Secret store validation error: {ex.Message}");
                 _logger.LogError(ex, "🚨 [SECRETS] Error validating secret store access");
             }
         }
@@ -248,7 +248,7 @@ namespace TradingBot.BotCore.Services
             var keyVaultUrl = Environment.GetEnvironmentVariable("AZURE_KEYVAULT_URL");
             if (string.IsNullOrEmpty(keyVaultUrl))
             {
-                result.MissingSecrets.Add("AZURE_KEYVAULT_URL");
+                result.AddMissingSecret("AZURE_KEYVAULT_URL");
             }
             else
             {
@@ -265,8 +265,8 @@ namespace TradingBot.BotCore.Services
             
             if (string.IsNullOrEmpty(vaultUrl) || string.IsNullOrEmpty(vaultToken))
             {
-                if (string.IsNullOrEmpty(vaultUrl)) result.MissingSecrets.Add("VAULT_ADDR");
-                if (string.IsNullOrEmpty(vaultToken)) result.MissingSecrets.Add("VAULT_TOKEN");
+                if (string.IsNullOrEmpty(vaultUrl)) result.AddMissingSecret("VAULT_ADDR");
+                if (string.IsNullOrEmpty(vaultToken)) result.AddMissingSecret("VAULT_TOKEN");
             }
             else
             {

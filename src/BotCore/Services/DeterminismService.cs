@@ -261,12 +261,29 @@ namespace TradingBot.BotCore.Services
     {
         private readonly List<string> _missingComponents = new();
         
+        // Private backing field for dictionary
+        private readonly Dictionary<string, int> _seedRegistry = new();
+        
         public bool IsReproducibleMode { get; set; }
         public int SeededComponentCount { get; set; }
-        public Dictionary<string, int> SeedRegistry { get; set; } = new();
+        
+        // Read-only dictionary property
+        public IReadOnlyDictionary<string, int> SeedRegistry => _seedRegistry;
+        
         public IReadOnlyList<string> MissingComponents => _missingComponents;
         public bool IsValid { get; set; }
         public DateTime ValidationTime { get; set; }
+        
+        // Replace method for controlled mutation
+        public void ReplaceSeedRegistry(IEnumerable<KeyValuePair<string, int>> items)
+        {
+            _seedRegistry.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _seedRegistry[item.Key] = item.Value;
+            }
+        }
         
         public void ReplaceMissingComponents(IEnumerable<string> components)
         {
