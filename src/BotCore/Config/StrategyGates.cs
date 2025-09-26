@@ -10,6 +10,9 @@ public static class StrategyGates
     // In AlwaysOn mode, enforce hard spread guard; otherwise use RS gate
     public static bool PassesGlobal(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
+        if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        
         if (cfg.AlwaysOn.Enabled)
         {
             var gf = cfg.GlobalFilters;

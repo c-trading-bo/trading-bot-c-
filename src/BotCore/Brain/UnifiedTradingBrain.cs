@@ -195,6 +195,12 @@ namespace BotCore.Brain
             RiskEngine risk,
             CancellationToken cancellationToken = default)
         {
+            if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (levels is null) throw new ArgumentNullException(nameof(levels));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            if (risk is null) throw new ArgumentNullException(nameof(risk));
+            
             var startTime = DateTime.UtcNow;
             LastDecision = startTime;
             
@@ -1468,8 +1474,7 @@ namespace BotCore.Brain
                 _logger.LogInformation("✅ [UNIFIED-RETRAIN] Training data exported: {Count} decisions, {StrategyCount} strategies", 
                     unifiedTrainingData.Count(), _strategyPerformance.Count);
                 
-                // Here you could trigger enhanced Python training scripts that understand multi-strategy learning
-                // await RunUnifiedPythonTrainingAsync(dataPath, perfPath, cancellationToken).ConfigureAwait(false);
+                // Enhanced Python training scripts for multi-strategy learning would be integrated here
             }
             catch (Exception ex)
             {

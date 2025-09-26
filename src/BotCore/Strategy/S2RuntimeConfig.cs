@@ -60,7 +60,6 @@ public static class S2RuntimeConfig
     public static bool ZDecelerateEnabled { get; private set; }
     public static int ZDecelNeed { get; private set; } = 2;
 
-    // Patch C: optional day PnL kill-switch (in R units) and curfew helper
     public static bool DayPnlKillEnabled { get; private set; }
     public static decimal DayPnlStopGainR { get; private set; } // e.g., 8.0
     public static decimal DayPnlStopLossR { get; private set; } // e.g., -6.0
@@ -137,7 +136,6 @@ public static class S2RuntimeConfig
             if (zdz.TryGetProperty("need", out var needEl) && needEl.TryGetInt32(out var need)) ZDecelNeed = need;
         }
 
-        // Optional: day PnL kill-switch (R units)
         if (extra.TryGetValue("day_pnl_kill", out var dpk) && dpk.ValueKind == JsonValueKind.Object)
         {
             DayPnlKillEnabled = true;

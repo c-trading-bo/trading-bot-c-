@@ -76,6 +76,8 @@ public class NeuralUcbExtended : IDisposable
         MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
+        if (marketContext is null) throw new ArgumentNullException(nameof(marketContext));
+        
         try
         {
             _logger.LogDebug("[NEURAL-UCB-EXTENDED] Selecting bundle for market context");
@@ -148,6 +150,9 @@ public class NeuralUcbExtended : IDisposable
         Dictionary<string, object>? metadata = null,
         CancellationToken cancellationToken = default)
     {
+        if (bundleId is null) throw new ArgumentNullException(nameof(bundleId));
+        if (marketContext is null) throw new ArgumentNullException(nameof(marketContext));
+        
         try
         {
             _logger.LogDebug("[NEURAL-UCB-EXTENDED] Updating bundle performance: {BundleId} reward={Reward:F3}",
