@@ -78,7 +78,7 @@ namespace TradingBot.Critical
             public DateTime Time { get; set; }
         }
 
-        public class FillEventData
+        internal class FillEventData
         {
             public string OrderId { get; set; } = string.Empty;
             public decimal Price { get; set; }
@@ -91,7 +91,7 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
 
-        public class OrderStatusData
+        internal class OrderStatusData
         {
             public string OrderId { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
