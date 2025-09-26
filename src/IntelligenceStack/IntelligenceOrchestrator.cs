@@ -247,7 +247,7 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             onlineLearningSystem);
         
         // Initialize helpers for extracted methods
-        var helperLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
+        using var helperLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
         var helperLogger = helperLoggerFactory.CreateLogger<IntelligenceOrchestratorHelpers>();
         _helpers = new IntelligenceOrchestratorHelpers(
             helperLogger,

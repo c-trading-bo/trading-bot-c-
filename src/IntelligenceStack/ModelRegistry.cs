@@ -478,37 +478,43 @@ public class ModelRegistry : IModelRegistry
             // Get expired models first to avoid complex LINQ chains with side effects
             var expiredModels = activeModels.Where(m => m.CreatedAt < cutoffDate).ToList();
             
-            foreach (var model in expiredModels)
+            // Process expired models for cleanup - no side effects in LINQ chain
+            var cleanupTasks = expiredModels.Select(model => 
+            {
+                var metadataPath = Path.Combine(_basePath, "metadata", $"{model.Id}.json");
+                var artifactPath = Path.Combine(_basePath, "artifacts", $"{model.Id}.dat");
+                
+                return new { Model = model, MetadataPath = metadataPath, ArtifactPath = artifactPath };
+            }).ToList();
+            
+            foreach (var item in cleanupTasks)
             {
                 try
                 {
-                    var metadataPath = Path.Combine(_basePath, "metadata", $"{model.Id}.json");
-                    var artifactPath = Path.Combine(_basePath, "artifacts", $"{model.Id}.dat");
-                    
-                    if (File.Exists(metadataPath))
+                    if (File.Exists(item.MetadataPath))
                     {
-                        File.Delete(metadataPath);
+                        File.Delete(item.MetadataPath);
                     }
                     
-                    if (File.Exists(artifactPath))
+                    if (File.Exists(item.ArtifactPath))
                     {
-                        File.Delete(artifactPath);
+                        File.Delete(item.ArtifactPath);
                     }
                     
                     lock (_lock)
                     {
-                        _modelCache.Remove(model.Id);
+                        _modelCache.Remove(item.Model.Id);
                     }
                     
-                    ModelCleanedUp(_logger, model.Id, null);
+                    ModelCleanedUp(_logger, item.Model.Id, null);
                 }
                 catch (IOException ex)
                 {
-                    FailedToCleanupModel(_logger, model.Id, ex);
+                    FailedToCleanupModel(_logger, item.Model.Id, ex);
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    AccessDeniedWhenCleaningUpModel(_logger, model.Id, ex);
+                    AccessDeniedWhenCleaningUpModel(_logger, item.Model.Id, ex);
                 }
             }
         }
