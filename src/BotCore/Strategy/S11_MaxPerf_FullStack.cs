@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using BotCore.Models;
 
 namespace TopstepX.S11
@@ -205,10 +206,10 @@ namespace TopstepX.S11
     public sealed class S11Config
     {
         // session windows (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("13:30");
-        public TimeSpan WindowEnd   = TimeSpan.Parse("15:30");
-        public TimeSpan IBStart     = TimeSpan.Parse("09:30");
-        public TimeSpan IBEnd       = TimeSpan.Parse("10:30");
+        public TimeSpan WindowStart = TimeSpan.Parse("13:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd   = TimeSpan.Parse("15:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBStart     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBEnd       = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
 
         // risk
         public int    BaseQty = 1;

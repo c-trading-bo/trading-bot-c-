@@ -59,7 +59,7 @@ namespace BotCore.ML
         private readonly string _metaClassifierPath;
         private readonly string _execQualityPath;
 
-        public bool IsEnabled => Environment.GetEnvironmentVariable("RL_ENABLED") == "1";
+        public static bool IsEnabled => Environment.GetEnvironmentVariable("RL_ENABLED") == "1";
 
         public StrategyMlModelManager(ILogger logger, IMLMemoryManager? memoryManager = null, OnnxModelLoader? onnxLoader = null)
         {
