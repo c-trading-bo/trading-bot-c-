@@ -71,7 +71,7 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
         
-        public class PartialFill
+        internal class PartialFill
         {
             public int Quantity { get; set; }
             public decimal Price { get; set; }
@@ -354,7 +354,7 @@ namespace TradingBot.Critical
             return false;
         }
 
-        public void AddPendingOrder(OrderRecord order)
+        internal void AddPendingOrder(OrderRecord order)
         {
             if (order is null) throw new ArgumentNullException(nameof(order));
             
@@ -527,11 +527,26 @@ namespace TradingBot.Critical
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data)));
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _reconciliationTimer?.Dispose();
-            _database?.Close();
-            _database?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _reconciliationTimer?.Dispose();
+                    _database?.Close();
+                    _database?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
     
@@ -1319,9 +1334,24 @@ namespace TradingBot.Critical
             _activePositions[position.Symbol] = position;
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _statePersistenceTimer.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _statePersistenceTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
     
@@ -1329,7 +1359,7 @@ namespace TradingBot.Critical
     // COMPONENT 3: CORRELATION OVERFLOW PROTECTION
     // ================================================================================
     
-    public class CorrelationProtectionSystem
+    public class CorrelationProtectionSystem : IDisposable
     {
         private readonly Dictionary<string, Dictionary<string, double>> _correlationMatrix = new();
         private readonly ConcurrentDictionary<string, PositionExposure> _exposures = new();
@@ -1562,9 +1592,24 @@ namespace TradingBot.Critical
             };
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _correlationUpdateTimer?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _correlationUpdateTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
 
