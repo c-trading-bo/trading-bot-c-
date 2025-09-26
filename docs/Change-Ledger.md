@@ -63,6 +63,36 @@ if (StopTicks >= MinStopTicks && StopTicks <= MaxStopTicks && TargetTicks >= Min
 
 **Rationale**: Applied systematic configuration-driven approach for all business logic constants. Replaced 76 magic numbers with named constants covering trading bracket validation, position sizing multipliers, confidence thresholds, market schedule hours, and format validation lengths. All values now configurable and self-documenting.
 
+#### Round 2 - Phase 2 CA1062 Null Guards: Production Safety for Public Methods (Current Session)  
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 80 | 72 | AutonomousPerformanceTracker.cs, ContractRolloverService.cs, CloudModelSynchronizationService.cs | ArgumentNullException guards for public method parameters |
+
+**Example Pattern - CA1062 Null Guards**:
+```csharp
+// Before (Violation)
+public Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
+{
+    _allTrades.Add(trade); // CA1062: trade could be null
+
+public ContractRolloverService(IOptions<DataFlowEnhancementConfiguration> config)  
+{
+    _config = config.Value; // CA1062: config could be null
+
+// After (Compliant)
+public Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
+{
+    if (trade is null) throw new ArgumentNullException(nameof(trade));
+    _allTrades.Add(trade);
+
+public ContractRolloverService(IOptions<DataFlowEnhancementConfiguration> config)  
+{
+    if (config is null) throw new ArgumentNullException(nameof(config));
+    _config = config.Value;
+```
+
+**Rationale**: Added production-safe null validation to all externally visible method entry points. Applied systematic ArgumentNullException guards following guidebook requirements for parameter validation at API boundaries. Enhanced safety for trading service methods that handle critical business objects.
+
 ---
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
