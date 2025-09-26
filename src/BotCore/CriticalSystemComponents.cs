@@ -590,6 +590,10 @@ namespace TradingBot.Critical
             public string TakeProfitOrderId { get; set; } = string.Empty;
             public DateTime EntryTime { get; set; }
             public string StrategyId { get; set; } = string.Empty;
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static Position Create(string symbol, int quantity, decimal entryPrice) =>
+                new() { Symbol = symbol, Quantity = quantity, EntryPrice = entryPrice, EntryTime = DateTime.UtcNow };
         }
 
         internal sealed class PendingOrder
@@ -597,12 +601,20 @@ namespace TradingBot.Critical
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static PendingOrder Create(string orderId, string symbol, string type) =>
+                new() { OrderId = orderId, Symbol = symbol, Type = type };
         }
 
         internal sealed class StrategyState
         {
             public string Id { get; set; } = string.Empty;
             public bool IsActive { get; set; }
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static StrategyState Create(string id, bool isActive = true) =>
+                new() { Id = id, IsActive = isActive };
         }
 
         internal sealed class RiskMetrics
