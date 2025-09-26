@@ -71,7 +71,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get conservative trading defaults for emergency fallback
         /// </summary>
-        public ConservativeDefaults GetConservativeDefaults()
+        public static ConservativeDefaults GetConservativeDefaults()
         {
             return new ConservativeDefaults();
         }

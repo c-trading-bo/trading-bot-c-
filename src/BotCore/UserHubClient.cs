@@ -39,6 +39,20 @@ namespace BotCore
             {
                 _logger.LogError(ex, "Invalid operation in {EventName} handler", eventName);
             }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError(ex, "Not supported in {EventName} handler", eventName);
+            }
+            catch (OutOfMemoryException)
+            {
+                // Critical system exception - rethrow
+                throw;
+            }
+            catch (StackOverflowException)
+            {
+                // Critical system exception - rethrow
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in {EventName} handler - continuing", eventName);

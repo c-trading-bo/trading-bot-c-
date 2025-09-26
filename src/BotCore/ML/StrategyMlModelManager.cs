@@ -225,6 +225,8 @@ namespace BotCore.ML
             decimal qScore,
             IList<Bar> bars)
         {
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             try
             {
                 if (!IsEnabled)

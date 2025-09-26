@@ -32,6 +32,8 @@ namespace BotCore.Services
         /// </summary>
         public void UpdateMetrics(TradeResult result)
         {
+            if (result is null) throw new ArgumentNullException(nameof(result));
+            
             lock (_metricsLock)
             {
                 var key = $"{result.Instrument}_{result.Strategy}";

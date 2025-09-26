@@ -50,6 +50,8 @@ public sealed class OnnxModelValidationService
     /// </summary>
     public void AddModelPaths(IEnumerable<string> modelPaths)
     {
+        if (modelPaths is null) throw new ArgumentNullException(nameof(modelPaths));
+        
         foreach (var path in modelPaths)
         {
             AddModelPath(path);
@@ -61,6 +63,8 @@ public sealed class OnnxModelValidationService
     /// </summary>
     public void DiscoverModels(params string[] directories)
     {
+        if (directories is null) throw new ArgumentNullException(nameof(directories));
+        
         foreach (var directory in directories)
         {
             if (!Directory.Exists(directory))

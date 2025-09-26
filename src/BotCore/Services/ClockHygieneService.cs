@@ -26,7 +26,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get current UTC time - ONLY method allowed for wall clock time
         /// </summary>
-        public DateTime GetUtcNow()
+        public static DateTime GetUtcNow()
         {
             return DateTime.UtcNow;
         }

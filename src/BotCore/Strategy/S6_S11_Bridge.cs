@@ -300,7 +300,7 @@ namespace BotCore.Strategy
 
         #region Private Helper Methods
 
-        private string ConvertS6Side(TopstepX.S6.Side side)
+        private static string ConvertS6Side(TopstepX.S6.Side side)
         {
             return side switch
             {
@@ -310,7 +310,7 @@ namespace BotCore.Strategy
             };
         }
 
-        private string ConvertS11Side(TopstepX.S11.Side side)
+        private static string ConvertS11Side(TopstepX.S11.Side side)
         {
             return side switch
             {
@@ -320,7 +320,7 @@ namespace BotCore.Strategy
             };
         }
 
-        private TopstepX.S6.Side ConvertToS6Side(string side)
+        private static TopstepX.S6.Side ConvertToS6Side(string side)
         {
             return side?.ToUpperInvariant() switch
             {
@@ -330,7 +330,7 @@ namespace BotCore.Strategy
             };
         }
 
-        private TopstepX.S11.Side ConvertToS11Side(string side)
+        private static TopstepX.S11.Side ConvertToS11Side(string side)
         {
             return side?.ToUpperInvariant() switch
             {

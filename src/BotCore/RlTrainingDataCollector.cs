@@ -86,6 +86,8 @@ namespace BotCore
         /// </summary>
         public static void LogFeatures(ILogger log, FeatureSnapshot features)
         {
+            if (features is null) throw new ArgumentNullException(nameof(features));
+            
             try
             {
                 var json = JsonSerializer.Serialize(features, new JsonSerializerOptions
@@ -116,6 +118,8 @@ namespace BotCore
         /// </summary>
         public static void LogOutcome(ILogger log, TradeOutcome outcome)
         {
+            if (outcome is null) throw new ArgumentNullException(nameof(outcome));
+            
             try
             {
                 var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions
@@ -169,6 +173,10 @@ namespace BotCore
             decimal price,
             decimal baselineMultiplier = 1.0m)
         {
+            if (signalId is null) throw new ArgumentNullException(nameof(signalId));
+            if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+            if (strategy is null) throw new ArgumentNullException(nameof(strategy));
+            
             // Symbol-specific defaults
             var isES = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase);
             var defaultSpread = isES ? 0.25m : 0.25m; // Both ES and NQ have 0.25 tick size

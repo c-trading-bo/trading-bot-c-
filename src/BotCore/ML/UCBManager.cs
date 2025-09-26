@@ -37,6 +37,8 @@ namespace BotCore.ML
 
         public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, CancellationToken ct = default)
         {
+            if (data is null) throw new ArgumentNullException(nameof(data));
+            
             try
             {
                 var marketJson = new

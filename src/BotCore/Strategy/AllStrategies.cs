@@ -31,6 +31,8 @@ namespace BotCore.Strategy
 
         public static List<Candidate> generate_candidates_with_time_filter(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, DateTime currentTime)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            
             var cands = new List<Candidate>();
             // Ensure env.volz is computed from history (regime proxy)
             try { env.volz = VolZ(bars); } catch { env.volz ??= 0m; }
@@ -106,6 +108,10 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk, BotCore.Models.MarketSnapshot snap)
         {
+            if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+            if (def is null) throw new ArgumentNullException(nameof(def));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             // Warm-up disabled: always allow indicator use immediately
 
             // Dispatch to the specific strategy function based on def.Name (S1..S14)
@@ -198,6 +204,8 @@ namespace BotCore.Strategy
             string symbol, Env env, Levels levels, IList<Bar> bars,
             IList<StrategyDef> defs, RiskEngine risk, TradingProfileConfig profile, BotCore.Models.MarketSnapshot snap, int max = 10)
         {
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var map = new Dictionary<string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>>(StringComparer.OrdinalIgnoreCase)
             {
                 ["S1"] = S1,
@@ -302,6 +310,8 @@ namespace BotCore.Strategy
         // S1–S14 strategies
         public static List<Candidate> S1(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            
             var lst = new List<Candidate>();
             // Zero-warmup versions allow immediate use; need at least 2 bars for cross checks
             const int fastLen = 9;
@@ -788,6 +798,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.6m)
             {
@@ -801,6 +814,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S5(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.6m)
             {
@@ -814,6 +830,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S6(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             // Use the full-stack S6 implementation via bridge
             try
             {
@@ -838,6 +857,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S7(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.7m)
             {
@@ -869,6 +891,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S9(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.8m)
             {
@@ -882,6 +907,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S10(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.9m)
             {
@@ -895,6 +923,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S11(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             // Use the full-stack S11 implementation via bridge
             try
             {
@@ -919,6 +950,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S12(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.0m)
             {
@@ -932,6 +966,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S13(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.0m)
             {
@@ -945,6 +982,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S14(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.1m)
             {
@@ -959,6 +999,11 @@ namespace BotCore.Strategy
         public static void add_cand(List<Candidate> lst, string sid, string symbol, string sideTxt,
                                  decimal entry, decimal stop, decimal t1, Env env, RiskEngine risk, string? tag = null)
         {
+            if (lst is null) throw new ArgumentNullException(nameof(lst));
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (risk is null) throw new ArgumentNullException(nameof(risk));
+            if (sideTxt is null) throw new ArgumentNullException(nameof(sideTxt));
+            
             var pv = InstrumentMeta.PointValue(symbol);
             var tick = InstrumentMeta.Tick(symbol);
             var dist = Math.Max(Math.Abs(entry - stop), tick); // ≥ 1 tick

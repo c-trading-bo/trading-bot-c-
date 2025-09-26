@@ -56,6 +56,20 @@ public class TradingConfiguration
     private const double MaxProfitTargetLimit = 10000.0;
     private const double MinDrawdownLimit = -50000.0;
     private const double MaxDrawdownLimitValue = -1000.0;
+    private const int MinDecisionTimeoutSeconds = 5;
+    private const int MaxDecisionTimeoutSeconds = 60;
+    private const double MinAIConfidenceThreshold = 0.1;
+    private const double MaxAIConfidenceThreshold = 0.95;
+    private const double MinPositionSizeMultiplier = 0.5;
+    private const double MaxPositionSizeMultiplier = 5.0;
+    private const double MinRegimeDetectionThreshold = 0.1;
+    private const double MaxRegimeDetectionThreshold = 1.0;
+    private const double MinStopLossBufferPercentage = 0.01;
+    private const double MaxStopLossBufferPercentage = 0.2;
+    private const double MinRewardRiskRatio = 1.0;
+    private const double MaxRewardRiskRatio = 3.0;
+    private const double MinVolatilityAdjustmentFactor = 0.01;
+    private const double MaxVolatilityAdjustmentFactor = 0.5;
     
     // Default values as constants
     private const int DefaultMaxPositionSize = 5;
@@ -97,7 +111,7 @@ public class TradingConfiguration
     public string? BackupDirectory { get; set; }
 
     [Required]
-    [Range(5, 60)]
+    [Range(MinDecisionTimeoutSeconds, MaxDecisionTimeoutSeconds)]
     public int DecisionTimeoutSeconds { get; set; } = 30;
 
     // ML/AI Configuration Parameters (addresses hardcoded values issue)
@@ -107,7 +121,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 0.7 value
     /// </summary>
     [Required]
-    [Range(0.1, 0.95)]
+    [Range(MinAIConfidenceThreshold, MaxAIConfidenceThreshold)]
     public double AIConfidenceThreshold { get; set; } = 0.75;
 
     /// <summary>
@@ -115,7 +129,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 2.5 value
     /// </summary>
     [Required]
-    [Range(0.5, 5.0)]
+    [Range(MinPositionSizeMultiplier, MaxPositionSizeMultiplier)]
     public double DefaultPositionSizeMultiplier { get; set; } = 2.0;
 
     /// <summary>
@@ -123,7 +137,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 1.0 value for regime detection
     /// </summary>
     [Required]
-    [Range(0.1, 1.0)]
+    [Range(MinRegimeDetectionThreshold, MaxRegimeDetectionThreshold)]
     public double RegimeDetectionThreshold { get; set; } = 0.8;
 
     /// <summary>
@@ -131,7 +145,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 0.05 value
     /// </summary>
     [Required]
-    [Range(0.01, 0.2)]
+    [Range(MinStopLossBufferPercentage, MaxStopLossBufferPercentage)]
     public double StopLossBufferPercentage { get; set; } = 0.04;
 
     /// <summary>
@@ -139,14 +153,14 @@ public class TradingConfiguration
     /// Replaces hardcoded 1.2 value
     /// </summary>
     [Required]
-    [Range(1.0, 3.0)]
+    [Range(MinRewardRiskRatio, MaxRewardRiskRatio)]
     public double RewardRiskRatioThreshold { get; set; } = 1.5;
 
     /// <summary>
     /// Minimum confidence for model fallback scenarios
     /// Replaces hardcoded 0.1 value
     /// </summary>
-    [Range(0.01, 0.5)]
+    [Range(MinVolatilityAdjustmentFactor, MaxVolatilityAdjustmentFactor)]
     public double? MinimumConfidence { get; set; } = 0.1;
 }
 
@@ -200,6 +214,10 @@ public class TopstepXConfiguration
 /// </summary>
 public class SecurityConfiguration
 {
+    // Constants for validation ranges
+    private const int MinTokenRefreshIntervalSeconds = 3600;
+    private const int MaxTokenRefreshIntervalSeconds = 86400;
+    
     [Required]
     public bool RequireEnvironmentCredentials { get; set; } = true;
 
@@ -210,7 +228,7 @@ public class SecurityConfiguration
     public bool RotateTokens { get; set; } = true;
 
     [Required]
-    [Range(3600, 86400)]
+    [Range(MinTokenRefreshIntervalSeconds, MaxTokenRefreshIntervalSeconds)]
     public int TokenRefreshIntervalSeconds { get; set; } = 3600;
 
     /// <summary>
@@ -329,6 +347,8 @@ public class TradingConfigurationValidator : IValidateOptions<TradingConfigurati
 {
     public ValidateOptionsResult Validate(string? name, TradingConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate data directory exists and is writable
@@ -405,6 +425,8 @@ public class TopstepXConfigurationValidator : IValidateOptions<TopstepXConfigura
 {
     public ValidateOptionsResult Validate(string? name, TopstepXConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate URLs are accessible endpoints
@@ -440,6 +462,8 @@ public class SecurityConfigurationValidator : IValidateOptions<SecurityConfigura
 {
     public ValidateOptionsResult Validate(string? name, SecurityConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         if (options.RequireEnvironmentCredentials)
@@ -483,6 +507,8 @@ public class ResilienceConfigurationValidator : IValidateOptions<ResilienceConfi
 {
     public ValidateOptionsResult Validate(string? name, ResilienceConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate retry configuration makes sense
@@ -508,6 +534,8 @@ public class ObservabilityConfigurationValidator : IValidateOptions<Observabilit
 {
     public ValidateOptionsResult Validate(string? name, ObservabilityConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate log directory
@@ -560,6 +588,8 @@ public class HealthCheckConfigurationValidator : IValidateOptions<HealthCheckCon
 {
     public ValidateOptionsResult Validate(string? name, HealthCheckConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate timeouts make sense

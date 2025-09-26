@@ -58,7 +58,7 @@ public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
 #### Round 2 - Production Safety Null Guards (CA1062)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
-| CA1062 | 444 | 434 | ExceptionHelper.cs, ErrorHandlingMonitoringSystem.cs, CriticalSystemComponents.cs | ArgumentNullException guards for public entry points |
+| CA1062 | 308 | 290 | EnhancedProductionResilienceService.cs, ProfitObjective.cs, MultiStrategyRlCollector.cs, EnhancedBayesianPriors.cs, WalkForwardTrainer.cs | ArgumentNullException guards for public entry points |
 
 **Example Pattern**:
 ```csharp
@@ -73,17 +73,123 @@ public static async Task<bool> ExecuteWithLogging(Func<Task> operation, ILogger 
 {
     if (operation is null) throw new ArgumentNullException(nameof(operation));
     if (logger is null) throw new ArgumentNullException(nameof(logger));
+
+    try { await operation().ConfigureAwait(false); ... }
+}
+```
+
+#### Round 3 - Performance Optimizations (CA1822)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1822 | 180+ | 170+ | OnnxModelCompatibilityService.cs, S6_S11_Bridge.cs, DeterminismService.cs, ErrorHandlingMonitoringSystem.cs, ConfigurationSchemaService.cs, ConfigurationFailureSafetyService.cs | Made utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation)
+private string ConvertS6Side(TopstepX.S6.Side side) { ... }
+
+// After (Compliant)
+private static string ConvertS6Side(TopstepX.S6.Side side) { ... }
     
     try { await operation().ConfigureAwait(false); ... }
+}
+```
+
+#### Round 4 - Continued Safety & Performance (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 290 | 274 | StrategyGates.cs, BacktestEnhancementConfiguration.cs, ProductionEnhancementConfiguration.cs, InstrumentMeta.cs, EnhancedBayesianPriors.cs, WalkForwardValidationService.cs | ArgumentNullException guards for remaining public methods |
+| CA1822 | ~170 | ~160 | CriticalSystemComponents.cs | Made additional utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard
+public static decimal PointValue(string symbol)
+{
+    return symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 50m : 1m;
+}
+
+// After (Compliant) - With null guard
+public static decimal PointValue(string symbol)
+{
+    if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+    return symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 50m : 1m;
+}
+```
+
+#### Round 5 - ML & Integration Layer Fixes (Latest Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 256 | 238 | UCBManager.cs, ProductionReadinessServiceExtensions.cs, RedundantDataFeedManager.cs, EnhancedStrategyIntegration.cs, StrategyMlModelManager.cs | ArgumentNullException guards for ML and integration services |
+| CA1822 | ~160 | ~157 | ConfigurationSchemaService.cs, ClockHygieneService.cs, CriticalSystemComponents.cs | Made additional utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in ML service
+public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, CancellationToken ct = default)
+{
+    var marketJson = new { es_price = data.ESPrice, ... };
+}
+
+// After (Compliant) - With null guard
+public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, CancellationToken ct = default)
+{
+    if (data is null) throw new ArgumentNullException(nameof(data));
+    var marketJson = new { es_price = data.ESPrice, ... };
+}
+```
+
+#### Round 6 - Strategy & Service Layer Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 238 | 208 | AllStrategies.cs (S1, S4, S5, S6, S7, generate_candidates), WalkForwardValidationService.cs, TradingReadinessTracker.cs, TradingProgressMonitor.cs | ArgumentNullException guards for strategy methods and service layers |
+| CA1822 | ~157 | ~154 | TradingSystemIntegrationService.cs | Made utility methods static (ConvertCandidatesToSignals, GenerateCustomTag, CalculateATR) |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in strategy method
+public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+{
+    if (bars.Count > 0 && env.atr.HasValue) { ... }
+}
+
+// After (Compliant) - With null guards
+public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+{
+    if (env is null) throw new ArgumentNullException(nameof(env));
+    if (bars is null) throw new ArgumentNullException(nameof(bars));
+    if (bars.Count > 0 && env.atr.HasValue) { ... }
+}
+```
+
+#### Round 7 - Completing Strategy Methods & ML Services (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 208 | 176 | AllStrategies.cs (S9, S10, S12-S14), ZoneService.cs, OnnxModelValidationService.cs, MultiStrategyRlCollector.cs | ArgumentNullException guards for remaining strategy methods and ML services |
+| CA1822 | ~154 | ~151 | TradingSystemIntegrationService.cs | Made additional utility methods static (CreateMarketSnapshot, CalculateVolZ, CalculateRMultiple) |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in ML service
+public void AddModelPaths(IEnumerable<string> modelPaths)
+{
+    foreach (var path in modelPaths) { AddModelPath(path); }
+}
+
+// After (Compliant) - With null guard
+public void AddModelPaths(IEnumerable<string> modelPaths)
+{
+    if (modelPaths is null) throw new ArgumentNullException(nameof(modelPaths));
+    foreach (var path in modelPaths) { AddModelPath(path); }
 }
 ```
 
 ### Next Phase Actions
 
 #### Immediate Priority (Current Focus)
-1. **CA1031**: Exception handling patterns (~976 violations) - Analysis started
-2. **CA1848**: Logging performance patterns (~3212 violations) 
-3. **S109**: Continue magic number elimination (~3296 violations)
+1. **CA1031**: Exception handling patterns (~970 violations) - Analysis started
+2. **CA1062**: Continue null guard implementation (~176 violations)
+3. **S109**: Continue magic number elimination (~3,268 violations)
 
 #### Production Readiness Criteria
 - [ ] Reliability A rating achieved

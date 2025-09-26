@@ -26,6 +26,9 @@ public static class StrategyGates
 
     public static bool PassesRSGate(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
+        if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        
         var z = snap.Z5mReturnDiff;
         var abs = Math.Abs(z);
         var mid = cfg.RsGate.ThresholdMid;
@@ -44,6 +47,9 @@ public static class StrategyGates
     // Convert environment into a size multiplier (never zero)
     public static decimal SizeScale(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
+        if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        
         decimal scale = 1.0m;
         if (cfg.News.BoostOnMajorNews && (snap.IsMajorNewsNow || snap.IsHoliday))
             scale *= cfg.News.SizeBoostOnNews;
@@ -64,6 +70,10 @@ public static class StrategyGates
     // News/holiday score weight, biased by family (deterministic; no RNG)
     public static decimal ScoreWeight(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap, string family)
     {
+        if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        if (family is null) throw new ArgumentNullException(nameof(family));
+        
         decimal w = 1.0m;
 
         // Deterministic "explosive" detection: explicit flags or Z-based fallback
@@ -113,6 +123,10 @@ public static class StrategyGates
     // Legacy blocking filters preserved for non-always-on scenarios
     public static bool PassesGlobalFilters(TradingProfileConfig cfg, StrategyDef s, BotCore.Models.MarketSnapshot snap)
     {
+        if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+        if (s is null) throw new ArgumentNullException(nameof(s));
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        
         if (cfg.AlwaysOn.Enabled) return true; // never block in AlwaysOn
         var gf = cfg.GlobalFilters;
         var name = s.Name.ToLowerInvariant();

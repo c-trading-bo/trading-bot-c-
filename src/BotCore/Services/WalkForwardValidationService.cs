@@ -42,6 +42,8 @@ namespace BotCore.Services
             IEnhancedBacktestService backtestService,
             IModelVersionVerificationService modelVersionService)
         {
+            if (config is null) throw new ArgumentNullException(nameof(config));
+            
             _logger = logger;
             _config = config.Value;
             _backtestService = backtestService;
@@ -57,6 +59,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<WalkForwardResult> RunWalkForwardValidationAsync(WalkForwardRequest request, CancellationToken cancellationToken = default)
         {
+            if (request is null) throw new ArgumentNullException(nameof(request));
+            
             try
             {
                 _logger.LogInformation("[WALK-FORWARD] Starting walk-forward validation for {Strategy} from {StartDate} to {EndDate}",
@@ -187,6 +191,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<WalkForwardModelPerformance> ValidateModelAsync(string modelPath, ValidationWindow window, CancellationToken cancellationToken = default)
         {
+            if (window is null) throw new ArgumentNullException(nameof(window));
+            
             try
             {
                 _logger.LogDebug("[MODEL-VALIDATION] Validating model {ModelPath} on window {WindowIndex}", modelPath, window.WindowIndex);
@@ -217,6 +223,8 @@ namespace BotCore.Services
         /// </summary>
         public Task<bool> MeetsPerformanceThresholdsAsync(WalkForwardModelPerformance performance)
         {
+            if (performance is null) throw new ArgumentNullException(nameof(performance));
+            
             try
             {
                 var thresholds = _config.PerformanceThresholds;
@@ -254,6 +262,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task LogValidationResultsAsync(WalkForwardResult result)
         {
+            if (result is null) throw new ArgumentNullException(nameof(result));
+            
             try
             {
                 // Log summary

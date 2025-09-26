@@ -480,6 +480,11 @@ public class ContextVector
         decimal volatility,
         decimal timeOfDay)
     {
+        if (strategy is null) throw new ArgumentNullException(nameof(strategy));
+        if (config is null) throw new ArgumentNullException(nameof(config));
+        if (regime is null) throw new ArgumentNullException(nameof(regime));
+        if (session is null) throw new ArgumentNullException(nameof(session));
+        
         return new ContextVector
         {
             Features = new Dictionary<string, decimal>
