@@ -252,6 +252,9 @@ namespace TopstepX.S11
     // --- STRATEGY ---
     public sealed class S11Strategy
     {
+        // Strategy configuration constants
+        private const double TrailingStopRThreshold = 0.5;
+        
         private readonly IOrderRouter _router; private readonly S11Config _cfg; private readonly INewsGate _newsGate;
         private readonly State _es; private readonly State _nq;
         
@@ -345,7 +348,7 @@ namespace TopstepX.S11
 
             // Trail stops as price moves favorably
             double r = s.RealizedR(side, avgPx);
-            if (r >= 0.5)
+            if (r >= TrailingStopRThreshold)
             {
                 double? sw = s.RecentExtremePx(side);
                 if (sw.HasValue) _router.ModifyStop(positionId, sw.Value);

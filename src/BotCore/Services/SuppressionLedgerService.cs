@@ -113,8 +113,7 @@ namespace TradingBot.BotCore.Services
 
             await SaveLedgerAsync().ConfigureAwait(false);
 
-            _logger.LogWarning("⚠️ [SUPPRESSION] Recorded suppression {RuleId} in {File}:{Line} by {Author}: {Justification}",
-                ruleId, Path.GetFileName(filePath), lineNumber, author, justification);
+            _logSuppressionRecorded(_logger, ruleId, Path.GetFileName(filePath), lineNumber, author, justification, null);
 
             // Create alert for new suppression
             await CreateSuppressionAlertAsync(entry).ConfigureAwait(false);
@@ -138,8 +137,7 @@ namespace TradingBot.BotCore.Services
                 suppression.Status = newStatus;
                 suppression.ReviewNotes = reviewNotes;
 
-                _logger.LogInformation("📋 [SUPPRESSION] Reviewed suppression {Id} by {Reviewer}: {Status}",
-                    suppressionId, reviewer, newStatus);
+                _logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus, null);
             }
 
             return SaveLedgerAsync();

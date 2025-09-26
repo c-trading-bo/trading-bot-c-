@@ -508,6 +508,51 @@ private const int MaxCircuitBreakerThreshold = 20;
 ```
 
 **Rationale**: Enhanced production safety with specific exception handling in test/guardrail validation code, completed resilience configuration constants for HTTP and circuit breaker settings, optimized market data validation and statistical calculations for performance.
+
+#### Round 14 - Continued Phase 2 High-Impact Systematic Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | ~3110 | ~3092 | ProductionConfigurationService.cs, CustomTagGenerator.cs, S11_MaxPerf_FullStack.cs, S6_MaxPerf_FullStack.cs, AutonomousDecisionEngine.cs | Named constants for performance thresholds, tag generation limits, trading R-multiple thresholds, and autonomous trading parameters |
+| CA1848 | Several | 0 | SuppressionLedgerService.cs | Applied existing LoggerMessage delegates for improved logging performance |
+| CA1031 | Several | Reduced | CriticalSystemComponents.cs | Replaced generic exception catches with specific types for credential management |
+
+**Example Pattern - S109 Configuration Constants**:
+```csharp
+// Before (Violation)
+[Range(0.1, 1.0)] public double AccuracyThreshold { get; set; } = 0.6;
+public decimal MaxDailyLoss { get; set; } = -1000m;
+if (r >= 0.5) // Strategy threshold
+
+// After (Compliant)
+private const double MinAccuracyThreshold = 0.1;
+private const double MaxAccuracyThreshold = 1.0;
+private const decimal DefaultMaxDailyLoss = -1000m;
+private const double TrailingStopRThreshold = 0.5;
+
+[Range(MinAccuracyThreshold, MaxAccuracyThreshold)] public double AccuracyThreshold { get; set; } = 0.6;
+public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
+if (r >= TrailingStopRThreshold)
+```
+
+**Example Pattern - CA1848 LoggerMessage Performance**:
+```csharp
+// Before (Violation)
+_logger.LogWarning("⚠️ [SUPPRESSION] Recorded suppression {RuleId} in {File}:{Line}", ruleId, file, line);
+
+// After (Compliant)
+_logSuppressionRecorded(_logger, ruleId, Path.GetFileName(filePath), lineNumber, author, justification, null);
+```
+
+**Example Pattern - CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex) { _logger.LogDebug(ex, "Failed to get credential"); }
+
+// After (Compliant)
+catch (UnauthorizedAccessException ex) { _logger.LogDebug(ex, "Failed to get credential - unauthorized"); }
+catch (InvalidOperationException ex) { _logger.LogDebug(ex, "Failed to get credential - invalid operation"); }
+catch (TimeoutException ex) { _logger.LogDebug(ex, "Failed to get credential - timeout"); }
+```
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |

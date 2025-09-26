@@ -1655,9 +1655,17 @@ namespace TradingBot.Critical
                     return azureValue;
                 }
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogDebug(ex, "Failed to get credential {Key} from Azure Key Vault", key);
+                _logger.LogDebug(ex, "Failed to get credential {Key} from Azure Key Vault - unauthorized", key);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogDebug(ex, "Failed to get credential {Key} from Azure Key Vault - invalid operation", key);
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogDebug(ex, "Failed to get credential {Key} from Azure Key Vault - timeout", key);
             }
             
             // 3. Check AWS Secrets Manager (if available)
@@ -1669,9 +1677,17 @@ namespace TradingBot.Critical
                     return awsValue;
                 }
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogDebug(ex, "Failed to get credential {Key} from AWS Secrets Manager", key);
+                _logger.LogDebug(ex, "Failed to get credential {Key} from AWS Secrets Manager - unauthorized", key);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogDebug(ex, "Failed to get credential {Key} from AWS Secrets Manager - invalid operation", key);
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogDebug(ex, "Failed to get credential {Key} from AWS Secrets Manager - timeout", key);
             }
             
             // 4. Return default or throw
@@ -1690,7 +1706,17 @@ namespace TradingBot.Critical
                 value = GetCredential(key, null);
                 return true;
             }
-            catch
+            catch (InvalidOperationException)
+            {
+                value = string.Empty;
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                value = string.Empty;
+                return false;
+            }
+            catch (KeyNotFoundException)
             {
                 value = string.Empty;
                 return false;

@@ -208,7 +208,11 @@ public class ModelLifecycleConfig
 
 public class PerformanceConfig
 {
-    [Range(0.1, 1.0)]
+    // Configuration constants for performance evaluation
+    private const double MinAccuracyThreshold = 0.1;
+    private const double MaxAccuracyThreshold = 1.0;
+    
+    [Range(MinAccuracyThreshold, MaxAccuracyThreshold)]
     public double AccuracyThreshold { get; set; } = 0.6;
     
     public TimeSpan EvaluationWindow { get; set; } = TimeSpan.FromHours(4);

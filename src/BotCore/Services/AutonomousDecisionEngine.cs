@@ -1770,13 +1770,18 @@ public class AutonomousStrategyMetrics
 /// </summary>
 public class AutonomousConfig
 {
+    // Configuration constants for autonomous trading parameters
+    private const decimal DefaultDailyProfitTarget = 300m;
+    private const decimal DefaultMaxDailyLoss = -1000m;
+    private const decimal DefaultMaxDrawdown = -2000m;
+    
     public bool IsEnabled { get; set; }
     public bool Enabled { get; set; } // Legacy property for compatibility
     public bool AutoStrategySelection { get; set; } = true;
     public bool AutoPositionSizing { get; set; } = true;
-    public decimal DailyProfitTarget { get; set; } = 300m;
-    public decimal MaxDailyLoss { get; set; } = -1000m;
-    public decimal MaxDrawdown { get; set; } = -2000m; // Add back for compatibility
+    public decimal DailyProfitTarget { get; set; } = DefaultDailyProfitTarget;
+    public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
+    public decimal MaxDrawdown { get; set; } = DefaultMaxDrawdown; // Add back for compatibility
     public bool TradeDuringLunch { get; set; }
     public bool TradeOvernight { get; set; }
     public bool TradePreMarket { get; set; }
