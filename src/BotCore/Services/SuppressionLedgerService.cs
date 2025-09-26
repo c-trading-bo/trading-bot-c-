@@ -137,7 +137,7 @@ namespace TradingBot.BotCore.Services
                 suppression.Status = newStatus;
                 suppression.ReviewNotes = reviewNotes;
 
-                _logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus, null);
+                _logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus.ToString(), null);
             }
 
             return SaveLedgerAsync();
@@ -169,7 +169,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get all active suppressions
         /// </summary>
-        public List<SuppressionEntry> GetActiveSuppressions()
+        public IReadOnlyList<SuppressionEntry> GetActiveSuppressions()
         {
             lock (_ledgerLock)
             {
@@ -180,7 +180,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get suppressions pending review
         /// </summary>
-        public List<SuppressionEntry> GetPendingReview()
+        public IReadOnlyList<SuppressionEntry> GetPendingReview()
         {
             lock (_ledgerLock)
             {
@@ -191,7 +191,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get expired suppressions that should be removed
         /// </summary>
-        public List<SuppressionEntry> GetExpiredSuppressions()
+        public IReadOnlyList<SuppressionEntry> GetExpiredSuppressions()
         {
             var now = DateTime.UtcNow;
             
@@ -497,16 +497,44 @@ This suppression requires review and approval.
     /// </summary>
     public class SuppressionReport
     {
+        // Private backing fields for dictionaries 
+        private readonly Dictionary<string, int> _suppressionsByRule = new();
+        private readonly Dictionary<string, int> _suppressionsByAuthor = new();
+        
         public DateTime GeneratedAt { get; set; }
         public int TotalSuppressions { get; set; }
         public int ActiveSuppressions { get; set; }
         public int PendingReview { get; set; }
         public int Rejected { get; set; }
         public int ExpiredSuppressions { get; set; }
-        public Dictionary<string, int> SuppressionsByRule { get; set; } = new();
-        public Dictionary<string, int> SuppressionsByAuthor { get; set; } = new();
+        
+        // Read-only dictionary properties
+        public IReadOnlyDictionary<string, int> SuppressionsByRule => _suppressionsByRule;
+        public IReadOnlyDictionary<string, int> SuppressionsByAuthor => _suppressionsByAuthor;
+        
         public SuppressionEntry? OldestSuppression { get; set; }
         public SuppressionEntry? NewestSuppression { get; set; }
+        
+        // Replace methods for controlled mutation
+        public void ReplaceSuppressionsByRule(IEnumerable<KeyValuePair<string, int>> items)
+        {
+            _suppressionsByRule.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _suppressionsByRule[item.Key] = item.Value;
+            }
+        }
+        
+        public void ReplaceSuppressionsByAuthor(IEnumerable<KeyValuePair<string, int>> items)
+        {
+            _suppressionsByAuthor.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _suppressionsByAuthor[item.Key] = item.Value;
+            }
+        }
     }
 
     /// <summary>
@@ -514,11 +542,54 @@ This suppression requires review and approval.
     /// </summary>
     public class SuppressionValidationResult
     {
+        // Private backing fields for collections
+        private readonly List<string> _missingLedgerEntries = new();
+        private readonly List<SuppressionEntry> _orphanedLedgerEntries = new();
+        private readonly List<string> _invalidSuppressions = new();
+        
         public DateTime ValidatedAt { get; set; }
         public bool IsValid { get; set; }
-        public List<string> MissingLedgerEntries { get; set; } = new();
-        public List<SuppressionEntry> OrphanedLedgerEntries { get; set; } = new();
-        public List<string> InvalidSuppressions { get; set; } = new();
+        
+        // Read-only collection properties
+        public IReadOnlyList<string> MissingLedgerEntries => _missingLedgerEntries;
+        public IReadOnlyList<SuppressionEntry> OrphanedLedgerEntries => _orphanedLedgerEntries;
+        public IReadOnlyList<string> InvalidSuppressions => _invalidSuppressions;
+        
         public string? ValidationError { get; set; }
+        
+        // Replace methods for controlled mutation
+        public void ReplaceMissingLedgerEntries(IEnumerable<string> items)
+        {
+            _missingLedgerEntries.Clear();
+            if (items != null) _missingLedgerEntries.AddRange(items);
+        }
+        
+        public void ReplaceOrphanedLedgerEntries(IEnumerable<SuppressionEntry> items)
+        {
+            _orphanedLedgerEntries.Clear();
+            if (items != null) _orphanedLedgerEntries.AddRange(items);
+        }
+        
+        public void ReplaceInvalidSuppressions(IEnumerable<string> items)
+        {
+            _invalidSuppressions.Clear();
+            if (items != null) _invalidSuppressions.AddRange(items);
+        }
+        
+        // Add methods for individual items
+        public void AddMissingLedgerEntry(string entry)
+        {
+            if (!string.IsNullOrEmpty(entry)) _missingLedgerEntries.Add(entry);
+        }
+        
+        public void AddOrphanedLedgerEntry(SuppressionEntry entry)
+        {
+            if (entry != null) _orphanedLedgerEntries.Add(entry);
+        }
+        
+        public void AddInvalidSuppression(string suppression)
+        {
+            if (!string.IsNullOrEmpty(suppression)) _invalidSuppressions.Add(suppression);
+        }
     }
 }

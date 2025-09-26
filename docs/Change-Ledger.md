@@ -553,6 +553,46 @@ catch (UnauthorizedAccessException ex) { _logger.LogDebug(ex, "Failed to get cre
 catch (InvalidOperationException ex) { _logger.LogDebug(ex, "Failed to get credential - invalid operation"); }
 catch (TimeoutException ex) { _logger.LogDebug(ex, "Failed to get credential - timeout"); }
 ```
+
+#### Round 15 - Phase 1 CS Error Fix & Collection Immutability Implementation (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS1503 | 2 | 0 | SuppressionLedgerService.cs | Fixed enum to string conversion in LoggerMessage delegate call |
+| CA2227/CA1002 | ~240 | ~218 | SecretsValidationService.cs, SuppressionLedgerService.cs | Applied read-only collection pattern with Replace*/Add methods for immutable domain design |
+
+**Example Pattern - Phase 1 CS1503 Fix**:
+```csharp
+// Before (CS1503 Error)
+_logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus, null);
+// Error: Cannot convert SuppressionStatus to string
+
+// After (Compliant)
+_logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus.ToString(), null);
+```
+
+**Example Pattern - Immutable Collection Design (CA2227/CA1002)**:
+```csharp
+// Before (Violation)
+public List<string> ValidatedSecrets { get; set; } = new();
+public List<string> MissingSecrets { get; set; } = new();
+public List<SuppressionEntry> GetActiveSuppressions() { return _suppressions.FindAll(...); }
+
+// After (Compliant)
+private readonly List<string> _validatedSecrets = new();
+private readonly List<string> _missingSecrets = new();
+
+public IReadOnlyList<string> ValidatedSecrets => _validatedSecrets;
+public IReadOnlyList<string> MissingSecrets => _missingSecrets;
+
+public void ReplaceValidatedSecrets(IEnumerable<string> items) { 
+    _validatedSecrets.Clear(); 
+    if (items != null) _validatedSecrets.AddRange(items); 
+}
+
+public IReadOnlyList<SuppressionEntry> GetActiveSuppressions() {
+    return _suppressions.FindAll(...);
+}
+```
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |

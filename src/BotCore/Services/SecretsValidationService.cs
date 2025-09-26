@@ -32,11 +32,7 @@ namespace TradingBot.BotCore.Services
         {
             var result = new StartupValidationResult
             {
-                ValidationTime = DateTime.UtcNow,
-                ValidatedSecrets = new List<string>(),
-                MissingSecrets = new List<string>(),
-                InvalidSecrets = new List<string>(),
-                Errors = new List<string>()
+                ValidationTime = DateTime.UtcNow
             };
 
             _logger.LogInformation("🔐 [SECRETS] Starting secrets and endpoint validation...");
@@ -99,7 +95,7 @@ namespace TradingBot.BotCore.Services
                 
                 if (string.IsNullOrEmpty(keyValue))
                 {
-                    result.MissingSecrets.Add(keyName);
+                    result.AddMissingSecret(keyName);
                     _logger.LogError("🚨 [SECRETS] Missing required API key: {KeyName}", keyName);
                 }
                 else
@@ -107,12 +103,12 @@ namespace TradingBot.BotCore.Services
                     // Validate key format
                     if (IsValidApiKey(keyName, keyValue))
                     {
-                        result.ValidatedSecrets.Add(keyName);
+                        result.AddValidatedSecret(keyName);
                         _logger.LogDebug("✅ [SECRETS] Valid API key: {KeyName}", keyName);
                     }
                     else
                     {
-                        result.InvalidSecrets.Add(keyName);
+                        result.AddInvalidSecret(keyName);
                         _logger.LogError("🚨 [SECRETS] Invalid API key format: {KeyName}", keyName);
                     }
                 }
@@ -147,7 +143,7 @@ namespace TradingBot.BotCore.Services
                 }
                 else
                 {
-                    result.ValidatedSecrets.Add(endpointKey);
+                    result.AddValidatedSecret(endpointKey);
                     _logger.LogDebug("✅ [SECRETS] Valid endpoint configuration: {Key}", endpointKey);
                 }
             }
@@ -180,7 +176,7 @@ namespace TradingBot.BotCore.Services
                 }
                 else
                 {
-                    result.ValidatedSecrets.Add(connKey);
+                    result.AddValidatedSecret(connKey);
                     _logger.LogDebug("✅ [SECRETS] Valid connection string: {Key}", connKey);
                 }
             }
@@ -230,7 +226,7 @@ namespace TradingBot.BotCore.Services
                         break;
                     case "environment":
                         // Environment variables are always accessible if process has permissions
-                        result.ValidatedSecrets.Add("EnvironmentVariables");
+                        result.AddValidatedSecret("EnvironmentVariables");
                         _logger.LogDebug("✅ [SECRETS] Using environment variables for secrets");
                         break;
                     default:
@@ -256,7 +252,7 @@ namespace TradingBot.BotCore.Services
             }
             else
             {
-                result.ValidatedSecrets.Add("AzureKeyVault");
+                result.AddValidatedSecret("AzureKeyVault");
                 _logger.LogDebug("✅ [SECRETS] Azure Key Vault configured");
             }
         }
@@ -274,7 +270,7 @@ namespace TradingBot.BotCore.Services
             }
             else
             {
-                result.ValidatedSecrets.Add("HashiCorpVault");
+                result.AddValidatedSecret("HashiCorpVault");
                 _logger.LogDebug("✅ [SECRETS] HashiCorp Vault configured");
             }
         }
@@ -355,11 +351,65 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class StartupValidationResult
     {
+        // Private backing fields for collections
+        private readonly List<string> _validatedSecrets = new();
+        private readonly List<string> _missingSecrets = new();
+        private readonly List<string> _invalidSecrets = new();
+        private readonly List<string> _errors = new();
+        
         public DateTime ValidationTime { get; set; }
         public bool IsValid { get; set; }
-        public List<string> ValidatedSecrets { get; set; } = new();
-        public List<string> MissingSecrets { get; set; } = new();
-        public List<string> InvalidSecrets { get; set; } = new();
-        public List<string> Errors { get; set; } = new();
+        
+        // Read-only collection properties
+        public IReadOnlyList<string> ValidatedSecrets => _validatedSecrets;
+        public IReadOnlyList<string> MissingSecrets => _missingSecrets;
+        public IReadOnlyList<string> InvalidSecrets => _invalidSecrets;
+        public IReadOnlyList<string> Errors => _errors;
+        
+        // Replace methods for controlled mutation
+        public void ReplaceValidatedSecrets(IEnumerable<string> items)
+        {
+            _validatedSecrets.Clear();
+            if (items != null) _validatedSecrets.AddRange(items);
+        }
+        
+        public void ReplaceMissingSecrets(IEnumerable<string> items)
+        {
+            _missingSecrets.Clear();
+            if (items != null) _missingSecrets.AddRange(items);
+        }
+        
+        public void ReplaceInvalidSecrets(IEnumerable<string> items)
+        {
+            _invalidSecrets.Clear();
+            if (items != null) _invalidSecrets.AddRange(items);
+        }
+        
+        public void ReplaceErrors(IEnumerable<string> items)
+        {
+            _errors.Clear();
+            if (items != null) _errors.AddRange(items);
+        }
+        
+        // Add methods for individual items
+        public void AddValidatedSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _validatedSecrets.Add(secret);
+        }
+        
+        public void AddMissingSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _missingSecrets.Add(secret);
+        }
+        
+        public void AddInvalidSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _invalidSecrets.Add(secret);
+        }
+        
+        public void AddError(string error)
+        {
+            if (!string.IsNullOrEmpty(error)) _errors.Add(error);
+        }
     }
 }
