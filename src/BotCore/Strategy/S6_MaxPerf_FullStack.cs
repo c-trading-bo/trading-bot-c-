@@ -242,7 +242,7 @@ namespace TopstepX.S6
             if (bars == null)
                 throw new ArgumentNullException(nameof(bars));
 
-            var s = Get(instr); long tick = s.Tick; foreach (var b in bars)
+            var s = Get(instr); foreach (var b in bars)
             { var bar = new Bar1M(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
@@ -293,7 +293,7 @@ namespace TopstepX.S6
 
         private void TryEnterDrive(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
             bool longSide = s.LastClose > s.ON_High && s.TrendAgree1m5m(false);
             bool shortSide= s.LastClose < s.ON_Low  && s.TrendAgree1m5m(false);
             if (!longSide && !shortSide) return;
@@ -312,7 +312,7 @@ namespace TopstepX.S6
 
         private void TryEnterReversal(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
             bool revLong  = s.FailedBreakout(false);
             bool revShort = s.FailedBreakout(true);
             if (!revLong && !revShort) return;

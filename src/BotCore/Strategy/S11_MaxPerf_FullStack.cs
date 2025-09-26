@@ -310,7 +310,7 @@ namespace TopstepX.S11
 
         private void TryEnterFade(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
 
             bool fadeLong = s.RSI <= _cfg.MinRSI && s.IsBelowIBLow() && s.VolumeExhaustion();
             bool fadeShort = s.RSI >= _cfg.MaxRSI && s.IsAboveIBHigh() && s.VolumeExhaustion();

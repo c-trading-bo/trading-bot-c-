@@ -1162,15 +1162,6 @@ namespace TradingBot.Critical
         {
             try
             {
-                var alert = new
-                {
-                    AlertType = "EMERGENCY",
-                    Message = message,
-                    Timestamp = DateTime.UtcNow,
-                    Severity = "CRITICAL",
-                    PositionCount = _activePositions.Count
-                };
-
                 // Log the emergency alert
                 _logger?.LogError("[EMERGENCY_ALERT] {Message} - Positions: {Count}", message, _activePositions.Count);
                 
@@ -1762,7 +1753,6 @@ namespace TradingBot.Critical
             try
             {
                 // AWS Secrets Manager integration using environment variables for configuration
-                var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
                 var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
                 var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
                 
