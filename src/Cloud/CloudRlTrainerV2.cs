@@ -93,6 +93,34 @@ namespace CloudTrainer
         public ModelDescriptor? Active { get; set; }
         public Dictionary<string, object> Config { get; set; } = new();
     }
+
+    public sealed class ModelManifest
+    {
+        public string Version { get; set; } = string.Empty;
+        public Dictionary<string, ModelInfo> Models { get; set; } = new();
+        public double DriftScore { get; set; }
+        public DateTime CreatedAt { get; set; }
+        
+        public string VersionSha() => System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes($"{Version}-{CreatedAt:O}")
+        ).ToHexString()[..8];
+    }
+
+    public sealed class ModelInfo
+    {
+        public string Url { get; set; } = string.Empty;
+        public string Sha256 { get; set; } = string.Empty;
+        public long Size { get; set; }
+    }
+
+    // Extension method for byte array to hex string conversion
+    public static class ByteArrayExtensions
+    {
+        public static string ToHexString(this byte[] bytes)
+        {
+            return Convert.ToHexString(bytes);
+        }
+    }
     #endregion
 
     #region Interfaces
@@ -442,38 +470,159 @@ namespace CloudTrainer
             await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                _logger.LogDebug("🔍 Checking for model updates");
-
-                // Load registry
-                var registry = await LoadRegistryAsync(cancellationToken).ConfigureAwait(false);
-                
-                // Discover available models
-                var availableModels = await DiscoverModelsAsync(cancellationToken).ConfigureAwait(false);
-                
-                // Update registry with new models
-                registry.Available = availableModels;
-                registry.LastUpdated = DateTimeOffset.UtcNow;
-
-                // Process new models
-                var newModels = availableModels.Where(m => !registry.Installed.Any(i => i.Id == m.Id && i.Version == m.Version)).ToList();
-                
-                foreach (var model in newModels)
-                {
-                    await ProcessNewModelAsync(model, registry, cancellationToken).ConfigureAwait(false);
-                }
-
-                // Select best model for hot-swap
-                await EvaluateAndSwapAsync(registry, cancellationToken).ConfigureAwait(false);
-
-                // Save updated registry
-                await SaveRegistryAsync(registry, cancellationToken).ConfigureAwait(false);
-
-                _logger.LogDebug("✅ Model processing cycle completed");
+                await PollAsync(cancellationToken).ConfigureAwait(false);
             }
             finally
             {
                 _operationLock.Release();
             }
+        }
+
+        /// <summary>
+        /// Main polling logic for manifest-based model updates with atomic promotion
+        /// </summary>
+        private async Task PollAsync(CancellationToken ct)
+        {
+            // Check if promotion is enabled
+            var promoteEnabled = Environment.GetEnvironmentVariable("PROMOTE_TUNER") == "1";
+            if (!promoteEnabled)
+            {
+                _logger.LogDebug("PROMOTE_TUNER=0, skipping model promotion");
+                return;
+            }
+
+            var manifestPath = Path.Combine("manifests", "manifest.json");
+            if (!File.Exists(manifestPath)) 
+            { 
+                _logger.LogWarning("No manifest found at {ManifestPath}", manifestPath); 
+                return; 
+            }
+
+            try
+            {
+                var manifestContent = await File.ReadAllTextAsync(manifestPath, ct).ConfigureAwait(false);
+                var manifest = JsonSerializer.Deserialize<ModelManifest>(manifestContent);
+                
+                if (manifest == null || !IsEligible(manifest)) 
+                { 
+                    _logger.LogInformation("Manifest not eligible for promotion"); 
+                    return; 
+                }
+
+                var sha = manifest.VersionSha();
+                var stageDir = Path.Combine("artifacts", "stage", sha);
+                Directory.CreateDirectory(stageDir);
+
+                _logger.LogInformation("📦 Processing manifest version {Sha}", sha);
+
+                // Download and verify all models
+                foreach (var kv in manifest.Models)
+                {
+                    var local = Path.Combine(stageDir, kv.Key + ".onnx");
+                    if (File.Exists(local))
+                    {
+                        _logger.LogDebug("Model {ModelName} already staged", kv.Key);
+                        continue;
+                    }
+
+                    await DownloadAsync(kv.Value.Url, local, ct).ConfigureAwait(false);
+                    
+                    if (!await VerifySha256Async(local, kv.Value.Sha256).ConfigureAwait(false))
+                    {
+                        throw new InvalidOperationException($"SHA256 mismatch for {kv.Key}");
+                    }
+                    
+                    _logger.LogInformation("✅ Downloaded and verified {ModelName}", kv.Key);
+                }
+
+                // Atomic swap
+                await AtomicSwapAsync(stageDir, sha, ct).ConfigureAwait(false);
+
+                // Notify brain for hot-reload
+                NotifyModelUpdate(sha);
+
+                _logger.LogInformation("🚀 Models promoted successfully {Sha}", sha);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to process manifest");
+            }
+        }
+
+        private bool IsEligible(ModelManifest manifest)
+        {
+            // Check if CI backtest_sweep is green and drift is within limits
+            var ciGreen = Environment.GetEnvironmentVariable("CI_BACKTEST_GREEN") == "1";
+            var driftOk = manifest.DriftScore <= 0.15; // Example threshold
+            
+            return ciGreen && driftOk && manifest.Models.Count > 0;
+        }
+
+        private async Task DownloadAsync(string url, string localPath, CancellationToken ct)
+        {
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromMinutes(10);
+            
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            await using var contentStream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            await using var fileStream = File.Create(localPath);
+            await contentStream.CopyToAsync(fileStream, ct).ConfigureAwait(false);
+        }
+
+        private async Task<bool> VerifySha256Async(string filePath, string expectedSha256)
+        {
+            if (string.IsNullOrEmpty(expectedSha256)) return true;
+            
+            await Task.CompletedTask.ConfigureAwait(false);
+            
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            await using var stream = File.OpenRead(filePath);
+            var hash = await sha256.ComputeHashAsync(stream).ConfigureAwait(false);
+            var computedSha256 = Convert.ToHexString(hash);
+            
+            return string.Equals(computedSha256, expectedSha256, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task AtomicSwapAsync(string stageDir, string sha, CancellationToken ct)
+        {
+            await Task.CompletedTask.ConfigureAwait(false);
+            
+            var curr = Path.Combine("artifacts", "current");
+            var prev = Path.Combine("artifacts", "previous");
+
+            // Backup current to previous (atomic)
+            if (Directory.Exists(curr))
+            {
+                if (Directory.Exists(prev))
+                {
+                    Directory.Delete(prev, true);
+                }
+                Directory.Move(curr, prev);
+            }
+
+            // Move staged to current (atomic)
+            Directory.Move(stageDir, curr);
+
+            _logger.LogInformation("📋 Atomic swap completed: staged → current");
+        }
+
+        private void NotifyModelUpdate(string sha)
+        {
+            // Emit telemetry
+            EmitMetric("config.snapshot_id", 1, ("id", sha));
+            EmitMetric("canary.start", 1, ("id", sha));
+            
+            // TODO: Wire to IModelRegistry when available
+            _logger.LogInformation("🔔 Model update notification sent for {Sha}", sha);
+        }
+
+        private void EmitMetric(string name, int value, (string key, string val) tag)
+        {
+            // Simple metric emission - integrate with your telemetry system
+            _logger.LogInformation("📊 Metric: {MetricName}={Value} {TagKey}={TagValue}", 
+                name, value, tag.key, tag.val);
         }
 
         private async Task<ModelRegistry> LoadRegistryAsync(CancellationToken cancellationToken)

@@ -51,7 +51,10 @@ internal static class Program
         void Dir(string p) { if (!Directory.Exists(p)) Directory.CreateDirectory(p); }
         Dir("state"); Dir("state/backtests"); Dir("state/learning");
         Dir("datasets"); Dir("datasets/features"); Dir("datasets/quotes");
-        Dir("reports"); Dir("artifacts"); Dir("model_registry/models"); Dir("config/calendar");
+        Dir("reports"); Dir("artifacts"); Dir("artifacts/models"); Dir("artifacts/temp"); 
+        Dir("artifacts/current"); Dir("artifacts/previous"); Dir("artifacts/stage");
+        Dir("model_registry/models"); Dir("config/calendar"); Dir("manifests");
+        
         var overrides = "state/runtime-overrides.json";
         if (!File.Exists(overrides)) File.WriteAllText(overrides, "{}");
         var s6 = "config/strategy.S6.json";
@@ -62,6 +65,32 @@ internal static class Program
             "{ \"name\":\"Exhaustion\",\"bands\":{\"bearish\":0.25,\"bullish\":0.75,\"hysteresis\":0.08},\"pacing\":0.8,\"tilt\":0.0,\"limits\":{\"spreadTicksMax\":3,\"latencyMsMax\":200},\"bracket\":{\"mode\":\"Auto\"} }");
         var hol = "config/calendar/holiday-cme.json";
         if (!File.Exists(hol)) File.WriteAllText(hol, "2025-01-01\n2025-07-04\n2025-12-25\n");
+        
+        // Create sample manifest.json if it doesn't exist
+        var manifestPath = "manifests/manifest.json";
+        if (!File.Exists(manifestPath)) 
+        {
+            var sampleManifest = """
+            {
+              "Version": "1.0.0",
+              "CreatedAt": "2025-01-01T00:00:00Z",
+              "DriftScore": 0.05,
+              "Models": {
+                "confidence_model": {
+                  "Url": "https://example.com/models/confidence_v1.onnx",
+                  "Sha256": "abc123def456",
+                  "Size": 1048576
+                },
+                "rl_model": {
+                  "Url": "https://example.com/models/rl_v1.onnx", 
+                  "Sha256": "def456ghi789",
+                  "Size": 2097152
+                }
+              }
+            }
+            """;
+            File.WriteAllText(manifestPath, sampleManifest);
+        }
     }
 
     public static async Task Main(string[] args)
@@ -1070,8 +1099,8 @@ Stack Trace:
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
         
-        // Register BacktestLearningService for historical learning when markets are closed
-        services.AddHostedService<BacktestLearningService>();
+        // Legacy BacktestLearningService removed - using EnhancedBacktestLearningService instead
+        // services.AddHostedService<BacktestLearningService>(); // REMOVED
         
         // Register AutomaticDataSchedulerService for automatic scheduling of data processing
         services.AddHostedService<AutomaticDataSchedulerService>();
@@ -1161,6 +1190,21 @@ Stack Trace:
         services.AddSingleton<IAdaptiveIntelligenceCoordinator, AdaptiveIntelligenceCoordinator>();
         services.AddSingleton<IAdaptiveParameterService, AdaptiveParameterService>();
         services.AddSingleton<IRuntimeConfigBus, RuntimeConfigBus>();
+
+        // Model registry and canary watchdog
+        services.AddSingleton<IModelRegistry, ModelRegistry>();
+        services.AddHostedService<CanaryWatchdog>();
+
+        // CloudRlTrainerV2 configuration and dependencies
+        services.Configure<CloudTrainer.CloudRlTrainerOptions>(configuration.GetSection("CloudRlTrainer"));
+        services.AddSingleton<CloudTrainer.IModelDownloader, CloudTrainer.HttpModelDownloader>();
+        services.AddSingleton<CloudTrainer.IModelHotSwapper, CloudTrainer.DefaultModelHotSwapper>();
+        services.AddSingleton<CloudTrainer.IPerformanceStore>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<CloudTrainer.CloudRlTrainerOptions>>().Value;
+            var logger = serviceProvider.GetRequiredService<ILogger<CloudTrainer.FileBasedPerformanceStore>>();
+            return new CloudTrainer.FileBasedPerformanceStore(options.Performance.PerformanceStore, logger);
+        });
 
         // Hosted services (append-only) - Enhanced learning services
         services.AddHostedService<EnhancedBacktestLearningService>();

@@ -1,0 +1,17 @@
+{
+  "Version": "1.0.0", 
+  "CreatedAt": "2025-01-01T00:00:00Z",
+  "DriftScore": 0.05,
+  "Models": {
+    "confidence_model": {
+      "Url": "https://example.com/models/confidence_v1.onnx",
+      "Sha256": "abc123def456",
+      "Size": 1048576
+    },
+    "rl_model": {
+      "Url": "https://example.com/models/rl_v1.onnx",
+      "Sha256": "def456ghi789", 
+      "Size": 2097152
+    }
+  }
+}
