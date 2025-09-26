@@ -15,10 +15,14 @@ namespace BotCore.Configuration
         /// </summary>
         public bool RequireVersionDifference { get; set; } = true;
 
+        // Validation constants for S109 compliance
+        private const double MinWeightChangePercent = 0.01;
+        private const double MaxWeightChangePercent = 10.0;
+
         /// <summary>
         /// Minimum weight change percentage to consider models different
         /// </summary>
-        [Range(0.01, 10.0)]
+        [Range(MinWeightChangePercent, MaxWeightChangePercent)]
         public double MinWeightChangePct { get; set; } = 0.1;
 
         /// <summary>
@@ -47,6 +51,10 @@ namespace BotCore.Configuration
     /// </summary>
     public class ModelRegistryConfiguration
     {
+        // Validation constants for S109 compliance
+        private const int MinVersionHistoryCount = 10;
+        private const int MaxVersionHistoryCount = 1000;
+
         /// <summary>
         /// Enable registry validation
         /// </summary>
@@ -60,7 +68,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Maximum number of model versions to keep in history
         /// </summary>
-        [Range(10, 1000)]
+        [Range(MinVersionHistoryCount, MaxVersionHistoryCount)]
         public int MaxVersionHistory { get; set; } = 50;
 
         /// <summary>
@@ -79,6 +87,12 @@ namespace BotCore.Configuration
     /// </summary>
     public class DataFlowEnhancementConfiguration
     {
+        // Validation constants for S109 compliance
+        private const int MinSnapshotDelayMs = 1000;
+        private const int MaxSnapshotDelayMs = 30000;
+        private const int MinRolloverDays = 1;
+        private const int MaxRolloverDays = 30;
+
         /// <summary>
         /// Enable snapshot data requests after subscriptions
         /// </summary>
@@ -87,7 +101,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Delay before requesting snapshot data (milliseconds)
         /// </summary>
-        [Range(1000, 30000)]
+        [Range(MinSnapshotDelayMs, MaxSnapshotDelayMs)]
         public int SnapshotRequestDelay { get; set; } = 5000;
 
         /// <summary>
@@ -98,7 +112,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Days before expiration to switch to front month
         /// </summary>
-        [Range(1, 30)]
+        [Range(MinRolloverDays, MaxRolloverDays)]
         public int ContractRolloverDays { get; set; } = 7;
 
         /// <summary>
