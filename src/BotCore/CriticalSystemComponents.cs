@@ -566,7 +566,7 @@ namespace TradingBot.Critical
         private readonly ILogger<DisasterRecoverySystem> _logger;
         private readonly SQLiteConnection? _database;
         
-        public class SystemState
+        internal class SystemState
         {
             public DateTime Timestamp { get; set; }
             public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
@@ -579,7 +579,7 @@ namespace TradingBot.Critical
             public string CheckpointHash { get; set; } = string.Empty;
         }
         
-        public class Position
+        internal class Position
         {
             public string Symbol { get; set; } = string.Empty;
             public int Quantity { get; set; }
@@ -592,14 +592,14 @@ namespace TradingBot.Critical
             public string StrategyId { get; set; } = string.Empty;
         }
 
-        public class PendingOrder
+        internal class PendingOrder
         {
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
         }
 
-        public class StrategyState
+        internal class StrategyState
         {
             public string Id { get; set; } = string.Empty;
             public bool IsActive { get; set; }
