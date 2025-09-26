@@ -430,7 +430,7 @@ namespace BotCore
                 }
 
                 // Write optimized features to parquet-style JSON for training
-                if (allFeatures.Any())
+                if (allFeatures.Count > 0)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                     var json = JsonSerializer.Serialize(allFeatures, new JsonSerializerOptions { WriteIndented = true });
@@ -466,7 +466,7 @@ namespace BotCore
         private static void EnrichFeatures(ComprehensiveFeatures features)
         {
             // Calculate performance metrics from recent trades
-            if (RecentTrades.TryGetValue(features.Strategy, out var trades) && trades.Any())
+            if (RecentTrades.TryGetValue(features.Strategy, out var trades) && trades.Count > 0)
             {
                 var recent = trades.TakeLast(20).ToList();
                 features.PriorWinRate = recent.Count(t => t.IsWin) / (decimal)recent.Count;
@@ -544,7 +544,7 @@ namespace BotCore
             // Prior performance
             qualityFactors.Add(features.PriorWinRate);
 
-            return qualityFactors.Any() ? qualityFactors.Average() : 0.5m;
+            return qualityFactors.Count > 0 ? qualityFactors.Average() : 0.5m;
         }
 
         private static MarketRegime DetectMarketRegime(ComprehensiveFeatures features)

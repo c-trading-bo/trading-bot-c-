@@ -440,7 +440,7 @@ namespace TopstepX.Bot.Core.Services
                     _recentErrors.TryRemove(errorId, out _);
                 }
                 
-                if (staleErrors.Any())
+                if (staleErrors.Count > 0)
                 {
                     _logger.LogDebug("🧹 Cleaned up {Count} old error records", staleErrors.Count);
                 }

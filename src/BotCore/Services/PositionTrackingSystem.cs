@@ -248,7 +248,7 @@ namespace TopstepX.Bot.Core.Services
                 violations.Add($"Daily loss limit exceeded: {position.DailyPnL:C} < {_riskLimits.MaxDailyLoss:C}");
             }
             
-            if (violations.Any())
+            if (violations.Count > 0)
             {
                 var eventArgs = new RiskViolationEventArgs
                 {
