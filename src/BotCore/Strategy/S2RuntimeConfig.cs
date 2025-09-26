@@ -7,6 +7,12 @@ namespace BotCore.Strategy;
 // Lightweight runtime configuration holder for S2 (VWAP Mean-Reversion)
 public static class S2RuntimeConfig
 {
+    // Configuration constants
+    private const decimal DEFAULT_VOLZ_MIN = -0.3m;
+    private const int IB_HOUR_MINUTES = 10;
+    private const int IB_MINUTES = 60;
+    private const int IB_ADDITIONAL_MINUTES = 30;
+    
     // Defaults match the provided JSON requirements
     public static string Tf1 { get; private set; } = "M1";
     public static string Tf2 { get; private set; } = "M5";
@@ -15,7 +21,7 @@ public static class S2RuntimeConfig
     public static decimal AtrEnter { get; private set; } = 1.0m;
     public static decimal SigmaForceTrend { get; private set; } = 2.8m;
     public static decimal MinSlopeTf2 { get; private set; } = 0.18m; // ticks/bar on EMA20 TF2 (proxy)
-    public static decimal VolZMin { get; private set; } = -0.3m;
+    public static decimal VolZMin { get; private set; } = DEFAULT_VOLZ_MIN;
     public static decimal VolZMax { get; private set; } = 2.2m;
     public static int ConfirmLookback { get; private set; } = 3;
     public static int ValidityBars { get; private set; } = 3;
@@ -23,7 +29,7 @@ public static class S2RuntimeConfig
     public static int MaxBarsInTrade { get; private set; } = 45;
     public static decimal StopAtrMult { get; private set; } = 0.75m;
     public static decimal TrailAtrMult { get; private set; } = 1.0m;
-    public static int IbEndMinute { get; private set; } = 10 * 60 + 30; // 630
+    public static int IbEndMinute { get; private set; } = IB_HOUR_MINUTES * IB_MINUTES + IB_ADDITIONAL_MINUTES; // 630
     public static decimal EsSigma { get; private set; } = 2.0m;
     public static decimal NqSigma { get; private set; } = 2.6m;
     public static decimal OvernightScale { get; private set; } = 0.5m;

@@ -298,6 +298,12 @@ public class ResilienceConfiguration
 /// </summary>
 public class ObservabilityConfiguration
 {
+    // Constants for validation ranges
+    private const int MinLogRetentionDays = 1;
+    private const int MaxLogRetentionDays = 30;
+    private const int MinMetricsIntervalMs = 100;
+    private const int MaxMetricsIntervalMs = 10000;
+    
     [Required]
     public bool EnableStructuredLogging { get; set; } = true;
 
@@ -308,7 +314,7 @@ public class ObservabilityConfiguration
     public bool EnableTracing { get; set; } = true;
 
     [Required]
-    [Range(1, 30)]
+    [Range(MinLogRetentionDays, MaxLogRetentionDays)]
     public int LogRetentionDays { get; set; } = 7;
 
     [Required]
@@ -321,7 +327,7 @@ public class ObservabilityConfiguration
     public string LogDirectory { get; set; } = "";
 
     [Required]
-    [Range(100, 10000)]
+    [Range(MinMetricsIntervalMs, MaxMetricsIntervalMs)]
     public int MetricsIntervalMs { get; set; } = 1000;
 }
 
@@ -330,13 +336,18 @@ public class ObservabilityConfiguration
 /// </summary>
 public class HealthCheckConfiguration
 {
-    [Required]
-    [Range(DefaultTimeoutMs, 60000)]
-    public int IntervalMs { get; set; } = 10000;
-
+    // Constants for validation ranges
     private const int MinTimeoutMs = 1000;
     private const int MaxTimeoutMs = 30000;
     private const int DefaultTimeoutMs = 5000;
+    private const int MaxIntervalMs = 60000;
+    private const int MinFailureThreshold = 1;
+    private const int MaxFailureThreshold = 10;
+    private const int MaxRecoveryTimeoutMs = 300000;
+    
+    [Required]
+    [Range(DefaultTimeoutMs, MaxIntervalMs)]
+    public int IntervalMs { get; set; } = 10000;
 
     [Required]
     [Range(MinTimeoutMs, MaxTimeoutMs)]
@@ -346,11 +357,11 @@ public class HealthCheckConfiguration
     public bool EnableHealthEndpoint { get; set; } = true;
 
     [Required]
-    [Range(1, 10)]
+    [Range(MinFailureThreshold, MaxFailureThreshold)]
     public int FailureThreshold { get; set; } = 3;
 
     [Required]
-    [Range(MaxTimeoutMs, 300000)]
+    [Range(MaxTimeoutMs, MaxRecoveryTimeoutMs)]
     public int RecoveryTimeoutMs { get; set; } = 60000;
 }
 

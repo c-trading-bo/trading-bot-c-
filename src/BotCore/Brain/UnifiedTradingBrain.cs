@@ -1625,7 +1625,8 @@ namespace BotCore.Brain
                 {
                     _strategySelector?.Dispose();
                     _cvarPPO?.Dispose();
-                    _confidenceNetwork?.Dispose();
+                    if (_confidenceNetwork is IDisposable disposableNetwork)
+                        disposableNetwork.Dispose();
                     _memoryManager?.Dispose();
                     _modelManager?.Dispose();
                     
