@@ -347,6 +347,8 @@ public class TradingConfigurationValidator : IValidateOptions<TradingConfigurati
 {
     public ValidateOptionsResult Validate(string? name, TradingConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate data directory exists and is writable
@@ -423,6 +425,8 @@ public class TopstepXConfigurationValidator : IValidateOptions<TopstepXConfigura
 {
     public ValidateOptionsResult Validate(string? name, TopstepXConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate URLs are accessible endpoints
@@ -458,6 +462,8 @@ public class SecurityConfigurationValidator : IValidateOptions<SecurityConfigura
 {
     public ValidateOptionsResult Validate(string? name, SecurityConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         if (options.RequireEnvironmentCredentials)
@@ -501,6 +507,8 @@ public class ResilienceConfigurationValidator : IValidateOptions<ResilienceConfi
 {
     public ValidateOptionsResult Validate(string? name, ResilienceConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate retry configuration makes sense
@@ -526,6 +534,8 @@ public class ObservabilityConfigurationValidator : IValidateOptions<Observabilit
 {
     public ValidateOptionsResult Validate(string? name, ObservabilityConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate log directory
@@ -578,6 +588,8 @@ public class HealthCheckConfigurationValidator : IValidateOptions<HealthCheckCon
 {
     public ValidateOptionsResult Validate(string? name, HealthCheckConfiguration options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var failures = new List<string>();
 
         // Validate timeouts make sense

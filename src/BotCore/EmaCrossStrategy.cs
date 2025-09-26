@@ -7,6 +7,8 @@ namespace BotCore
     {
         public static int TrySignal(IReadOnlyList<Bar> bars, int fast = 8, int slow = 21)
         {
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             if (bars.Count < Math.Max(fast, slow) + 2) return 0;
             decimal emaFastPrev = 0, emaSlowPrev = 0;
             var alphaF = 2m / (fast + 1);

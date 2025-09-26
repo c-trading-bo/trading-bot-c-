@@ -923,6 +923,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S11(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             // Use the full-stack S11 implementation via bridge
             try
             {
@@ -996,6 +999,11 @@ namespace BotCore.Strategy
         public static void add_cand(List<Candidate> lst, string sid, string symbol, string sideTxt,
                                  decimal entry, decimal stop, decimal t1, Env env, RiskEngine risk, string? tag = null)
         {
+            if (lst is null) throw new ArgumentNullException(nameof(lst));
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (risk is null) throw new ArgumentNullException(nameof(risk));
+            if (sideTxt is null) throw new ArgumentNullException(nameof(sideTxt));
+            
             var pv = InstrumentMeta.PointValue(symbol);
             var tick = InstrumentMeta.Tick(symbol);
             var dist = Math.Max(Math.Abs(entry - stop), tick); // ≥ 1 tick
