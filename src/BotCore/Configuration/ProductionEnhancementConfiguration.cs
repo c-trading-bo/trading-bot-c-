@@ -145,6 +145,18 @@ namespace BotCore.Configuration
     /// </summary>
     public class HealthMonitoringConfiguration
     {
+        // Validation constants for S109 compliance
+        private const int MinSilentFeedTimeoutSeconds = 30;
+        private const int MaxSilentFeedTimeoutSeconds = 600;
+        private const int MinHeartbeatTimeoutSeconds = 5;
+        private const int MaxHeartbeatTimeoutSeconds = 60;
+        private const int MinRecoveryAttempts = 1;
+        private const int MaxRecoveryAttempts = 10;
+        private const int MinRecoveryDelaySeconds = 10;
+        private const int MaxRecoveryDelaySeconds = 300;
+        private const int MinHealthCheckIntervalSeconds = 10;
+        private const int MaxHealthCheckIntervalSeconds = 300;
+
         /// <summary>
         /// Enable data flow health monitoring
         /// </summary>
@@ -153,13 +165,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// Timeout for silent feed detection (seconds)
         /// </summary>
-        [Range(30, 600)]
+        [Range(MinSilentFeedTimeoutSeconds, MaxSilentFeedTimeoutSeconds)]
         public int SilentFeedTimeoutSeconds { get; set; } = 60;
 
         /// <summary>
         /// Heartbeat timeout for immediate recovery (seconds)
         /// </summary>
-        [Range(5, 60)]
+        [Range(MinHeartbeatTimeoutSeconds, MaxHeartbeatTimeoutSeconds)]
         public int HeartbeatTimeoutSeconds { get; set; } = 15;
 
         /// <summary>
@@ -170,19 +182,19 @@ namespace BotCore.Configuration
         /// <summary>
         /// Maximum number of recovery attempts
         /// </summary>
-        [Range(1, 10)]
+        [Range(MinRecoveryAttempts, MaxRecoveryAttempts)]
         public int MaxRecoveryAttempts { get; set; } = 3;
 
         /// <summary>
         /// Delay between recovery attempts (seconds)
         /// </summary>
-        [Range(10, 300)]
+        [Range(MinRecoveryDelaySeconds, MaxRecoveryDelaySeconds)]
         public int RecoveryDelaySeconds { get; set; } = 30;
 
         /// <summary>
         /// Health check interval (seconds)
         /// </summary>
-        [Range(10, 300)]
+        [Range(MinHealthCheckIntervalSeconds, MaxHealthCheckIntervalSeconds)]
         public int HealthCheckIntervalSeconds { get; set; } = 60;
     }
 
@@ -191,6 +203,16 @@ namespace BotCore.Configuration
     /// </summary>
     public class WalkForwardValidationConfiguration
     {
+        // Validation constants for S109 compliance
+        private const int MinValidationWindowDays = 7;
+        private const int MaxValidationWindowDays = 365;
+        private const int MinTrainingWindowDays = 30;
+        private const int MaxTrainingWindowDays = 1095;
+        private const int MinStepSizeDays = 1;
+        private const int MaxStepSizeDays = 30;
+        private const int MinValidationSamples = 100;
+        private const int MaxValidationSamples = 10000;
+
         /// <summary>
         /// Enable walk-forward validation
         /// </summary>
@@ -199,25 +221,25 @@ namespace BotCore.Configuration
         /// <summary>
         /// Validation window size in days
         /// </summary>
-        [Range(7, 365)]
+        [Range(MinValidationWindowDays, MaxValidationWindowDays)]
         public int ValidationWindowDays { get; set; } = 30;
 
         /// <summary>
         /// Training window size in days
         /// </summary>
-        [Range(30, 1095)]
+        [Range(MinTrainingWindowDays, MaxTrainingWindowDays)]
         public int TrainingWindowDays { get; set; } = 90;
 
         /// <summary>
         /// Step size for walk-forward in days
         /// </summary>
-        [Range(1, 30)]
+        [Range(MinStepSizeDays, MaxStepSizeDays)]
         public int StepSizeDays { get; set; } = 7;
 
         /// <summary>
         /// Minimum validation samples required
         /// </summary>
-        [Range(100, 10000)]
+        [Range(MinValidationSamples, MaxValidationSamples)]
         public int MinValidationSamples { get; set; } = 1000;
 
         /// <summary>
@@ -236,6 +258,12 @@ namespace BotCore.Configuration
     /// </summary>
     public class SeedRotationConfiguration
     {
+        // Validation constants for S109 compliance
+        private const int MinBaseSeed = 1;
+        private const int MaxBaseSeed = 1000000;
+        private const int MinSeedRange = 100;
+        private const int MaxSeedRange = 100000;
+
         /// <summary>
         /// Enable seed rotation to ensure different training runs
         /// </summary>
@@ -249,13 +277,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base seed value
         /// </summary>
-        [Range(1, 1000000)]
+        [Range(MinBaseSeed, MaxBaseSeed)]
         public int BaseSeed { get; set; } = 42;
 
         /// <summary>
         /// Maximum range for seed variation
         /// </summary>
-        [Range(100, 100000)]
+        [Range(MinSeedRange, MaxSeedRange)]
         public int MaxSeedRange { get; set; } = 10000;
 
         /// <summary>
@@ -273,28 +301,38 @@ namespace BotCore.Configuration
     /// </summary>
     public class PerformanceThresholdsConfiguration
     {
+        // Validation constants for S109 compliance
+        private const double MinSharpeRatioThreshold = 0.0;
+        private const double MaxSharpeRatioThreshold = 5.0;
+        private const double MinDrawdownPctThreshold = 1.0;
+        private const double MaxDrawdownPctThreshold = 50.0;
+        private const double MinWinRateThreshold = 0.1;
+        private const double MaxWinRateThreshold = 0.9;
+        private const int MinTradesThreshold = 10;
+        private const int MaxTradesThreshold = 10000;
+
         /// <summary>
         /// Minimum Sharpe ratio required
         /// </summary>
-        [Range(0.0, 5.0)]
+        [Range(MinSharpeRatioThreshold, MaxSharpeRatioThreshold)]
         public double MinSharpeRatio { get; set; } = 0.5;
 
         /// <summary>
         /// Maximum drawdown percentage allowed
         /// </summary>
-        [Range(1.0, 50.0)]
+        [Range(MinDrawdownPctThreshold, MaxDrawdownPctThreshold)]
         public double MaxDrawdownPct { get; set; } = 5.0;
 
         /// <summary>
         /// Minimum win rate required
         /// </summary>
-        [Range(0.1, 0.9)]
+        [Range(MinWinRateThreshold, MaxWinRateThreshold)]
         public double MinWinRate { get; set; } = 0.45;
 
         /// <summary>
         /// Minimum number of trades for validation
         /// </summary>
-        [Range(10, 10000)]
+        [Range(MinTradesThreshold, MaxTradesThreshold)]
         public int MinTrades { get; set; } = 50;
     }
 }
