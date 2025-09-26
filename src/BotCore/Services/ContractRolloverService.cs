@@ -38,6 +38,7 @@ namespace BotCore.Services
             IOptions<DataFlowEnhancementConfiguration> config)
         {
             _logger = logger;
+            if (config is null) throw new ArgumentNullException(nameof(config));
             _config = config.Value;
             _contractSpecs = InitializeContractSpecs();
         }

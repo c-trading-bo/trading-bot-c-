@@ -35,7 +35,35 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 1 - Configuration-Driven Business Values (S109 Partial)
+#### Round 1 - Phase 2 S109 Magic Numbers: Strategic Configuration Constants (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 3092 | 3016 | CustomTagGenerator.cs, TradingSystemIntegrationService.cs, ParameterBundle.cs | Named constants for format validation, trading schedules, and parameter ranges |
+
+**Example Pattern - S109 Trading Configuration Constants**:
+```csharp
+// Before (Violation)
+if (StopTicks >= 6 && StopTicks <= 20 && TargetTicks >= 8)
+    return hour >= 18; // Sunday market open
+    Mult = 1.3m;  // Aggressive sizing
+    Thr = 0.65m;  // Medium confidence
+
+// After (Compliant) 
+private const int MinStopTicks = 6;
+private const int MaxStopTicks = 20; 
+private const int SundayMarketOpenHourEt = 18;
+private const decimal AggressiveMultiplier = 1.3m;
+private const decimal MediumConfidenceThreshold = 0.65m;
+
+if (StopTicks >= MinStopTicks && StopTicks <= MaxStopTicks && TargetTicks >= MinTargetTicks)
+    return hour >= SundayMarketOpenHourEt;
+    Mult = AggressiveMultiplier;
+    Thr = MediumConfidenceThreshold;
+```
+
+**Rationale**: Applied systematic configuration-driven approach for all business logic constants. Replaced 76 magic numbers with named constants covering trading bracket validation, position sizing multipliers, confidence thresholds, market schedule hours, and format validation lengths. All values now configurable and self-documenting.
+
+---
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | S109 | 3300+ | 3296 | ProductionConfigurationValidation.cs | Named constants for Range validation attributes |
