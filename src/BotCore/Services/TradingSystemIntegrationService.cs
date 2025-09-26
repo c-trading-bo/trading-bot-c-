@@ -88,16 +88,21 @@ namespace TopstepX.Bot.Core.Services
 
         public class TradingSystemConfiguration
         {
+            // Configuration constants
+            private const decimal DEFAULT_MAX_DAILY_LOSS = -1000m;
+            private const decimal DEFAULT_MAX_POSITION_SIZE = 5m;
+            private const int DEFAULT_TRADING_EVALUATION_INTERVAL_SECONDS = 30;
+            
             public string TopstepXApiBaseUrl { get; set; } = "https://api.topstepx.com";
             public string UserHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/user";
             public string MarketHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/market";
             public string AccountId { get; set; } = string.Empty;
             public bool EnableDryRunMode { get; set; } = true;
             public bool EnableAutoExecution { get; set; }
-            public decimal MaxDailyLoss { get; set; } = -1000m;
-            public decimal MaxPositionSize { get; set; } = 5m;
+            public decimal MaxDailyLoss { get; set; } = DEFAULT_MAX_DAILY_LOSS;
+            public decimal MaxPositionSize { get; set; } = DEFAULT_MAX_POSITION_SIZE;
             public string ApiToken { get; set; } = string.Empty;
-            public int TradingEvaluationIntervalSeconds { get; set; } = 30;
+            public int TradingEvaluationIntervalSeconds { get; set; } = DEFAULT_TRADING_EVALUATION_INTERVAL_SECONDS;
         }
 
         /// <summary>
