@@ -48,25 +48,23 @@ internal sealed class LiveTradingGate : ILiveTradingGate
     
     public bool IsLiveTradingAllowed => _liveTradingEnabled && !IsKillSwitchActive();
     
-    public async Task<bool> CheckLiveTradingPermissionAsync(CancellationToken cancellationToken = default)
+    public Task<bool> CheckLiveTradingPermissionAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         // Check kill switch first
         if (IsKillSwitchActive())
         {
             _logger.LogWarning("Live trading blocked by kill switch");
-            return false;
+            return Task.FromResult(false);
         }
         
         // Check DRY_RUN environment variable
         if (IsDryRunForced())
         {
             _logger.LogInformation("Live trading blocked by DRY_RUN mode");
-            return false;
+            return Task.FromResult(false);
         }
         
-        return _liveTradingEnabled;
+        return Task.FromResult(_liveTradingEnabled);
     }
     
     public void EnableLiveTrading()

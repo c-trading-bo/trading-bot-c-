@@ -69,8 +69,6 @@ internal sealed class CanaryWatchdog : BackgroundService
             return;
         }
         
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         // Get current performance metrics
         var currentPnl = _parameterService.GetParameter("canary.pnl", 0.0);
         var baselinePnl = _parameterService.GetParameter("baseline.pnl", 0.0);

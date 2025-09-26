@@ -151,20 +151,18 @@ internal sealed class ModelRegistry : BackgroundService, IModelRegistry
         }
     }
     
-    public async Task<ModelInfo?> GetActiveModelAsync(string modelType, CancellationToken cancellationToken = default)
+    public Task<ModelInfo?> GetActiveModelAsync(string modelType, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
-        return _registeredModels.Values
+        var result = _registeredModels.Values
             .Where(m => m.Type.Equals(modelType, StringComparison.OrdinalIgnoreCase) && m.IsActive)
             .OrderByDescending(m => m.LastActivated)
             .FirstOrDefault();
+            
+        return Task.FromResult(result);
     }
     
-    public async Task<IEnumerable<ModelInfo>> GetAvailableModelsAsync(string? modelType = null, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<ModelInfo>> GetAvailableModelsAsync(string? modelType = null, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         var models = _registeredModels.Values.AsEnumerable();
         
         if (!string.IsNullOrEmpty(modelType))
@@ -172,7 +170,8 @@ internal sealed class ModelRegistry : BackgroundService, IModelRegistry
             models = models.Where(m => m.Type.Equals(modelType, StringComparison.OrdinalIgnoreCase));
         }
         
-        return models.OrderByDescending(m => m.RegisteredAt);
+        var result = models.OrderByDescending(m => m.RegisteredAt);
+        return Task.FromResult(result);
     }
     
     public async Task<bool> ActivateModelAsync(string modelId, string modelType, CancellationToken cancellationToken = default)
@@ -265,10 +264,8 @@ internal sealed class ModelRegistry : BackgroundService, IModelRegistry
         }
     }
     
-    public async Task UpdateModelMetricsAsync(string modelId, ModelMetrics metrics, CancellationToken cancellationToken = default)
+    public Task UpdateModelMetricsAsync(string modelId, ModelMetrics metrics, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         metrics.LastUpdated = DateTime.UtcNow;
         _modelMetrics.AddOrUpdate(modelId, metrics, (key, existing) => metrics);
         
@@ -282,6 +279,8 @@ internal sealed class ModelRegistry : BackgroundService, IModelRegistry
         
         _logger.LogDebug("📊 Updated metrics for model {ModelId}: Accuracy={Accuracy:F3}, Latency={Latency}ms",
             modelId, metrics.Accuracy, metrics.LatencyMs);
+            
+        return Task.CompletedTask;
     }
     
     public async Task<ModelMetrics?> GetModelMetricsAsync(string modelId, CancellationToken cancellationToken = default)

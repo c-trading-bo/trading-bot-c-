@@ -50,25 +50,23 @@ internal sealed class MarketHoursService : IMarketHoursService
         }
     }
     
-    public async Task<bool> IsInSafePromotionWindowAsync(CancellationToken cancellationToken = default)
+    public Task<bool> IsInSafePromotionWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
         var et = GetEasternTime();
         
         // Safe promotion during maintenance break (5:00-6:00 PM ET)
         if (et.TimeOfDay >= new TimeSpan(17, 0, 0) && et.TimeOfDay < new TimeSpan(18, 0, 0))
-            return true;
+            return Task.FromResult(true);
             
         // Safe promotion on weekends
         if (et.DayOfWeek == DayOfWeek.Saturday || et.DayOfWeek == DayOfWeek.Sunday)
-            return true;
+            return Task.FromResult(true);
             
-        return false;
+        return Task.FromResult(false);
     }
     
-    public async Task<DateTime?> GetNextSafeWindowAsync(CancellationToken cancellationToken = default)
+    public Task<DateTime?> GetNextSafeWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
         var et = GetEasternTime();
         
         // Next maintenance break
@@ -78,13 +76,12 @@ internal sealed class MarketHoursService : IMarketHoursService
             nextMaintenanceStart = nextMaintenanceStart.AddDays(1);
         }
         
-        return nextMaintenanceStart;
+        return Task.FromResult<DateTime?>(nextMaintenanceStart);
     }
     
-    public async Task<bool> IsMarketOpenAsync(CancellationToken cancellationToken = default)
+    public Task<bool> IsMarketOpenAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        return IsMarketOpen(DateTime.UtcNow);
+        return Task.FromResult(IsMarketOpen(DateTime.UtcNow));
     }
     
     private bool IsMarketOpen(DateTime utc)
