@@ -261,11 +261,21 @@ public class BatchedOnnxInferenceService : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        _batchProcessor?.Dispose();
-        _requestQueue.Writer.Complete();
-        _disposed = true;
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _batchProcessor?.Dispose();
+                _requestQueue.Writer.Complete();
+            }
+            _disposed = true;
+        }
     }
 }
 

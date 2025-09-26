@@ -181,16 +181,31 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         };
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        lock (_lock)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            foreach (var arm in _arms.Values)
+            if (disposing)
             {
-                // NeuralUcbArm doesn't implement IDisposable, no disposal needed
-                // The arm will be cleaned up when the dictionary is cleared
+                lock (_lock)
+                {
+                    foreach (var arm in _arms.Values)
+                    {
+                        // NeuralUcbArm doesn't implement IDisposable, no disposal needed
+                        // The arm will be cleaned up when the dictionary is cleared
+                    }
+                    _arms.Clear();
+                }
             }
-            _arms.Clear();
+            _disposed = true;
         }
     }
 }
@@ -624,14 +639,29 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         return new OnnxNeuralNetwork(_onnxLoader, _logger, _modelPath);
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        if (_session != null)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            _session.Dispose();
-            _session = null;
+            if (disposing)
+            {
+                if (_session != null)
+                {
+                    _session.Dispose();
+                    _session = null;
+                }
+                _isInitialized = false;
+            }
+            _disposed = true;
         }
-        _isInitialized = false;
     }
 }
 
