@@ -8,6 +8,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.Extensions.Logging;
 using BotCore.ML;
+using System.Security.Cryptography;
 
 namespace BotCore.Bandits;
 
@@ -643,9 +644,21 @@ public static class RandomExtensions
     {
         if (random is null) throw new ArgumentNullException(nameof(random));
         
-        // Box-Muller transform
-        var u1 = 1.0 - random.NextDouble();
-        var u2 = 1.0 - random.NextDouble();
+        // Box-Muller transform using cryptographically secure random numbers
+        var u1 = 1.0 - GetSecureRandomDouble();
+        var u2 = 1.0 - GetSecureRandomDouble();
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+    }
+
+    /// <summary>
+    /// Generate cryptographically secure random double value between 0.0 and 1.0
+    /// </summary>
+    private static double GetSecureRandomDouble()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[8];
+        rng.GetBytes(bytes);
+        var uint64 = BitConverter.ToUInt64(bytes, 0);
+        return (uint64 >> 11) * (1.0 / (1UL << 53));
     }
 }

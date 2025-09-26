@@ -48,7 +48,15 @@ namespace TradingBot.Critical
             public string Status { get; set; } = string.Empty;
             public bool IsVerified { get; set; }
             public string ExecutionProof { get; set; } = string.Empty;
-            public List<PartialFill> PartialFills { get; } = new();
+            
+            private readonly List<PartialFill> _partialFills = new();
+            public IReadOnlyList<PartialFill> PartialFills => _partialFills;
+
+            public void ReplacePartialFills(IEnumerable<PartialFill> fills)
+            {
+                _partialFills.Clear();
+                if (fills != null) _partialFills.AddRange(fills);
+            }
         }
         
         public class FillRecord
@@ -161,12 +169,16 @@ namespace TradingBot.Critical
                     _confirmedFills[fill.FillId] = fill;
                     
                     // Update order with partial fill
-                    order.PartialFills.Add(new PartialFill
+                    var newFill = new PartialFill
                     {
                         Quantity = fillData.Quantity,
                         Price = fillData.Price,
                         Time = DateTime.UtcNow
-                    });
+                    };
+                    
+                    var updatedFills = order.PartialFills.ToList();
+                    updatedFills.Add(newFill);
+                    order.ReplacePartialFills(updatedFills);
                     
                     // Check if order is completely filled
                     var totalFilled = order.PartialFills.Sum(f => f.Quantity);
