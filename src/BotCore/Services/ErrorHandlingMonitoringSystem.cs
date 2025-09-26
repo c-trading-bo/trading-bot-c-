@@ -153,7 +153,7 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
-        private string GenerateErrorId(string component, Exception exception)
+        private static string GenerateErrorId(string component, Exception exception)
         {
             var baseString = $"{component}_{exception.GetType().Name}_{exception.Message?.GetHashCode()}";
             return Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(baseString))[..12];

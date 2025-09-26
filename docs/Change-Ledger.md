@@ -58,7 +58,7 @@ public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
 #### Round 2 - Production Safety Null Guards (CA1062)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
-| CA1062 | 444 | 434 | ExceptionHelper.cs, ErrorHandlingMonitoringSystem.cs, CriticalSystemComponents.cs | ArgumentNullException guards for public entry points |
+| CA1062 | 308 | 290 | EnhancedProductionResilienceService.cs, ProfitObjective.cs, MultiStrategyRlCollector.cs, EnhancedBayesianPriors.cs, WalkForwardTrainer.cs | ArgumentNullException guards for public entry points |
 
 **Example Pattern**:
 ```csharp
@@ -73,6 +73,23 @@ public static async Task<bool> ExecuteWithLogging(Func<Task> operation, ILogger 
 {
     if (operation is null) throw new ArgumentNullException(nameof(operation));
     if (logger is null) throw new ArgumentNullException(nameof(logger));
+
+    try { await operation().ConfigureAwait(false); ... }
+}
+```
+
+#### Round 3 - Performance Optimizations (CA1822)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1822 | 180+ | 170+ | OnnxModelCompatibilityService.cs, S6_S11_Bridge.cs, DeterminismService.cs, ErrorHandlingMonitoringSystem.cs, ConfigurationSchemaService.cs, ConfigurationFailureSafetyService.cs | Made utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation)
+private string ConvertS6Side(TopstepX.S6.Side side) { ... }
+
+// After (Compliant)
+private static string ConvertS6Side(TopstepX.S6.Side side) { ... }
     
     try { await operation().ConfigureAwait(false); ... }
 }

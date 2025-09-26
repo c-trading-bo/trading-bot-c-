@@ -120,7 +120,7 @@ namespace TradingBot.BotCore.Services
             return migrator.Migrate(jsonContent, fromVersion, toVersion);
         }
 
-        private string GetCurrentVersion<T>() where T : IVersionedConfiguration, new()
+        private static string GetCurrentVersion<T>() where T : IVersionedConfiguration, new()
         {
             return new T().SchemaVersion;
         }

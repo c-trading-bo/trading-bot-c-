@@ -188,6 +188,8 @@ namespace BotCore
         /// </summary>
         public static void LogComprehensiveFeatures(ILogger log, ComprehensiveFeatures features)
         {
+            if (features is null) throw new ArgumentNullException(nameof(features));
+            
             try
             {
                 // Enrich with calculated fields
@@ -221,6 +223,8 @@ namespace BotCore
         /// </summary>
         public static void LogEnhancedOutcome(ILogger log, EnhancedTradeOutcome outcome)
         {
+            if (outcome is null) throw new ArgumentNullException(nameof(outcome));
+            
             try
             {
                 var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions

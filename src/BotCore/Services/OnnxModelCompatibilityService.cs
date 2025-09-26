@@ -151,7 +151,7 @@ namespace TradingBot.BotCore.Services
             }
         }
 
-        private string GetCurrentOnnxRuntimeVersion()
+        private static string GetCurrentOnnxRuntimeVersion()
         {
             try
             {
@@ -180,7 +180,7 @@ namespace TradingBot.BotCore.Services
             }
         }
 
-        private bool IsSchemaCompatible(ModelCard modelCard)
+        private static bool IsSchemaCompatible(ModelCard modelCard)
         {
             // Check if input/output schemas are compatible with current system
             var supportedInputVersions = new[] { "1.0", "1.1", "2.0" };

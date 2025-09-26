@@ -83,7 +83,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Generate cryptographically secure random seed for production
         /// </summary>
-        private int GenerateSecureRandomSeed()
+        private static int GenerateSecureRandomSeed()
         {
             using var rng = RandomNumberGenerator.Create();
             var bytes = new byte[4];

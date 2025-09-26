@@ -498,11 +498,15 @@ public static class BayesianCalculationExtensions
     // Helper methods for calculations
     public static decimal CalculateMean(this ShrinkageEstimate estimate)
     {
+        if (estimate is null) throw new ArgumentNullException(nameof(estimate));
+        
         return estimate.Alpha / (estimate.Alpha + estimate.Beta);
     }
 
     public static decimal CalculateVariance(this ShrinkageEstimate estimate)
     {
+        if (estimate is null) throw new ArgumentNullException(nameof(estimate));
+        
         var total = estimate.Alpha + estimate.Beta;
         return (estimate.Alpha * estimate.Beta) / (total * total * (total + 1));
     }
