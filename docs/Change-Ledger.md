@@ -714,5 +714,43 @@ public void ReplaceSeedRegistry(IEnumerable<KeyValuePair<string, int>> items) {
 
 **Rationale**: Completed Phase 1 by fixing all compilation errors caused by read-only collection changes. Applied systematic immutable dictionary patterns to configuration classes, ensuring domain state cannot be mutated without controlled access methods.
 
+#### Round 17 - Final Phase 1 CS Errors & Metadata Dictionary Immutability (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS0200 | 4 | 0 | DeterminismService.cs, ContractRolloverService.cs | Fixed read-only collection assignment - used Replace methods for dictionary updates |
+| CA2227 | ~214 | ~210 | IntegritySigningService.cs, OnnxModelCompatibilityService.cs | Applied immutable dictionary pattern to Metadata properties |
+
+**Example Pattern - Phase 1 Final CS0200 Resolution**:
+```csharp
+// Before (CS0200 Error)
+result.SeedRegistry = GetSeedRegistry();
+_config.FrontMonthMapping[baseSymbol] = nextContract;
+
+// After (Compliant)
+result.ReplaceSeedRegistry(GetSeedRegistry());
+var updatedMapping = new Dictionary<string, string>(_config.FrontMonthMapping);
+updatedMapping[baseSymbol] = nextContract;
+_config.ReplaceFrontMonthMapping(updatedMapping);
+```
+
+**Example Pattern - Metadata Dictionary Immutability (CA2227)**:
+```csharp
+// Before (Violation)
+public Dictionary<string, object> Metadata { get; set; } = new();
+
+// After (Compliant)
+private readonly Dictionary<string, object> _metadata = new();
+public IReadOnlyDictionary<string, object> Metadata => _metadata;
+
+public void ReplaceMetadata(IEnumerable<KeyValuePair<string, object>> items) {
+    _metadata.Clear();
+    if (items != null) {
+        foreach (var item in items) _metadata[item.Key] = item.Value;
+    }
+}
+```
+
+**Rationale**: Completed Phase 1 with systematic resolution of final compilation errors by properly using Replace methods for read-only collection updates. Applied immutable metadata dictionary patterns to ML and signing services, ensuring controlled mutation of object metadata.
+
 ---
-*Updated: Current Session - Phase 1 completion + continued Phase 2 collection immutability implementation*
+*Updated: Current Session - Phase 1 FINAL COMPLETION + continued Phase 2 collection immutability implementation*

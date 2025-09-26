@@ -213,9 +213,11 @@ namespace TradingBot.BotCore.Services
             {
                 IsReproducibleMode = IsReproducibleMode(),
                 SeededComponentCount = _seededRandoms.Count,
-                SeedRegistry = GetSeedRegistry(),
                 ValidationTime = DateTime.UtcNow
             };
+            
+            // Set the seed registry using the Replace method
+            result.ReplaceSeedRegistry(GetSeedRegistry());
 
             var expectedComponents = new[] { "Strategy", "Portfolio", "Execution", "ML", "Risk" };
             var missingComponents = new List<string>();
