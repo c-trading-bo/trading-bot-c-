@@ -9,35 +9,35 @@ namespace BotCore.Configuration
     public class BacktestEnhancementConfiguration
     {
         // Constants for validation ranges (S109 compliance)
-        public const double MAX_BASE_SLIPPAGE_BPS = 10.0;
-        public const double MIN_BASE_SLIPPAGE_BPS = 0.0;
-        public const double MAX_VOLATILITY_MULTIPLIER = 3.0;
-        public const double MIN_VOLATILITY_MULTIPLIER = 1.0;
+        public const double MaxBaseSlippageBps = 10.0;
+        public const double MinBaseSlippageBps = 0.0;
+        public const double MaxVolatilityMultiplier = 3.0;
+        public const double MinVolatilityMultiplier = 1.0;
         
         // ES/NQ slippage range constants
-        public const double MIN_ES_NQ_SLIPPAGE_BPS = 0.0;
-        public const double MAX_ES_NQ_SLIPPAGE_BPS = 2.0;
+        public const double MinEsNqSlippageBps = 0.0;
+        public const double MaxEsNqSlippageBps = 2.0;
         
         // Latency range constants
-        public const int MIN_LATENCY_MS = 5;
-        public const int MAX_LATENCY_MS = 100;
-        public const int MIN_JITTER_MS = 0;
-        public const int MAX_JITTER_MS = 20;
+        public const int MinLatencyMs = 5;
+        public const int MaxLatencyMs = 100;
+        public const int MinJitterMs = 0;
+        public const int MaxJitterMs = 20;
         
         // Commission range constants
-        public const double MIN_COMMISSION_PER_CONTRACT = 2.0;
-        public const double MAX_COMMISSION_PER_CONTRACT = 50.0;
+        public const double MinCommissionPerContract = 2.0;
+        public const double MaxCommissionPerContract = 50.0;
         
         // Processing delay constants
-        public const int MIN_PROCESSING_DELAY_MS = 50;
-        public const int MAX_PROCESSING_DELAY_MS = 500;
+        public const int MinProcessingDelayMs = 50;
+        public const int MaxProcessingDelayMs = 500;
         
         // Strategy constants
-        public const int MIN_STRATEGY_COUNT = 5;
+        public const int MinStrategyCount = 5;
         
         // Commission range constants  
-        public const double MIN_COMMISSION_RANGE = 0.0;
-        public const double MAX_COMMISSION_RANGE = 5.0;
+        public const double MinCommissionRange = 0.0;
+        public const double MaxCommissionRange = 5.0;
         
         /// <summary>
         /// Enable market friction simulation in backtests
@@ -68,14 +68,14 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base slippage in basis points (1 bp = 0.01%)
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_BASE_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_BASE_SLIPPAGE_BPS)]
+        [Range(BacktestEnhancementConfiguration.MinBaseSlippageBps, BacktestEnhancementConfiguration.MaxBaseSlippageBps)]
         public double BaseSlippageBps { get; set; } = 0.5;
 
         /// <summary>
         /// Volatility multiplier for slippage calculation
         /// Higher volatility = more slippage
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_VOLATILITY_MULTIPLIER, BacktestEnhancementConfiguration.MAX_VOLATILITY_MULTIPLIER)]
+        [Range(BacktestEnhancementConfiguration.MinVolatilityMultiplier, BacktestEnhancementConfiguration.MaxVolatilityMultiplier)]
         public double VolatilityMultiplier { get; set; } = 1.2;
 
         /// <summary>
@@ -87,13 +87,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES-specific slippage in basis points
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_ES_NQ_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_ES_NQ_SLIPPAGE_BPS)]
+        [Range(BacktestEnhancementConfiguration.MinEsNqSlippageBps, BacktestEnhancementConfiguration.MaxEsNqSlippageBps)]
         public double ESSlippageBps { get; set; } = 0.25;
 
         /// <summary>
         /// NQ-specific slippage in basis points
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_ES_NQ_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_ES_NQ_SLIPPAGE_BPS)]
+        [Range(BacktestEnhancementConfiguration.MinEsNqSlippageBps, BacktestEnhancementConfiguration.MaxEsNqSlippageBps)]
         public double NQSlippageBps { get; set; } = 0.5;
 
 
@@ -124,25 +124,25 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base latency in milliseconds
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_LATENCY_MS, BacktestEnhancementConfiguration.MAX_LATENCY_MS)]
+        [Range(BacktestEnhancementConfiguration.MinLatencyMs, BacktestEnhancementConfiguration.MaxLatencyMs)]
         public int BaseLatencyMs { get; set; } = 15;
 
         /// <summary>
         /// Network jitter variance in milliseconds
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_JITTER_MS, BacktestEnhancementConfiguration.MAX_JITTER_MS)]
+        [Range(BacktestEnhancementConfiguration.MinJitterMs, BacktestEnhancementConfiguration.MaxJitterMs)]
         public int NetworkJitterMs { get; set; } = 5;
 
         /// <summary>
         /// Order processing delay in milliseconds
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_PER_CONTRACT, BacktestEnhancementConfiguration.MAX_COMMISSION_PER_CONTRACT)]
+        [Range(BacktestEnhancementConfiguration.MinProcessingDelayMs, BacktestEnhancementConfiguration.MaxProcessingDelayMs)]
         public int OrderProcessingMs { get; set; } = 8;
 
         /// <summary>
         /// Maximum allowable latency in milliseconds
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_PROCESSING_DELAY_MS, BacktestEnhancementConfiguration.MAX_PROCESSING_DELAY_MS)]
+        [Range(BacktestEnhancementConfiguration.MinProcessingDelayMs, BacktestEnhancementConfiguration.MaxProcessingDelayMs)]
         public int MaxLatencyMs { get; set; } = 100;
 
         /// <summary>
@@ -165,13 +165,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES commission per contract
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_RANGE, BacktestEnhancementConfiguration.MAX_COMMISSION_RANGE)]
+        [Range(BacktestEnhancementConfiguration.MinCommissionRange, BacktestEnhancementConfiguration.MaxCommissionRange)]
         public decimal ESCommission { get; set; } = 0.62m;
 
         /// <summary>
         /// NQ commission per contract
         /// </summary>
-        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_RANGE, BacktestEnhancementConfiguration.MAX_COMMISSION_RANGE)]
+        [Range(BacktestEnhancementConfiguration.MinCommissionRange, BacktestEnhancementConfiguration.MaxCommissionRange)]
         public decimal NQCommission { get; set; } = 0.62m;
 
 

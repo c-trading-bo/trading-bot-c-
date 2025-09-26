@@ -429,20 +429,20 @@ namespace BotCore.ML
             return Strategy.StrategyMlIntegration.GetStrategyType(strategyId);
         }
     }
-}
 
-/// <summary>
-/// Extension methods for statistical calculations
-/// </summary>
-public static class StatisticsExtensions
-{
-    public static double StandardDeviation(this IEnumerable<double> values)
+    /// <summary>
+    /// Extension methods for statistical calculations
+    /// </summary>
+    public static class StatisticsExtensions
     {
-        var valueList = values.ToList();
-        if (valueList.Count < 2) return 0.0;
+        public static double StandardDeviation(this IEnumerable<double> values)
+        {
+            var valueList = values.ToList();
+            if (valueList.Count < 2) return 0.0;
 
-        var mean = valueList.Average();
-        var variance = valueList.Select(v => Math.Pow(v - mean, 2)).Average();
-        return Math.Sqrt(variance);
+            var mean = valueList.Average();
+            var variance = valueList.Select(v => Math.Pow(v - mean, 2)).Average();
+            return Math.Sqrt(variance);
+        }
     }
 }
