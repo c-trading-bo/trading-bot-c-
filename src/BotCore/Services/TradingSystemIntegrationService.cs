@@ -571,7 +571,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 
                 // Update active signals cache for continuous monitoring
-                if (aggregatedSignals.Any())
+                if (aggregatedSignals.Count > 0)
                 {
                     // Convert to a simpler signal format for tracking
                     var trackingSignal = aggregatedSignals.First();
@@ -883,7 +883,7 @@ namespace TopstepX.Bot.Core.Services
                 trueRanges.Add(Math.Max(tr1, Math.Max(tr2, tr3)));
             }
             
-            return trueRanges.Any() ? trueRanges.Average() : 1m;
+            return trueRanges.Count > 0 ? trueRanges.Average() : 1m;
         }
 
         /// <summary>

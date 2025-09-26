@@ -61,9 +61,8 @@ namespace TradingBot.BotCore.Services
         {
             try
             {
-                using var sha256 = SHA256.Create();
                 var contentBytes = Encoding.UTF8.GetBytes(content);
-                var hashBytes = sha256.ComputeHash(contentBytes);
+                var hashBytes = SHA256.HashData(contentBytes);
                 return Convert.ToHexString(hashBytes).ToLowerInvariant();
             }
             catch (Exception ex)

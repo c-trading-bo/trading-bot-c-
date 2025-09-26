@@ -347,7 +347,7 @@ namespace TopstepX.Bot.Core.Services
         
         private double CalculateOverallHealth()
         {
-            if (!_componentHealth.Any()) return 100.0;
+            if (_componentHealth.Count == 0) return 100.0;
             
             var totalScore = 0.0;
             var componentCount = _componentHealth.Count;
