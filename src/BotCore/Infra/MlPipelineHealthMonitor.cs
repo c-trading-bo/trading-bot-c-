@@ -84,7 +84,7 @@ namespace BotCore.Infra
             CheckFileSystemHealth(issues, warnings);
 
             // Report results
-            if (issues.Any())
+            if (issues.Count > 0)
             {
                 _lastHealthCheckPassed = false;
                 _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}",
@@ -93,7 +93,7 @@ namespace BotCore.Infra
                 // Attempt automatic recovery for known issues
                 await AttemptAutomaticRecoveryAsync(issues).ConfigureAwait(false);
             }
-            else if (warnings.Any())
+            else if (warnings.Count > 0)
             {
                 _lastHealthCheckPassed = true;
                 _log.LogWarning("[ML-Health] ⚠️ Pipeline health check passed with {Count} warnings: {Warnings}",
@@ -118,7 +118,7 @@ namespace BotCore.Infra
                     .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-MaxHoursWithoutData))
                     .ToList();
 
-                if (!recentFiles.Any())
+                if (recentFiles.Count == 0)
                 {
                     _consecutiveDataCollectionFailures++;
                     issues.Add($"No data collection in last {MaxHoursWithoutData} hours");

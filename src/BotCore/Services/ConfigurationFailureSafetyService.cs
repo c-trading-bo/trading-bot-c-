@@ -11,15 +11,9 @@ namespace TradingBot.BotCore.Services
     public class ConfigurationFailureSafetyService
     {
         private readonly ILogger<ConfigurationFailureSafetyService> _logger;
-        private bool _circuitBreakerTripped = false;
+        private bool _circuitBreakerTripped;
         private DateTime _lastFailure = DateTime.MinValue;
         private readonly TimeSpan _circuitBreakerTimeout = TimeSpan.FromMinutes(5);
-
-        // Trading schedule constants
-        private const int TradingStartHour = 14;
-        private const int TradingStartMinute = 30;
-        private const int TradingEndHour = 20;
-        private const int TradingEndMinute = 30;
 
         public ConfigurationFailureSafetyService(ILogger<ConfigurationFailureSafetyService> logger)
         {
@@ -128,8 +122,8 @@ namespace TradingBot.BotCore.Services
         // Trading Schedule - Restricted hours
         public TimeSpan TradingStartUtc { get; } = new(TradingStartHour, TradingStartMinute, 0); // 30 min after market open
         public TimeSpan TradingEndUtc { get; } = new(TradingEndHour, TradingEndMinute, 0); // 30 min before market close
-        public bool EnablePreMarketTrading { get; } = false;
-        public bool EnableAfterHoursTrading { get; } = false;
+        public bool EnablePreMarketTrading { get; }
+        public bool EnableAfterHoursTrading { get; }
 
         // Session Management
         public int MaxConcurrentPositions { get; } = 1; // One position at a time

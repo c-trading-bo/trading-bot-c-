@@ -300,7 +300,7 @@ public class TopstepXSignalRHealthCheck : IHealthCheck
         }
     }
 
-    private async Task<(bool IsHealthy, string Message)> CheckEndpoint(
+    private static async Task<(bool IsHealthy, string Message)> CheckEndpoint(
         HttpClient httpClient, 
         string url, 
         CancellationToken cancellationToken)

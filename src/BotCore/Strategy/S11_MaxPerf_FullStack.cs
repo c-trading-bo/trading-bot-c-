@@ -83,6 +83,13 @@ namespace TopstepX.S11
         public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
+        
+        // Convenience properties for compatibility
+        public long BestBid => Bid1;
+        public long BestAsk => Ask1;
+        public int BidSize => BidSz1;
+        public int AskSize => AskSz1;
+        
         public long SpreadTicks => Ask1 - Bid1;
         public double Imbalance()
         {
@@ -310,7 +317,7 @@ namespace TopstepX.S11
 
         private void TryEnterFade(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
 
             bool fadeLong = s.RSI <= _cfg.MinRSI && s.IsBelowIBLow() && s.VolumeExhaustion();
             bool fadeShort = s.RSI >= _cfg.MaxRSI && s.IsAboveIBHigh() && s.VolumeExhaustion();
@@ -367,7 +374,7 @@ namespace TopstepX.S11
             private readonly Ema ema20 = new Ema(20), ema50 = new Ema(50);
             private readonly Rsi rsi14 = new Rsi(14);
             private readonly RvolBaseline rvolBase = new RvolBaseline(20);
-            public double ATR=0, ADX=0, RSI=50, RVOL=1.0;
+            public double ATR, ADX, RSI=50, RVOL=1.0;
 
             // session data
             public long IB_High = long.MinValue, IB_Low = long.MaxValue;

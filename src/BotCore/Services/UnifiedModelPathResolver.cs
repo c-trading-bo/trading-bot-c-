@@ -325,7 +325,7 @@ public class UnifiedModelPathResolver
         }
     }
     
-    private ModelNameValidation ValidateModelName(string fileName)
+    private static ModelNameValidation ValidateModelName(string fileName)
     {
         if (string.IsNullOrEmpty(fileName))
         {

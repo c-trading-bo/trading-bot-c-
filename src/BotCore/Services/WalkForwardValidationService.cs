@@ -434,7 +434,7 @@ namespace BotCore.Services
         /// Simulate model performance for demonstration
         /// In production, this would run actual model predictions
         /// </summary>
-        private Task<WalkForwardModelPerformance> SimulateModelPerformance(ValidationWindow window)
+        private static Task<WalkForwardModelPerformance> SimulateModelPerformance(ValidationWindow window)
         {
             // Simulate realistic performance metrics with some randomness
             var random = new Random(window.RandomSeed);
@@ -476,13 +476,13 @@ namespace BotCore.Services
         /// <summary>
         /// Calculate aggregate metrics across all windows
         /// </summary>
-        private void CalculateAggregateMetrics(WalkForwardResult result)
+        private static void CalculateAggregateMetrics(WalkForwardResult result)
         {
-            if (!result.WindowResults.Any())
+            if (result.WindowResults.Count == 0)
                 return;
 
             var performances = result.WindowResults.Select(w => w.Performance).Where(p => p != null).ToList();
-            if (!performances.Any())
+            if (performances.Count == 0)
                 return;
 
             result.PassedWindows = result.WindowResults.Count(w => w.PassesThresholds);
@@ -509,7 +509,7 @@ namespace BotCore.Services
         /// <summary>
         /// Calculate stability metric (1 - coefficient of variation)
         /// </summary>
-        private double CalculateStability(IEnumerable<double> values)
+        private static double CalculateStability(IEnumerable<double> values)
         {
             var valuesList = values.ToList();
             if (valuesList.Count < 2)

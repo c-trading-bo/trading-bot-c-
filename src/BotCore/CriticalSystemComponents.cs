@@ -36,7 +36,7 @@ namespace TradingBot.Critical
         private readonly object _lockObject = new();
         private readonly ILogger<ExecutionVerificationSystem> _logger;
         
-        internal class OrderRecord
+        internal sealed class OrderRecord
         {
             public string OrderId { get; set; } = string.Empty;
             public string ClientOrderId { get; set; } = string.Empty;
@@ -59,7 +59,7 @@ namespace TradingBot.Critical
             }
         }
         
-        internal class FillRecord
+        internal sealed class FillRecord
         {
             public string FillId { get; set; } = string.Empty;
             public string OrderId { get; set; } = string.Empty;
@@ -71,14 +71,14 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
         
-        internal class PartialFill
+        internal sealed class PartialFill
         {
             public int Quantity { get; set; }
             public decimal Price { get; set; }
             public DateTime Time { get; set; }
         }
 
-        internal class FillEventData
+        internal sealed class FillEventData
         {
             public string OrderId { get; set; } = string.Empty;
             public decimal Price { get; set; }
@@ -91,7 +91,7 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
 
-        internal class OrderStatusData
+        internal sealed class OrderStatusData
         {
             public string OrderId { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
@@ -566,7 +566,7 @@ namespace TradingBot.Critical
         private readonly ILogger<DisasterRecoverySystem> _logger;
         private readonly SQLiteConnection? _database;
         
-        internal class SystemState
+        internal sealed class SystemState
         {
             public DateTime Timestamp { get; set; }
             public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
@@ -853,7 +853,7 @@ namespace TradingBot.Critical
                     }
                 }
                 
-                if (discrepancies.Any())
+                if (discrepancies.Count > 0)
                 {
                     _logger.LogWarning("[POSITION_RECONCILE] Found {Count} position discrepancies", discrepancies.Count);
                     await StorePositionDiscrepancies(discrepancies).ConfigureAwait(false);
@@ -1162,15 +1162,6 @@ namespace TradingBot.Critical
         {
             try
             {
-                var alert = new
-                {
-                    AlertType = "EMERGENCY",
-                    Message = message,
-                    Timestamp = DateTime.UtcNow,
-                    Severity = "CRITICAL",
-                    PositionCount = _activePositions.Count
-                };
-
                 // Log the emergency alert
                 _logger?.LogError("[EMERGENCY_ALERT] {Message} - Positions: {Count}", message, _activePositions.Count);
                 
@@ -1706,7 +1697,7 @@ namespace TradingBot.Critical
                 }
             }
             
-            if (missing.Any())
+            if (missing.Count > 0)
             {
                 throw new InvalidOperationException($"Missing required credentials: {string.Join(", ", missing)}");
             }
@@ -1762,7 +1753,6 @@ namespace TradingBot.Critical
             try
             {
                 // AWS Secrets Manager integration using environment variables for configuration
-                var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
                 var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
                 var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
                 

@@ -186,7 +186,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
             shrinkageTargets.Add((_shrinkageConfig.GlobalWeight, _hierarchicalGroups[globalKey].Posterior));
         }
 
-        if (!shrinkageTargets.Any())
+        if (shrinkageTargets.Count == 0)
         {
             localPosterior.ShrinkageFactor = 0;
             return localPosterior;
@@ -260,7 +260,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         }
     }
 
-    private CredibleInterval CalculateCredibleInterval(BayesianPosterior posterior, decimal confidence)
+    private static CredibleInterval CalculateCredibleInterval(BayesianPosterior posterior, decimal confidence)
     {
         // For Beta distribution, use quantile function approximation
         var alpha = posterior.Alpha;
@@ -284,7 +284,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         return new CredibleInterval(lower, upper, confidence);
     }
 
-    private decimal CalculateEffectiveSampleSize(BayesianPosterior posterior)
+    private static decimal CalculateEffectiveSampleSize(BayesianPosterior posterior)
     {
         // Effective sample size accounting for shrinkage
         var baseSampleSize = posterior.Alpha + posterior.Beta;
@@ -293,7 +293,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         return Math.Max(1m, baseSampleSize * shrinkageDiscount);
     }
 
-    private UncertaintyLevel CalculateUncertainty(BayesianPosterior posterior)
+    private static UncertaintyLevel CalculateUncertainty(BayesianPosterior posterior)
     {
         var effectiveN = CalculateEffectiveSampleSize(posterior);
         var variance = posterior.Alpha * posterior.Beta /
@@ -366,7 +366,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         };
     }
 
-    private BayesianPosterior CreateDefaultPosterior()
+    private static BayesianPosterior CreateDefaultPosterior()
     {
         return new BayesianPosterior
         {

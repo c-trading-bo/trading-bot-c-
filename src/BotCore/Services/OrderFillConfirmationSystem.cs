@@ -21,7 +21,6 @@ namespace TopstepX.Bot.Core.Services
     {
         private readonly ILogger<OrderFillConfirmationSystem> _logger;
         private readonly HttpClient _httpClient;
-        private readonly ITopstepXAdapterService? _topstepXAdapter;
         private readonly ConcurrentDictionary<string, OrderTrackingRecord> _orderTracking = new();
         private readonly Timer _verificationTimer;
         private readonly PositionTrackingSystem _positionTracker;
@@ -82,7 +81,6 @@ namespace TopstepX.Bot.Core.Services
         {
             _logger = logger;
             _httpClient = httpClient;
-            _topstepXAdapter = topstepXAdapter;
             _positionTracker = positionTracker;
             _emergencyStop = emergencyStop;
             

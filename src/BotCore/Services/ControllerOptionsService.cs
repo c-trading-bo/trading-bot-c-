@@ -12,12 +12,10 @@ namespace TradingBot.BotCore.Services
     public class ControllerOptionsService : IControllerOptionsService
     {
         private readonly IConfiguration _config;
-        private readonly ILogger<ControllerOptionsService> _logger;
 
-        public ControllerOptionsService(IConfiguration config, ILogger<ControllerOptionsService> logger)
+        public ControllerOptionsService(IConfiguration config)
         {
             _config = config;
-            _logger = logger;
         }
 
         public (double Lower, double Upper) GetConfidenceBands(string regimeType) => regimeType?.ToLower() switch

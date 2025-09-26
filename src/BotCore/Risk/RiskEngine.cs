@@ -373,7 +373,7 @@ namespace BotCore.Risk
 
         public decimal GetPositionSizeMultiplier() => _positionSizeMultiplier;
         
-        private Task SwitchToConservativeMode()
+        private static Task SwitchToConservativeMode()
         {
             LogAction("Switched to conservative mode");
             return Task.CompletedTask;
@@ -399,20 +399,20 @@ namespace BotCore.Risk
             return Task.CompletedTask;
         }
 
-        private Task EnforceCooldownPeriod(TimeSpan cooldown)
+        private static Task EnforceCooldownPeriod(TimeSpan cooldown)
         {
             LogAction($"Enforcing cooldown period: {cooldown.TotalMinutes} minutes");
             return Task.CompletedTask;
         }
 
-        private Task EnableProfitProtection(decimal profit)
+        private static Task EnableProfitProtection(decimal profit)
         {
             var protectionLevel = profit * 0.5m; // Protect 50% of profits
             LogInfo($"Profit protection enabled at ${protectionLevel:F2}");
             return Task.CompletedTask;
         }
 
-        private Task SendDrawdownAlert(DrawdownAlert alert)
+        private static Task SendDrawdownAlert(DrawdownAlert alert)
         {
             LogCritical($"DRAWDOWN ALERT: {alert.Action} - Amount: ${alert.DrawdownAmount:F2} ({alert.DrawdownPercent:F1}%)");
             return Task.CompletedTask;

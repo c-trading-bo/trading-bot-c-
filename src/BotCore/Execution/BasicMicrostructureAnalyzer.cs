@@ -176,6 +176,8 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         MicrostructureState? currentState = null,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(intent);
+        
         currentState ??= await AnalyzeCurrentStateAsync(intent.Symbol, ct).ConfigureAwait(false);
 
         // Get predictions

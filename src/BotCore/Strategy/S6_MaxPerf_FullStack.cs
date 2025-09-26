@@ -83,6 +83,13 @@ namespace TopstepX.S6
         public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
+        
+        // Convenience properties for compatibility
+        public long BestBid => Bid1;
+        public long BestAsk => Ask1;
+        public int BidSize => BidSz1;
+        public int AskSize => AskSz1;
+        
         public long SpreadTicks => Ask1 - Bid1;
         public double Imbalance()
         {
@@ -242,7 +249,7 @@ namespace TopstepX.S6
             if (bars == null)
                 throw new ArgumentNullException(nameof(bars));
 
-            var s = Get(instr); long tick = s.Tick; foreach (var b in bars)
+            var s = Get(instr); foreach (var b in bars)
             { var bar = new Bar1M(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
@@ -293,7 +300,7 @@ namespace TopstepX.S6
 
         private void TryEnterDrive(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
             bool longSide = s.LastClose > s.ON_High && s.TrendAgree1m5m(false);
             bool shortSide= s.LastClose < s.ON_Low  && s.TrendAgree1m5m(false);
             if (!longSide && !shortSide) return;
@@ -312,7 +319,7 @@ namespace TopstepX.S6
 
         private void TryEnterReversal(State s)
         {
-            var (side, qty, avgPx, openedAt, positionId) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
+            var (side, _, _, _, _) = _router.GetPosition(s.Instr); if (side != Side.Flat) return;
             bool revLong  = s.FailedBreakout(false);
             bool revShort = s.FailedBreakout(true);
             if (!revLong && !revShort) return;

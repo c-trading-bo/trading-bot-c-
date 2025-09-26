@@ -34,7 +34,7 @@ namespace BotCore.Services
         public void ConsumeHistoricalBars(string contractId, IEnumerable<BotCore.Models.Bar> bars)
         {
             var barList = bars.ToList();
-            if (!barList.Any())
+            if (barList.Count == 0)
             {
                 _logger.LogDebug("[BAR-CONSUMER] No bars to consume for {ContractId}", contractId);
                 return;

@@ -76,7 +76,6 @@ namespace BotCore.Utilities
         public static string GenerateWithContext(string strategyId, string symbol, string side)
         {
             var baseTag = Generate(strategyId, side);
-            var strategyCode = GetStrategyCode(strategyId);
             var symbolCode = GetSymbolCode(symbol);
             var sideCode = side?.ToUpperInvariant() switch
             {

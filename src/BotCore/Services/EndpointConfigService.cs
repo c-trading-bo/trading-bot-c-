@@ -12,12 +12,10 @@ namespace TradingBot.BotCore.Services
     public class EndpointConfigService : IEndpointConfig
     {
         private readonly IConfiguration _config;
-        private readonly ILogger<EndpointConfigService> _logger;
 
-        public EndpointConfigService(IConfiguration config, ILogger<EndpointConfigService> logger)
+        public EndpointConfigService(IConfiguration config)
         {
             _config = config;
-            _logger = logger;
         }
 
         public Uri GetTopstepXApiBaseUrl() => 

@@ -17,6 +17,8 @@ public static class ProductionConfigurationExtensions
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+        
         // Add comprehensive configuration validation for all trading components
         services.Configure<TradingConfiguration>(configuration.GetSection("Trading"));
         services.Configure<TopstepXConfiguration>(configuration.GetSection("TopstepX"));
