@@ -9,6 +9,7 @@ using System.Text.Json;
 using BotCore.Models;
 using BotCore.Risk;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 namespace BotCore.Strategy
 {
@@ -1102,7 +1103,7 @@ namespace BotCore.Strategy
                             High = price * 1.001m,
                             Low = price * 0.998m,
                             Close = price,
-                            Volume = (int)(volume * (0.8 + Random.Shared.NextDouble() * 0.4)) // Volume variation
+                            Volume = (int)(volume * (0.8 + GetSecureRandomDouble() * 0.4)) // Volume variation
                         };
                         
                         bars.Add(bar);
@@ -1119,6 +1120,18 @@ namespace BotCore.Strategy
                 Console.WriteLine($"[AllStrategies] Error extracting bars from context: {ex.Message}");
                 return new List<Bar>(); // Return empty list on error
             }
+        }
+
+        /// <summary>
+        /// Generate cryptographically secure random double value between 0.0 and 1.0
+        /// </summary>
+        private static double GetSecureRandomDouble()
+        {
+            using var rng = RandomNumberGenerator.Create();
+            var bytes = new byte[8];
+            rng.GetBytes(bytes);
+            var uint64 = BitConverter.ToUInt64(bytes, 0);
+            return (uint64 >> 11) * (1.0 / (1UL << 53));
         }
     }
 }

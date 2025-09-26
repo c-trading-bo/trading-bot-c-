@@ -307,5 +307,48 @@ public void ReplaceTrades(IEnumerable<Trade> trades)
 - **Production Safety**: Risk management values properly externalized
 - **Performance**: High-frequency logging optimized for production throughput
 
+#### Round 8 - High-Priority Analyzer Violations (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |
+| CA1050/S3903 | 2 | 0 | StrategyMlModelManager.cs | Moved StatisticsExtensions class into proper BotCore.ML namespace |
+| SCS0005 | 85+ | 83 | AllStrategies.cs, NeuralUcbBandit.cs | Replaced Random.Shared.NextDouble() with cryptographically secure RandomNumberGenerator |
+| S4487 | 1 | 0 | BracketConfigService.cs | Removed unused _logger field and cleaned up constructor |
+| CA1002 | 8+ | 7 | CriticalSystemComponents.cs (OrderRecord.PartialFills) | Applied read-only collection pattern with ReplacePartialFills method |
+
+**Example Pattern - Secure Random Number Generation**:
+```csharp
+// Before (Violation)
+var randomValue = Random.Shared.NextDouble() * 0.4;
+
+// After (Compliant)
+var randomValue = GetSecureRandomDouble() * 0.4;
+
+private static double GetSecureRandomDouble()
+{
+    using var rng = RandomNumberGenerator.Create();
+    var bytes = new byte[8];
+    rng.GetBytes(bytes);
+    var uint64 = BitConverter.ToUInt64(bytes, 0);
+    return (uint64 >> 11) * (1.0 / (1UL << 53));
+}
+```
+
+**Example Pattern - Read-Only Collection**:
+```csharp
+// Before (Violation)
+public List<PartialFill> PartialFills { get; } = new();
+
+// After (Compliant)
+private readonly List<PartialFill> _partialFills = new();
+public IReadOnlyList<PartialFill> PartialFills => _partialFills;
+
+public void ReplacePartialFills(IEnumerable<PartialFill> fills)
+{
+    _partialFills.Clear();
+    if (fills != null) _partialFills.AddRange(fills);
+}
+```
+
 ---
 *Updated: Current Session - Systematic Phase 2 implementation in progress*

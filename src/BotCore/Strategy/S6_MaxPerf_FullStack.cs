@@ -8,7 +8,7 @@
 //
 // HOW TO USE
 // 1) Plug your existing order/router into IOrderRouter.
-// 2) Feed 1m bars via OnBar1m(Instrument, Bar1m) and L1–L3 via OnDepth(Instrument, DepthLadder).
+// 2) Feed 1m bars via OnBar1M(Instrument, Bar1M) and L1–L3 via OnDepth(Instrument, DepthLadder).
 // 3) Call WarmupDaily & Warmup1m before live if you have history.
 // 4) All prices internally are ticks (long). Convert using router.GetTickSize().
 // 5) ES & NQ only; window 09:28–10:00 ET; multi-timeframe confirms; spread, RVOL, ADX filters.
@@ -40,12 +40,12 @@ namespace TopstepX.S6
     }
 
     // --- DATA TYPES (ticks internally) ---
-    public readonly struct Bar1m : IEquatable<Bar1m>
+    public readonly struct Bar1M : IEquatable<Bar1M>
     {
         public readonly DateTimeOffset TimeET; // end time of bar (ET)
         public readonly long Open, High, Low, Close; // ticks
         public readonly double Volume;
-        public Bar1m(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
+        public Bar1M(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
         { TimeET = timeEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
         public override bool Equals(object? obj)
@@ -58,17 +58,17 @@ namespace TopstepX.S6
             throw new NotImplementedException();
         }
 
-        public static bool operator ==(Bar1m left, Bar1m right)
+        public static bool operator ==(Bar1M left, Bar1M right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(Bar1m left, Bar1m right)
+        public static bool operator !=(Bar1M left, Bar1M right)
         {
             return !(left == right);
         }
 
-        public bool Equals(Bar1m other)
+        public bool Equals(Bar1M other)
         {
             throw new NotImplementedException();
         }
@@ -241,10 +241,10 @@ namespace TopstepX.S6
                 throw new ArgumentNullException(nameof(bars));
 
             var s = Get(instr); long tick = s.Tick; foreach (var b in bars)
-            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
+            { var bar = new Bar1M(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
-        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
+        public void OnBar1M(Instrument instr, Bar1M bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
         public void OnDepth(Instrument instr, DepthLadder depth) { Get(instr).LastDepth = depth; }
 
         private void StepEngine(State s)
@@ -356,8 +356,8 @@ namespace TopstepX.S6
             public State(Instrument i, IOrderRouter r, S6Config c){ Instr=i; R=r; C=c; TickPx=r.GetTickSize(i); Tick=(long)Math.Round(1.0/ TickPx); }
 
             // series
-            public readonly Ring<Bar1m> Min1 = new Ring<Bar1m>(1200);
-            public readonly Ring<Bar1m> Min5 = new Ring<Bar1m>(500);
+            public readonly Ring<Bar1M> Min1 = new Ring<Bar1M>(1200);
+            public readonly Ring<Bar1M> Min5 = new Ring<Bar1M>(500);
             public DepthLadder LastDepth;
 
             // indicators
@@ -381,7 +381,7 @@ namespace TopstepX.S6
             public long ToTicks(double px) => (long)Math.Round(px / TickPx);
             public double ToPx(long ticks) => ticks * TickPx;
 
-            public void OnBar(Bar1m bar)
+            public void OnBar(Bar1M bar)
             {
                 LastBarTime = bar.TimeET;
                 Min1.Add(bar);
@@ -397,7 +397,7 @@ namespace TopstepX.S6
                         long o = b4.Open; long h = Math.Max(Math.Max(Math.Max(Math.Max(b4.High,b3.High),b2.High),b1.High),b0.High);
                         long l = Math.Min(Math.Min(Math.Min(Math.Min(b4.Low, b3.Low), b2.Low), b1.Low), b0.Low);
                         long c = b0.Close; double v = b4.Volume + b3.Volume + b2.Volume + b1.Volume + b0.Volume;
-                        Min5.Add(new Bar1m(bar.TimeET, o,h,l,c,v));
+                        Min5.Add(new Bar1M(bar.TimeET, o,h,l,c,v));
                     }
                 }
 
@@ -556,7 +556,7 @@ namespace TopstepX.S6
             }
         }
 
-        // --- DIVERGENCE (call this after OnBar1m for both ES & NQ each minute) ---
+        // --- DIVERGENCE (call this after OnBar1M for both ES & NQ each minute) ---
         public void UpdateDivergence()
         {
             if (_es.Min1.Count < 2 || _nq.Min1.Count < 2) { _es.DivergenceBp=_nq.DivergenceBp=0; return; }

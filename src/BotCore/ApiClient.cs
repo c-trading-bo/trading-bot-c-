@@ -12,6 +12,8 @@ namespace BotCore
         private readonly string _apiBase = apiBase;
         private string? _jwt;
 
+        public string? CurrentJwt => _jwt;
+
         public void SetJwt(string jwt)
         {
             _jwt = jwt;
@@ -19,7 +21,9 @@ namespace BotCore
         }
 
 #nullable enable
-        private sealed record AvailableReq(bool live);public sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);public sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        private sealed record AvailableReq(bool live);
+        internal sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);
+        internal sealed record AvailableResp(IReadOnlyList<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private static readonly Dictionary<string, string> SymbolRootToSymbolId = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -97,7 +101,8 @@ namespace BotCore
             }
         }
 
-        private sealed record SearchReq(string searchText, bool live);public sealed record SearchResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
+        private sealed record SearchReq(string searchText, bool live);
+        internal sealed record SearchResp(IReadOnlyList<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
         private async Task<string?> TryResolveViaSearchAsync(string searchText, bool live, CancellationToken ct)
         {
@@ -212,14 +217,14 @@ namespace BotCore
         }
 
         // Positions helpers (correct POST endpoints)
-        public sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);
+        public sealed record SearchOpenPositionsResponse(IReadOnlyList<Position> positions, bool success, int errorCode, string? errorMessage);
         public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
 
         // New wrapper-aware method (preferred)
-        public async Task<List<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)
+        public async Task<IReadOnlyList<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)
         {
             var resp = await PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false);
-            return resp?.positions ?? [];
+            return resp?.positions ?? Array.Empty<Position>();
         }
 
         // Legacy one kept for backward-compat if any call sites still expect bare arrays

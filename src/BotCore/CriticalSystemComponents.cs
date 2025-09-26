@@ -26,7 +26,7 @@ namespace TradingBot.Critical
     // COMPONENT 1: EXECUTION VERIFICATION SYSTEM
     // ================================================================================
     
-    public class ExecutionVerificationSystem
+    public class ExecutionVerificationSystem : IDisposable
     {
         private readonly ConcurrentDictionary<string, OrderRecord> _pendingOrders = new();
         private readonly ConcurrentDictionary<string, FillRecord> _confirmedFills = new();
@@ -36,7 +36,7 @@ namespace TradingBot.Critical
         private readonly object _lockObject = new();
         private readonly ILogger<ExecutionVerificationSystem> _logger;
         
-        public class OrderRecord
+        internal class OrderRecord
         {
             public string OrderId { get; set; } = string.Empty;
             public string ClientOrderId { get; set; } = string.Empty;
@@ -48,10 +48,18 @@ namespace TradingBot.Critical
             public string Status { get; set; } = string.Empty;
             public bool IsVerified { get; set; }
             public string ExecutionProof { get; set; } = string.Empty;
-            public List<PartialFill> PartialFills { get; } = new();
+            
+            private readonly List<PartialFill> _partialFills = new();
+            public IReadOnlyList<PartialFill> PartialFills => _partialFills;
+
+            public void ReplacePartialFills(IEnumerable<PartialFill> fills)
+            {
+                _partialFills.Clear();
+                if (fills != null) _partialFills.AddRange(fills);
+            }
         }
         
-        public class FillRecord
+        internal class FillRecord
         {
             public string FillId { get; set; } = string.Empty;
             public string OrderId { get; set; } = string.Empty;
@@ -63,14 +71,14 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
         
-        public class PartialFill
+        internal class PartialFill
         {
             public int Quantity { get; set; }
             public decimal Price { get; set; }
             public DateTime Time { get; set; }
         }
 
-        public class FillEventData
+        internal class FillEventData
         {
             public string OrderId { get; set; } = string.Empty;
             public decimal Price { get; set; }
@@ -83,7 +91,7 @@ namespace TradingBot.Critical
             public string LiquidityType { get; set; } = string.Empty;
         }
 
-        public class OrderStatusData
+        internal class OrderStatusData
         {
             public string OrderId { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
@@ -161,12 +169,16 @@ namespace TradingBot.Critical
                     _confirmedFills[fill.FillId] = fill;
                     
                     // Update order with partial fill
-                    order.PartialFills.Add(new PartialFill
+                    var newFill = new PartialFill
                     {
                         Quantity = fillData.Quantity,
                         Price = fillData.Price,
                         Time = DateTime.UtcNow
-                    });
+                    };
+                    
+                    var updatedFills = order.PartialFills.ToList();
+                    updatedFills.Add(newFill);
+                    order.ReplacePartialFills(updatedFills);
                     
                     // Check if order is completely filled
                     var totalFilled = order.PartialFills.Sum(f => f.Quantity);
@@ -342,7 +354,7 @@ namespace TradingBot.Critical
             return false;
         }
 
-        public void AddPendingOrder(OrderRecord order)
+        internal void AddPendingOrder(OrderRecord order)
         {
             if (order is null) throw new ArgumentNullException(nameof(order));
             
@@ -515,11 +527,26 @@ namespace TradingBot.Critical
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data)));
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _reconciliationTimer?.Dispose();
-            _database?.Close();
-            _database?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _reconciliationTimer?.Dispose();
+                    _database?.Close();
+                    _database?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
     
@@ -527,7 +554,7 @@ namespace TradingBot.Critical
     // COMPONENT 2: DISASTER RECOVERY PROTOCOL
     // ================================================================================
     
-    public class DisasterRecoverySystem
+    public class DisasterRecoverySystem : IDisposable
     {
         private readonly string _stateFile = "trading_state.json";
         private readonly string _backupStateFile = "trading_state.backup.json";
@@ -539,7 +566,7 @@ namespace TradingBot.Critical
         private readonly ILogger<DisasterRecoverySystem> _logger;
         private readonly SQLiteConnection? _database;
         
-        public class SystemState
+        internal class SystemState
         {
             public DateTime Timestamp { get; set; }
             public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
@@ -552,7 +579,7 @@ namespace TradingBot.Critical
             public string CheckpointHash { get; set; } = string.Empty;
         }
         
-        public class Position
+        internal class Position
         {
             public string Symbol { get; set; } = string.Empty;
             public int Quantity { get; set; }
@@ -565,20 +592,20 @@ namespace TradingBot.Critical
             public string StrategyId { get; set; } = string.Empty;
         }
 
-        public class PendingOrder
+        internal class PendingOrder
         {
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
         }
 
-        public class StrategyState
+        internal class StrategyState
         {
             public string Id { get; set; } = string.Empty;
             public bool IsActive { get; set; }
         }
 
-        public class RiskMetrics
+        internal class RiskMetrics
         {
             public decimal TotalExposure { get; set; }
             public decimal DailyPnL { get; set; }
@@ -1300,16 +1327,31 @@ namespace TradingBot.Critical
             }
         }
 
-        public void AddPosition(Position position)
+        internal void AddPosition(Position position)
         {
             if (position is null) throw new ArgumentNullException(nameof(position));
             
             _activePositions[position.Symbol] = position;
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _statePersistenceTimer.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _statePersistenceTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
     
@@ -1317,7 +1359,7 @@ namespace TradingBot.Critical
     // COMPONENT 3: CORRELATION OVERFLOW PROTECTION
     // ================================================================================
     
-    public class CorrelationProtectionSystem
+    public class CorrelationProtectionSystem : IDisposable
     {
         private readonly Dictionary<string, Dictionary<string, double>> _correlationMatrix = new();
         private readonly ConcurrentDictionary<string, PositionExposure> _exposures = new();
@@ -1550,9 +1592,24 @@ namespace TradingBot.Critical
             };
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _correlationUpdateTimer?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _correlationUpdateTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
 

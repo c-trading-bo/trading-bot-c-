@@ -11,7 +11,7 @@
 // HOW TO USE
 // 1) Implement IOrderRouter for your TopstepX order flow.
 // 2) (Optional) Implement INewsGate.IsBlocked(DateTimeOffset et) to return true during high-impact news.
-// 3) WarmupDaily / Warmup1m with your history, then call OnBar1m + UpdateDivergence(optional) and OnDepth live.
+// 3) WarmupDaily / Warmup1m with your history, then call OnBar1M + UpdateDivergence(optional) and OnDepth live.
 // 4) Copy/paste into your project; wire just like S6.
 
 using System;
@@ -40,15 +40,20 @@ namespace TopstepX.S11
     public sealed class NullNewsGate : INewsGate { public bool IsBlocked(DateTimeOffset et) => false; }
 
     // --- DATA TYPES ---
-    public readonly struct Bar1m : IEquatable<Bar1m>
+    public readonly struct Bar1M : IEquatable<Bar1M>
     {
         public readonly DateTimeOffset TimeET; // ET time
         public readonly long Open, High, Low, Close; // ticks
         public readonly double Volume;
-        public Bar1m(DateTimeOffset tEt, long o, long h, long l, long c, double v)
+        public Bar1M(DateTimeOffset tEt, long o, long h, long l, long c, double v)
         { TimeET = tEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
         public override bool Equals(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Equals(Bar1M other)
         {
             throw new NotImplementedException();
         }
@@ -58,19 +63,14 @@ namespace TopstepX.S11
             throw new NotImplementedException();
         }
 
-        public static bool operator ==(Bar1m left, Bar1m right)
+        public static bool operator ==(Bar1M left, Bar1M right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(Bar1m left, Bar1m right)
+        public static bool operator !=(Bar1M left, Bar1M right)
         {
             return !(left == right);
-        }
-
-        public bool Equals(Bar1m other)
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -261,10 +261,10 @@ namespace TopstepX.S11
             if (bars is null) throw new ArgumentNullException(nameof(bars));
             
             var s = Get(instr); foreach (var b in bars)
-            { var bar = new Bar1m(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
+            { var bar = new Bar1M(b.tEt, s.ToTicks(b.o), s.ToTicks(b.h), s.ToTicks(b.l), s.ToTicks(b.c), b.v); s.OnBar(bar); }
         }
 
-        public void OnBar1m(Instrument instr, Bar1m bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
+        public void OnBar1M(Instrument instr, Bar1M bar) { Get(instr).OnBar(bar); StepEngine(Get(instr)); }
         public void OnDepth(Instrument instr, DepthLadder depth) { Get(instr).LastDepth = depth; }
 
         private void StepEngine(State s)
@@ -353,9 +353,9 @@ namespace TopstepX.S11
             public State(Instrument i, IOrderRouter r, S11Config c){ Instr=i; R=r; C=c; TickPx=r.GetTickSize(i); Tick=(long)Math.Round(1.0/ TickPx); }
 
             // series
-            public readonly Ring<Bar1m> Min1 = new Ring<Bar1m>(1200);
-            public readonly Ring<Bar1m> Min5 = new Ring<Bar1m>(500);
-            public readonly Ring<Bar1m> Min15 = new Ring<Bar1m>(200);
+            public readonly Ring<Bar1M> Min1 = new Ring<Bar1M>(1200);
+            public readonly Ring<Bar1M> Min5 = new Ring<Bar1M>(500);
+            public readonly Ring<Bar1M> Min15 = new Ring<Bar1M>(200);
             public DepthLadder LastDepth;
 
             // indicators
@@ -380,7 +380,7 @@ namespace TopstepX.S11
             public long ToTicks(double px) => (long)Math.Round(px / TickPx);
             public double ToPx(long ticks) => ticks * TickPx;
 
-            public void OnBar(Bar1m bar)
+            public void OnBar(Bar1M bar)
             {
                 LastBarTime = bar.TimeET;
                 Min1.Add(bar);
@@ -393,7 +393,7 @@ namespace TopstepX.S11
                     long o = b4.Open; long h = Math.Max(Math.Max(Math.Max(Math.Max(b4.High,b3.High),b2.High),b1.High),b0.High);
                     long l = Math.Min(Math.Min(Math.Min(Math.Min(b4.Low, b3.Low), b2.Low), b1.Low), b0.Low);
                     long c = b0.Close; double v = b4.Volume + b3.Volume + b2.Volume + b1.Volume + b0.Volume;
-                    Min5.Add(new Bar1m(bar.TimeET, o,h,l,c,v));
+                    Min5.Add(new Bar1M(bar.TimeET, o,h,l,c,v));
                 }
 
                 // build 15m bars
@@ -402,7 +402,7 @@ namespace TopstepX.S11
                 {
                     long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15 = 0;
                     for (int i = 0; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
-                    Min15.Add(new Bar1m(bar.TimeET, o15, h15, l15, c15, v15));
+                    Min15.Add(new Bar1M(bar.TimeET, o15, h15, l15, c15, v15));
                 }
 
                 // IB tracking (09:30-10:30)

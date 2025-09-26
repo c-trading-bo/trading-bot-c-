@@ -8,6 +8,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.Extensions.Logging;
 using BotCore.ML;
+using System.Security.Cryptography;
 
 namespace BotCore.Bandits;
 
@@ -180,16 +181,31 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         };
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        lock (_lock)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            foreach (var arm in _arms.Values)
+            if (disposing)
             {
-                // NeuralUcbArm doesn't implement IDisposable, no disposal needed
-                // The arm will be cleaned up when the dictionary is cleared
+                lock (_lock)
+                {
+                    foreach (var arm in _arms.Values)
+                    {
+                        // NeuralUcbArm doesn't implement IDisposable, no disposal needed
+                        // The arm will be cleaned up when the dictionary is cleared
+                    }
+                    _arms.Clear();
+                }
             }
-            _arms.Clear();
+            _disposed = true;
         }
     }
 }
@@ -623,14 +639,29 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         return new OnnxNeuralNetwork(_onnxLoader, _logger, _modelPath);
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        if (_session != null)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            _session.Dispose();
-            _session = null;
+            if (disposing)
+            {
+                if (_session != null)
+                {
+                    _session.Dispose();
+                    _session = null;
+                }
+                _isInitialized = false;
+            }
+            _disposed = true;
         }
-        _isInitialized = false;
     }
 }
 
@@ -643,9 +674,21 @@ public static class RandomExtensions
     {
         if (random is null) throw new ArgumentNullException(nameof(random));
         
-        // Box-Muller transform
-        var u1 = 1.0 - random.NextDouble();
-        var u2 = 1.0 - random.NextDouble();
+        // Box-Muller transform using cryptographically secure random numbers
+        var u1 = 1.0 - GetSecureRandomDouble();
+        var u2 = 1.0 - GetSecureRandomDouble();
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+    }
+
+    /// <summary>
+    /// Generate cryptographically secure random double value between 0.0 and 1.0
+    /// </summary>
+    private static double GetSecureRandomDouble()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[8];
+        rng.GetBytes(bytes);
+        var uint64 = BitConverter.ToUInt64(bytes, 0);
+        return (uint64 >> 11) * (1.0 / (1UL << 53));
     }
 }

@@ -138,9 +138,24 @@ namespace BotCore.ML
             }
         }
 
+        private bool _disposed;
+
         public void Dispose()
         {
-            _http?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _http?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
 

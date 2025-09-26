@@ -133,10 +133,24 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         };
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        _session?.Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _session?.Dispose();
+            }
+            _disposed = true;
+        }
     }
 }
 

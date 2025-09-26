@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 
 namespace TradingBot.BotCore.Services
@@ -11,12 +10,10 @@ namespace TradingBot.BotCore.Services
     public class BracketConfigService : IBracketConfig
     {
         private readonly IConfiguration _config;
-        private readonly ILogger<BracketConfigService> _logger;
 
-        public BracketConfigService(IConfiguration config, ILogger<BracketConfigService> logger)
+        public BracketConfigService(IConfiguration config)
         {
             _config = config;
-            _logger = logger;
         }
 
         public double GetDefaultTakeProfitAtrMultiple() => 
