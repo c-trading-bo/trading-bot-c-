@@ -605,7 +605,7 @@ namespace TradingBot.Critical
             public bool IsActive { get; set; }
         }
 
-        public class RiskMetrics
+        internal class RiskMetrics
         {
             public decimal TotalExposure { get; set; }
             public decimal DailyPnL { get; set; }
@@ -1327,7 +1327,7 @@ namespace TradingBot.Critical
             }
         }
 
-        public void AddPosition(Position position)
+        internal void AddPosition(Position position)
         {
             if (position is null) throw new ArgumentNullException(nameof(position));
             

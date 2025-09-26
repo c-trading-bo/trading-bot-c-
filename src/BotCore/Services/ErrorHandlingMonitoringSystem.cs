@@ -15,7 +15,7 @@ namespace TopstepX.Bot.Core.Services
     /// Comprehensive Error Handling and Monitoring System
     /// Tracks system health, errors, and performance metrics
     /// </summary>
-    public class ErrorHandlingMonitoringSystem
+    public class ErrorHandlingMonitoringSystem : IDisposable
     {
         private readonly ILogger<ErrorHandlingMonitoringSystem> _logger;
         private readonly ConcurrentDictionary<string, ErrorRecord> _recentErrors = new();
@@ -471,7 +471,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Get recent errors
         /// </summary>
-        public List<ErrorRecord> GetRecentErrors(int maxCount = 50)
+        public IReadOnlyList<ErrorRecord> GetRecentErrors(int maxCount = 50)
         {
             return _recentErrors.Values
                 .OrderByDescending(e => e.Timestamp)
@@ -482,7 +482,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Get component health details
         /// </summary>
-        public List<ComponentHealth> GetComponentHealth()
+        public IReadOnlyList<ComponentHealth> GetComponentHealth()
         {
             return _componentHealth.Values
                 .OrderBy(c => c.ComponentName)
@@ -502,10 +502,25 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
+        private bool _disposed;
+
         public void Dispose()
         {
-            _healthCheckTimer?.Dispose();
-            _reportingTimer?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _healthCheckTimer?.Dispose();
+                    _reportingTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
     

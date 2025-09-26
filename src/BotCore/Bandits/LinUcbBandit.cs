@@ -183,7 +183,6 @@ public class LinUcbBandit : IFunctionApproximationBandit
 /// </summary>
 internal sealed class LinUcbArm
 {
-    private readonly decimal _alpha;
     private readonly int _dimension;
     private readonly decimal[,] _A; // A = I + sum(x_t * x_t^T)
     private readonly decimal[] _b;  // b = sum(r_t * x_t)
@@ -197,7 +196,6 @@ internal sealed class LinUcbArm
     public LinUcbArm(int dimension, decimal alpha)
     {
         _dimension = dimension;
-        _alpha = alpha;
         _A = new decimal[dimension, dimension];
         _b = new decimal[dimension];
 

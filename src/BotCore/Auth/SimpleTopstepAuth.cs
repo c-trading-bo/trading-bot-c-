@@ -12,7 +12,7 @@ namespace BotCore.Auth
     /// Simple, reliable TopstepX authentication - based on working August 22 version
     /// This replaces complex auth chains with proven working logic
     /// </summary>
-    public sealed class SimpleTopstepAuth : IAsyncDisposable
+    public sealed class SimpleTopstepAuth : IAsyncDisposable, IDisposable
     {
         private readonly HttpClient _http;
         private readonly ILogger<SimpleTopstepAuth> _logger;
