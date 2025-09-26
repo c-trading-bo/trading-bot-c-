@@ -624,9 +624,18 @@ public class NeuralUcbExtended : IDisposable
         _lastPerformanceUpdate = DateTime.UtcNow;
     }
     
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _underlyingBandit?.Dispose();
+        }
+    }
+    
     public void Dispose()
     {
-        _underlyingBandit?.Dispose();
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
 

@@ -1591,32 +1591,66 @@ namespace BotCore.Brain
 
         #endregion
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _logger.LogInformation("🧠 [UNIFIED-BRAIN] Shutting down...");
+                
+                // Save performance statistics
+                var stats = new
+                {
+                    DecisionsToday,
+                    WinRateToday,
+                    TotalDecisions = _decisionHistory.Count,
+                    Performance = _performance.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    LastDecision
+                };
+                
+                try
+                {
+                    var statsPath = Path.Combine("logs", $"brain_stats_{DateTime.Now:yyyyMMdd}.json");
+                    Directory.CreateDirectory(Path.GetDirectoryName(statsPath)!);
+                    File.WriteAllText(statsPath, JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true }));
+                    _logger.LogInformation("📊 [UNIFIED-BRAIN] Statistics saved: {Decisions} decisions, {WinRate:P1} win rate",
+                        DecisionsToday, WinRateToday);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error saving statistics");
+                }
+                
+                // Dispose managed resources
+                try
+                {
+                    _strategySelector?.Dispose();
+                    _cvarPPO?.Dispose();
+                    _confidenceNetwork?.Dispose();
+                    _memoryManager?.Dispose();
+                    _modelManager?.Dispose();
+                    
+                    if (_lstmPricePredictor is IDisposable disposableLstm)
+                        disposableLstm.Dispose();
+                    if (_metaClassifier is IDisposable disposableMeta) 
+                        disposableMeta.Dispose();
+                    if (_marketRegimeDetector is IDisposable disposableRegime)
+                        disposableRegime.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected during shutdown - ignore
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error disposing managed resources");
+                }
+            }
+        }
+
         public void Dispose()
         {
-            _logger.LogInformation("🧠 [UNIFIED-BRAIN] Shutting down...");
-            
-            // Save performance statistics
-            var stats = new
-            {
-                DecisionsToday,
-                WinRateToday,
-                TotalDecisions = _decisionHistory.Count,
-                Performance = _performance.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                LastDecision
-            };
-            
-            try
-            {
-                var statsPath = Path.Combine("logs", $"brain_stats_{DateTime.Now:yyyyMMdd}.json");
-                Directory.CreateDirectory(Path.GetDirectoryName(statsPath)!);
-                File.WriteAllText(statsPath, JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true }));
-                _logger.LogInformation("📊 [UNIFIED-BRAIN] Statistics saved: {Decisions} decisions, {WinRate:P1} win rate",
-                    DecisionsToday, WinRateToday);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error saving statistics");
-            }
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 
