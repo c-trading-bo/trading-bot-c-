@@ -44,6 +44,8 @@ public class TopStepComplianceManager
     
     public TopStepComplianceManager(ILogger logger, IOptions<AutonomousConfig> config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _config = config.Value;
         

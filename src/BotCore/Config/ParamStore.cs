@@ -132,6 +132,9 @@ public static class ParamStore
 
     public static void SaveS3(string root, string jsonConfig, TimeSpan ttl)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(jsonConfig);
+        
         try
         {
             Directory.CreateDirectory(ParamsDir());
@@ -149,6 +152,8 @@ public static class ParamStore
 
     public static bool ApplyS3OverrideIfPresent(string root, Microsoft.Extensions.Logging.ILogger? log = null)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        
         try
         {
             var path = S3Path(root);
@@ -171,6 +176,9 @@ public static class ParamStore
 
     public static void SaveS6(string root, Dictionary<string, JsonElement> extra, TimeSpan ttl)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(extra);
+        
         try
         {
             Directory.CreateDirectory(ParamsDir());
@@ -188,6 +196,8 @@ public static class ParamStore
 
     public static bool ApplyS6OverrideIfPresent(string root, Microsoft.Extensions.Logging.ILogger? log = null)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        
         try
         {
             var path = S6Path(root);
@@ -212,6 +222,9 @@ public static class ParamStore
 
     public static void SaveS11(string root, Dictionary<string, JsonElement> extra, TimeSpan ttl)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(extra);
+        
         try
         {
             Directory.CreateDirectory(ParamsDir());
@@ -229,6 +242,8 @@ public static class ParamStore
 
     public static bool ApplyS11OverrideIfPresent(string root, Microsoft.Extensions.Logging.ILogger? log = null)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        
         try
         {
             var path = S11Path(root);
