@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using TradingBot.Abstractions;
 
 namespace TradingBot.Unit.Tests;
 
@@ -133,6 +134,69 @@ public class ModelPromotionTests : IDisposable
 
         // Assert
         Assert.False(isValid, "Expired arm token should block live trading");
+    }
+
+    [Fact]
+    public async Task NeutralBandIntegration_WithLattices_ShouldUseDynamicThresholds()
+    {
+        // Arrange - Create a mock neutral band service with custom thresholds
+        var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<BotCore.Services.SafeHoldDecisionPolicy>>();
+        var mockConfig = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        var mockSection = new Mock<Microsoft.Extensions.Configuration.IConfigurationSection>();
+        
+        // Setup configuration for neutral band
+        mockSection.Setup(x => x.GetValue<double>("BearishThreshold", 0.45)).Returns(0.40);
+        mockSection.Setup(x => x.GetValue<double>("BullishThreshold", 0.55)).Returns(0.60);
+        mockSection.Setup(x => x.GetValue<bool>("EnableHysteresis", true)).Returns(true);
+        mockSection.Setup(x => x.GetValue<double>("HysteresisBuffer", 0.02)).Returns(0.02);
+        mockConfig.Setup(x => x.GetSection("NeutralBand")).Returns(mockSection.Object);
+        
+        var neutralBandService = new BotCore.Services.SafeHoldDecisionPolicy(mockLogger.Object, mockConfig.Object);
+        var lattices = new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+        
+        // Act - Test various confidence levels
+        var buyDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.65, "S2a");
+        var sellDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.35, "S2a");
+        var holdDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.50, "S2a");
+        
+        // Assert
+        Assert.NotNull(buyDecision);
+        Assert.Equal(TradingAction.Buy, buyDecision.Action);
+        Assert.Contains("Above bullish threshold", buyDecision.Reason);
+        
+        Assert.NotNull(sellDecision);
+        Assert.Equal(TradingAction.Sell, sellDecision.Action);
+        Assert.Contains("Below bearish threshold", sellDecision.Reason);
+        
+        Assert.NotNull(holdDecision);
+        Assert.Equal(TradingAction.Hold, holdDecision.Action);
+        Assert.Contains("neutral zone", holdDecision.Reason);
+        
+        // Verify metadata includes lattice-specific information
+        Assert.NotNull(buyDecision.Metadata);
+        Assert.True(buyDecision.Metadata.ContainsKey("volatility_factor"));
+        Assert.True(buyDecision.Metadata.ContainsKey("bayesian_win_prob"));
+    }
+
+    [Fact]
+    public void NeutralBandIntegration_IsInNeutralBand_ShouldUseDynamicService()
+    {
+        // Arrange
+        var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<BotCore.Services.SafeHoldDecisionPolicy>>();
+        var mockConfig = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        var mockSection = new Mock<Microsoft.Extensions.Configuration.IConfigurationSection>();
+        
+        mockSection.Setup(x => x.GetValue<double>("BearishThreshold", 0.45)).Returns(0.42);
+        mockSection.Setup(x => x.GetValue<double>("BullishThreshold", 0.55)).Returns(0.58);
+        mockConfig.Setup(x => x.GetSection("NeutralBand")).Returns(mockSection.Object);
+        
+        var neutralBandService = new BotCore.Services.SafeHoldDecisionPolicy(mockLogger.Object, mockConfig.Object);
+        var lattices = new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+        
+        // Act & Assert
+        Assert.False(lattices.IsInNeutralBand(0.40, "ES", SessionType.RTH)); // Below bearish
+        Assert.True(lattices.IsInNeutralBand(0.50, "ES", SessionType.RTH));  // In neutral band
+        Assert.False(lattices.IsInNeutralBand(0.60, "ES", SessionType.RTH)); // Above bullish
     }
 
     // Helper methods that simulate the actual implementation logic

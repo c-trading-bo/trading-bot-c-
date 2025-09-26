@@ -371,6 +371,13 @@ Stack Trace:
         // Register Safe-Hold Decision Policy with neutral band logic
         services.AddSingleton<SafeHoldDecisionPolicy>();
         
+        // Register Per-Symbol Session Lattices with neutral band integration
+        services.AddSingleton<OrchestratorAgent.Execution.PerSymbolSessionLattices>(provider =>
+        {
+            var neutralBandService = provider.GetService<SafeHoldDecisionPolicy>();
+            return new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+        });
+        
         // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
         services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
         
