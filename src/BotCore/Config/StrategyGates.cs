@@ -26,6 +26,8 @@ public static class StrategyGates
 
     public static bool PassesRSGate(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
+        if (snap is null) throw new ArgumentNullException(nameof(snap));
+        
         var z = snap.Z5mReturnDiff;
         var abs = Math.Abs(z);
         var mid = cfg.RsGate.ThresholdMid;

@@ -31,6 +31,8 @@ namespace BotCore.Strategy
 
         public static List<Candidate> generate_candidates_with_time_filter(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, DateTime currentTime)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            
             var cands = new List<Candidate>();
             // Ensure env.volz is computed from history (regime proxy)
             try { env.volz = VolZ(bars); } catch { env.volz ??= 0m; }
@@ -106,6 +108,10 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk, BotCore.Models.MarketSnapshot snap)
         {
+            if (cfg is null) throw new ArgumentNullException(nameof(cfg));
+            if (def is null) throw new ArgumentNullException(nameof(def));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             // Warm-up disabled: always allow indicator use immediately
 
             // Dispatch to the specific strategy function based on def.Name (S1..S14)

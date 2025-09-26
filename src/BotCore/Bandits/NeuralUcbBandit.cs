@@ -39,6 +39,9 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         ContextVector context,
         CancellationToken ct = default)
     {
+        if (availableArms is null) throw new ArgumentNullException(nameof(availableArms));
+        if (context is null) throw new ArgumentNullException(nameof(context));
+        
         lock (_lock)
         {
             // Ensure all arms exist
@@ -485,6 +488,8 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
     public async Task<decimal> PredictAsync(decimal[] features, CancellationToken ct = default)
     {
+        if (features is null) throw new ArgumentNullException(nameof(features));
+        
         await EnsureInitializedAsync().ConfigureAwait(false);
         
         if (_session != null)
@@ -520,6 +525,9 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
     public async Task TrainAsync(decimal[][] features, decimal[] targets, CancellationToken ct = default)
     {
+        if (features is null) throw new ArgumentNullException(nameof(features));
+        if (targets is null) throw new ArgumentNullException(nameof(targets));
+        
         // ONNX models are pre-trained, but we can log training data for future model updates
         _logger.LogInformation("[NEURAL_UCB] Training data received: {Samples} samples", features.Length);
         
@@ -532,6 +540,8 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
     public async Task<decimal[]> ComputeGradientsAsync(decimal[] features, CancellationToken ct = default)
     {
+        if (features is null) throw new ArgumentNullException(nameof(features));
+        
         // For ONNX models, gradients are computed during training
         // For UCB, we can approximate gradients using finite differences
         var gradients = new decimal[features.Length];
@@ -631,6 +641,8 @@ public static class RandomExtensions
 {
     public static double NextGaussian(this Random random)
     {
+        if (random is null) throw new ArgumentNullException(nameof(random));
+        
         // Box-Muller transform
         var u1 = 1.0 - random.NextDouble();
         var u2 = 1.0 - random.NextDouble();

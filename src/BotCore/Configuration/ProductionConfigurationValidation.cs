@@ -13,6 +13,14 @@ namespace BotCore.Configuration;
 /// </summary>
 public static class ProductionConfigurationExtensions
 {
+    // Configuration validation constants
+    private const int MinDecisionTimeoutSeconds = 5;
+    private const int MaxDecisionTimeoutSeconds = 60;
+    private const double MinAIConfidenceThreshold = 0.1;
+    private const double MaxAIConfidenceThreshold = 0.95;
+    private const double MinPositionSizeMultiplier = 0.5;
+    private const double MaxPositionSizeMultiplier = 5.0;
+    
     public static IServiceCollection AddProductionConfigurationValidation(
         this IServiceCollection services, 
         IConfiguration configuration)
@@ -97,7 +105,7 @@ public class TradingConfiguration
     public string? BackupDirectory { get; set; }
 
     [Required]
-    [Range(5, 60)]
+    [Range(MinDecisionTimeoutSeconds, MaxDecisionTimeoutSeconds)]
     public int DecisionTimeoutSeconds { get; set; } = 30;
 
     // ML/AI Configuration Parameters (addresses hardcoded values issue)
@@ -107,7 +115,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 0.7 value
     /// </summary>
     [Required]
-    [Range(0.1, 0.95)]
+    [Range(MinAIConfidenceThreshold, MaxAIConfidenceThreshold)]
     public double AIConfidenceThreshold { get; set; } = 0.75;
 
     /// <summary>
@@ -115,7 +123,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 2.5 value
     /// </summary>
     [Required]
-    [Range(0.5, 5.0)]
+    [Range(MinPositionSizeMultiplier, MaxPositionSizeMultiplier)]
     public double DefaultPositionSizeMultiplier { get; set; } = 2.0;
 
     /// <summary>
