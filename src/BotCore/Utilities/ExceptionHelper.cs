@@ -27,6 +27,11 @@ namespace BotCore.Utilities
             string operationDescription, 
             bool suppressExceptions = true)
         {
+            if (operation is null) throw new ArgumentNullException(nameof(operation));
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            if (componentName is null) throw new ArgumentNullException(nameof(componentName));
+            if (operationDescription is null) throw new ArgumentNullException(nameof(operationDescription));
+
             try
             {
                 await operation().ConfigureAwait(false);
@@ -51,6 +56,11 @@ namespace BotCore.Utilities
             string operationDescription, 
             bool suppressExceptions = true)
         {
+            if (operation is null) throw new ArgumentNullException(nameof(operation));
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            if (componentName is null) throw new ArgumentNullException(nameof(componentName));
+            if (operationDescription is null) throw new ArgumentNullException(nameof(operationDescription));
+
             try
             {
                 operation();
@@ -76,6 +86,11 @@ namespace BotCore.Utilities
             T? defaultValue = default,
             bool suppressExceptions = true)
         {
+            if (operation is null) throw new ArgumentNullException(nameof(operation));
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            if (componentName is null) throw new ArgumentNullException(nameof(componentName));
+            if (operationDescription is null) throw new ArgumentNullException(nameof(operationDescription));
+
             try
             {
                 return await operation().ConfigureAwait(false);

@@ -47,21 +47,37 @@ public static class ProductionConfigurationExtensions
 /// </summary>
 public class TradingConfiguration
 {
-    [Required]
-    [Range(1, 10)]
-    public int MaxPositionSize { get; set; } = 5;
+    // Validation range constants for S109 compliance
+    private const int MinPositionSize = 1;
+    private const int MaxPositionSizeLimit = 10;
+    private const double MinDailyLoss = -10000.0;
+    private const double MaxDailyLossLimit = -100.0;
+    private const double MinProfitTarget = 100.0;
+    private const double MaxProfitTargetLimit = 10000.0;
+    private const double MinDrawdownLimit = -50000.0;
+    private const double MaxDrawdownLimitValue = -1000.0;
+    
+    // Default values as constants
+    private const int DefaultMaxPositionSize = 5;
+    private const decimal DefaultMaxDailyLoss = -1000m;
+    private const decimal DefaultDailyProfitTarget = 500m;
+    private const decimal DefaultDrawdownLimit = -2000m;
 
     [Required]
-    [Range(-10000, -100)]
-    public decimal MaxDailyLoss { get; set; } = -1000m;
+    [Range(MinPositionSize, MaxPositionSizeLimit)]
+    public int MaxPositionSize { get; set; } = DefaultMaxPositionSize;
 
     [Required]
-    [Range(100, 10000)]
-    public decimal DailyProfitTarget { get; set; } = 500m;
+    [Range(MinDailyLoss, MaxDailyLossLimit)]
+    public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
 
     [Required]
-    [Range(-50000, -1000)]
-    public decimal DrawdownLimit { get; set; } = -2000m;
+    [Range(MinProfitTarget, MaxProfitTargetLimit)]
+    public decimal DailyProfitTarget { get; set; } = DefaultDailyProfitTarget;
+
+    [Required]
+    [Range(MinDrawdownLimit, MaxDrawdownLimitValue)]
+    public decimal DrawdownLimit { get; set; } = DefaultDrawdownLimit;
 
     [Required]
     public bool EnableAutoExecution { get; set; }

@@ -25,6 +25,9 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public T ExecuteWithFallback<T>(Func<T> configOperation, T conservativeDefault, string operationName)
         {
+            if (configOperation is null) throw new ArgumentNullException(nameof(configOperation));
+            if (operationName is null) throw new ArgumentNullException(nameof(operationName));
+            
             try
             {
                 // Check if circuit breaker is active

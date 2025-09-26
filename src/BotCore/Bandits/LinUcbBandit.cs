@@ -30,6 +30,9 @@ public class LinUcbBandit : IFunctionApproximationBandit
         ContextVector context,
         CancellationToken ct = default)
     {
+        if (availableArms is null) throw new ArgumentNullException(nameof(availableArms));
+        if (context is null) throw new ArgumentNullException(nameof(context));
+        
         await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
@@ -82,6 +85,9 @@ public class LinUcbBandit : IFunctionApproximationBandit
         decimal reward,
         CancellationToken ct = default)
     {
+        if (selectedArm is null) throw new ArgumentNullException(nameof(selectedArm));
+        if (context is null) throw new ArgumentNullException(nameof(context));
+        
         await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)

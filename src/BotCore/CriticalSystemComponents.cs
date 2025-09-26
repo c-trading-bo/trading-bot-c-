@@ -344,6 +344,8 @@ namespace TradingBot.Critical
 
         public void AddPendingOrder(OrderRecord order)
         {
+            if (order is null) throw new ArgumentNullException(nameof(order));
+            
             _pendingOrders[order.OrderId] = order;
             _logger.LogInformation("[ORDER] Added pending order {OrderId} {Symbol} {Side} {Qty}@{Price}", 
                 order.OrderId, order.Symbol, order.Side, order.Quantity, order.Price);
@@ -1300,6 +1302,8 @@ namespace TradingBot.Critical
 
         public void AddPosition(Position position)
         {
+            if (position is null) throw new ArgumentNullException(nameof(position));
+            
             _activePositions[position.Symbol] = position;
         }
 
@@ -1564,6 +1568,8 @@ namespace TradingBot.Critical
         
         public static string GetCredential(string key, string? defaultValue = null)
         {
+            if (key is null) throw new ArgumentNullException(nameof(key));
+
             // Priority order: Environment Variables -> Azure Key Vault -> AWS Secrets Manager -> Default
             
             // 1. Check environment variables first

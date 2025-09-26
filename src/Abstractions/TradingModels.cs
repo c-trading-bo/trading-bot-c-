@@ -687,7 +687,7 @@ public class HealthStatus
     public Collection<string> Issues { get; } = new();
 }
 
-// TopstepX SignalR message models
+// TopstepX SDK message models
 public class GatewayUserOrder
 {
     public string AccountId { get; set; } = string.Empty;

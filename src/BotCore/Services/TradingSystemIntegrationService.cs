@@ -148,6 +148,8 @@ namespace TopstepX.Bot.Core.Services
             IEnhancedMarketDataFlowService marketDataFlow,
             IOptions<TradingReadinessConfiguration> readinessConfig)
         {
+            if (readinessConfig is null) throw new ArgumentNullException(nameof(readinessConfig));
+            
             _logger = logger;
             _serviceProvider = serviceProvider;
             _emergencyStop = emergencyStop;
@@ -167,10 +169,6 @@ namespace TopstepX.Bot.Core.Services
             _historicalBridge = historicalBridge;
             _marketDataFlow = marketDataFlow;
             _readinessConfig = readinessConfig.Value;
-            // NOTE: SignalR connection manager removed - now using TopstepX SDK
-            // _signalRConnectionManager.OnGatewayUserTradeReceived += OnGatewayUserTradeReceived;
-            // _signalRConnectionManager.OnFillUpdateReceived += (data) => _ = OnFillConfirmed(data);
-            // _signalRConnectionManager.OnOrderUpdateReceived += OnOrderUpdateReceived;
             
             // Wire up enhanced market data flow events
             _marketDataFlow.OnMarketDataReceived += (type, data) => HandleEnhancedMarketData(type, data);
@@ -322,6 +320,8 @@ namespace TopstepX.Bot.Core.Services
         /// </summary>
         public async Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request, CancellationToken cancellationToken = default)
         {
+            if (request is null) throw new ArgumentNullException(nameof(request));
+            
             try
             {
                 // FIRST: Check micro contract filter - CRITICAL PRODUCTION SAFETY
@@ -1888,7 +1888,7 @@ namespace TopstepX.Bot.Core.Services
                 result.IsReady = false;
                 result.Reason += " (hubs disconnected)";
                 score *= 0.3;
-                recommendations.Add("Check SignalR connections");
+                recommendations.Add("Check SDK connections");
             }
 
             result.ReadinessScore = score;

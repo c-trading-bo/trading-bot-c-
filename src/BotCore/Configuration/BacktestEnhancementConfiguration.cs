@@ -87,13 +87,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES-specific slippage in basis points
         /// </summary>
-        [Range(MIN_ES_NQ_SLIPPAGE_BPS, MAX_ES_NQ_SLIPPAGE_BPS)]
+        [Range(BacktestEnhancementConfiguration.MIN_ES_NQ_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_ES_NQ_SLIPPAGE_BPS)]
         public double ESSlippageBps { get; set; } = 0.25;
 
         /// <summary>
         /// NQ-specific slippage in basis points
         /// </summary>
-        [Range(MIN_ES_NQ_SLIPPAGE_BPS, MAX_ES_NQ_SLIPPAGE_BPS)]
+        [Range(BacktestEnhancementConfiguration.MIN_ES_NQ_SLIPPAGE_BPS, BacktestEnhancementConfiguration.MAX_ES_NQ_SLIPPAGE_BPS)]
         public double NQSlippageBps { get; set; } = 0.5;
 
 
@@ -122,25 +122,25 @@ namespace BotCore.Configuration
         /// <summary>
         /// Base latency in milliseconds
         /// </summary>
-        [Range(MIN_LATENCY_MS, MAX_LATENCY_MS)]
+        [Range(BacktestEnhancementConfiguration.MIN_LATENCY_MS, BacktestEnhancementConfiguration.MAX_LATENCY_MS)]
         public int BaseLatencyMs { get; set; } = 15;
 
         /// <summary>
         /// Network jitter variance in milliseconds
         /// </summary>
-        [Range(MIN_JITTER_MS, MAX_JITTER_MS)]
+        [Range(BacktestEnhancementConfiguration.MIN_JITTER_MS, BacktestEnhancementConfiguration.MAX_JITTER_MS)]
         public int NetworkJitterMs { get; set; } = 5;
 
         /// <summary>
         /// Order processing delay in milliseconds
         /// </summary>
-        [Range(MIN_COMMISSION_PER_CONTRACT, MAX_COMMISSION_PER_CONTRACT)]
+        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_PER_CONTRACT, BacktestEnhancementConfiguration.MAX_COMMISSION_PER_CONTRACT)]
         public int OrderProcessingMs { get; set; } = 8;
 
         /// <summary>
         /// Maximum allowable latency in milliseconds
         /// </summary>
-        [Range(MIN_PROCESSING_DELAY_MS, MAX_PROCESSING_DELAY_MS)]
+        [Range(BacktestEnhancementConfiguration.MIN_PROCESSING_DELAY_MS, BacktestEnhancementConfiguration.MAX_PROCESSING_DELAY_MS)]
         public int MaxLatencyMs { get; set; } = 100;
 
         /// <summary>
@@ -163,13 +163,13 @@ namespace BotCore.Configuration
         /// <summary>
         /// ES commission per contract
         /// </summary>
-        [Range(MIN_COMMISSION_RANGE, MAX_COMMISSION_RANGE)]
+        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_RANGE, BacktestEnhancementConfiguration.MAX_COMMISSION_RANGE)]
         public decimal ESCommission { get; set; } = 0.62m;
 
         /// <summary>
         /// NQ commission per contract
         /// </summary>
-        [Range(MIN_COMMISSION_RANGE, MAX_COMMISSION_RANGE)]
+        [Range(BacktestEnhancementConfiguration.MIN_COMMISSION_RANGE, BacktestEnhancementConfiguration.MAX_COMMISSION_RANGE)]
         public decimal NQCommission { get; set; } = 0.62m;
 
 
