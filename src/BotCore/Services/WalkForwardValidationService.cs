@@ -476,7 +476,7 @@ namespace BotCore.Services
         /// <summary>
         /// Calculate aggregate metrics across all windows
         /// </summary>
-        private void CalculateAggregateMetrics(WalkForwardResult result)
+        private static void CalculateAggregateMetrics(WalkForwardResult result)
         {
             if (result.WindowResults.Count == 0)
                 return;

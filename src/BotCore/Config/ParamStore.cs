@@ -72,6 +72,9 @@ public static class ParamStore
 
     public static void SaveS2(string root, Dictionary<string, JsonElement> extra, TimeSpan ttl)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(extra);
+        
         try
         {
             Directory.CreateDirectory(ParamsDir());
@@ -89,6 +92,8 @@ public static class ParamStore
 
     public static bool TryLoadS2(string root, out S2Override ov)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        
         ov = default!;
         try
         {
