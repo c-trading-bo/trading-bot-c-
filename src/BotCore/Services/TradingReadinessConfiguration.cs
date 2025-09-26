@@ -9,38 +9,57 @@ namespace BotCore.Services
     /// </summary>
     public class TradingReadinessConfiguration
     {
+        // Configuration constants for validation ranges
+        private const int MinBarsSeenMinimum = 1;
+        private const int MinBarsSeenMaximum = 100;
+        private const int MinSeededBarsMinimum = 0;
+        private const int MinSeededBarsMaximum = 50;
+        private const int MinLiveTicksMinimum = 1;
+        private const int MinLiveTicksMaximum = 10;
+        private const int HistoricalDataAgeMinHours = 1;
+        private const int HistoricalDataAgeMaxHours = 168; // 1 week
+        private const int MarketDataTimeoutMinSeconds = 30;
+        private const int MarketDataTimeoutMaxSeconds = 600;
+        
+        // Default values for configuration properties
+        private const int DefaultMinBarsSeen = 10;
+        private const int DefaultMinSeededBars = 12;
+        private const int DefaultMinLiveTicks = 2;
+        private const int DefaultMaxHistoricalDataAgeHours = 24;
+        private const int DefaultMarketDataTimeoutSeconds = 300;
+
         /// <summary>
         /// Minimum bars required before trading is allowed
         /// Configurable per environment (dev vs production)
         /// </summary>
-        [Range(1, 100)]
-        public int MinBarsSeen { get; set; } = 10;
+        [Range(MinBarsSeenMinimum, MinBarsSeenMaximum)]
+        public int MinBarsSeen { get; set; } = DefaultMinBarsSeen;
 
         /// <summary>
         /// Minimum seeded bars from historical data
         /// </summary>
-        [Range(0, 50)]
-        public int MinSeededBars { get; set; } = 12;
+        [Range(MinSeededBarsMinimum, MinSeededBarsMaximum)]
+        public int MinSeededBars { get; set; } = DefaultMinSeededBars;
 
         /// <summary>
         /// Minimum live ticks required after seeding
         /// Ensures at least some live data before trading
         /// </summary>
-        [Range(1, 10)]
-        public int MinLiveTicks { get; set; } = 2;
+        [Range(MinLiveTicksMinimum, MinLiveTicksMaximum)]
+        public int MinLiveTicks { get; set; } = DefaultMinLiveTicks;
 
         /// <summary>
         /// Maximum age for historical seeding data in hours
         /// </summary>
-        [Range(1, 168)] // 1 hour to 1 week
-        public int MaxHistoricalDataAgeHours { get; set; } = 24;
+        [Range(HistoricalDataAgeMinHours, HistoricalDataAgeMaxHours)]
+        public int MaxHistoricalDataAgeHours { get; set; } = DefaultMaxHistoricalDataAgeHours;
 
         /// <summary>
         /// Market data health timeout in seconds
         /// If no data received within this time, system is considered unhealthy
         /// </summary>
-        [Range(30, 600)]
-        public int MarketDataTimeoutSeconds { get; set; } = 300;
+        [Range(MarketDataTimeoutMinSeconds, MarketDataTimeoutMaxSeconds)]
+        public int MarketDataTimeoutSeconds { get; set; } = DefaultMarketDataTimeoutSeconds;
 
         /// <summary>
         /// Enable historical data seeding at startup
@@ -86,17 +105,27 @@ namespace BotCore.Services
 
     public class DevEnvironmentSettings
     {
-        public int MinBarsSeen { get; set; } = 5;
-        public int MinSeededBars { get; set; } = 3;
-        public int MinLiveTicks { get; set; } = 1;
+        // Development environment constants (more relaxed settings)
+        private const int DevMinBarsSeen = 5;
+        private const int DevMinSeededBars = 3;
+        private const int DevMinLiveTicks = 1;
+        
+        public int MinBarsSeen { get; set; } = DevMinBarsSeen;
+        public int MinSeededBars { get; set; } = DevMinSeededBars;
+        public int MinLiveTicks { get; set; } = DevMinLiveTicks;
         public bool AllowMockData { get; set; } = true;
     }
 
     public class ProductionEnvironmentSettings
     {
-        public int MinBarsSeen { get; set; } = 10;
-        public int MinSeededBars { get; set; } = 12;
-        public int MinLiveTicks { get; set; } = 2;
+        // Production environment constants (strict settings)
+        private const int ProductionMinBarsSeen = 10;
+        private const int ProductionMinSeededBars = 12;
+        private const int ProductionMinLiveTicks = 2;
+        
+        public int MinBarsSeen { get; set; } = ProductionMinBarsSeen;
+        public int MinSeededBars { get; set; } = ProductionMinSeededBars;
+        public int MinLiveTicks { get; set; } = ProductionMinLiveTicks;
         public bool AllowMockData { get; set; }
     }
 
