@@ -627,7 +627,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Convert AllStrategies candidates to standardized signals
         /// </summary>
-        private List<Signal> ConvertCandidatesToSignals(List<Candidate> candidates)
+        private static List<Signal> ConvertCandidatesToSignals(List<Candidate> candidates)
         {
             var signals = new List<Signal>();
             
@@ -657,7 +657,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Generate custom tag for order identification
         /// </summary>
-        private string GenerateCustomTag(Signal signal)
+        private static string GenerateCustomTag(Signal signal)
         {
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             var strategyPrefix = !string.IsNullOrEmpty(signal.StrategyId) ? signal.StrategyId : "SIG";
@@ -864,7 +864,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Calculate ATR (Average True Range) for volatility measurement
         /// </summary>
-        private decimal CalculateATR(List<Bar> bars, int period = 14)
+        private static decimal CalculateATR(List<Bar> bars, int period = 14)
         {
             if (bars.Count < period + 1)
                 return 1m; // Default ATR

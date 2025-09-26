@@ -139,11 +139,34 @@ public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, Can
 }
 ```
 
+#### Round 6 - Strategy & Service Layer Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 238 | 208 | AllStrategies.cs (S1, S4, S5, S6, S7, generate_candidates), WalkForwardValidationService.cs, TradingReadinessTracker.cs, TradingProgressMonitor.cs | ArgumentNullException guards for strategy methods and service layers |
+| CA1822 | ~157 | ~154 | TradingSystemIntegrationService.cs | Made utility methods static (ConvertCandidatesToSignals, GenerateCustomTag, CalculateATR) |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in strategy method
+public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+{
+    if (bars.Count > 0 && env.atr.HasValue) { ... }
+}
+
+// After (Compliant) - With null guards
+public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+{
+    if (env is null) throw new ArgumentNullException(nameof(env));
+    if (bars is null) throw new ArgumentNullException(nameof(bars));
+    if (bars.Count > 0 && env.atr.HasValue) { ... }
+}
+```
+
 ### Next Phase Actions
 
 #### Immediate Priority (Current Focus)
 1. **CA1031**: Exception handling patterns (~970 violations) - Analysis started
-2. **CA1062**: Continue null guard implementation (~238 violations)
+2. **CA1062**: Continue null guard implementation (~208 violations)
 3. **S109**: Continue magic number elimination (~3,268 violations)
 
 #### Production Readiness Criteria
