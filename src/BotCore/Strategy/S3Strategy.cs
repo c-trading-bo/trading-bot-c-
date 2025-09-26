@@ -680,6 +680,14 @@ namespace BotCore.Strategy
 
         private sealed class S3RuntimeConfig
         {
+            // Configuration constants for S3 strategy parameters
+            private const int DefaultNewsOnMinuteFirst = 0;
+            private const int DefaultNewsOnMinuteSecond = 30;
+            private const decimal DefaultVolZMin = -0.5m;
+            
+            // Configuration default values
+            private static readonly int[] DefaultNewsOnMinutes = [DefaultNewsOnMinuteFirst, DefaultNewsOnMinuteSecond];
+            
             public sealed class InstrumentOverride
             {
                 public int? MaxSpreadTicks { get; init; }
@@ -749,7 +757,7 @@ namespace BotCore.Strategy
             public int MaxSpreadTicks { get; init; } = 2;
             public int NewsBlockBeforeMin { get; init; } = 2;
             public int NewsBlockAfterMin { get; init; } = 3;
-            public int[] NewsOnMinutes { get; init; } = [0, 30];
+            public int[] NewsOnMinutes { get; init; } = DefaultNewsOnMinutes;
 
             public int AttemptCapRTH { get; init; } = 2;
             public int AttemptCapOvernight { get; init; } = 1;
@@ -764,7 +772,7 @@ namespace BotCore.Strategy
             public decimal GivebackAfterT1R { get; init; } = 0.20m;
 
             public decimal MinSlopeTf2 { get; init; } = 0.15m;
-            public decimal VolZMin { get; init; } = -0.5m;
+            public decimal VolZMin { get; init; } = DefaultVolZMin;
             public decimal VolZMax { get; init; } = 2.5m;
 
             private static S3RuntimeConfig? _instance;
