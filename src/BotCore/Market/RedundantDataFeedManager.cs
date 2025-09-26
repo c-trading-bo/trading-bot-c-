@@ -207,7 +207,7 @@ public class RedundantDataFeedManager : IDisposable
         throw new InvalidOperationException(errorMessage, lastError);
     }
 
-    private bool ValidateMarketData(MarketData? data)
+    private static bool ValidateMarketData(MarketData? data)
     {
         if (data == null) return false;
         if (data.Price <= 0) return false;
@@ -550,7 +550,7 @@ public class RedundantDataFeedManager : IDisposable
         }
     }
 
-    private double CalculateStandardDeviation(IEnumerable<double> values)
+    private static double CalculateStandardDeviation(IEnumerable<double> values)
     {
         var data = values.ToList();
         if (data.Count <= 1) return 0.0;

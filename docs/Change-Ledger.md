@@ -457,7 +457,57 @@ public void ReplaceInputSpecs(IEnumerable<TensorSpec> specs)
 }
 ```
 
-**Rationale**: Continued systematic Phase 2 execution targeting high-priority violations. Applied configuration-driven constants for trading hours and resilience settings, enhanced ML model safety with immutable collections, and optimized statistical calculations for performance.
+#### Round 12 - Exception Handling & Configuration Constants (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 3138 | ~3134 | EnhancedProductionResilienceService.cs | Added constants for HTTP timeout and circuit breaker threshold ranges |
+| CA1031 | 964 | ~961 | SessionAwareRuntimeGatesTest.cs, ProductionGuardrailTester.cs | Replaced generic Exception catches with specific types in test/guardrail validation |
+| CA1822 | 328 | 326 | RedundantDataFeedManager.cs | Made data validation and statistical calculation methods static |
+
+**Example Pattern - Test Exception Handling (CA1031)**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with exception");
+    return false;
+}
+
+// After (Compliant)
+catch (InvalidOperationException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with invalid operation");
+    return false;
+}
+catch (IOException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with I/O error");
+    return false;
+}
+catch (UnauthorizedAccessException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with access denied");
+    return false;
+}
+```
+
+**Example Pattern - Configuration Constants (S109)**:
+```csharp
+// Before (Violation)
+[Range(5000, 120000)] public int HttpTimeoutMs { get; set; } = 30000;
+[Range(3, 20)] public int CircuitBreakerThreshold { get; set; } = 5;
+
+// After (Compliant)
+private const int MinHttpTimeoutMs = 5000;
+private const int MaxHttpTimeoutMs = 120000;
+private const int MinCircuitBreakerThreshold = 3;
+private const int MaxCircuitBreakerThreshold = 20;
+
+[Range(MinHttpTimeoutMs, MaxHttpTimeoutMs)] public int HttpTimeoutMs { get; set; } = 30000;
+[Range(MinCircuitBreakerThreshold, MaxCircuitBreakerThreshold)] public int CircuitBreakerThreshold { get; set; } = 5;
+```
+
+**Rationale**: Enhanced production safety with specific exception handling in test/guardrail validation code, completed resilience configuration constants for HTTP and circuit breaker settings, optimized market data validation and statistical calculations for performance.
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |
