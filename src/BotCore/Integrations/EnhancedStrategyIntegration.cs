@@ -23,6 +23,10 @@ namespace BotCore.Integrations
             Bar currentBar,
             MarketSnapshot snapshot)
         {
+            if (trainingService is null) throw new ArgumentNullException(nameof(trainingService));
+            if (signal is null) throw new ArgumentNullException(nameof(signal));
+            if (currentBar is null) throw new ArgumentNullException(nameof(currentBar));
+            
             try
             {
                 // Convert strategy signal to training data format
@@ -59,6 +63,8 @@ namespace BotCore.Integrations
             DateTime exitTime,
             TimeSpan holdingTime)
         {
+            if (trainingService is null) throw new ArgumentNullException(nameof(trainingService));
+            
             try
             {
                 var outcomeData = new TradeOutcomeData
@@ -94,6 +100,8 @@ namespace BotCore.Integrations
             Bar currentBar,
             MarketSnapshot snapshot)
         {
+            if (signal is null) throw new ArgumentNullException(nameof(signal));
+            
             var result = new EnhancedSignalResult
             {
                 OriginalSignal = signal,

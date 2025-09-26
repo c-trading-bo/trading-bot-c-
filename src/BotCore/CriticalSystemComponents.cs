@@ -1029,7 +1029,7 @@ namespace TradingBot.Critical
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
         private static Task<bool> CheckOrderExists() => Task.FromResult(false);
         private static decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
-        private decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
+        private static decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
         private Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
         private Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);

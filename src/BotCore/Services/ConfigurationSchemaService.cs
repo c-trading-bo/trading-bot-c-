@@ -75,7 +75,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Create a new configuration with current schema version
         /// </summary>
-        public T CreateDefault<T>() where T : IVersionedConfiguration, new()
+        public static T CreateDefault<T>() where T : IVersionedConfiguration, new()
         {
             var instance = new T();
             instance.SchemaVersion = GetCurrentVersion<T>();

@@ -117,11 +117,33 @@ public static decimal PointValue(string symbol)
 }
 ```
 
+#### Round 5 - ML & Integration Layer Fixes (Latest Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 256 | 238 | UCBManager.cs, ProductionReadinessServiceExtensions.cs, RedundantDataFeedManager.cs, EnhancedStrategyIntegration.cs, StrategyMlModelManager.cs | ArgumentNullException guards for ML and integration services |
+| CA1822 | ~160 | ~157 | ConfigurationSchemaService.cs, ClockHygieneService.cs, CriticalSystemComponents.cs | Made additional utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in ML service
+public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, CancellationToken ct = default)
+{
+    var marketJson = new { es_price = data.ESPrice, ... };
+}
+
+// After (Compliant) - With null guard
+public async Task<UCBRecommendation> GetRecommendationAsync(MarketData data, CancellationToken ct = default)
+{
+    if (data is null) throw new ArgumentNullException(nameof(data));
+    var marketJson = new { es_price = data.ESPrice, ... };
+}
+```
+
 ### Next Phase Actions
 
 #### Immediate Priority (Current Focus)
 1. **CA1031**: Exception handling patterns (~970 violations) - Analysis started
-2. **CA1062**: Continue null guard implementation (~274 violations)
+2. **CA1062**: Continue null guard implementation (~238 violations)
 3. **S109**: Continue magic number elimination (~3,268 violations)
 
 #### Production Readiness Criteria
