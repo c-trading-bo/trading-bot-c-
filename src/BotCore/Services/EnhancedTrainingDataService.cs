@@ -43,6 +43,8 @@ namespace BotCore
 
         public async Task<string> RecordTradeAsync(TradeSignalData signalData)
         {
+            if (signalData is null) throw new ArgumentNullException(nameof(signalData));
+            
             _tradeCounter++;
             var tradeId = signalData.Id ?? $"trade_{_tradeCounter}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
 
@@ -81,6 +83,8 @@ namespace BotCore
 
         public async Task RecordTradeResultAsync(string tradeId, TradeOutcomeData outcomeData)
         {
+            if (outcomeData is null) throw new ArgumentNullException(nameof(outcomeData));
+            
             var trade = _currentSession.Find(t => t.TradeId == tradeId);
             if (trade != null)
             {

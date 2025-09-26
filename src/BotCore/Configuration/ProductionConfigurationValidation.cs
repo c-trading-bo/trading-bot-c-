@@ -13,14 +13,6 @@ namespace BotCore.Configuration;
 /// </summary>
 public static class ProductionConfigurationExtensions
 {
-    // Configuration validation constants
-    private const int MinDecisionTimeoutSeconds = 5;
-    private const int MaxDecisionTimeoutSeconds = 60;
-    private const double MinAIConfidenceThreshold = 0.1;
-    private const double MaxAIConfidenceThreshold = 0.95;
-    private const double MinPositionSizeMultiplier = 0.5;
-    private const double MaxPositionSizeMultiplier = 5.0;
-    
     public static IServiceCollection AddProductionConfigurationValidation(
         this IServiceCollection services, 
         IConfiguration configuration)
@@ -64,6 +56,12 @@ public class TradingConfiguration
     private const double MaxProfitTargetLimit = 10000.0;
     private const double MinDrawdownLimit = -50000.0;
     private const double MaxDrawdownLimitValue = -1000.0;
+    private const int MinDecisionTimeoutSeconds = 5;
+    private const int MaxDecisionTimeoutSeconds = 60;
+    private const double MinAIConfidenceThreshold = 0.1;
+    private const double MaxAIConfidenceThreshold = 0.95;
+    private const double MinPositionSizeMultiplier = 0.5;
+    private const double MaxPositionSizeMultiplier = 5.0;
     
     // Default values as constants
     private const int DefaultMaxPositionSize = 5;

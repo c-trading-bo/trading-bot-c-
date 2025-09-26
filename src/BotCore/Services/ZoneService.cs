@@ -397,6 +397,8 @@ public class ZoneService : IZoneService, ISupplyDemandService
 
     public async Task<decimal> GetZoneAdjustedStopLossAsync(decimal entryPrice, string direction)
     {
+        if (direction is null) throw new ArgumentNullException(nameof(direction));
+        
         try
         {
             _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false);
@@ -416,6 +418,8 @@ public class ZoneService : IZoneService, ISupplyDemandService
 
     public async Task<decimal> GetZoneAdjustedTargetAsync(decimal entryPrice, string direction)
     {
+        if (direction is null) throw new ArgumentNullException(nameof(direction));
+        
         try
         {
             _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false);
