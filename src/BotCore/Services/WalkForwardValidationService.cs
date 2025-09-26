@@ -42,6 +42,8 @@ namespace BotCore.Services
             IEnhancedBacktestService backtestService,
             IModelVersionVerificationService modelVersionService)
         {
+            if (config is null) throw new ArgumentNullException(nameof(config));
+            
             _logger = logger;
             _config = config.Value;
             _backtestService = backtestService;
@@ -57,6 +59,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<WalkForwardResult> RunWalkForwardValidationAsync(WalkForwardRequest request, CancellationToken cancellationToken = default)
         {
+            if (request is null) throw new ArgumentNullException(nameof(request));
+            
             try
             {
                 _logger.LogInformation("[WALK-FORWARD] Starting walk-forward validation for {Strategy} from {StartDate} to {EndDate}",

@@ -245,7 +245,7 @@ namespace TradingBot.Critical
             }
         }
         
-        private string GenerateExecutionProof(OrderRecord order, IEnumerable<FillRecord> fills)
+        private static string GenerateExecutionProof(OrderRecord order, IEnumerable<FillRecord> fills)
         {
             var proof = new
             {
@@ -1018,17 +1018,17 @@ namespace TradingBot.Critical
         }
 
         // Additional stub implementations
-        private Dictionary<string, PendingOrder> GetPendingOrders() => new();
-        private Dictionary<string, StrategyState> GetStrategyStates() => new();
-        private RiskMetrics CalculateRiskMetrics() => new();
-        private MarketState GetMarketState() => new();
-        private string GetSystemVersion() => "1.0.0";
-        private string GenerateStateHash() => Guid.NewGuid().ToString();
+        private static Dictionary<string, PendingOrder> GetPendingOrders() => new();
+        private static Dictionary<string, StrategyState> GetStrategyStates() => new();
+        private static RiskMetrics CalculateRiskMetrics() => new();
+        private static MarketState GetMarketState() => new();
+        private static string GetSystemVersion() => "1.0.0";
+        private static string GenerateStateHash() => Guid.NewGuid().ToString();
         private void LogCriticalError(string message, Exception? ex) => _logger.LogError(ex, message);
-        private Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
+        private static Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
-        private Task<bool> CheckOrderExists() => Task.FromResult(false);
-        private decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
+        private static Task<bool> CheckOrderExists() => Task.FromResult(false);
+        private static decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
         private decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
         private Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
         private Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);

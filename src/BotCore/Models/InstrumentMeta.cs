@@ -5,6 +5,8 @@ namespace BotCore.Models
         // Big point value (USD per 1.00 price move per contract)
         public static decimal PointValue(string symbol)
         {
+            if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+            
             return symbol.Equals("ES", System.StringComparison.OrdinalIgnoreCase) ? 50m
                  : symbol.Equals("NQ", System.StringComparison.OrdinalIgnoreCase) ? 20m
                  : 1m;

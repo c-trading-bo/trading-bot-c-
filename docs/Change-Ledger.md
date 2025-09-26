@@ -95,12 +95,34 @@ private static string ConvertS6Side(TopstepX.S6.Side side) { ... }
 }
 ```
 
+#### Round 4 - Continued Safety & Performance (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 290 | 274 | StrategyGates.cs, BacktestEnhancementConfiguration.cs, ProductionEnhancementConfiguration.cs, InstrumentMeta.cs, EnhancedBayesianPriors.cs, WalkForwardValidationService.cs | ArgumentNullException guards for remaining public methods |
+| CA1822 | ~170 | ~160 | CriticalSystemComponents.cs | Made additional utility methods static |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard
+public static decimal PointValue(string symbol)
+{
+    return symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 50m : 1m;
+}
+
+// After (Compliant) - With null guard
+public static decimal PointValue(string symbol)
+{
+    if (symbol is null) throw new ArgumentNullException(nameof(symbol));
+    return symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 50m : 1m;
+}
+```
+
 ### Next Phase Actions
 
 #### Immediate Priority (Current Focus)
-1. **CA1031**: Exception handling patterns (~976 violations) - Analysis started
-2. **CA1848**: Logging performance patterns (~3212 violations) 
-3. **S109**: Continue magic number elimination (~3296 violations)
+1. **CA1031**: Exception handling patterns (~970 violations) - Analysis started
+2. **CA1062**: Continue null guard implementation (~274 violations)
+3. **S109**: Continue magic number elimination (~3,268 violations)
 
 #### Production Readiness Criteria
 - [ ] Reliability A rating achieved
