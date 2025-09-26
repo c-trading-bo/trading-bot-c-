@@ -87,8 +87,7 @@ namespace TradingBot.BotCore.Services
                 {
                     Name = manifestName,
                     CreatedAt = DateTime.UtcNow,
-                    Version = "1.0",
-                    Files = new Dictionary<string, FileIntegrity>()
+                    Version = "1.0"
                 };
 
                 // Calculate hash for each file
@@ -157,9 +156,11 @@ namespace TradingBot.BotCore.Services
                     Name = manifest.Name,
                     CreatedAt = manifest.CreatedAt,
                     Version = manifest.Version,
-                    Files = manifest.Files,
                     ContentHash = manifest.ContentHash
                 };
+                
+                // Copy files from original manifest
+                tempManifest.ReplaceFiles(manifest.Files);
 
                 var manifestJson = JsonSerializer.Serialize(tempManifest, new JsonSerializerOptions { WriteIndented = true });
 
