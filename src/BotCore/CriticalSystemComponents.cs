@@ -1383,11 +1383,19 @@ namespace TradingBot.Critical
         
         public class CorrelationAlert
         {
+            private readonly List<string> _affectedSymbols = new();
+            
             public string AlertType { get; set; } = string.Empty;
             public double CurrentCorrelation { get; set; }
             public double MaxAllowed { get; set; }
-            public List<string> AffectedSymbols { get; } = new();
+            public IReadOnlyList<string> AffectedSymbols => _affectedSymbols;
             public string RecommendedAction { get; set; } = string.Empty;
+            
+            public void ReplaceAffectedSymbols(IEnumerable<string> symbols)
+            {
+                _affectedSymbols.Clear();
+                if (symbols != null) _affectedSymbols.AddRange(symbols);
+            }
         }
         
         public CorrelationProtectionSystem(ILogger<CorrelationProtectionSystem> logger)
@@ -1448,8 +1456,7 @@ namespace TradingBot.Critical
                             MaxAllowed = MAX_CORRELATION_EXPOSURE,
                             RecommendedAction = "Reduce one position before adding to the other"
                         };
-                        alert.AffectedSymbols.Add("ES");
-                        alert.AffectedSymbols.Add("NQ");
+                        alert.ReplaceAffectedSymbols(new[] { "ES", "NQ" });
                         
                         await SendCorrelationAlert(alert).ConfigureAwait(false);
                         return false;

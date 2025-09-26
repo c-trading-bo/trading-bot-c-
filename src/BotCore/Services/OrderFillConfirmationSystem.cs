@@ -32,6 +32,8 @@ namespace TopstepX.Bot.Core.Services
         
         public class OrderTrackingRecord
         {
+            private readonly List<FillConfirmation> _fills = new();
+            
             public string ClientOrderId { get; set; } = string.Empty;
             public string? GatewayOrderId { get; set; }
             public string Symbol { get; set; } = string.Empty;
@@ -41,10 +43,21 @@ namespace TopstepX.Bot.Core.Services
             public string OrderType { get; set; } = string.Empty;
             public DateTime SubmittedTime { get; set; }
             public string Status { get; set; } = "PENDING";
-            public List<FillConfirmation> Fills { get; } = new();
+            public IReadOnlyList<FillConfirmation> Fills => _fills;
             public string? RejectReason { get; set; }
             public bool IsVerified { get; set; }
             public int VerificationAttempts { get; set; }
+            
+            public void ReplaceFills(IEnumerable<FillConfirmation> fills)
+            {
+                _fills.Clear();
+                if (fills != null) _fills.AddRange(fills);
+            }
+            
+            public void AddFill(FillConfirmation fill)
+            {
+                if (fill != null) _fills.Add(fill);
+            }
         }
         
         public class FillConfirmation

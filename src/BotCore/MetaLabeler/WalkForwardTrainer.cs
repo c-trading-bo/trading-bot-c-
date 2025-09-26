@@ -167,7 +167,7 @@ public class WalkForwardTrainer
         return fold;
     }
 
-    private async Task<List<HistoricalTradeSignal>> GetHistoricalSignalsAsync(
+    private static async Task<List<HistoricalTradeSignal>> GetHistoricalSignalsAsync(
                         )
     {
         // Note: This needs integration with signal history storage system
@@ -335,7 +335,7 @@ public class WalkForwardTrainer
         return Math.Max(0.01m, Math.Min(0.99m, prediction));
     }
 
-    private ValidationMetrics CalculateMetrics(List<decimal> predictions, List<decimal> actuals)
+    private static ValidationMetrics CalculateMetrics(List<decimal> predictions, List<decimal> actuals)
     {
         if (predictions.Count != actuals.Count || predictions.Count == 0)
         {

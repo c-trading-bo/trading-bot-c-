@@ -35,6 +35,10 @@ namespace BotCore
             {
                 _logger.LogError(ex, "Argument error in {EventName} handler", eventName);
             }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogWarning(ex, "Object disposed during {EventName} handler execution", eventName);
+            }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation in {EventName} handler", eventName);
@@ -42,10 +46,6 @@ namespace BotCore
             catch (NotSupportedException ex)
             {
                 _logger.LogError(ex, "Not supported in {EventName} handler", eventName);
-            }
-            catch (ObjectDisposedException ex)
-            {
-                _logger.LogWarning(ex, "Object disposed during {EventName} handler execution", eventName);
             }
             catch (TimeoutException ex)
             {

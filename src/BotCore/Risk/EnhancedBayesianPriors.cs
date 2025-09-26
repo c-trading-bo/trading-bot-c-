@@ -310,7 +310,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         };
     }
 
-    private decimal SampleBeta(decimal alpha, decimal beta)
+    private static decimal SampleBeta(decimal alpha, decimal beta)
     {
         // Box-Muller transform for Beta sampling
         var random = new Random();
