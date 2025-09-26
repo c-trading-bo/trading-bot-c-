@@ -68,8 +68,6 @@ public class TradingConfiguration
     private const double MaxStopLossBufferPercentage = 0.2;
     private const double MinRewardRiskRatio = 1.0;
     private const double MaxRewardRiskRatio = 3.0;
-    private const int MinTokenRefreshIntervalSeconds = 3600;
-    private const int MaxTokenRefreshIntervalSeconds = 86400;
     private const double MinVolatilityAdjustmentFactor = 0.01;
     private const double MaxVolatilityAdjustmentFactor = 0.5;
     
@@ -216,6 +214,10 @@ public class TopstepXConfiguration
 /// </summary>
 public class SecurityConfiguration
 {
+    // Constants for validation ranges
+    private const int MinTokenRefreshIntervalSeconds = 3600;
+    private const int MaxTokenRefreshIntervalSeconds = 86400;
+    
     [Required]
     public bool RequireEnvironmentCredentials { get; set; } = true;
 

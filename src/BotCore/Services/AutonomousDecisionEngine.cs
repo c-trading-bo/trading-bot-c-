@@ -1466,7 +1466,7 @@ public class AutonomousDecisionEngine : BackgroundService
         return (double)(ema12 - ema26);
     }
     
-    private double CalculateBollingerPosition(List<Bar> bars, int period)
+    private static double CalculateBollingerPosition(List<Bar> bars, int period)
     {
         if (bars.Count < period) return 0.5; // Neutral position
         
@@ -1510,7 +1510,7 @@ public class AutonomousDecisionEngine : BackgroundService
         return (double)bars.TakeLast(period).Select(b => b.Volume).Average();
     }
     
-    private decimal CalculateEMA(List<decimal> values, int period)
+    private static decimal CalculateEMA(List<decimal> values, int period)
     {
         if (values.Count < period) return values.LastOrDefault();
         
@@ -1525,7 +1525,7 @@ public class AutonomousDecisionEngine : BackgroundService
         return ema;
     }
     
-    private decimal CalculatePositionPnL(Position position, decimal currentPrice)
+    private static decimal CalculatePositionPnL(Position position, decimal currentPrice)
     {
         var priceDiff = position.Side == "Long" ? 
             currentPrice - position.EntryPrice : 
@@ -1541,14 +1541,14 @@ public class AutonomousDecisionEngine : BackgroundService
         return unrealizedPnL > (position.EntryPrice * 0.01m); // Trail after 1% profit
     }
     
-    private bool ShouldScaleOutPosition(Position position, decimal currentPnL)
+    private static bool ShouldScaleOutPosition(Position position, decimal currentPnL)
     {
         // Scale out at profit targets
         var profitTarget = position.EntryPrice * 0.02m; // 2% profit target
         return currentPnL > profitTarget;
     }
     
-    private bool ShouldExitPosition(Position position, decimal currentPnL)
+    private static bool ShouldExitPosition(Position position, decimal currentPnL)
     {
         // Exit at stop loss
         var stopLoss = position.EntryPrice * -0.01m; // 1% stop loss
@@ -1673,7 +1673,7 @@ public class AutonomousDecisionEngine : BackgroundService
     /// <summary>
     /// Calculate R-multiple for trade outcome
     /// </summary>
-    private decimal CalculateRMultiple(Position position, decimal exitPrice)
+    private static decimal CalculateRMultiple(Position position, decimal exitPrice)
     {
         var risk = Math.Abs(position.EntryPrice - (position.StopLoss ?? position.EntryPrice * 0.99m));
         if (risk == 0) return 0;
