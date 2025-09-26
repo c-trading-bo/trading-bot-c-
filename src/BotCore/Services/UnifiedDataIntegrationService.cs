@@ -639,6 +639,9 @@ public class ContractManager
     
     public Task<RolloverCheck> CheckRolloverNeededAsync(string currentES, string currentNQ, CancellationToken cancellationToken)
     {
+        if (currentES is null) throw new ArgumentNullException(nameof(currentES));
+        if (currentNQ is null) throw new ArgumentNullException(nameof(currentNQ));
+        
         // Check if current contracts are approaching expiry
         var now = DateTime.UtcNow;
         var decemberExpiry = new DateTime(2025, 12, 15); // Example expiry date

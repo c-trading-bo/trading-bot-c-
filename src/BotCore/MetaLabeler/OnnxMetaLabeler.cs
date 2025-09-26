@@ -47,6 +47,9 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         MarketContext marketContext,
         CancellationToken ct = default)
     {
+        if (signal is null) throw new ArgumentNullException(nameof(signal));
+        if (marketContext is null) throw new ArgumentNullException(nameof(marketContext));
+        
         try
         {
             await Task.Delay(1, ct).ConfigureAwait(false); // Satisfy async requirement

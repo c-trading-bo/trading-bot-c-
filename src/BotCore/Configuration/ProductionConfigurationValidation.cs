@@ -217,6 +217,7 @@ public class SecurityConfiguration
     // Constants for validation ranges
     private const int MinTokenRefreshIntervalSeconds = 3600;
     private const int MaxTokenRefreshIntervalSeconds = 86400;
+    private const int MaxAllowedLoginAttempts = 10;
     
     [Required]
     public bool RequireEnvironmentCredentials { get; set; } = true;
@@ -237,7 +238,7 @@ public class SecurityConfiguration
     public string? KeyStorePath { get; set; }
 
     [Required]
-    [Range(1, 10)]
+    [Range(1, MaxAllowedLoginAttempts)]
     public int MaxLoginAttempts { get; set; } = 3;
 }
 
@@ -246,20 +247,29 @@ public class SecurityConfiguration
 /// </summary>
 public class ResilienceConfiguration
 {
+    // Constants for validation ranges
+    private const int MaxAllowedRetries = 10;
+    private const int MinBaseRetryDelayMs = 100;
+    private const int MaxBaseRetryDelayMs = 10000;
+    private const int MinMaxRetryDelayMs = 1000;
+    private const int MaxMaxRetryDelayMs = 60000;
+    private const int MinHttpTimeoutMs = 5000;
+    private const int MaxHttpTimeoutMs = 120000;
+
     [Required]
-    [Range(1, 10)]
+    [Range(1, MaxAllowedRetries)]
     public int MaxRetries { get; set; } = 3;
 
     [Required]
-    [Range(100, 10000)]
+    [Range(MinBaseRetryDelayMs, MaxBaseRetryDelayMs)]
     public int BaseRetryDelayMs { get; set; } = 500;
 
     [Required]
-    [Range(1000, 60000)]
+    [Range(MinMaxRetryDelayMs, MaxMaxRetryDelayMs)]
     public int MaxRetryDelayMs { get; set; } = 30000;
 
     [Required]
-    [Range(5000, 120000)]
+    [Range(MinHttpTimeoutMs, MaxHttpTimeoutMs)]
     public int HttpTimeoutMs { get; set; } = 30000;
 
     [Required]

@@ -15,6 +15,12 @@ namespace TradingBot.BotCore.Services
         private DateTime _lastFailure = DateTime.MinValue;
         private readonly TimeSpan _circuitBreakerTimeout = TimeSpan.FromMinutes(5);
 
+        // Trading schedule constants
+        private const int TradingStartHour = 14;
+        private const int TradingStartMinute = 30;
+        private const int TradingEndHour = 20;
+        private const int TradingEndMinute = 30;
+
         public ConfigurationFailureSafetyService(ILogger<ConfigurationFailureSafetyService> logger)
         {
             _logger = logger;
@@ -114,8 +120,8 @@ namespace TradingBot.BotCore.Services
         public decimal MaxSlippageTolerance { get; } = 0.5m; // Low slippage tolerance
 
         // Trading Schedule - Restricted hours
-        public TimeSpan TradingStartUtc { get; } = new(14, 30, 0); // 30 min after market open
-        public TimeSpan TradingEndUtc { get; } = new(20, 30, 0); // 30 min before market close
+        public TimeSpan TradingStartUtc { get; } = new(TradingStartHour, TradingStartMinute, 0); // 30 min after market open
+        public TimeSpan TradingEndUtc { get; } = new(TradingEndHour, TradingEndMinute, 0); // 30 min before market close
         public bool EnablePreMarketTrading { get; } = false;
         public bool EnableAfterHoursTrading { get; } = false;
 
