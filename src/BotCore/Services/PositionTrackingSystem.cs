@@ -290,7 +290,7 @@ namespace TopstepX.Bot.Core.Services
                 violations.Add($"Drawdown limit exceeded: {totalUnrealizedPnL:C} < {_riskLimits.MaxDrawdown:C}");
             }
             
-            if (violations.Any())
+            if (violations.Count > 0)
             {
                 var eventArgs = new RiskViolationEventArgs
                 {

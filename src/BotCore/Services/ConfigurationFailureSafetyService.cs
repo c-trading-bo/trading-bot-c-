@@ -15,12 +15,6 @@ namespace TradingBot.BotCore.Services
         private DateTime _lastFailure = DateTime.MinValue;
         private readonly TimeSpan _circuitBreakerTimeout = TimeSpan.FromMinutes(5);
 
-        // Trading schedule constants
-        private const int TradingStartHour = 14;
-        private const int TradingStartMinute = 30;
-        private const int TradingEndHour = 20;
-        private const int TradingEndMinute = 30;
-
         public ConfigurationFailureSafetyService(ILogger<ConfigurationFailureSafetyService> logger)
         {
             _logger = logger;

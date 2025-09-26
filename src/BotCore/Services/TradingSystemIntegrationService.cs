@@ -816,52 +816,6 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// Validate strategy candidate before order placement
-        /// </summary>
-        private bool ValidateCandidate(Candidate candidate)
-        {
-            // FIRST: Check micro contract filter - CRITICAL PRODUCTION SAFETY
-            if (!ValidateNoMicroContracts(candidate.symbol))
-            {
-                return false;
-            }
-            
-            // Check if symbol is supported in chosen contracts
-            if (string.IsNullOrEmpty(candidate.symbol) || !_chosenContracts.Contains(candidate.symbol))
-            {
-                _logger.LogDebug("[VALIDATION] Symbol {Symbol} not in chosen contracts for candidate {StrategyId}", candidate.symbol, candidate.strategy_id);
-                return false;
-            }
-
-            // Check if prices are valid
-            if (candidate.entry <= 0 || candidate.stop <= 0 || candidate.t1 <= 0)
-            {
-                _logger.LogDebug("[VALIDATION] Invalid prices for candidate {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
-                return false;
-            }
-
-            // Calculate risk/reward ratio
-            var isLong = candidate.side == Side.BUY;
-            var risk = isLong ? candidate.entry - candidate.stop : candidate.stop - candidate.entry;
-            var reward = isLong ? candidate.t1 - candidate.entry : candidate.entry - candidate.t1;
-
-            if (risk <= 0)
-            {
-                _logger.LogDebug("[VALIDATION] Non-positive risk for candidate {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
-                return false;
-            }
-
-            var rrRatio = reward / risk;
-            if (rrRatio < 1.0m) // Minimum 1:1 risk/reward
-            {
-                _logger.LogDebug("[VALIDATION] Poor risk/reward ratio {RRRatio:F2} for candidate {StrategyId} {Symbol}", rrRatio, candidate.strategy_id, candidate.symbol);
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
         /// Calculate ATR (Average True Range) for volatility measurement
         /// </summary>
         private static decimal CalculateATR(List<Bar> bars, int period = 14)

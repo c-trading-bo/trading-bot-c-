@@ -481,7 +481,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
         => GetZoneAdjustedTargetAsync(entryPrice, direction);
 
     // Helper methods
-    private async Task<decimal> GetCurrentPriceAsync(string symbol)
+    private static async Task<decimal> GetCurrentPriceAsync(string symbol)
     {
         await Task.Yield();
         // In production, fetch from TopstepX or data provider

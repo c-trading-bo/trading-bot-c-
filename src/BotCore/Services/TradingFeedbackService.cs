@@ -197,15 +197,15 @@ public class TradingFeedbackService : BackgroundService
             metrics.AccuracyHistory.RemoveAt(0);
         }
         
-        // Phase 6A: Exception Guards - Add .Any() check before .Average()
-        metrics.AverageAccuracy = metrics.AccuracyHistory.Any() ? metrics.AccuracyHistory.Average() : 0.0;
+        // Phase 6A: Exception Guards - Add .Count > 0 check before .Average()
+        metrics.AverageAccuracy = metrics.AccuracyHistory.Count > 0 ? metrics.AccuracyHistory.Average() : 0.0;
         metrics.WinRate = (double)metrics.ProfitableTrades / metrics.TotalTrades;
         
         // Calculate volatility of predictions
         if (metrics.AccuracyHistory.Count >= 10)
         {
-            // Phase 6A: Exception Guards - Add .Any() check before .Average()
-            var variance = metrics.AccuracyHistory.Any() ? 
+            // Phase 6A: Exception Guards - Add .Count > 0 check before .Average()
+            var variance = metrics.AccuracyHistory.Count > 0 ? 
                 metrics.AccuracyHistory.Select(x => Math.Pow(x - metrics.AverageAccuracy, 2)).Average() : 0.0;
             metrics.AccuracyVolatility = Math.Sqrt(variance);
         }
@@ -257,12 +257,12 @@ public class TradingFeedbackService : BackgroundService
             // Check for recent performance drops
             if (metrics.AccuracyHistory.Count >= 20)
             {
-                // Phase 6A: Exception Guards - Add .Any() checks before .Average()
+                // Phase 6A: Exception Guards - Add .Count > 0 checks before .Average()
                 var recentHistory = metrics.AccuracyHistory.TakeLast(10).ToList();
                 var previousHistory = metrics.AccuracyHistory.Take(10).ToList();
                 
-                var recent = recentHistory.Any() ? recentHistory.Average() : 0.0;
-                var previous = previousHistory.Any() ? previousHistory.Average() : 0.0;
+                var recent = recentHistory.Count > 0 ? recentHistory.Average() : 0.0;
+                var previous = previousHistory.Count > 0 ? previousHistory.Average() : 0.0;
                 
                 if (recent < previous - 0.1) // 10% drop
                 {
@@ -279,7 +279,7 @@ public class TradingFeedbackService : BackgroundService
             }
         }
         
-        if (performanceIssues.Any())
+        if (performanceIssues.Count > 0)
         {
             _logger.LogWarning("🔄 [FEEDBACK] Detected {IssueCount} performance issues", performanceIssues.Count);
             
