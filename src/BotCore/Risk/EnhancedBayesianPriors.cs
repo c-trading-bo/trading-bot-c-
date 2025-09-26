@@ -293,7 +293,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         return Math.Max(1m, baseSampleSize * shrinkageDiscount);
     }
 
-    private UncertaintyLevel CalculateUncertainty(BayesianPosterior posterior)
+    private static UncertaintyLevel CalculateUncertainty(BayesianPosterior posterior)
     {
         var effectiveN = CalculateEffectiveSampleSize(posterior);
         var variance = posterior.Alpha * posterior.Beta /
@@ -366,7 +366,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         };
     }
 
-    private BayesianPosterior CreateDefaultPosterior()
+    private static BayesianPosterior CreateDefaultPosterior()
     {
         return new BayesianPosterior
         {

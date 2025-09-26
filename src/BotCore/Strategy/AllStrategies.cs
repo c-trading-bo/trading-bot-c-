@@ -501,6 +501,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S2(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            ArgumentNullException.ThrowIfNull(symbol);
+            ArgumentNullException.ThrowIfNull(env);
+            
             var lst = new List<Candidate>();
             if (bars is null || bars.Count < 60) return lst;
             // Hard microstructure: require minimum 1m volume per config

@@ -189,7 +189,7 @@ namespace BotCore
                 using var response = await _http.GetAsync(modelInfo.Url).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                await using var fileStream = File.Create(tempPath);
+                await using var fileStream = File.Create(tempPath).ConfigureAwait(false);
                 await response.Content.CopyToAsync(fileStream).ConfigureAwait(false);
                 await fileStream.FlushAsync().ConfigureAwait(false);
 
@@ -231,7 +231,7 @@ namespace BotCore
         private static async Task<string> ComputeFileChecksumAsync(string filePath)
         {
             using var sha256 = SHA256.Create();
-            await using var fileStream = File.OpenRead(filePath);
+            await using var fileStream = File.OpenRead(filePath).ConfigureAwait(false);
             var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }

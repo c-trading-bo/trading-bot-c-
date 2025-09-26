@@ -343,6 +343,8 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// </summary>
     public async Task ProcessLiveMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(marketData);
+        
         try
         {
             // Convert to bar format

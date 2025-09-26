@@ -218,7 +218,7 @@ namespace BotCore
                 tradeData.Result, tradeData.StrategyUsed);
         }
 
-        private Task<List<decimal>> GetCurrentMarketFeaturesAsync(TradeSignalData signalData)
+        private static Task<List<decimal>> GetCurrentMarketFeaturesAsync(TradeSignalData signalData)
         {
             // Extract features from the signal data and current market state
             var features = new List<decimal>();
