@@ -1196,8 +1196,13 @@ Stack Trace:
         services.AddSingleton<IAdaptiveParameterService, AdaptiveParameterService>();
         services.AddSingleton<IRuntimeConfigBus, RuntimeConfigBus>();
 
-        // Model registry and canary watchdog
-        services.AddSingleton<IModelRegistry, ModelRegistry>();
+        // Authentication service
+        services.AddSingleton<ITopstepAuth, TopstepAuth>();
+
+        // Model registry (now a hosted service) and canary watchdog
+        services.AddSingleton<ModelRegistry>();
+        services.AddSingleton<IModelRegistry>(provider => provider.GetRequiredService<ModelRegistry>());
+        services.AddHostedService(provider => provider.GetRequiredService<ModelRegistry>());
         services.AddHostedService<CanaryWatchdog>();
 
         // CloudRlTrainerV2 configuration and dependencies
