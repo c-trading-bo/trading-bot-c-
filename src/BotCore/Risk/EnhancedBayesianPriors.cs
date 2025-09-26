@@ -322,7 +322,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         return x / (x + y);
     }
 
-    private decimal SampleGamma(decimal shape, Random random, CancellationToken cancellationToken = default)
+    private static decimal SampleGamma(decimal shape, Random random, CancellationToken cancellationToken = default)
     {
         // Simple gamma sampling using acceptance-rejection
         if (shape < 1m)

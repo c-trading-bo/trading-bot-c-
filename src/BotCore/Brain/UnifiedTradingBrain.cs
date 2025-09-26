@@ -888,7 +888,7 @@ namespace BotCore.Brain
         /// <summary>
         /// Create context vector for Neural UCB from market data
         /// </summary>
-        private ContextVector CreateContextVector(MarketContext context)
+        private static ContextVector CreateContextVector(MarketContext context)
         {
             var features = new Dictionary<string, decimal>
             {
@@ -1008,7 +1008,7 @@ namespace BotCore.Brain
             };
         }
 
-        private decimal CalculateReward(decimal pnl, bool wasCorrect, TimeSpan holdTime)
+        private static decimal CalculateReward(decimal pnl, bool wasCorrect, TimeSpan holdTime)
         {
             // Combine PnL with correctness and time efficiency
             var baseReward = wasCorrect ? 1m : 0m;
@@ -1018,19 +1018,19 @@ namespace BotCore.Brain
             return Math.Clamp(baseReward + (decimal)pnlComponent + timeComponent, 0m, 1m);
         }
 
-        private decimal CalculateOverallConfidence(StrategySelection strategy, PricePrediction prediction)
+        private static decimal CalculateOverallConfidence(StrategySelection strategy, PricePrediction prediction)
         {
             return (strategy.Confidence + prediction.Probability) / 2;
         }
 
-        private string AssessRisk(MarketContext context, PricePrediction prediction)
+        private static string AssessRisk(MarketContext context, PricePrediction prediction)
         {
             if (context.Volatility > 0.4m) return "HIGH";
             if (context.Volatility < 0.15m && prediction.Probability > 0.7m) return "LOW";
             return "MEDIUM";
         }
 
-        private BrainDecision CreateFallbackDecision(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+        private static BrainDecision CreateFallbackDecision(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             // Fallback to your existing AllStrategies logic
             var candidates = AllStrategies.generate_candidates(symbol, env, levels, bars, risk);

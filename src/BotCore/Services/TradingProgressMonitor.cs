@@ -273,9 +273,18 @@ namespace BotCore.Services
             }
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Cleanup managed resources when needed
+            }
+        }
+        
         public void Dispose()
         {
-            // Cleanup resources
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 

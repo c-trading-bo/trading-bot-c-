@@ -619,15 +619,35 @@ namespace BotCore.Services
 
         private bool _disposed;
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed && disposing)
+            {
+                try
+                {
+                    _healthCheckTimer?.Dispose();
+                    _heartbeatTimer?.Dispose();
+                    _isMonitoring = false;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected during shutdown - ignore
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error disposing EnhancedMarketDataFlowService");
+                }
+                finally
+                {
+                    _disposed = true;
+                }
+            }
+        }
+        
         public void Dispose()
         {
-            if (!_disposed)
-            {
-                _healthCheckTimer?.Dispose();
-                _heartbeatTimer?.Dispose();
-                _isMonitoring = false;
-                _disposed = true;
-            }
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion
