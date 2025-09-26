@@ -549,26 +549,33 @@ public class MLMemoryManager : IMLMemoryManager
 
     public void Dispose()
     {
-        if (_disposed) return;
-        
-        _logger.LogInformation("[ML-Memory] Disposing MLMemoryManager");
-        
-        _disposed = true;
-        
-        _garbageCollector?.Dispose();
-        _memoryMonitor?.Dispose();
-        
-        // Cleanup all models
-        foreach (var model in _activeModels.Values)
-        {
-            if (model.Model is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
-        
-        _activeModels.Clear();
-        
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _logger.LogInformation("[ML-Memory] Disposing MLMemoryManager");
+                
+                _garbageCollector?.Dispose();
+                _memoryMonitor?.Dispose();
+                
+                // Cleanup all models
+                foreach (var model in _activeModels.Values)
+                {
+                    if (model.Model is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                }
+                
+                _activeModels.Clear();
+            }
+            _disposed = true;
+        }
     }
 }
