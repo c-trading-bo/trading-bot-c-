@@ -247,8 +247,10 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
             onlineLearningSystem);
         
         // Initialize helpers for extracted methods
+        using var helperLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
+        var helperLogger = helperLoggerFactory.CreateLogger<IntelligenceOrchestratorHelpers>();
         _helpers = new IntelligenceOrchestratorHelpers(
-            _logger,
+            helperLogger,
             _modelRegistry,
             _activeModels);
         
@@ -889,17 +891,17 @@ public sealed class IntelligenceOrchestrator : IIntelligenceOrchestrator, IDispo
     /// </summary>
     private void RaiseEvent(string eventName, string message)
     {
+        // Event safety: Must not throw exceptions that could crash the orchestrator
         try
         {
             IntelligenceEventLogged(_logger, eventName, message, null);
             IntelligenceEvent?.Invoke(this, new IntelligenceEventArgs { EventType = eventName, Message = message });
         }
-#pragma warning disable CA1031 // Do not catch general exception types - Event safety requires catching all exceptions
-        catch (Exception ex)
+        catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
         {
+            // Catch all exceptions except critical runtime exceptions that should not be handled
             EventRaiseFailed(_logger, eventName, ex);
         }
-#pragma warning restore CA1031
     }
 
     /// <summary>

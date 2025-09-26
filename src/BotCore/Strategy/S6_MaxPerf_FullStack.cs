@@ -50,12 +50,12 @@ namespace TopstepX.S6
 
         public override bool Equals(object? obj)
         {
-            throw new NotImplementedException();
+            return obj is Bar1M other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            return HashCode.Combine(TimeET, Open, High, Low, Close, Volume);
         }
 
         public static bool operator ==(Bar1M left, Bar1M right)
@@ -70,7 +70,8 @@ namespace TopstepX.S6
 
         public bool Equals(Bar1M other)
         {
-            throw new NotImplementedException();
+            return TimeET == other.TimeET && Open == other.Open && High == other.High && 
+                   Low == other.Low && Close == other.Close && Volume.Equals(other.Volume);
         }
     }
 
@@ -91,12 +92,12 @@ namespace TopstepX.S6
 
         public override bool Equals(object? obj)
         {
-            throw new NotImplementedException();
+            return obj is DepthLadder other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            return HashCode.Combine(TimeET, BestBid, BestAsk, BidSize, AskSize);
         }
 
         public static bool operator ==(DepthLadder left, DepthLadder right)
@@ -111,7 +112,8 @@ namespace TopstepX.S6
 
         public bool Equals(DepthLadder other)
         {
-            throw new NotImplementedException();
+            return TimeET == other.TimeET && BestBid == other.BestBid && BestAsk == other.BestAsk && 
+                   BidSize.Equals(other.BidSize) && AskSize.Equals(other.AskSize);
         }
     }
 

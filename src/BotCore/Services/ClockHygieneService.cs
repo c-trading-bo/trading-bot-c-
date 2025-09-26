@@ -148,12 +148,12 @@ namespace TradingBot.BotCore.Services
 
         public override bool Equals(object? obj)
         {
-            throw new NotImplementedException();
+            return obj is TradingTimestamp other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            return HashCode.Combine(UtcTime, MonotonicTime);
         }
 
         public static bool operator ==(TradingTimestamp left, TradingTimestamp right)
@@ -168,7 +168,7 @@ namespace TradingBot.BotCore.Services
 
         public bool Equals(TradingTimestamp other)
         {
-            throw new NotImplementedException();
+            return UtcTime == other.UtcTime && MonotonicTime == other.MonotonicTime;
         }
     }
 

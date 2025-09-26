@@ -1,3 +1,0 @@
-[0;34m[INFO][0m Building solution (analyzer warnings expected)...
-MSBuild version 17.8.32+74df0b3f5 for .NET
-MSBUILD : error MSB1011: Specify which project or solution file to use because this folder contains more than one project or solution file.

@@ -24,12 +24,12 @@ namespace OrchestratorAgent.Execution
 
             public override bool Equals(object obj)
             {
-                throw new NotImplementedException();
+                return obj is NewsEventData other && Equals(other);
             }
 
             public override int GetHashCode()
             {
-                throw new NotImplementedException();
+                return HashCode.Combine(Headline, Timestamp, Severity, Direction, VolatilityFactor, ConfidenceScore);
             }
 
             public static bool operator ==(NewsEventData left, NewsEventData right)
@@ -44,7 +44,9 @@ namespace OrchestratorAgent.Execution
 
             public bool Equals(NewsEventData other)
             {
-                throw new NotImplementedException();
+                return Headline == other.Headline && Timestamp == other.Timestamp && 
+                       Severity == other.Severity && Direction == other.Direction && 
+                       VolatilityFactor == other.VolatilityFactor && ConfidenceScore == other.ConfidenceScore;
             }
         }
 

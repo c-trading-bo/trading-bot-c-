@@ -781,29 +781,9 @@ namespace CloudTrainer
             EmitMetric("config.snapshot_id", 1, ("id", sha));
             EmitMetric("canary.start", 1, ("id", sha));
             
-            // Wire to IModelRegistry for brain hot-reload notification
-            try
-            {
-                var serviceProvider = GetServiceProvider();
-                var modelRegistry = serviceProvider?.GetService<IModelRegistry>();
-                if (modelRegistry != null)
-                {
-                    modelRegistry.NotifyUpdated(sha);
-                    _logger.LogInformation("🔔 Model registry notified for hot-reload: {Sha}", sha);
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ IModelRegistry not available for hot-reload notification");
-                }
-                
-                // Also notify canary watchdog to start monitoring
-                var canaryWatchdog = serviceProvider?.GetService<CanaryWatchdog>();
-                canaryWatchdog?.StartCanary(sha);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Failed to notify model registry");
-            }
+            // Note: Model registry and canary notifications are handled in UnifiedOrchestrator
+            // This maintains proper separation of concerns between Cloud and UnifiedOrchestrator layers
+            _logger.LogInformation("🔔 Model promotion completed for SHA: {Sha}", sha);
         }
 
         private IServiceProvider? GetServiceProvider()

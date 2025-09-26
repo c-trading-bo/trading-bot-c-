@@ -46,7 +46,7 @@ internal sealed class LiveTradingGate : ILiveTradingGate
         }
     }
     
-    public bool IsLiveTradingAllowed => _liveTradingEnabled && !IsKillSwitchActive();
+    public bool IsLiveTradingAllowed => _liveTradingEnabled && !IsKillSwitchActive() && IsLiveArmTokenValid();
     
     public Task<bool> CheckLiveTradingPermissionAsync(CancellationToken cancellationToken = default)
     {
@@ -61,6 +61,13 @@ internal sealed class LiveTradingGate : ILiveTradingGate
         if (IsDryRunForced())
         {
             _logger.LogInformation("Live trading blocked by DRY_RUN mode");
+            return Task.FromResult(false);
+        }
+
+        // Check live arm token
+        if (!IsLiveArmTokenValid())
+        {
+            _logger.LogWarning("Live trading blocked by invalid/missing arm token");
             return Task.FromResult(false);
         }
         
@@ -87,7 +94,7 @@ internal sealed class LiveTradingGate : ILiveTradingGate
     
     private bool IsKillSwitchActive()
     {
-        return System.IO.File.Exists("state/kill.txt");
+        return System.IO.File.Exists("state/kill.txt") || System.IO.File.Exists("kill.txt");
     }
     
     private bool IsDryRunForced()
@@ -96,5 +103,56 @@ internal sealed class LiveTradingGate : ILiveTradingGate
         var enableDryRun = _configuration.GetValue("ENABLE_DRY_RUN", "true");
         
         return dryRun == "1" || enableDryRun.Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Check signed arming token for live trading authorization
+    /// Implements short-lived manual arm pattern for production safety
+    /// </summary>
+    private bool IsLiveArmTokenValid()
+    {
+        var liveArmFile = "state/live_arm.json";
+        if (!System.IO.File.Exists(liveArmFile))
+        {
+            return false;
+        }
+
+        try
+        {
+            var json = System.IO.File.ReadAllText(liveArmFile);
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            if (!root.TryGetProperty("token", out var tokenElement) ||
+                !root.TryGetProperty("expires_at", out var expiresElement))
+            {
+                return false;
+            }
+
+            var token = tokenElement.GetString();
+            var expiresAt = expiresElement.GetDateTime();
+
+            // Check token against environment variable
+            var expectedToken = Environment.GetEnvironmentVariable("LIVE_ARM_TOKEN");
+            if (string.IsNullOrEmpty(expectedToken) || token != expectedToken)
+            {
+                return false;
+            }
+
+            // Check expiration (default 1 hour)
+            if (DateTime.UtcNow > expiresAt)
+            {
+                _logger.LogWarning("🔒 Live arm token expired at {ExpiresAt}", expiresAt);
+                return false;
+            }
+
+            _logger.LogInformation("🔓 Live arm token valid until {ExpiresAt}", expiresAt);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to validate live arm token");
+            return false;
+        }
     }
 }

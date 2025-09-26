@@ -259,22 +259,38 @@ namespace TradingBot.Tests.Backtest
 
             public Task<ModelPaths?> GetModelPathsAsync(string modelId, CancellationToken cancellationToken = default)
             {
-                throw new NotImplementedException();
+                return Task.FromResult<ModelPaths?>(new ModelPaths($"/models/{modelId}.onnx", $"/models/{modelId}.json"));
             }
 
             public Task<bool> RegisterModelAsync(ModelCard modelCard, CancellationToken cancellationToken = default)
             {
-                throw new NotImplementedException();
+                _modelDates[modelCard.ModelId] = modelCard.TrainedAt;
+                return Task.FromResult(true);
             }
 
             public Task<List<ModelCard>> ListModelsAsync(string familyName, CancellationToken cancellationToken = default)
             {
-                throw new NotImplementedException();
+                var models = _modelDates
+                    .Where(kvp => kvp.Key.StartsWith(familyName))
+                    .Select(kvp => new ModelCard(
+                        ModelId: kvp.Key,
+                        FamilyName: familyName,
+                        Version: "1.0",
+                        TrainedAt: kvp.Value,
+                        TrainingDataStart: kvp.Value.AddDays(-30),
+                        TrainingDataEnd: kvp.Value,
+                        Metrics: new Dictionary<string, double> { ["accuracy"] = 0.65 },
+                        ModelPath: $"/models/{kvp.Key}.onnx",
+                        ConfigPath: $"/models/{kvp.Key}.json",
+                        IsActive: true
+                    ))
+                    .ToList();
+                return Task.FromResult(models);
             }
 
             public Task<bool> ModelExistsAsync(string modelId, CancellationToken cancellationToken = default)
             {
-                throw new NotImplementedException();
+                return Task.FromResult(_modelDates.ContainsKey(modelId));
             }
         }
 

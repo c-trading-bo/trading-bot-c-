@@ -1,0 +1,17 @@
+{
+  "version": "2.1.4",
+  "createdAt": "2024-09-26T08:30:00Z",
+  "driftScore": 0.08,
+  "models": {
+    "confidence_model": {
+      "url": "https://example.com/models/confidence_v2.1.4.onnx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 5242880
+    },
+    "rl_trading_agent": {
+      "url": "https://example.com/models/rl_agent_v2.1.4.onnx", 
+      "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "size": 8388608
+    }
+  }
+}

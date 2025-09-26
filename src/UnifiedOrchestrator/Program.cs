@@ -371,6 +371,13 @@ Stack Trace:
         // Register Safe-Hold Decision Policy with neutral band logic
         services.AddSingleton<SafeHoldDecisionPolicy>();
         
+        // Register Per-Symbol Session Lattices with neutral band integration
+        services.AddSingleton<OrchestratorAgent.Execution.PerSymbolSessionLattices>(provider =>
+        {
+            var neutralBandService = provider.GetService<SafeHoldDecisionPolicy>();
+            return new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+        });
+        
         // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
         services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
         
@@ -1204,6 +1211,14 @@ Stack Trace:
         services.AddSingleton<IModelRegistry>(provider => provider.GetRequiredService<ModelRegistry>());
         services.AddHostedService(provider => provider.GetRequiredService<ModelRegistry>());
         services.AddHostedService<CanaryWatchdog>();
+        
+        // Brain hot-reload service for ONNX session swapping
+        services.AddSingleton<BotCore.ML.OnnxModelLoader>();
+        services.AddHostedService<BrainHotReloadService>();
+        
+        // Cloud model integration service to connect CloudRlTrainerV2 to model registry
+        services.AddHostedService<CloudTrainer.CloudRlTrainerV2>();
+        services.AddHostedService<CloudModelIntegrationService>();
 
         // CloudRlTrainerV2 configuration and dependencies
         services.Configure<CloudTrainer.CloudRlTrainerOptions>(configuration.GetSection("CloudRlTrainer"));

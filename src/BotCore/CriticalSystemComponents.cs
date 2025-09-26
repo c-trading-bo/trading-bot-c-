@@ -579,7 +579,7 @@ namespace TradingBot.Critical
             public string CheckpointHash { get; set; } = string.Empty;
         }
         
-        internal class Position
+        internal sealed class Position
         {
             public string Symbol { get; set; } = string.Empty;
             public int Quantity { get; set; }
@@ -592,20 +592,20 @@ namespace TradingBot.Critical
             public string StrategyId { get; set; } = string.Empty;
         }
 
-        internal class PendingOrder
+        internal sealed class PendingOrder
         {
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
         }
 
-        internal class StrategyState
+        internal sealed class StrategyState
         {
             public string Id { get; set; } = string.Empty;
             public bool IsActive { get; set; }
         }
 
-        internal class RiskMetrics
+        internal sealed class RiskMetrics
         {
             public decimal TotalExposure { get; set; }
             public decimal DailyPnL { get; set; }
