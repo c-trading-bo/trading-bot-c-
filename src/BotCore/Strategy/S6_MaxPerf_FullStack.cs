@@ -83,6 +83,13 @@ namespace TopstepX.S6
         public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
+        
+        // Convenience properties for compatibility
+        public long BestBid => Bid1;
+        public long BestAsk => Ask1;
+        public int BidSize => BidSz1;
+        public int AskSize => AskSz1;
+        
         public long SpreadTicks => Ask1 - Bid1;
         public double Imbalance()
         {

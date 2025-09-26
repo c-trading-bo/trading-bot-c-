@@ -150,8 +150,8 @@ namespace BotCore.Configuration
         private const int MaxSilentFeedTimeoutSeconds = 600;
         private const int MinHeartbeatTimeoutSeconds = 5;
         private const int MaxHeartbeatTimeoutSeconds = 60;
-        private const int MinRecoveryAttempts = 1;
-        private const int MaxRecoveryAttempts = 10;
+        private const int MinRecoveryAttemptsLimit = 1;
+        private const int MaxRecoveryAttemptsLimit = 10;
         private const int MinRecoveryDelaySeconds = 10;
         private const int MaxRecoveryDelaySeconds = 300;
         private const int MinHealthCheckIntervalSeconds = 10;
@@ -182,7 +182,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Maximum number of recovery attempts
         /// </summary>
-        [Range(MinRecoveryAttempts, MaxRecoveryAttempts)]
+        [Range(MinRecoveryAttemptsLimit, MaxRecoveryAttemptsLimit)]
         public int MaxRecoveryAttempts { get; set; } = 3;
 
         /// <summary>
@@ -210,8 +210,8 @@ namespace BotCore.Configuration
         private const int MaxTrainingWindowDays = 1095;
         private const int MinStepSizeDays = 1;
         private const int MaxStepSizeDays = 30;
-        private const int MinValidationSamples = 100;
-        private const int MaxValidationSamples = 10000;
+        private const int MinValidationSamplesLimit = 100;
+        private const int MaxValidationSamplesLimit = 10000;
 
         /// <summary>
         /// Enable walk-forward validation
@@ -239,7 +239,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Minimum validation samples required
         /// </summary>
-        [Range(MinValidationSamples, MaxValidationSamples)]
+        [Range(MinValidationSamplesLimit, MaxValidationSamplesLimit)]
         public int MinValidationSamples { get; set; } = 1000;
 
         /// <summary>
@@ -261,8 +261,8 @@ namespace BotCore.Configuration
         // Validation constants for S109 compliance
         private const int MinBaseSeed = 1;
         private const int MaxBaseSeed = 1000000;
-        private const int MinSeedRange = 100;
-        private const int MaxSeedRange = 100000;
+        private const int MinSeedRangeLimit = 100;
+        private const int MaxSeedRangeLimit = 100000;
 
         /// <summary>
         /// Enable seed rotation to ensure different training runs
@@ -283,7 +283,7 @@ namespace BotCore.Configuration
         /// <summary>
         /// Maximum range for seed variation
         /// </summary>
-        [Range(MinSeedRange, MaxSeedRange)]
+        [Range(MinSeedRangeLimit, MaxSeedRangeLimit)]
         public int MaxSeedRange { get; set; } = 10000;
 
         /// <summary>
