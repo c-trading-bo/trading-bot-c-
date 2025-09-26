@@ -32,11 +32,7 @@ namespace TradingBot.BotCore.Services
         {
             var result = new StartupValidationResult
             {
-                ValidationTime = DateTime.UtcNow,
-                ValidatedSecrets = new List<string>(),
-                MissingSecrets = new List<string>(),
-                InvalidSecrets = new List<string>(),
-                Errors = new List<string>()
+                ValidationTime = DateTime.UtcNow
             };
 
             _logger.LogInformation("🔐 [SECRETS] Starting secrets and endpoint validation...");
@@ -73,7 +69,7 @@ namespace TradingBot.BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🚨 [SECRETS] Critical error during secrets validation");
-                result.Errors.Add($"Critical validation error: {ex.Message}");
+                result.AddError($"Critical validation error: {ex.Message}");
                 result.IsValid = false;
             }
 
@@ -99,7 +95,7 @@ namespace TradingBot.BotCore.Services
                 
                 if (string.IsNullOrEmpty(keyValue))
                 {
-                    result.MissingSecrets.Add(keyName);
+                    result.AddMissingSecret(keyName);
                     _logger.LogError("🚨 [SECRETS] Missing required API key: {KeyName}", keyName);
                 }
                 else
@@ -107,12 +103,12 @@ namespace TradingBot.BotCore.Services
                     // Validate key format
                     if (IsValidApiKey(keyName, keyValue))
                     {
-                        result.ValidatedSecrets.Add(keyName);
+                        result.AddValidatedSecret(keyName);
                         _logger.LogDebug("✅ [SECRETS] Valid API key: {KeyName}", keyName);
                     }
                     else
                     {
-                        result.InvalidSecrets.Add(keyName);
+                        result.AddInvalidSecret(keyName);
                         _logger.LogError("🚨 [SECRETS] Invalid API key format: {KeyName}", keyName);
                     }
                 }
@@ -137,17 +133,17 @@ namespace TradingBot.BotCore.Services
                 
                 if (string.IsNullOrEmpty(endpointValue))
                 {
-                    result.MissingSecrets.Add(endpointKey);
+                    result.AddMissingSecret(endpointKey);
                     _logger.LogError("🚨 [SECRETS] Missing endpoint configuration: {Key}", endpointKey);
                 }
                 else if (IsHardcodedEndpoint(endpointValue))
                 {
-                    result.Errors.Add($"Hardcoded endpoint detected: {endpointKey}");
+                    result.AddError($"Hardcoded endpoint detected: {endpointKey}");
                     _logger.LogError("🚨 [SECRETS] Hardcoded endpoint detected: {Key} = {Value}", endpointKey, MaskSensitiveValue(endpointValue));
                 }
                 else
                 {
-                    result.ValidatedSecrets.Add(endpointKey);
+                    result.AddValidatedSecret(endpointKey);
                     _logger.LogDebug("✅ [SECRETS] Valid endpoint configuration: {Key}", endpointKey);
                 }
             }
@@ -175,12 +171,12 @@ namespace TradingBot.BotCore.Services
                 }
                 else if (ContainsHardcodedCredentials(connString))
                 {
-                    result.Errors.Add($"Hardcoded credentials in connection string: {connKey}");
+                    result.AddError($"Hardcoded credentials in connection string: {connKey}");
                     _logger.LogError("🚨 [SECRETS] Hardcoded credentials in connection string: {Key}", connKey);
                 }
                 else
                 {
-                    result.ValidatedSecrets.Add(connKey);
+                    result.AddValidatedSecret(connKey);
                     _logger.LogDebug("✅ [SECRETS] Valid connection string: {Key}", connKey);
                 }
             }
@@ -201,7 +197,7 @@ namespace TradingBot.BotCore.Services
                 {
                     if (rule.Pattern.IsMatch(provider.ToString() ?? ""))
                     {
-                        result.Errors.Add($"Potential hardcoded secret detected: {rule.Name}");
+                        result.AddError($"Potential hardcoded secret detected: {rule.Name}");
                         _logger.LogError("🚨 [SECRETS] Potential hardcoded secret detected: {Rule}", rule.Name);
                     }
                 }
@@ -230,18 +226,18 @@ namespace TradingBot.BotCore.Services
                         break;
                     case "environment":
                         // Environment variables are always accessible if process has permissions
-                        result.ValidatedSecrets.Add("EnvironmentVariables");
+                        result.AddValidatedSecret("EnvironmentVariables");
                         _logger.LogDebug("✅ [SECRETS] Using environment variables for secrets");
                         break;
                     default:
-                        result.Errors.Add($"Unknown secret store type: {secretStoreType}");
+                        result.AddError($"Unknown secret store type: {secretStoreType}");
                         _logger.LogError("🚨 [SECRETS] Unknown secret store type: {Type}", secretStoreType);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                result.Errors.Add($"Secret store validation error: {ex.Message}");
+                result.AddError($"Secret store validation error: {ex.Message}");
                 _logger.LogError(ex, "🚨 [SECRETS] Error validating secret store access");
             }
         }
@@ -252,11 +248,11 @@ namespace TradingBot.BotCore.Services
             var keyVaultUrl = Environment.GetEnvironmentVariable("AZURE_KEYVAULT_URL");
             if (string.IsNullOrEmpty(keyVaultUrl))
             {
-                result.MissingSecrets.Add("AZURE_KEYVAULT_URL");
+                result.AddMissingSecret("AZURE_KEYVAULT_URL");
             }
             else
             {
-                result.ValidatedSecrets.Add("AzureKeyVault");
+                result.AddValidatedSecret("AzureKeyVault");
                 _logger.LogDebug("✅ [SECRETS] Azure Key Vault configured");
             }
         }
@@ -269,12 +265,12 @@ namespace TradingBot.BotCore.Services
             
             if (string.IsNullOrEmpty(vaultUrl) || string.IsNullOrEmpty(vaultToken))
             {
-                if (string.IsNullOrEmpty(vaultUrl)) result.MissingSecrets.Add("VAULT_ADDR");
-                if (string.IsNullOrEmpty(vaultToken)) result.MissingSecrets.Add("VAULT_TOKEN");
+                if (string.IsNullOrEmpty(vaultUrl)) result.AddMissingSecret("VAULT_ADDR");
+                if (string.IsNullOrEmpty(vaultToken)) result.AddMissingSecret("VAULT_TOKEN");
             }
             else
             {
-                result.ValidatedSecrets.Add("HashiCorpVault");
+                result.AddValidatedSecret("HashiCorpVault");
                 _logger.LogDebug("✅ [SECRETS] HashiCorp Vault configured");
             }
         }
@@ -355,11 +351,65 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class StartupValidationResult
     {
+        // Private backing fields for collections
+        private readonly List<string> _validatedSecrets = new();
+        private readonly List<string> _missingSecrets = new();
+        private readonly List<string> _invalidSecrets = new();
+        private readonly List<string> _errors = new();
+        
         public DateTime ValidationTime { get; set; }
         public bool IsValid { get; set; }
-        public List<string> ValidatedSecrets { get; set; } = new();
-        public List<string> MissingSecrets { get; set; } = new();
-        public List<string> InvalidSecrets { get; set; } = new();
-        public List<string> Errors { get; set; } = new();
+        
+        // Read-only collection properties
+        public IReadOnlyList<string> ValidatedSecrets => _validatedSecrets;
+        public IReadOnlyList<string> MissingSecrets => _missingSecrets;
+        public IReadOnlyList<string> InvalidSecrets => _invalidSecrets;
+        public IReadOnlyList<string> Errors => _errors;
+        
+        // Replace methods for controlled mutation
+        public void ReplaceValidatedSecrets(IEnumerable<string> items)
+        {
+            _validatedSecrets.Clear();
+            if (items != null) _validatedSecrets.AddRange(items);
+        }
+        
+        public void ReplaceMissingSecrets(IEnumerable<string> items)
+        {
+            _missingSecrets.Clear();
+            if (items != null) _missingSecrets.AddRange(items);
+        }
+        
+        public void ReplaceInvalidSecrets(IEnumerable<string> items)
+        {
+            _invalidSecrets.Clear();
+            if (items != null) _invalidSecrets.AddRange(items);
+        }
+        
+        public void ReplaceErrors(IEnumerable<string> items)
+        {
+            _errors.Clear();
+            if (items != null) _errors.AddRange(items);
+        }
+        
+        // Add methods for individual items
+        public void AddValidatedSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _validatedSecrets.Add(secret);
+        }
+        
+        public void AddMissingSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _missingSecrets.Add(secret);
+        }
+        
+        public void AddInvalidSecret(string secret)
+        {
+            if (!string.IsNullOrEmpty(secret)) _invalidSecrets.Add(secret);
+        }
+        
+        public void AddError(string error)
+        {
+            if (!string.IsNullOrEmpty(error)) _errors.Add(error);
+        }
     }
 }

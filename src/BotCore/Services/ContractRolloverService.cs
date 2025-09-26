@@ -495,7 +495,9 @@ namespace BotCore.Services
                             baseSymbol, frontMonth, nextContract);
 
                         // Update configuration mapping
-                        _config.FrontMonthMapping[baseSymbol] = nextContract;
+                        var updatedMapping = new Dictionary<string, string>(_config.FrontMonthMapping);
+                        updatedMapping[baseSymbol] = nextContract;
+                        _config.ReplaceFrontMonthMapping(updatedMapping);
                     }
                 }
             }

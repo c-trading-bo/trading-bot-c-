@@ -202,11 +202,27 @@ namespace TradingBot.BotCore.Services
         public string ModelName { get; set; } = string.Empty;
         public string ModelVersion { get; set; } = string.Empty;
         public string InputSchemaVersion { get; set; } = "1.0";
+        // Private backing field for metadata dictionary
+        private readonly Dictionary<string, object> _metadata = new();
+        
         public string OutputSchemaVersion { get; set; } = "1.0";
         public string PinnedOnnxRuntimeVersion { get; set; } = string.Empty;
         public string ModelHash { get; set; } = string.Empty;
         public DateTime RegistrationTime { get; set; }
-        public Dictionary<string, object> Metadata { get; set; } = new();
+        
+        // Read-only metadata property
+        public IReadOnlyDictionary<string, object> Metadata => _metadata;
+
+        // Replace method for controlled mutation
+        public void ReplaceMetadata(IEnumerable<KeyValuePair<string, object>> items)
+        {
+            _metadata.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _metadata[item.Key] = item.Value;
+            }
+        }
 
         /// <summary>
         /// Input tensor specifications

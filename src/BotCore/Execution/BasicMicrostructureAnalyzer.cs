@@ -211,7 +211,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         return recommendation;
     }
 
-    private decimal CalculateExpectedValue(TradeIntent intent, decimal slippageBps, decimal fillProbability)
+    private static decimal CalculateExpectedValue(TradeIntent intent, decimal slippageBps, decimal fillProbability)
     {
         // EV = p(fill) * [p(win) * avgWin - (1-p(win)) * avgLoss] - expectedSlippageCost
         var grossEV = intent.ExpectedWinRate * intent.RMultiple - (1 - intent.ExpectedWinRate) * 1m;
@@ -220,7 +220,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         return fillProbability * grossEV - slippageCost;
     }
 
-    private decimal GetOptimalLimitPrice(TradeIntent intent, MicrostructureState state)
+    private static decimal GetOptimalLimitPrice(TradeIntent intent, MicrostructureState state)
     {
         if (intent.LimitPrice.HasValue)
             return intent.LimitPrice.Value;
@@ -232,7 +232,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
             : state.AskPrice - offset;
     }
 
-    private decimal CalculateLimitOrderSlippage(TradeIntent intent, decimal limitPrice, MicrostructureState state)
+    private static decimal CalculateLimitOrderSlippage(TradeIntent intent, decimal limitPrice, MicrostructureState state)
     {
         var marketPrice = intent.IsBuy ? state.AskPrice : state.BidPrice;
         var savings = intent.IsBuy
@@ -242,7 +242,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         return Math.Max(-10m, -savings); // Negative means savings, cap at 10 bps cost
     }
 
-    private ExecutionRecommendation ChooseOptimalStrategy(
+    private static ExecutionRecommendation ChooseOptimalStrategy(
         TradeIntent intent,
                 decimal marketEV,
         decimal limitEV,
@@ -332,7 +332,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         }
     }
 
-    private decimal CalculateVolatility(List<Trade> trades)
+    private static decimal CalculateVolatility(List<Trade> trades)
     {
         if (trades.Count < 2) return 0m;
 
@@ -347,7 +347,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         return (decimal)Math.Sqrt(variance) * (decimal)Math.Sqrt(252 * 24 * 60); // Annualized
     }
 
-    private decimal CalculateMicroVolatility(List<Trade> trades)
+    private static decimal CalculateMicroVolatility(List<Trade> trades)
     {
         if (trades.Count < 10) return 0m;
 
@@ -358,20 +358,20 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         return priceRange / midPrice;
     }
 
-    private decimal CalculateOrderImbalance(long bidSize, long askSize)
+    private static decimal CalculateOrderImbalance(long bidSize, long askSize)
     {
         var total = bidSize + askSize;
         return total > 0 ? (decimal)(bidSize - askSize) / total : 0m;
     }
 
-    private decimal CalculateTickActivity(List<Trade> trades)
+    private static decimal CalculateTickActivity(List<Trade> trades)
     {
         var timeSpan = TimeSpan.FromMinutes(1);
         var recentTrades = trades.Where(t => DateTime.UtcNow - t.Timestamp <= timeSpan);
         return recentTrades.Count();
     }
 
-    private MarketSession DetermineMarketSession()
+    private static MarketSession DetermineMarketSession()
     {
         var time = DateTime.Now.TimeOfDay;
 

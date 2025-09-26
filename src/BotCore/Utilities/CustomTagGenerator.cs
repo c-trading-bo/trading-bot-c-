@@ -10,6 +10,10 @@ namespace BotCore.Utilities
     /// </summary>
     public static class CustomTagGenerator
     {
+        // Constants for tag generation limits and formatting
+        private const int MaxSequenceLimit = 999;
+        private const int GuidSubstringLength = 20;
+        
         private static readonly ConcurrentDictionary<string, DateTime> _generatedTags = new();
         private static readonly object _lock = new();
         
@@ -38,9 +42,9 @@ namespace BotCore.Utilities
                     sequence++;
                     
                     // Safety limit to prevent infinite loop
-                    if (sequence > 999)
+                    if (sequence > MaxSequenceLimit)
                     {
-                        candidateTag = $"{baseTag}-{Guid.NewGuid():N}"[..20];
+                        candidateTag = $"{baseTag}-{Guid.NewGuid():N}"[..GuidSubstringLength];
                         break;
                     }
                 }

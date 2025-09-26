@@ -257,10 +257,25 @@ namespace TopstepX.Bot.Core.Services
             {
                 _logger.LogInformation("🛑 Trading System Integration Service stopping...");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
-                _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service failed");
+                _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service invalid operation");
+            }
+            catch (TimeoutException ex)
+            {
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service timeout");
+            }
+            catch (HttpRequestException ex)
+            {
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service HTTP error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service access denied");
             }
             finally
             {
@@ -435,10 +450,20 @@ namespace TopstepX.Bot.Core.Services
                     return OrderResult.Failed($"API Error: {response.StatusCode} - {errorContent}");
                 }
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "[ORDER] Exception during order placement");
-                return OrderResult.Failed($"Exception: {ex.Message}");
+                _logger.LogError(ex, "[ORDER] HTTP exception during order placement");
+                return OrderResult.Failed($"HTTP Error: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "[ORDER] Timeout during order placement");
+                return OrderResult.Failed($"Timeout: {ex.Message}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "[ORDER] Invalid operation during order placement");
+                return OrderResult.Failed($"Invalid Operation: {ex.Message}");
             }
         }
 

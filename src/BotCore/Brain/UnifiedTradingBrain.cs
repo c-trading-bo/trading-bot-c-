@@ -1053,7 +1053,7 @@ namespace BotCore.Brain
         }
 
         // Technical analysis helpers (simplified versions)
-        private decimal CalculateEMA(IList<Bar> bars, int period)
+        private static decimal CalculateEMA(IList<Bar> bars, int period)
         {
             if (bars.Count < period) return bars.LastOrDefault()?.Close ?? 0;
             

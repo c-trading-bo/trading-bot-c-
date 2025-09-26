@@ -433,14 +433,31 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class ModelIntegrity
     {
+        // Private backing field for metadata dictionary
+        private readonly Dictionary<string, object> _metadata = new();
+        
         public string ModelPath { get; set; } = string.Empty;
         public string ModelHash { get; set; } = string.Empty;
         public string MetadataHash { get; set; } = string.Empty;
-        public Dictionary<string, object> Metadata { get; set; } = new();
+        
+        // Read-only metadata property  
+        public IReadOnlyDictionary<string, object> Metadata => _metadata;
+        
         public DateTime CreatedAt { get; set; }
         public string HashAlgorithm { get; set; } = "SHA256";
         public string Signature { get; set; } = string.Empty;
         public string PublicKey { get; set; } = string.Empty;
+        
+        // Replace method for controlled mutation
+        public void ReplaceMetadata(IEnumerable<KeyValuePair<string, object>> items)
+        {
+            _metadata.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _metadata[item.Key] = item.Value;
+            }
+        }
     }
 
     /// <summary>

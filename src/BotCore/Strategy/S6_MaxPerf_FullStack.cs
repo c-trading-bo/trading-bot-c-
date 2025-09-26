@@ -230,6 +230,9 @@ namespace TopstepX.S6
     // --- STRATEGY ---
     public sealed class S6Strategy
     {
+        // Strategy configuration constants
+        private const double TrailingStopRThreshold = 0.8;
+        
         private readonly IOrderRouter _router; private readonly S6Config _cfg;
         private readonly State _es; private readonly State _nq;
         public S6Strategy(IOrderRouter router, S6Config? cfg = null)
@@ -347,7 +350,7 @@ namespace TopstepX.S6
             }
 
             double r = s.RealizedR(side, avgPx);
-            if (r >= 0.8)
+            if (r >= TrailingStopRThreshold)
             {
                 double? sw = s.RecentSwingPx(side);
                 if (sw.HasValue) _router.ModifyStop(positionId, sw.Value);

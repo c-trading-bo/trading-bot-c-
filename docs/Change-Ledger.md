@@ -508,6 +508,91 @@ private const int MaxCircuitBreakerThreshold = 20;
 ```
 
 **Rationale**: Enhanced production safety with specific exception handling in test/guardrail validation code, completed resilience configuration constants for HTTP and circuit breaker settings, optimized market data validation and statistical calculations for performance.
+
+#### Round 14 - Continued Phase 2 High-Impact Systematic Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | ~3110 | ~3092 | ProductionConfigurationService.cs, CustomTagGenerator.cs, S11_MaxPerf_FullStack.cs, S6_MaxPerf_FullStack.cs, AutonomousDecisionEngine.cs | Named constants for performance thresholds, tag generation limits, trading R-multiple thresholds, and autonomous trading parameters |
+| CA1848 | Several | 0 | SuppressionLedgerService.cs | Applied existing LoggerMessage delegates for improved logging performance |
+| CA1031 | Several | Reduced | CriticalSystemComponents.cs | Replaced generic exception catches with specific types for credential management |
+
+**Example Pattern - S109 Configuration Constants**:
+```csharp
+// Before (Violation)
+[Range(0.1, 1.0)] public double AccuracyThreshold { get; set; } = 0.6;
+public decimal MaxDailyLoss { get; set; } = -1000m;
+if (r >= 0.5) // Strategy threshold
+
+// After (Compliant)
+private const double MinAccuracyThreshold = 0.1;
+private const double MaxAccuracyThreshold = 1.0;
+private const decimal DefaultMaxDailyLoss = -1000m;
+private const double TrailingStopRThreshold = 0.5;
+
+[Range(MinAccuracyThreshold, MaxAccuracyThreshold)] public double AccuracyThreshold { get; set; } = 0.6;
+public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
+if (r >= TrailingStopRThreshold)
+```
+
+**Example Pattern - CA1848 LoggerMessage Performance**:
+```csharp
+// Before (Violation)
+_logger.LogWarning("⚠️ [SUPPRESSION] Recorded suppression {RuleId} in {File}:{Line}", ruleId, file, line);
+
+// After (Compliant)
+_logSuppressionRecorded(_logger, ruleId, Path.GetFileName(filePath), lineNumber, author, justification, null);
+```
+
+**Example Pattern - CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex) { _logger.LogDebug(ex, "Failed to get credential"); }
+
+// After (Compliant)
+catch (UnauthorizedAccessException ex) { _logger.LogDebug(ex, "Failed to get credential - unauthorized"); }
+catch (InvalidOperationException ex) { _logger.LogDebug(ex, "Failed to get credential - invalid operation"); }
+catch (TimeoutException ex) { _logger.LogDebug(ex, "Failed to get credential - timeout"); }
+```
+
+#### Round 15 - Phase 1 CS Error Fix & Collection Immutability Implementation (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS1503 | 2 | 0 | SuppressionLedgerService.cs | Fixed enum to string conversion in LoggerMessage delegate call |
+| CA2227/CA1002 | ~240 | ~218 | SecretsValidationService.cs, SuppressionLedgerService.cs | Applied read-only collection pattern with Replace*/Add methods for immutable domain design |
+
+**Example Pattern - Phase 1 CS1503 Fix**:
+```csharp
+// Before (CS1503 Error)
+_logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus, null);
+// Error: Cannot convert SuppressionStatus to string
+
+// After (Compliant)
+_logSuppressionReviewed(_logger, suppressionId, reviewer, newStatus.ToString(), null);
+```
+
+**Example Pattern - Immutable Collection Design (CA2227/CA1002)**:
+```csharp
+// Before (Violation)
+public List<string> ValidatedSecrets { get; set; } = new();
+public List<string> MissingSecrets { get; set; } = new();
+public List<SuppressionEntry> GetActiveSuppressions() { return _suppressions.FindAll(...); }
+
+// After (Compliant)
+private readonly List<string> _validatedSecrets = new();
+private readonly List<string> _missingSecrets = new();
+
+public IReadOnlyList<string> ValidatedSecrets => _validatedSecrets;
+public IReadOnlyList<string> MissingSecrets => _missingSecrets;
+
+public void ReplaceValidatedSecrets(IEnumerable<string> items) { 
+    _validatedSecrets.Clear(); 
+    if (items != null) _validatedSecrets.AddRange(items); 
+}
+
+public IReadOnlyList<SuppressionEntry> GetActiveSuppressions() {
+    return _suppressions.FindAll(...);
+}
+```
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |
@@ -550,5 +635,122 @@ public void ReplacePartialFills(IEnumerable<PartialFill> fills)
 }
 ```
 
+#### Round 13 - Performance & Magic Number Optimizations (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1822 | ~450 | ~306 | BasicMicrostructureAnalyzer.cs, UnifiedTradingBrain.cs | Made calculation methods static (CalculateExpectedValue, CalculateVolatility, CalculateMicroVolatility, CalculateOrderImbalance, CalculateTickActivity, CalculateEMA) |
+| S109 | 3110 | ~3105 | S3Strategy.cs (S3RuntimeConfig), TradingReadinessConfiguration.cs, EnhancedProductionResilienceService.cs | Named constants for trading configuration, news timing, volatility bounds |
+| CA1062 | ~82 | ~80 | ProductionResilienceService.cs, ProductionMonitoringService.cs | Null guards for IOptions<> and Func<> parameters |
+
+**Example Pattern - Performance Static Methods (CA1822)**:
+```csharp
+// Before (Violation)
+private decimal CalculateExpectedValue(TradeIntent intent, decimal slippageBps, decimal fillProbability)
+{
+    return fillProbability * grossEV - slippageCost;
+}
+
+// After (Compliant)
+private static decimal CalculateExpectedValue(TradeIntent intent, decimal slippageBps, decimal fillProbability)
+{
+    return fillProbability * grossEV - slippageCost;
+}
+```
+
+**Example Pattern - Trading Configuration Constants (S109)**:
+```csharp
+// Before (Violation)
+public int[] NewsOnMinutes { get; init; } = [0, 30];
+public decimal VolZMin { get; init; } = -0.5m;
+
+// After (Compliant)
+private const int DefaultNewsOnMinuteFirst = 0;
+private const int DefaultNewsOnMinuteSecond = 30;
+private const decimal DefaultVolZMin = -0.5m;
+private static readonly int[] DefaultNewsOnMinutes = [DefaultNewsOnMinuteFirst, DefaultNewsOnMinuteSecond];
+
+public int[] NewsOnMinutes { get; init; } = DefaultNewsOnMinutes;
+public decimal VolZMin { get; init; } = DefaultVolZMin;
+```
+
+**Rationale**: Optimized calculation-heavy microstructure analysis and trading brain methods for performance by making them static. Systematically eliminated magic numbers in strategy configuration and resilience settings, ensuring all trading parameters are configuration-driven for production readiness.
+
+#### Round 16 - Phase 1 Completion & Collection Immutability Continued (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS0200/CS1061/CS0411 | 42 | 0 | SuppressionLedgerService.cs, SecretsValidationService.cs | Fixed read-only collection usage patterns - replaced direct property access with Add/Replace methods |
+| CA2227 | ~220 | ~214 | DeterminismService.cs, ProductionEnhancementConfiguration.cs | Applied read-only dictionary pattern with Replace methods for controlled mutation |
+
+**Example Pattern - Phase 1 CS Error Resolution**:
+```csharp
+// Before (CS0200 Error)  
+report.SuppressionsByRule[suppression.RuleId] = ruleCount + 1;
+result.MissingLedgerEntries.Add($"{file}:{i + 1} - {ruleId}");
+
+// After (Compliant)
+var ruleDict = new Dictionary<string, int>();
+ruleDict[suppression.RuleId] = ruleCount + 1;
+report.ReplaceSuppressionsByRule(ruleDict);
+result.AddMissingLedgerEntry($"{file}:{i + 1} - {ruleId}");
+```
+
+**Example Pattern - Dictionary Immutability (CA2227)**:
+```csharp
+// Before (Violation)
+public Dictionary<string, int> SeedRegistry { get; set; } = new();
+public Dictionary<string, string> FrontMonthMapping { get; set; } = new();
+
+// After (Compliant)
+private readonly Dictionary<string, int> _seedRegistry = new();
+public IReadOnlyDictionary<string, int> SeedRegistry => _seedRegistry;
+
+public void ReplaceSeedRegistry(IEnumerable<KeyValuePair<string, int>> items) {
+    _seedRegistry.Clear();
+    if (items != null) {
+        foreach (var item in items) _seedRegistry[item.Key] = item.Value;
+    }
+}
+```
+
+**Rationale**: Completed Phase 1 by fixing all compilation errors caused by read-only collection changes. Applied systematic immutable dictionary patterns to configuration classes, ensuring domain state cannot be mutated without controlled access methods.
+
+#### Round 17 - Final Phase 1 CS Errors & Metadata Dictionary Immutability (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS0200 | 4 | 0 | DeterminismService.cs, ContractRolloverService.cs | Fixed read-only collection assignment - used Replace methods for dictionary updates |
+| CA2227 | ~214 | ~210 | IntegritySigningService.cs, OnnxModelCompatibilityService.cs | Applied immutable dictionary pattern to Metadata properties |
+
+**Example Pattern - Phase 1 Final CS0200 Resolution**:
+```csharp
+// Before (CS0200 Error)
+result.SeedRegistry = GetSeedRegistry();
+_config.FrontMonthMapping[baseSymbol] = nextContract;
+
+// After (Compliant)
+result.ReplaceSeedRegistry(GetSeedRegistry());
+var updatedMapping = new Dictionary<string, string>(_config.FrontMonthMapping);
+updatedMapping[baseSymbol] = nextContract;
+_config.ReplaceFrontMonthMapping(updatedMapping);
+```
+
+**Example Pattern - Metadata Dictionary Immutability (CA2227)**:
+```csharp
+// Before (Violation)
+public Dictionary<string, object> Metadata { get; set; } = new();
+
+// After (Compliant)
+private readonly Dictionary<string, object> _metadata = new();
+public IReadOnlyDictionary<string, object> Metadata => _metadata;
+
+public void ReplaceMetadata(IEnumerable<KeyValuePair<string, object>> items) {
+    _metadata.Clear();
+    if (items != null) {
+        foreach (var item in items) _metadata[item.Key] = item.Value;
+    }
+}
+```
+
+**Rationale**: Completed Phase 1 with systematic resolution of final compilation errors by properly using Replace methods for read-only collection updates. Applied immutable metadata dictionary patterns to ML and signing services, ensuring controlled mutation of object metadata.
+
 ---
-*Updated: Current Session - Systematic Phase 2 implementation in progress*
+*Updated: Current Session - Phase 1 FINAL COMPLETION + continued Phase 2 collection immutability implementation*

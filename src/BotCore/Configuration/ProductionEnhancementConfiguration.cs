@@ -120,14 +120,28 @@ namespace BotCore.Configuration
         /// </summary>
         public HealthMonitoringConfiguration HealthMonitoring { get; set; } = new();
 
-        /// <summary>
-        /// Front month contract mapping
-        /// </summary>
-        public Dictionary<string, string> FrontMonthMapping { get; set; } = new()
+        // Private backing field for dictionary
+        private readonly Dictionary<string, string> _frontMonthMapping = new()
         {
             {"ES", "ESZ25"},
             {"NQ", "NQZ25"}
         };
+
+        /// <summary>
+        /// Front month contract mapping
+        /// </summary>
+        public IReadOnlyDictionary<string, string> FrontMonthMapping => _frontMonthMapping;
+        
+        // Replace method for controlled mutation
+        public void ReplaceFrontMonthMapping(IEnumerable<KeyValuePair<string, string>> items)
+        {
+            _frontMonthMapping.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                    _frontMonthMapping[item.Key] = item.Value;
+            }
+        }
 
         /// <summary>
         /// Get current front month contract for a symbol

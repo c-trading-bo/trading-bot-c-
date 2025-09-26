@@ -218,6 +218,14 @@ public class ResilienceConfiguration
     private const int MaxHttpTimeoutMs = 120000;
     private const int MinCircuitBreakerThreshold = 3;
     private const int MaxCircuitBreakerThreshold = 20;
+    private const int MinCircuitBreakerTimeoutMs = 30000;
+    private const int MaxCircuitBreakerTimeoutMs = 600000;
+    private const int MinBulkheadConcurrency = 5;
+    private const int MaxBulkheadConcurrency = 100;
+    
+    // Default values
+    private const int DefaultCircuitBreakerTimeoutMs = 60000;
+    private const int DefaultBulkheadMaxConcurrency = 20;
     
     [Required]
     [Range(MinRetries, MaxRetriesLimit)]
@@ -240,12 +248,12 @@ public class ResilienceConfiguration
     public int CircuitBreakerThreshold { get; set; } = 5;
 
     [Required]
-    [Range(30000, 600000)]
-    public int CircuitBreakerTimeoutMs { get; set; } = 60000;
+    [Range(MinCircuitBreakerTimeoutMs, MaxCircuitBreakerTimeoutMs)]
+    public int CircuitBreakerTimeoutMs { get; set; } = DefaultCircuitBreakerTimeoutMs;
 
     [Required]
-    [Range(5, 100)]
-    public int BulkheadMaxConcurrency { get; set; } = 20;
+    [Range(MinBulkheadConcurrency, MaxBulkheadConcurrency)]
+    public int BulkheadMaxConcurrency { get; set; } = DefaultBulkheadMaxConcurrency;
 }
 
 /// <summary>
