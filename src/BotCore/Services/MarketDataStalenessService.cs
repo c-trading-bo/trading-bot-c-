@@ -286,10 +286,30 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
         }
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            try
+            {
+                StopMonitoring();
+                _stalenessCheckTimer?.Dispose();
+                _logger.LogInformation("MarketDataStalenessService disposed");
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected during shutdown - ignore
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disposing MarketDataStalenessService");
+            }
+        }
+    }
+
     public void Dispose()
     {
-        StopMonitoring();
-        _stalenessCheckTimer?.Dispose();
-        _logger.LogInformation("MarketDataStalenessService disposed");
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -888,7 +888,7 @@ namespace BotCore.Brain
         /// <summary>
         /// Create context vector for Neural UCB from market data
         /// </summary>
-        private ContextVector CreateContextVector(MarketContext context)
+        private static ContextVector CreateContextVector(MarketContext context)
         {
             var features = new Dictionary<string, decimal>
             {
@@ -1008,7 +1008,7 @@ namespace BotCore.Brain
             };
         }
 
-        private decimal CalculateReward(decimal pnl, bool wasCorrect, TimeSpan holdTime)
+        private static decimal CalculateReward(decimal pnl, bool wasCorrect, TimeSpan holdTime)
         {
             // Combine PnL with correctness and time efficiency
             var baseReward = wasCorrect ? 1m : 0m;
@@ -1018,19 +1018,19 @@ namespace BotCore.Brain
             return Math.Clamp(baseReward + (decimal)pnlComponent + timeComponent, 0m, 1m);
         }
 
-        private decimal CalculateOverallConfidence(StrategySelection strategy, PricePrediction prediction)
+        private static decimal CalculateOverallConfidence(StrategySelection strategy, PricePrediction prediction)
         {
             return (strategy.Confidence + prediction.Probability) / 2;
         }
 
-        private string AssessRisk(MarketContext context, PricePrediction prediction)
+        private static string AssessRisk(MarketContext context, PricePrediction prediction)
         {
             if (context.Volatility > 0.4m) return "HIGH";
             if (context.Volatility < 0.15m && prediction.Probability > 0.7m) return "LOW";
             return "MEDIUM";
         }
 
-        private BrainDecision CreateFallbackDecision(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
+        private static BrainDecision CreateFallbackDecision(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             // Fallback to your existing AllStrategies logic
             var candidates = AllStrategies.generate_candidates(symbol, env, levels, bars, risk);
@@ -1591,32 +1591,67 @@ namespace BotCore.Brain
 
         #endregion
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _logger.LogInformation("🧠 [UNIFIED-BRAIN] Shutting down...");
+                
+                // Save performance statistics
+                var stats = new
+                {
+                    DecisionsToday,
+                    WinRateToday,
+                    TotalDecisions = _decisionHistory.Count,
+                    Performance = _performance.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    LastDecision
+                };
+                
+                try
+                {
+                    var statsPath = Path.Combine("logs", $"brain_stats_{DateTime.Now:yyyyMMdd}.json");
+                    Directory.CreateDirectory(Path.GetDirectoryName(statsPath)!);
+                    File.WriteAllText(statsPath, JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true }));
+                    _logger.LogInformation("📊 [UNIFIED-BRAIN] Statistics saved: {Decisions} decisions, {WinRate:P1} win rate",
+                        DecisionsToday, WinRateToday);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error saving statistics");
+                }
+                
+                // Dispose managed resources
+                try
+                {
+                    _strategySelector?.Dispose();
+                    _cvarPPO?.Dispose();
+                    if (_confidenceNetwork is IDisposable disposableNetwork)
+                        disposableNetwork.Dispose();
+                    _memoryManager?.Dispose();
+                    _modelManager?.Dispose();
+                    
+                    if (_lstmPricePredictor is IDisposable disposableLstm)
+                        disposableLstm.Dispose();
+                    if (_metaClassifier is IDisposable disposableMeta) 
+                        disposableMeta.Dispose();
+                    if (_marketRegimeDetector is IDisposable disposableRegime)
+                        disposableRegime.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected during shutdown - ignore
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error disposing managed resources");
+                }
+            }
+        }
+
         public void Dispose()
         {
-            _logger.LogInformation("🧠 [UNIFIED-BRAIN] Shutting down...");
-            
-            // Save performance statistics
-            var stats = new
-            {
-                DecisionsToday,
-                WinRateToday,
-                TotalDecisions = _decisionHistory.Count,
-                Performance = _performance.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                LastDecision
-            };
-            
-            try
-            {
-                var statsPath = Path.Combine("logs", $"brain_stats_{DateTime.Now:yyyyMMdd}.json");
-                Directory.CreateDirectory(Path.GetDirectoryName(statsPath)!);
-                File.WriteAllText(statsPath, JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true }));
-                _logger.LogInformation("📊 [UNIFIED-BRAIN] Statistics saved: {Decisions} decisions, {WinRate:P1} win rate",
-                    DecisionsToday, WinRateToday);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Error saving statistics");
-            }
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 

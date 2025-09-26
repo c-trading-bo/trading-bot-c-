@@ -89,9 +89,19 @@ public class ProductionGuardrailTester
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "❌ [TEST] DRY_RUN precedence test FAILED with exception");
+            _logger.LogError(ex, "❌ [TEST] DRY_RUN precedence test FAILED with invalid operation");
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] DRY_RUN precedence test FAILED with argument error");
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] DRY_RUN precedence test FAILED with access denied");
             return false;
         }
         finally
@@ -130,9 +140,19 @@ public class ProductionGuardrailTester
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with exception");
+            _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with invalid operation");
+            return false;
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with I/O error");
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with access denied");
             return false;
         }
         finally

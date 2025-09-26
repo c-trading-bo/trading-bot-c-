@@ -121,7 +121,7 @@ namespace BotCore.ML
         /// <summary>
         /// Get model version from file metadata or timestamp
         /// </summary>
-        private string GetModelVersion(string modelPath)
+        private static string GetModelVersion(string modelPath)
         {
             try
             {

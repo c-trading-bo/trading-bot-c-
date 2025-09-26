@@ -238,7 +238,7 @@ namespace TradingBot.BotCore.Services
                 }
             }
 
-            result.MissingComponents = missingComponents;
+            result.ReplaceMissingComponents(missingComponents);
             result.IsValid = missingComponents.Count == 0;
 
             if (result.IsValid)
@@ -259,11 +259,24 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class DeterminismValidationResult
     {
+        private readonly List<string> _missingComponents = new();
+        
         public bool IsReproducibleMode { get; set; }
         public int SeededComponentCount { get; set; }
         public Dictionary<string, int> SeedRegistry { get; set; } = new();
-        public List<string> MissingComponents { get; set; } = new();
+        public IReadOnlyList<string> MissingComponents => _missingComponents;
         public bool IsValid { get; set; }
         public DateTime ValidationTime { get; set; }
+        
+        public void ReplaceMissingComponents(IEnumerable<string> components)
+        {
+            _missingComponents.Clear();
+            if (components != null) _missingComponents.AddRange(components);
+        }
+        
+        public void AddMissingComponent(string component)
+        {
+            if (!string.IsNullOrEmpty(component)) _missingComponents.Add(component);
+        }
     }
 }

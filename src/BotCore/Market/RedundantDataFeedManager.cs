@@ -207,7 +207,7 @@ public class RedundantDataFeedManager : IDisposable
         throw new InvalidOperationException(errorMessage, lastError);
     }
 
-    private bool ValidateMarketData(MarketData? data)
+    private static bool ValidateMarketData(MarketData? data)
     {
         if (data == null) return false;
         if (data.Price <= 0) return false;
@@ -550,7 +550,7 @@ public class RedundantDataFeedManager : IDisposable
         }
     }
 
-    private double CalculateStandardDeviation(IEnumerable<double> values)
+    private static double CalculateStandardDeviation(IEnumerable<double> values)
     {
         var data = values.ToList();
         if (data.Count <= 1) return 0.0;
@@ -674,25 +674,43 @@ public class RedundantDataFeedManager : IDisposable
         return Math.Max(0.0, score);
     }
 
-    public void Dispose()
+    protected virtual void Dispose(bool disposing)
     {
-        if (_disposed) return;
-        
-        _logger.LogInformation("[DataFeed] Disposing RedundantDataFeedManager");
-        
-        _disposed = true;
-        
-        _healthCheckTimer?.Dispose();
-        _consistencyCheckTimer?.Dispose();
-        
-        foreach (var feed in _dataFeeds)
+        if (!_disposed && disposing)
         {
-            if (feed is IDisposable disposableFeed)
+            _logger.LogInformation("[DataFeed] Disposing RedundantDataFeedManager");
+            
+            try
             {
-                disposableFeed.Dispose();
+                _healthCheckTimer?.Dispose();
+                _consistencyCheckTimer?.Dispose();
+                
+                foreach (var feed in _dataFeeds)
+                {
+                    if (feed is IDisposable disposableFeed)
+                    {
+                        disposableFeed.Dispose();
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected during shutdown - ignore
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DataFeed] Error disposing resources");
+            }
+            finally
+            {
+                _disposed = true;
             }
         }
-        
+    }
+    
+    public void Dispose()
+    {
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 }

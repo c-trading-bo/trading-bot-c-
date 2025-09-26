@@ -329,7 +329,185 @@ public void ReplaceTrades(IEnumerable<Trade> trades)
 - **Production Safety**: Risk management values properly externalized
 - **Performance**: High-frequency logging optimized for production throughput
 
-#### Round 8 - High-Priority Analyzer Violations (Current Session)
+#### Round 9 - Phase 1 Completion & Phase 2 High-Impact Violations (Latest Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS1061 | 2 | 0 | UnifiedTradingBrain.cs | Fixed disposal pattern - check IDisposable interface before disposing _confidenceNetwork |
+| S109 | 3172 | ~3165 | ProductionConfigurationValidation.cs, S2RuntimeConfig.cs | Added named constants for validation ranges and calculation values |
+| CA1031 | 972 | ~965 | UserHubClient.cs, SuppressionLedgerService.cs, StateDurabilityService.cs | Replaced generic Exception catches with specific exception types |
+
+**Example Pattern - Phase 1 Completion (CS1061)**:
+```csharp
+// Before (Compilation Error)
+_confidenceNetwork?.Dispose(); // CS1061: INeuralNetwork doesn't implement IDisposable
+
+// After (Fixed)
+if (_confidenceNetwork is IDisposable disposableNetwork)
+    disposableNetwork.Dispose();
+```
+
+**Example Pattern - Magic Numbers (S109)**:
+```csharp
+// Before (Violation)
+[Range(1, 30)] public int LogRetentionDays { get; set; } = 7;
+public static int IbEndMinute { get; private set; } = 10 * 60 + 30;
+
+// After (Compliant)
+private const int MinLogRetentionDays = 1;
+private const int MaxLogRetentionDays = 30;
+private const int IB_HOUR_MINUTES = 10;
+private const int IB_MINUTES = 60;
+private const int IB_ADDITIONAL_MINUTES = 30;
+
+[Range(MinLogRetentionDays, MaxLogRetentionDays)] public int LogRetentionDays { get; set; } = 7;
+public static int IbEndMinute { get; private set; } = IB_HOUR_MINUTES * IB_MINUTES + IB_ADDITIONAL_MINUTES;
+```
+
+**Example Pattern - Exception Handling (CA1031)**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Error creating suppression alert");
+}
+
+// After (Compliant)
+catch (DirectoryNotFoundException ex)
+{
+    _logger.LogError(ex, "Alert directory not found when creating suppression alert");
+}
+catch (UnauthorizedAccessException ex)
+{
+    _logger.LogError(ex, "Access denied when creating suppression alert");
+}
+catch (IOException ex)
+{
+    _logger.LogError(ex, "I/O error when creating suppression alert");
+}
+```
+
+#### Round 10 - Collection Immutability & Performance Optimizations (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CS0160/CS0200/CS1061 | 3 | 0 | UserHubClient.cs, DeterminismService.cs, CriticalSystemComponents.cs | Fixed compilation errors - proper exception hierarchy, read-only collection usage |
+| CA1002 | 206 | 203 | CriticalSystemComponents.cs, OrderFillConfirmationSystem.cs, DeterminismService.cs | Applied read-only collection pattern with Replace* methods |
+| CA1822 | 342 | 337 | EnhancedBayesianPriors.cs, CriticalSystemComponentsFixes.cs, WalkForwardTrainer.cs | Made utility methods static for performance |
+
+**Example Pattern - Read-Only Collection (CA1002)**:
+```csharp
+// Before (Violation)
+public List<string> AffectedSymbols { get; } = new();
+
+// After (Compliant)
+private readonly List<string> _affectedSymbols = new();
+public IReadOnlyList<string> AffectedSymbols => _affectedSymbols;
+
+public void ReplaceAffectedSymbols(IEnumerable<string> symbols)
+{
+    _affectedSymbols.Clear();
+    if (symbols != null) _affectedSymbols.AddRange(symbols);
+}
+```
+
+**Example Pattern - Static Method Optimization (CA1822)**:
+```csharp
+// Before (Violation)
+private decimal SampleBeta(decimal alpha, decimal beta) { ... }
+
+// After (Compliant)
+private static decimal SampleBeta(decimal alpha, decimal beta) { ... }
+```
+
+#### Round 11 - Magic Numbers & Collection Immutability Continuation (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 3152 | ~3147 | NeuralUcbExtended.cs, EnhancedProductionResilienceService.cs | Named constants for scalping hours and resilience configuration ranges |
+| CA1002 | 200 | 197 | IntegritySigningService.cs, OnnxModelCompatibilityService.cs | Applied read-only collection pattern with Replace/Add methods |
+| CA1822 | 334 | 331 | WalkForwardTrainer.cs, TripleBarrierLabeler.cs | Made utility methods static for ML validation and barrier calculations |
+
+**Example Pattern - Magic Number Constants (S109)**:
+```csharp
+// Before (Violation)
+public (int Start, int End) ScalpingHours { get; init; } = (9, 16);
+[Range(1, 10)] public int MaxRetries { get; set; } = 3;
+
+// After (Compliant)
+private const int DefaultScalpingStartHour = 9;
+private const int DefaultScalpingEndHour = 16;
+private const int MinRetries = 1;
+private const int MaxRetriesLimit = 10;
+
+public (int Start, int End) ScalpingHours { get; init; } = (DefaultScalpingStartHour, DefaultScalpingEndHour);
+[Range(MinRetries, MaxRetriesLimit)] public int MaxRetries { get; set; } = 3;
+```
+
+**Example Pattern - ML Model Collection Safety (CA1002)**:
+```csharp
+// Before (Violation)
+public List<TensorSpec> InputSpecs { get; set; } = new();
+
+// After (Compliant)
+private readonly List<TensorSpec> _inputSpecs = new();
+public IReadOnlyList<TensorSpec> InputSpecs => _inputSpecs;
+
+public void ReplaceInputSpecs(IEnumerable<TensorSpec> specs)
+{
+    _inputSpecs.Clear();
+    if (specs != null) _inputSpecs.AddRange(specs);
+}
+```
+
+#### Round 12 - Exception Handling & Configuration Constants (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 3138 | ~3134 | EnhancedProductionResilienceService.cs | Added constants for HTTP timeout and circuit breaker threshold ranges |
+| CA1031 | 964 | ~961 | SessionAwareRuntimeGatesTest.cs, ProductionGuardrailTester.cs | Replaced generic Exception catches with specific types in test/guardrail validation |
+| CA1822 | 328 | 326 | RedundantDataFeedManager.cs | Made data validation and statistical calculation methods static |
+
+**Example Pattern - Test Exception Handling (CA1031)**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with exception");
+    return false;
+}
+
+// After (Compliant)
+catch (InvalidOperationException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with invalid operation");
+    return false;
+}
+catch (IOException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with I/O error");
+    return false;
+}
+catch (UnauthorizedAccessException ex)
+{
+    _logger.LogError(ex, "❌ [TEST] Kill switch test FAILED with access denied");
+    return false;
+}
+```
+
+**Example Pattern - Configuration Constants (S109)**:
+```csharp
+// Before (Violation)
+[Range(5000, 120000)] public int HttpTimeoutMs { get; set; } = 30000;
+[Range(3, 20)] public int CircuitBreakerThreshold { get; set; } = 5;
+
+// After (Compliant)
+private const int MinHttpTimeoutMs = 5000;
+private const int MaxHttpTimeoutMs = 120000;
+private const int MinCircuitBreakerThreshold = 3;
+private const int MaxCircuitBreakerThreshold = 20;
+
+[Range(MinHttpTimeoutMs, MaxHttpTimeoutMs)] public int HttpTimeoutMs { get; set; } = 30000;
+[Range(MinCircuitBreakerThreshold, MaxCircuitBreakerThreshold)] public int CircuitBreakerThreshold { get; set; } = 5;
+```
+
+**Rationale**: Enhanced production safety with specific exception handling in test/guardrail validation code, completed resilience configuration constants for HTTP and circuit breaker settings, optimized market data validation and statistical calculations for performance.
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1707 | 20+ | 0 | BacktestEnhancementConfiguration.cs | Renamed all constants from snake_case to PascalCase (MAX_BASE_SLIPPAGE_BPS → MaxBaseSlippageBps) |

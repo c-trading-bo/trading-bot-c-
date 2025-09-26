@@ -143,8 +143,7 @@ namespace TradingBot.BotCore.Services
             var result = new ManifestVerificationResult
             {
                 IsValid = false,
-                VerifiedAt = DateTime.UtcNow,
-                Errors = new List<string>()
+                VerifiedAt = DateTime.UtcNow
             };
 
             try
@@ -166,7 +165,7 @@ namespace TradingBot.BotCore.Services
                 // Verify signature
                 if (!VerifySignature(manifestJson, manifest.Signature, manifest.PublicKey))
                 {
-                    result.Errors.Add("Invalid manifest signature");
+                    result.AddError("Invalid manifest signature");
                     _logger.LogError("🚨 [INTEGRITY] Invalid signature for manifest: {Name}", manifest.Name);
                     return result;
                 }
@@ -175,7 +174,7 @@ namespace TradingBot.BotCore.Services
                 var expectedHash = CalculateContentHash(manifestJson);
                 if (manifest.ContentHash != expectedHash)
                 {
-                    result.Errors.Add("Manifest content hash mismatch");
+                    result.AddError("Manifest content hash mismatch");
                     _logger.LogError("🚨 [INTEGRITY] Content hash mismatch for manifest: {Name}", manifest.Name);
                     return result;
                 }
@@ -192,7 +191,7 @@ namespace TradingBot.BotCore.Services
                     if (!File.Exists(filePath))
                     {
                         missingFiles++;
-                        result.Errors.Add($"Missing file: {fileEntry.Key}");
+                        result.AddError($"Missing file: {fileEntry.Key}");
                         continue;
                     }
 
@@ -200,7 +199,7 @@ namespace TradingBot.BotCore.Services
                     if (currentHash != fileEntry.Value.Hash)
                     {
                         corruptFiles++;
-                        result.Errors.Add($"File integrity violation: {fileEntry.Key}");
+                        result.AddError($"File integrity violation: {fileEntry.Key}");
                         _logger.LogError("🚨 [INTEGRITY] File hash mismatch: {File}", fileEntry.Key);
                         continue;
                     }
@@ -228,7 +227,7 @@ namespace TradingBot.BotCore.Services
             }
             catch (Exception ex)
             {
-                result.Errors.Add($"Verification error: {ex.Message}");
+                result.AddError($"Verification error: {ex.Message}");
                 _logger.LogError(ex, "🚨 [INTEGRITY] Error verifying manifest: {Name}", manifest.Name);
                 return result;
             }
@@ -449,11 +448,24 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class ManifestVerificationResult
     {
+        private readonly List<string> _errors = new();
+        
         public bool IsValid { get; set; }
         public DateTime VerifiedAt { get; set; }
         public int VerifiedFiles { get; set; }
         public int MissingFiles { get; set; }
         public int CorruptFiles { get; set; }
-        public List<string> Errors { get; set; } = new();
+        public IReadOnlyList<string> Errors => _errors;
+        
+        public void ReplaceErrors(IEnumerable<string> errors)
+        {
+            _errors.Clear();
+            if (errors != null) _errors.AddRange(errors);
+        }
+        
+        public void AddError(string error)
+        {
+            if (!string.IsNullOrEmpty(error)) _errors.Add(error);
+        }
     }
 }

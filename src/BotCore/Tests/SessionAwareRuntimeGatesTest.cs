@@ -72,9 +72,24 @@ public static class SessionAwareDemoProgram
         {
             await SessionAwareRuntimeGatesTest.RunBasicTestAsync().ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"❌ Test failed: {ex.Message}");
+            Console.WriteLine($"❌ Test failed with invalid operation: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        catch (TimeoutException ex)
+        {
+            Console.WriteLine($"❌ Test failed with timeout: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"❌ Test failed with argument error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        catch (NotSupportedException ex)
+        {
+            Console.WriteLine($"❌ Test failed with unsupported operation: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }

@@ -403,8 +403,17 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
         return result;
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _httpClient?.Dispose();
+        }
+    }
+    
     public void Dispose()
     {
-        _httpClient?.Dispose();
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -78,6 +78,8 @@ public class TradingFeedbackService : BackgroundService
     /// </summary>
     public void SubmitTradingOutcome(TradingOutcome outcome)
     {
+        ArgumentNullException.ThrowIfNull(outcome);
+        
         try
         {
             _feedbackQueue.Enqueue(outcome);
@@ -97,6 +99,8 @@ public class TradingFeedbackService : BackgroundService
     /// </summary>
     public void SubmitPredictionFeedback(PredictionFeedback feedback)
     {
+        ArgumentNullException.ThrowIfNull(feedback);
+        
         try
         {
             var outcome = new TradingOutcome

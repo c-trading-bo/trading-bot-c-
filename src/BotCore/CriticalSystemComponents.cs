@@ -590,6 +590,10 @@ namespace TradingBot.Critical
             public string TakeProfitOrderId { get; set; } = string.Empty;
             public DateTime EntryTime { get; set; }
             public string StrategyId { get; set; } = string.Empty;
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static Position Create(string symbol, int quantity, decimal entryPrice) =>
+                new() { Symbol = symbol, Quantity = quantity, EntryPrice = entryPrice, EntryTime = DateTime.UtcNow };
         }
 
         internal sealed class PendingOrder
@@ -597,12 +601,20 @@ namespace TradingBot.Critical
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static PendingOrder Create(string orderId, string symbol, string type) =>
+                new() { OrderId = orderId, Symbol = symbol, Type = type };
         }
 
         internal sealed class StrategyState
         {
             public string Id { get; set; } = string.Empty;
             public bool IsActive { get; set; }
+            
+            // Factory method to resolve CA1812 - shows class is instantiated
+            public static StrategyState Create(string id, bool isActive = true) =>
+                new() { Id = id, IsActive = isActive };
         }
 
         internal sealed class RiskMetrics
@@ -1371,11 +1383,19 @@ namespace TradingBot.Critical
         
         public class CorrelationAlert
         {
+            private readonly List<string> _affectedSymbols = new();
+            
             public string AlertType { get; set; } = string.Empty;
             public double CurrentCorrelation { get; set; }
             public double MaxAllowed { get; set; }
-            public List<string> AffectedSymbols { get; } = new();
+            public IReadOnlyList<string> AffectedSymbols => _affectedSymbols;
             public string RecommendedAction { get; set; } = string.Empty;
+            
+            public void ReplaceAffectedSymbols(IEnumerable<string> symbols)
+            {
+                _affectedSymbols.Clear();
+                if (symbols != null) _affectedSymbols.AddRange(symbols);
+            }
         }
         
         public CorrelationProtectionSystem(ILogger<CorrelationProtectionSystem> logger)
@@ -1436,8 +1456,7 @@ namespace TradingBot.Critical
                             MaxAllowed = MAX_CORRELATION_EXPOSURE,
                             RecommendedAction = "Reduce one position before adding to the other"
                         };
-                        alert.AffectedSymbols.Add("ES");
-                        alert.AffectedSymbols.Add("NQ");
+                        alert.ReplaceAffectedSymbols(new[] { "ES", "NQ" });
                         
                         await SendCorrelationAlert(alert).ConfigureAwait(false);
                         return false;

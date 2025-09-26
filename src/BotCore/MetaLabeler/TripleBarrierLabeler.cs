@@ -113,7 +113,7 @@ public class TripleBarrierLabeler
         }
     }
 
-    private BarrierResult FindFirstBarrierHit(
+    private static BarrierResult FindFirstBarrierHit(
         HistoricalTradeSignal signal,
         IEnumerable<PriceBar> priceData,
         decimal profitTarget,

@@ -191,14 +191,14 @@ namespace BotCore.Risk
             _logger.LogInformation("[CRITICAL-SYSTEM] Memory cleanup completed - Freed: {MemoryFreedMB:F2}MB", memoryFreed);
         }
 
-        private async Task<double> GetCpuUsageAsync()
+        private static async Task<double> GetCpuUsageAsync()
         {
             await Task.Yield();
             // Real CPU usage calculation would go here
             return 15.0; // Placeholder value
         }
 
-        private (int WorkerThreads, int CompletionPortThreads) GetThreadPoolInfo()
+        private static (int WorkerThreads, int CompletionPortThreads) GetThreadPoolInfo()
         {
             ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
             return (workerThreads, completionPortThreads);

@@ -314,7 +314,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         return events;
     }
 
-    private List<string> GetAffectedSymbols(string currency, EventImpact impact)
+    private static List<string> GetAffectedSymbols(string currency, EventImpact impact)
     {
         var symbols = new List<string>();
 
@@ -332,7 +332,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         return symbols;
     }
 
-    private bool IsSymbolAffectedByEvent(string symbol, EconomicEvent economicEvent)
+    private static bool IsSymbolAffectedByEvent(string symbol, EconomicEvent economicEvent)
     {
         // Basic logic to determine if a symbol is affected by an event
         if (economicEvent.AffectedSymbols.Contains(symbol))
@@ -392,7 +392,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
     }
 
-    private bool ShouldAlertForEvent(EconomicEvent economicEvent, TimeSpan timeUntilEvent)
+    private static bool ShouldAlertForEvent(EconomicEvent economicEvent, TimeSpan timeUntilEvent)
     {
         return economicEvent.Impact switch
         {
@@ -403,7 +403,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         };
     }
 
-    private string GetRecommendedAction(EconomicEvent economicEvent)
+    private static string GetRecommendedAction(EconomicEvent economicEvent)
     {
         return economicEvent.Impact switch
         {
@@ -465,7 +465,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
     }
 
-    private bool ShouldRestrictForEvent(EconomicEvent economicEvent, TimeSpan timeUntilEvent)
+    private static bool ShouldRestrictForEvent(EconomicEvent economicEvent, TimeSpan timeUntilEvent)
     {
         return economicEvent.Impact switch
         {
@@ -503,7 +503,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
     }
 
-    private TimeSpan GetPostEventBuffer(EventImpact impact)
+    private static TimeSpan GetPostEventBuffer(EventImpact impact)
     {
         return impact switch
         {
@@ -514,20 +514,36 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         };
     }
 
-    public void Dispose()
+    protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
         {
-            try
+            if (disposing)
             {
-                _eventMonitor?.Dispose();
-                _restrictionUpdater?.Dispose();
-                _disposed = true;
+                // Dispose managed resources
+                try
+                {
+                    _eventMonitor?.Dispose();
+                    _restrictionUpdater?.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected when disposing - ignore
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("disposed", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Timer already disposed - log and continue
+                    _logger?.LogWarning(ex, "[EconomicEventManager] Timer already disposed during cleanup");
+                }
             }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "[EconomicEventManager] Error during disposal");
-            }
+
+            _disposed = true;
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

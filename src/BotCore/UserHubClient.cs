@@ -35,6 +35,10 @@ namespace BotCore
             {
                 _logger.LogError(ex, "Argument error in {EventName} handler", eventName);
             }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogWarning(ex, "Object disposed during {EventName} handler execution", eventName);
+            }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation in {EventName} handler", eventName);
@@ -42,6 +46,10 @@ namespace BotCore
             catch (NotSupportedException ex)
             {
                 _logger.LogError(ex, "Not supported in {EventName} handler", eventName);
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning(ex, "Timeout in {EventName} handler", eventName);
             }
             catch (OutOfMemoryException)
             {
@@ -53,9 +61,9 @@ namespace BotCore
                 // Critical system exception - rethrow
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is SystemException))
             {
-                _logger.LogError(ex, "Unexpected error in {EventName} handler - continuing", eventName);
+                _logger.LogError(ex, "Unexpected application error in {EventName} handler - continuing", eventName);
             }
         }
     }

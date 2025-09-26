@@ -146,6 +146,8 @@ public static class EnvConfig
     /// </summary>
     public static ExecutionMode GetExecutionMode(ExecutionContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        
         try
         {
             // kill.txt always forces DRY_RUN

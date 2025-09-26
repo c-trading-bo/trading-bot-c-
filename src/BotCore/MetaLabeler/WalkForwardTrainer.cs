@@ -167,7 +167,7 @@ public class WalkForwardTrainer
         return fold;
     }
 
-    private async Task<List<HistoricalTradeSignal>> GetHistoricalSignalsAsync(
+    private static async Task<List<HistoricalTradeSignal>> GetHistoricalSignalsAsync(
                         )
     {
         // Note: This needs integration with signal history storage system
@@ -301,7 +301,7 @@ public class WalkForwardTrainer
     /// <summary>
     /// Fallback evaluation using feature-based prediction when ONNX fails
     /// </summary>
-    private async Task<ValidationMetrics> EvaluateWithFeatureBasedPrediction(List<LabeledTradeData> testData)
+    private static async Task<ValidationMetrics> EvaluateWithFeatureBasedPrediction(List<LabeledTradeData> testData)
     {
         await Task.CompletedTask.ConfigureAwait(false);
         
@@ -335,7 +335,7 @@ public class WalkForwardTrainer
         return Math.Max(0.01m, Math.Min(0.99m, prediction));
     }
 
-    private ValidationMetrics CalculateMetrics(List<decimal> predictions, List<decimal> actuals)
+    private static ValidationMetrics CalculateMetrics(List<decimal> predictions, List<decimal> actuals)
     {
         if (predictions.Count != actuals.Count || predictions.Count == 0)
         {
@@ -376,7 +376,7 @@ public class WalkForwardTrainer
         };
     }
 
-    private ValidationMetrics CalculateOverallMetrics(List<ValidationFold> folds)
+    private static ValidationMetrics CalculateOverallMetrics(List<ValidationFold> folds)
     {
         var completedFolds = folds.Where(f => f.Status == FoldStatus.Completed && f.Metrics != null).ToList();
 

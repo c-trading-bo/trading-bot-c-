@@ -163,14 +163,35 @@ public class ProductionKillSwitchService : IHostedService, IDisposable
         return execute?.ToLowerInvariant() != "true" && autoExecute?.ToLowerInvariant() != "true";
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            try
+            {
+                _fileWatcher?.Dispose();
+                _periodicCheck?.Dispose();
+                
+                _logger.LogDebug("🗑️ [KILL-SWITCH] Kill switch service disposed");
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected during shutdown - ignore
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🗑️ [KILL-SWITCH] Error disposing resources");
+            }
+            finally
+            {
+                _disposed = true;
+            }
+        }
+    }
+
     public void Dispose()
     {
-        if (_disposed) return;
-        
-        _fileWatcher?.Dispose();
-        _periodicCheck?.Dispose();
-        _disposed = true;
-        
-        _logger.LogDebug("🗑️ [KILL-SWITCH] Kill switch service disposed");
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

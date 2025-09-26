@@ -196,6 +196,9 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class ModelCard
     {
+        private readonly List<TensorSpec> _inputSpecs = new();
+        private readonly List<TensorSpec> _outputSpecs = new();
+        
         public string ModelName { get; set; } = string.Empty;
         public string ModelVersion { get; set; } = string.Empty;
         public string InputSchemaVersion { get; set; } = "1.0";
@@ -208,12 +211,34 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Input tensor specifications
         /// </summary>
-        public List<TensorSpec> InputSpecs { get; set; } = new();
+        public IReadOnlyList<TensorSpec> InputSpecs => _inputSpecs;
 
         /// <summary>
         /// Output tensor specifications
         /// </summary>
-        public List<TensorSpec> OutputSpecs { get; set; } = new();
+        public IReadOnlyList<TensorSpec> OutputSpecs => _outputSpecs;
+        
+        public void ReplaceInputSpecs(IEnumerable<TensorSpec> specs)
+        {
+            _inputSpecs.Clear();
+            if (specs != null) _inputSpecs.AddRange(specs);
+        }
+        
+        public void ReplaceOutputSpecs(IEnumerable<TensorSpec> specs)
+        {
+            _outputSpecs.Clear();
+            if (specs != null) _outputSpecs.AddRange(specs);
+        }
+        
+        public void AddInputSpec(TensorSpec spec)
+        {
+            if (spec != null) _inputSpecs.Add(spec);
+        }
+        
+        public void AddOutputSpec(TensorSpec spec)
+        {
+            if (spec != null) _outputSpecs.Add(spec);
+        }
     }
 
     /// <summary>

@@ -45,11 +45,26 @@ namespace TradingBot.BotCore.Services
                     // Expected when cancellation is requested
                     break;
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] Error in backup loop");
-                    // Continue running even if backup fails
-                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false); // Retry in 1 hour
+                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] I/O error during backup");
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] Access denied during backup");
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] Invalid operation during backup");
+                    await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!(ex is SystemException))
+                {
+                    _logger.LogError(ex, "🚨 [STATE-DURABILITY] Application error in backup loop");
+                    // Continue running even if backup fails - retry in 1 hour
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false);
                 }
             }
 
@@ -86,11 +101,24 @@ namespace TradingBot.BotCore.Services
                     duration, backupFile);
 
             }
-            catch (Exception ex)
+            catch (DirectoryNotFoundException ex)
             {
-                _logger.LogError(ex, "🚨 [STATE-DURABILITY] Backup failed at {Timestamp}", backupStart);
-                
-                // Create critical alert
+                _logger.LogError(ex, "🚨 [STATE-DURABILITY] State directory not found during backup at {Timestamp}", backupStart);
+                await CreateBackupFailureAlertAsync(ex).ConfigureAwait(false);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "🚨 [STATE-DURABILITY] Access denied during backup at {Timestamp}", backupStart);
+                await CreateBackupFailureAlertAsync(ex).ConfigureAwait(false);
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "🚨 [STATE-DURABILITY] I/O error during backup at {Timestamp}", backupStart);
+                await CreateBackupFailureAlertAsync(ex).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "🚨 [STATE-DURABILITY] Invalid operation during backup at {Timestamp}", backupStart);
                 await CreateBackupFailureAlertAsync(ex).ConfigureAwait(false);
             }
         }

@@ -108,6 +108,8 @@ public class AutonomousDecisionEngine : BackgroundService
         IRiskManager riskManager,
         IOptions<AutonomousConfig> config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        
         _logger = logger;
         _serviceProvider = serviceProvider;
         _unifiedBrain = unifiedBrain;

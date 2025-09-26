@@ -444,9 +444,21 @@ This suppression requires review and approval.
                 await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 _logger.LogWarning("🚨 [SUPPRESSION] Alert created: {AlertPath}", alertPath);
             }
-            catch (Exception ex)
+            catch (DirectoryNotFoundException ex)
             {
-                _logger.LogError(ex, "Error creating suppression alert");
+                _logger.LogError(ex, "Alert directory not found when creating suppression alert");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied when creating suppression alert");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "I/O error when creating suppression alert");
+            }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError(ex, "Operation not supported when creating suppression alert");
             }
         }
     }
