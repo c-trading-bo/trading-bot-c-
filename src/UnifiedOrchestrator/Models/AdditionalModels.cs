@@ -4,6 +4,22 @@ using System.Collections.Generic;
 namespace TradingBot.UnifiedOrchestrator.Models;
 
 /// <summary>
+/// Training intensity levels for adaptive learning
+/// </summary>
+internal enum TrainingIntensity
+{
+    /// <summary>
+    /// Light learning during market hours (60 min intervals)
+    /// </summary>
+    Light,
+    
+    /// <summary>
+    /// Intensive learning during market closed (15 min intervals)
+    /// </summary>
+    Intensive
+}
+
+/// <summary>
 /// Telemetry data for cloud integration
 /// </summary>
 internal class TelemetryData

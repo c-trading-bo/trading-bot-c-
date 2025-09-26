@@ -10,8 +10,10 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
+using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using TradingBot.Backtest;
 using BotCore.Services;
 using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
 using BotCore.Compatibility;  // Add this for CompatibilityKitServiceExtensions
@@ -43,8 +45,64 @@ internal static class Program
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
     private const string TopstepXUserAgent = "TopstepX-TradingBot/1.0";
 
+    // Pre-host bootstrap function for idempotent setup
+    private static void Bootstrap()
+    {
+        void Dir(string p) { if (!Directory.Exists(p)) Directory.CreateDirectory(p); }
+        Dir("state"); Dir("state/backtests"); Dir("state/learning");
+        Dir("datasets"); Dir("datasets/features"); Dir("datasets/quotes");
+        Dir("reports"); Dir("artifacts"); Dir("artifacts/models"); Dir("artifacts/temp"); 
+        Dir("artifacts/current"); Dir("artifacts/previous"); Dir("artifacts/stage");
+        Dir("model_registry/models"); Dir("config/calendar"); Dir("manifests");
+        
+        var overrides = "state/runtime-overrides.json";
+        if (!File.Exists(overrides)) File.WriteAllText(overrides, "{}");
+        var s6 = "config/strategy.S6.json";
+        if (!File.Exists(s6)) File.WriteAllText(s6,
+            "{ \"name\":\"Momentum\",\"bands\":{\"bearish\":0.2,\"bullish\":0.8,\"hysteresis\":0.1},\"pacing\":1.0,\"tilt\":0.0,\"limits\":{\"spreadTicksMax\":2,\"latencyMsMax\":150},\"bracket\":{\"mode\":\"Auto\"} }");
+        var s11 = "config/strategy.S11.json";
+        if (!File.Exists(s11)) File.WriteAllText(s11,
+            "{ \"name\":\"Exhaustion\",\"bands\":{\"bearish\":0.25,\"bullish\":0.75,\"hysteresis\":0.08},\"pacing\":0.8,\"tilt\":0.0,\"limits\":{\"spreadTicksMax\":3,\"latencyMsMax\":200},\"bracket\":{\"mode\":\"Auto\"} }");
+        var hol = "config/calendar/holiday-cme.json";
+        if (!File.Exists(hol)) File.WriteAllText(hol, "2025-01-01\n2025-07-04\n2025-12-25\n");
+        
+        // Create sample manifest.json if it doesn't exist
+        var manifestPath = "manifests/manifest.json";
+        if (!File.Exists(manifestPath)) 
+        {
+            var sampleManifest = """
+            {
+              "Version": "1.2.0",
+              "CreatedAt": "2025-01-01T12:00:00Z",
+              "DriftScore": 0.08,
+              "Models": {
+                "confidence_model": {
+                  "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/confidence_v1.2.0.onnx",
+                  "Sha256": "d4f8c9b2e3a1567890abcdef1234567890abcdef1234567890abcdef12345678",
+                  "Size": 2048576
+                },
+                "rl_model": {
+                  "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/rl_v1.2.0.onnx",
+                  "Sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+                  "Size": 4194304
+                },
+                "ucb_model": {
+                  "Url": "https://github.com/ml-models/trading-models/releases/download/v1.2.0/ucb_v1.2.0.onnx", 
+                  "Sha256": "f6e5d4c3b2a1567890fedcba0987654321fedcba0987654321fedcba09876543",
+                  "Size": 1572864
+                }
+              }
+            }
+            """;
+            File.WriteAllText(manifestPath, sampleManifest);
+        }
+    }
+
     public static async Task Main(string[] args)
     {
+        // Pre-host bootstrap - create required directories and files before building host
+        Bootstrap();
+        
         // Load .env files in priority order for auto TopstepX configuration
         EnvironmentLoader.LoadEnvironmentFiles();
         
@@ -1046,8 +1104,8 @@ Stack Trace:
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
         
-        // Register BacktestLearningService for historical learning when markets are closed
-        services.AddHostedService<BacktestLearningService>();
+        // Legacy BacktestLearningService removed - using EnhancedBacktestLearningService instead
+        // services.AddHostedService<BacktestLearningService>(); // REMOVED
         
         // Register AutomaticDataSchedulerService for automatic scheduling of data processing
         services.AddHostedService<AutomaticDataSchedulerService>();
@@ -1115,6 +1173,52 @@ Stack Trace:
         // services.AddSingleton<UnifiedOrchestratorService>();
         // services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         // services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+
+        // ================================================================================
+        // ENHANCED LEARNING AND ADAPTIVE INTELLIGENCE SERVICES (APPEND-ONLY)
+        // ================================================================================
+        
+        // Guards & sessions
+        services.AddSingleton<IMarketHoursService, MarketHoursService>();
+        services.AddSingleton<ILiveTradingGate, LiveTradingGate>();
+        services.AddSingleton<CloudEgressGuardHandler>();
+
+        // Historical data: features → quotes → TopstepX (TopstepX local-only)
+        services.AddSingleton<IHistoricalDataProvider, FeaturesHistoricalProvider>();
+        services.AddSingleton<IHistoricalDataProvider, LocalQuotesProvider>();
+        services.AddHttpClient<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>(c => c.BaseAddress = new Uri("https://api.topstepx.com"))
+            .AddHttpMessageHandler<CloudEgressGuardHandler>();
+        services.AddSingleton<IHistoricalDataProvider>(sp => sp.GetRequiredService<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>());
+        services.AddSingleton<IHistoricalDataResolver, HistoricalDataResolver>();
+
+        // Adaptive layer
+        services.AddSingleton<IAdaptiveIntelligenceCoordinator, AdaptiveIntelligenceCoordinator>();
+        services.AddSingleton<IAdaptiveParameterService, AdaptiveParameterService>();
+        services.AddSingleton<IRuntimeConfigBus, RuntimeConfigBus>();
+
+        // Authentication service
+        services.AddSingleton<ITopstepAuth, TopstepAuth>();
+
+        // Model registry (now a hosted service) and canary watchdog
+        services.AddSingleton<ModelRegistry>();
+        services.AddSingleton<IModelRegistry>(provider => provider.GetRequiredService<ModelRegistry>());
+        services.AddHostedService(provider => provider.GetRequiredService<ModelRegistry>());
+        services.AddHostedService<CanaryWatchdog>();
+
+        // CloudRlTrainerV2 configuration and dependencies
+        services.Configure<CloudTrainer.CloudRlTrainerOptions>(configuration.GetSection("CloudRlTrainer"));
+        services.AddSingleton<CloudTrainer.IModelDownloader, CloudTrainer.HttpModelDownloader>();
+        services.AddSingleton<CloudTrainer.IModelHotSwapper, CloudTrainer.DefaultModelHotSwapper>();
+        services.AddSingleton<CloudTrainer.IPerformanceStore>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<CloudTrainer.CloudRlTrainerOptions>>().Value;
+            var logger = serviceProvider.GetRequiredService<ILogger<CloudTrainer.FileBasedPerformanceStore>>();
+            return new CloudTrainer.FileBasedPerformanceStore(options.Performance.PerformanceStore, logger);
+        });
+
+        // Hosted services (append-only) - Enhanced learning services
+        services.AddHostedService<EnhancedBacktestLearningService>();
+        services.AddHostedService<CloudTrainer.CloudRlTrainerV2>();
 
     }
 

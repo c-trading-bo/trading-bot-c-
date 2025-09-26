@@ -1,0 +1,1 @@
+{ "name":"Exhaustion","bands":{"bearish":0.25,"bullish":0.75,"hysteresis":0.08},"pacing":0.8,"tilt":0.0,"limits":{"spreadTicksMax":3,"latencyMsMax":200},"bracket":{"mode":"Auto"} }

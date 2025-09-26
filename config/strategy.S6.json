@@ -1,0 +1,1 @@
+{ "name":"Momentum","bands":{"bearish":0.2,"bullish":0.8,"hysteresis":0.1},"pacing":1.0,"tilt":0.0,"limits":{"spreadTicksMax":2,"latencyMsMax":150},"bracket":{"mode":"Auto"} }
