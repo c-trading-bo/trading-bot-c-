@@ -374,7 +374,7 @@ namespace TopstepX.S11
             private readonly Ema ema20 = new Ema(20), ema50 = new Ema(50);
             private readonly Rsi rsi14 = new Rsi(14);
             private readonly RvolBaseline rvolBase = new RvolBaseline(20);
-            public double ATR=0, ADX=0, RSI=50, RVOL=1.0;
+            public double ATR, ADX, RSI=50, RVOL=1.0;
 
             // session data
             public long IB_High = long.MinValue, IB_Low = long.MaxValue;
