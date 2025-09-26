@@ -86,6 +86,14 @@ namespace TopstepX.Bot.Core.Services
         public int BarsSeen => _barsSeen + _seededBars;
         public bool IsMlRlSystemReady => _mlRlSystemReady;
 
+        // Trading schedule constants
+        private const int InitialEvaluationDelayMs = 10000;      // Initial timer delay in milliseconds
+        private const int SundayMarketOpenHourEt = 18;           // Sunday market opens at 6 PM ET
+        private const int FridayMarketCloseHourEt = 17;          // Friday market closes at 5 PM ET  
+        private const int MaintenanceBreakHourEt = 17;           // Daily maintenance break at 5 PM ET
+        private const int VolatilityDecimalPrecision = 10;       // Decimal precision for volatility calculations
+        private const int MinimumBarsForTrading = 10;            // Minimum bars required before trading
+
         public class TradingSystemConfiguration
         {
             // Configuration constants
@@ -242,7 +250,7 @@ namespace TopstepX.Bot.Core.Services
                 if (_isSystemReady)
                 {
                     _tradingEvaluationTimer.Change(
-                        10000, // Initial delay in ms
+                        InitialEvaluationDelayMs, // Initial delay in ms
                         (int)TimeSpan.FromSeconds(_config.TradingEvaluationIntervalSeconds).TotalMilliseconds);
                 }
                 
@@ -306,16 +314,16 @@ namespace TopstepX.Bot.Core.Services
 
                 // Sunday: market opens at 6 PM ET
                 if (dayOfWeek == DayOfWeek.Sunday)
-                    return hour >= 18;
+                    return hour >= SundayMarketOpenHourEt;
 
                 // Friday: market closes at 5 PM ET
                 if (dayOfWeek == DayOfWeek.Friday)
-                    return hour < 17;
+                    return hour < FridayMarketCloseHourEt;
 
                 // Monday-Thursday: daily maintenance break 5-6 PM ET
                 if (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday)
                 {
-                    if (hour == 17) // 5 PM ET - maintenance break
+                    if (hour == MaintenanceBreakHourEt) // 5 PM ET - maintenance break
                         return false;
                 }
 
@@ -373,10 +381,10 @@ namespace TopstepX.Bot.Core.Services
 
                 // Validate system readiness
                 var totalBarsSeen = _barsSeen + _seededBars;
-                if (!_isSystemReady || totalBarsSeen < 10)
+                if (!_isSystemReady || totalBarsSeen < MinimumBarsForTrading)
                 {
-                    _logger.LogWarning("[ORDER] Order rejected - system not ready. BarsSeen: {BarsSeen}, Required: 10", totalBarsSeen);
-                    return OrderResult.Failed($"System not ready. BarsSeen: {totalBarsSeen}/10");
+                    _logger.LogWarning("[ORDER] Order rejected - system not ready. BarsSeen: {BarsSeen}, Required: {Required}", totalBarsSeen, MinimumBarsForTrading);
+                    return OrderResult.Failed($"System not ready. BarsSeen: {totalBarsSeen}/{MinimumBarsForTrading}");
                 }
 
                 // Round prices to ES/MES tick size (0.25)
@@ -1138,7 +1146,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Only process if ML/RL system is ready and we have sufficient data
-                if (!_mlRlSystemReady || _barsSeen < 10)
+                if (!_mlRlSystemReady || _barsSeen < MinimumBarsForTrading)
                     return;
 
                 // Check if enough time has passed since last feature update
@@ -1147,7 +1155,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Get bars for this symbol
-                if (!_barCache.TryGetValue(symbol, out var bars) || bars.Count < 10)
+                if (!_barCache.TryGetValue(symbol, out var bars) || bars.Count < MinimumBarsForTrading)
                     return;
 
                 // Generate real-time features
@@ -1319,7 +1327,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 // Get current market data and bars for analysis
                 if (!_priceCache.TryGetValue(symbol, out var marketData) || 
-                    !_barCache.TryGetValue(symbol, out var bars) || bars.Count < 10)
+                    !_barCache.TryGetValue(symbol, out var bars) || bars.Count < MinimumBarsForTrading)
                     return;
 
                 // Generate features for position management decision
@@ -1631,7 +1639,7 @@ namespace TopstepX.Bot.Core.Services
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;
             
             // Reduce score for insufficient bars
-            if (_barsSeen < 10) score -= 0.2;
+            if (_barsSeen < MinimumBarsForTrading) score -= 0.2;
             
             return Math.Max(0, score);
         }
