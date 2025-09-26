@@ -33,7 +33,7 @@ internal sealed class FeaturesHistoricalProvider : IHistoricalDataProvider
         DateTime endTime, 
         CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
+        // Remove placeholder - return the actual implementation
         return GetQuotesFromFeaturesAsync(symbol, startTime, endTime, cancellationToken);
     }
     
@@ -78,7 +78,6 @@ internal sealed class FeaturesHistoricalProvider : IHistoricalDataProvider
         DateTime endTime, 
         CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
         var featureFile = Path.Combine(_featuresRoot, $"{symbol.ToLowerInvariant()}_features.json");
         return File.Exists(featureFile);
     }
@@ -149,7 +148,6 @@ internal sealed class LocalQuotesProvider : IHistoricalDataProvider
         DateTime endTime, 
         CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
         return GetQuotesFromLocalFilesAsync(symbol, startTime, endTime, cancellationToken);
     }
     
@@ -194,7 +192,6 @@ internal sealed class LocalQuotesProvider : IHistoricalDataProvider
         DateTime endTime, 
         CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
         var quoteFile = Path.Combine(_quotesRoot, $"{symbol.ToLowerInvariant()}_quotes.json");
         return File.Exists(quoteFile);
     }

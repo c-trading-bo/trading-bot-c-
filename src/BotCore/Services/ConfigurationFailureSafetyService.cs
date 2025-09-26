@@ -107,6 +107,12 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class ConservativeDefaults
     {
+        // Trading schedule constants  
+        private const int TradingStartHour = 14;
+        private const int TradingStartMinute = 30;
+        private const int TradingEndHour = 20;
+        private const int TradingEndMinute = 30;
+        
         // Risk Management - Very conservative
         public decimal MaxPositionSizeMultiplier { get; } = 0.5m;
         public decimal RiskPerTrade { get; } = 100m; // $100 max

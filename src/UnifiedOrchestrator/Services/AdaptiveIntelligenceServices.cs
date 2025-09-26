@@ -56,22 +56,18 @@ internal sealed class AdaptiveIntelligenceCoordinator : BackgroundService, IAdap
         };
     }
     
-    public async Task<Dictionary<string, object>> GetAdaptiveParametersAsync(string context, CancellationToken cancellationToken = default)
+    public Task<Dictionary<string, object>> GetAdaptiveParametersAsync(string context, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         if (_adaptiveParameters.TryGetValue(context, out var parameters))
         {
-            return new Dictionary<string, object>(parameters);
+            return Task.FromResult(new Dictionary<string, object>(parameters));
         }
         
-        return new Dictionary<string, object>();
+        return Task.FromResult(new Dictionary<string, object>());
     }
     
-    public async Task UpdatePerformanceMetricsAsync(string context, Dictionary<string, double> metrics, CancellationToken cancellationToken = default)
+    public Task UpdatePerformanceMetricsAsync(string context, Dictionary<string, double> metrics, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         _performanceMetrics.AddOrUpdate(context, metrics, (key, existing) =>
         {
             foreach (var kvp in metrics)
@@ -82,12 +78,11 @@ internal sealed class AdaptiveIntelligenceCoordinator : BackgroundService, IAdap
         });
         
         _logger.LogDebug("Updated performance metrics for context {Context}: {@Metrics}", context, metrics);
+        return Task.CompletedTask;
     }
     
-    public async Task TriggerAdaptationAsync(string reason, CancellationToken cancellationToken = default)
+    public Task TriggerAdaptationAsync(string reason, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
-        
         _logger.LogInformation("Triggered adaptation: {Reason}", reason);
         
         // Adapt UCB parameters based on performance
@@ -116,6 +111,8 @@ internal sealed class AdaptiveIntelligenceCoordinator : BackgroundService, IAdap
             bracketParameters["frozen_per_position"] = true; // Bracket UCB frozen per position epoch
             _logger.LogDebug("Set bracket UCB frozen per position epoch");
         }
+        
+        return Task.CompletedTask;
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
