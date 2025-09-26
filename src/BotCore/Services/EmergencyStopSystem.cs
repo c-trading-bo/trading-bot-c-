@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -60,9 +61,21 @@ namespace TopstepX.Bot.Core.Services
             {
                 // Expected during shutdown
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "❌ Emergency Stop System failed");
+                _logger.LogError(ex, "❌ Emergency Stop System failed - access denied");
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "❌ Emergency Stop System failed - directory not found");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "❌ Emergency Stop System failed - I/O error");
+            }
+            catch (SecurityException ex)
+            {
+                _logger.LogError(ex, "❌ Emergency Stop System failed - security error");
             }
             finally
             {
@@ -83,9 +96,21 @@ namespace TopstepX.Bot.Core.Services
                 
                 _logger.LogDebug("📂 File watcher setup for {Directory}", directory);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "❌ Failed to setup file watcher");
+                _logger.LogError(ex, "❌ Failed to setup file watcher - invalid argument");
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to setup file watcher - directory not found");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to setup file watcher - access denied");
+            }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to setup file watcher - not supported");
             }
         }
         
@@ -104,9 +129,17 @@ namespace TopstepX.Bot.Core.Services
                     TriggerEmergencyStop("kill.txt file detected");
                 }
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "❌ Error checking kill file");
+                _logger.LogError(ex, "❌ Error checking kill file - access denied");
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "❌ Error checking kill file - directory not found");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "❌ Error checking kill file - I/O error");
             }
         }
         

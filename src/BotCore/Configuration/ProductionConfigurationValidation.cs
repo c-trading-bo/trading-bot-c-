@@ -62,6 +62,16 @@ public class TradingConfiguration
     private const double MaxAIConfidenceThreshold = 0.95;
     private const double MinPositionSizeMultiplier = 0.5;
     private const double MaxPositionSizeMultiplier = 5.0;
+    private const double MinRegimeDetectionThreshold = 0.1;
+    private const double MaxRegimeDetectionThreshold = 1.0;
+    private const double MinStopLossBufferPercentage = 0.01;
+    private const double MaxStopLossBufferPercentage = 0.2;
+    private const double MinRewardRiskRatio = 1.0;
+    private const double MaxRewardRiskRatio = 3.0;
+    private const int MinTokenRefreshIntervalSeconds = 3600;
+    private const int MaxTokenRefreshIntervalSeconds = 86400;
+    private const double MinVolatilityAdjustmentFactor = 0.01;
+    private const double MaxVolatilityAdjustmentFactor = 0.5;
     
     // Default values as constants
     private const int DefaultMaxPositionSize = 5;
@@ -129,7 +139,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 1.0 value for regime detection
     /// </summary>
     [Required]
-    [Range(0.1, 1.0)]
+    [Range(MinRegimeDetectionThreshold, MaxRegimeDetectionThreshold)]
     public double RegimeDetectionThreshold { get; set; } = 0.8;
 
     /// <summary>
@@ -137,7 +147,7 @@ public class TradingConfiguration
     /// Replaces hardcoded 0.05 value
     /// </summary>
     [Required]
-    [Range(0.01, 0.2)]
+    [Range(MinStopLossBufferPercentage, MaxStopLossBufferPercentage)]
     public double StopLossBufferPercentage { get; set; } = 0.04;
 
     /// <summary>
@@ -145,14 +155,14 @@ public class TradingConfiguration
     /// Replaces hardcoded 1.2 value
     /// </summary>
     [Required]
-    [Range(1.0, 3.0)]
+    [Range(MinRewardRiskRatio, MaxRewardRiskRatio)]
     public double RewardRiskRatioThreshold { get; set; } = 1.5;
 
     /// <summary>
     /// Minimum confidence for model fallback scenarios
     /// Replaces hardcoded 0.1 value
     /// </summary>
-    [Range(0.01, 0.5)]
+    [Range(MinVolatilityAdjustmentFactor, MaxVolatilityAdjustmentFactor)]
     public double? MinimumConfidence { get; set; } = 0.1;
 }
 
@@ -216,7 +226,7 @@ public class SecurityConfiguration
     public bool RotateTokens { get; set; } = true;
 
     [Required]
-    [Range(3600, 86400)]
+    [Range(MinTokenRefreshIntervalSeconds, MaxTokenRefreshIntervalSeconds)]
     public int TokenRefreshIntervalSeconds { get; set; } = 3600;
 
     /// <summary>
