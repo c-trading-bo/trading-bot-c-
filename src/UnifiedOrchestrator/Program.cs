@@ -1204,6 +1204,14 @@ Stack Trace:
         services.AddSingleton<IModelRegistry>(provider => provider.GetRequiredService<ModelRegistry>());
         services.AddHostedService(provider => provider.GetRequiredService<ModelRegistry>());
         services.AddHostedService<CanaryWatchdog>();
+        
+        // Brain hot-reload service for ONNX session swapping
+        services.AddSingleton<BotCore.ML.OnnxModelLoader>();
+        services.AddHostedService<BrainHotReloadService>();
+        
+        // Cloud model integration service to connect CloudRlTrainerV2 to model registry
+        services.AddHostedService<CloudTrainer.CloudRlTrainerV2>();
+        services.AddHostedService<CloudModelIntegrationService>();
 
         // CloudRlTrainerV2 configuration and dependencies
         services.Configure<CloudTrainer.CloudRlTrainerOptions>(configuration.GetSection("CloudRlTrainer"));

@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2024-01-01T10:00:00Z",
+  "driftScore": 0.08,
+  "models": {
+    "confidence_model": {
+      "url": "https://example.com/confidence.onnx",
+      "sha256": "abcd1234567890abcd1234567890abcd1234567890abcd1234567890abcd1234",
+      "size": 1024000
+    }
+  }
+}
