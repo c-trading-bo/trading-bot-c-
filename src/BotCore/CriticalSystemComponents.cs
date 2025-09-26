@@ -26,7 +26,7 @@ namespace TradingBot.Critical
     // COMPONENT 1: EXECUTION VERIFICATION SYSTEM
     // ================================================================================
     
-    public class ExecutionVerificationSystem
+    public class ExecutionVerificationSystem : IDisposable
     {
         private readonly ConcurrentDictionary<string, OrderRecord> _pendingOrders = new();
         private readonly ConcurrentDictionary<string, FillRecord> _confirmedFills = new();
@@ -36,7 +36,7 @@ namespace TradingBot.Critical
         private readonly object _lockObject = new();
         private readonly ILogger<ExecutionVerificationSystem> _logger;
         
-        public class OrderRecord
+        internal class OrderRecord
         {
             public string OrderId { get; set; } = string.Empty;
             public string ClientOrderId { get; set; } = string.Empty;
@@ -59,7 +59,7 @@ namespace TradingBot.Critical
             }
         }
         
-        public class FillRecord
+        internal class FillRecord
         {
             public string FillId { get; set; } = string.Empty;
             public string OrderId { get; set; } = string.Empty;
@@ -539,7 +539,7 @@ namespace TradingBot.Critical
     // COMPONENT 2: DISASTER RECOVERY PROTOCOL
     // ================================================================================
     
-    public class DisasterRecoverySystem
+    public class DisasterRecoverySystem : IDisposable
     {
         private readonly string _stateFile = "trading_state.json";
         private readonly string _backupStateFile = "trading_state.backup.json";
