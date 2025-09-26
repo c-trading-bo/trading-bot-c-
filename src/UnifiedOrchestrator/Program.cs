@@ -10,8 +10,10 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
+using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using TradingBot.Backtest;
 using BotCore.Services;
 using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
 using BotCore.Compatibility;  // Add this for CompatibilityKitServiceExtensions
@@ -43,8 +45,30 @@ internal static class Program
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
     private const string TopstepXUserAgent = "TopstepX-TradingBot/1.0";
 
+    // Pre-host bootstrap function for idempotent setup
+    private static void Bootstrap()
+    {
+        void Dir(string p) { if (!Directory.Exists(p)) Directory.CreateDirectory(p); }
+        Dir("state"); Dir("state/backtests"); Dir("state/learning");
+        Dir("datasets"); Dir("datasets/features"); Dir("datasets/quotes");
+        Dir("reports"); Dir("artifacts"); Dir("model_registry/models"); Dir("config/calendar");
+        var overrides = "state/runtime-overrides.json";
+        if (!File.Exists(overrides)) File.WriteAllText(overrides, "{}");
+        var s6 = "config/strategy.S6.json";
+        if (!File.Exists(s6)) File.WriteAllText(s6,
+            "{ \"name\":\"Momentum\",\"bands\":{\"bearish\":0.2,\"bullish\":0.8,\"hysteresis\":0.1},\"pacing\":1.0,\"tilt\":0.0,\"limits\":{\"spreadTicksMax\":2,\"latencyMsMax\":150},\"bracket\":{\"mode\":\"Auto\"} }");
+        var s11 = "config/strategy.S11.json";
+        if (!File.Exists(s11)) File.WriteAllText(s11,
+            "{ \"name\":\"Exhaustion\",\"bands\":{\"bearish\":0.25,\"bullish\":0.75,\"hysteresis\":0.08},\"pacing\":0.8,\"tilt\":0.0,\"limits\":{\"spreadTicksMax\":3,\"latencyMsMax\":200},\"bracket\":{\"mode\":\"Auto\"} }");
+        var hol = "config/calendar/holiday-cme.json";
+        if (!File.Exists(hol)) File.WriteAllText(hol, "2025-01-01\n2025-07-04\n2025-12-25\n");
+    }
+
     public static async Task Main(string[] args)
     {
+        // Pre-host bootstrap - create required directories and files before building host
+        Bootstrap();
+        
         // Load .env files in priority order for auto TopstepX configuration
         EnvironmentLoader.LoadEnvironmentFiles();
         
@@ -1115,6 +1139,32 @@ Stack Trace:
         // services.AddSingleton<UnifiedOrchestratorService>();
         // services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         // services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+
+        // ================================================================================
+        // ENHANCED LEARNING AND ADAPTIVE INTELLIGENCE SERVICES (APPEND-ONLY)
+        // ================================================================================
+        
+        // Guards & sessions
+        services.AddSingleton<IMarketHoursService, MarketHoursService>();
+        services.AddSingleton<ILiveTradingGate, LiveTradingGate>();
+        services.AddSingleton<CloudEgressGuardHandler>();
+
+        // Historical data: features → quotes → TopstepX (TopstepX local-only)
+        services.AddSingleton<IHistoricalDataProvider, FeaturesHistoricalProvider>();
+        services.AddSingleton<IHistoricalDataProvider, LocalQuotesProvider>();
+        services.AddHttpClient<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>(c => c.BaseAddress = new Uri("https://api.topstepx.com"))
+            .AddHttpMessageHandler<CloudEgressGuardHandler>();
+        services.AddSingleton<IHistoricalDataProvider>(sp => sp.GetRequiredService<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>());
+        services.AddSingleton<IHistoricalDataResolver, HistoricalDataResolver>();
+
+        // Adaptive layer
+        services.AddSingleton<IAdaptiveIntelligenceCoordinator, AdaptiveIntelligenceCoordinator>();
+        services.AddSingleton<IAdaptiveParameterService, AdaptiveParameterService>();
+        services.AddSingleton<IRuntimeConfigBus, RuntimeConfigBus>();
+
+        // Hosted services (append-only) - Enhanced learning services
+        services.AddHostedService<EnhancedBacktestLearningService>();
+        services.AddHostedService<CloudTrainer.CloudRlTrainerV2>();
 
     }
 
