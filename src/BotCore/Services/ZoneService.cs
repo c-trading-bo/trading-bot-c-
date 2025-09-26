@@ -328,6 +328,8 @@ public class ZoneService : IZoneService, ISupplyDemandService
     // Enhanced methods implementing the interface requirements
     public async Task<Zone> GetNearestZoneAsync(decimal price, string zoneType)
     {
+        if (zoneType is null) throw new ArgumentNullException(nameof(zoneType));
+        
         try
         {
             _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false);

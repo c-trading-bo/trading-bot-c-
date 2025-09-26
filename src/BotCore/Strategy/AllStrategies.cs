@@ -891,6 +891,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S9(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.8m)
             {
@@ -904,6 +907,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S10(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.9m)
             {
@@ -941,6 +947,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S12(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.0m)
             {
@@ -954,6 +963,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S13(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.0m)
             {
@@ -967,6 +979,9 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S14(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
+            if (env is null) throw new ArgumentNullException(nameof(env));
+            if (bars is null) throw new ArgumentNullException(nameof(bars));
+            
             var lst = new List<Candidate>();
             if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 1.1m)
             {

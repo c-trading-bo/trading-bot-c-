@@ -601,6 +601,8 @@ namespace BotCore
         /// </summary>
         public static void LogTradeOutcome(ILogger log, EnhancedTradeOutcome outcome)
         {
+            if (outcome is null) throw new ArgumentNullException(nameof(outcome));
+            
             try
             {
                 lock (FileLock)
@@ -652,6 +654,8 @@ namespace BotCore
         /// </summary>
         public static TradeSignalData ConvertToTradeSignalData(ComprehensiveFeatures features, string signalId)
         {
+            if (features is null) throw new ArgumentNullException(nameof(features));
+            
             return new TradeSignalData
             {
                 Id = signalId,
@@ -680,6 +684,8 @@ namespace BotCore
         /// </summary>
         public static TradeOutcomeData ConvertToTradeOutcomeData(EnhancedTradeOutcome outcome)
         {
+            if (outcome is null) throw new ArgumentNullException(nameof(outcome));
+            
             return new TradeOutcomeData
             {
                 IsWin = outcome.IsWin,

@@ -162,11 +162,33 @@ public static List<Candidate> S4(string symbol, Env env, Levels levels, IList<Ba
 }
 ```
 
+#### Round 7 - Completing Strategy Methods & ML Services (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1062 | 208 | 176 | AllStrategies.cs (S9, S10, S12-S14), ZoneService.cs, OnnxModelValidationService.cs, MultiStrategyRlCollector.cs | ArgumentNullException guards for remaining strategy methods and ML services |
+| CA1822 | ~154 | ~151 | TradingSystemIntegrationService.cs | Made additional utility methods static (CreateMarketSnapshot, CalculateVolZ, CalculateRMultiple) |
+
+**Example Pattern**:
+```csharp
+// Before (Violation) - Missing null guard in ML service
+public void AddModelPaths(IEnumerable<string> modelPaths)
+{
+    foreach (var path in modelPaths) { AddModelPath(path); }
+}
+
+// After (Compliant) - With null guard
+public void AddModelPaths(IEnumerable<string> modelPaths)
+{
+    if (modelPaths is null) throw new ArgumentNullException(nameof(modelPaths));
+    foreach (var path in modelPaths) { AddModelPath(path); }
+}
+```
+
 ### Next Phase Actions
 
 #### Immediate Priority (Current Focus)
 1. **CA1031**: Exception handling patterns (~970 violations) - Analysis started
-2. **CA1062**: Continue null guard implementation (~208 violations)
+2. **CA1062**: Continue null guard implementation (~176 violations)
 3. **S109**: Continue magic number elimination (~3,268 violations)
 
 #### Production Readiness Criteria
