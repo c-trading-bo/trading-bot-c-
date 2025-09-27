@@ -11,28 +11,35 @@ namespace TradingBot.BotCore.Services
     {
         private readonly IConfiguration _config;
 
+        // Trading bracket constants
+        private const double DefaultTakeProfitAtrMultipleValue = 2.0;
+        private const double DefaultStopLossAtrMultipleValue = 1.0;
+        private const double MinRewardRiskRatioValue = 1.2;
+        private const double MaxRewardRiskRatioValue = 5.0;
+        private const double TrailingStopAtrMultipleValue = 0.8;
+
         public BracketConfigService(IConfiguration config)
         {
             _config = config;
         }
 
         public double GetDefaultTakeProfitAtrMultiple() => 
-            _config.GetValue("Bracket:DefaultTakeProfitAtrMultiple", 2.0);
+            _config.GetValue("Bracket:DefaultTakeProfitAtrMultiple", DefaultTakeProfitAtrMultipleValue);
 
         public double GetDefaultStopLossAtrMultiple() => 
-            _config.GetValue("Bracket:DefaultStopLossAtrMultiple", 1.0);
+            _config.GetValue("Bracket:DefaultStopLossAtrMultiple", DefaultStopLossAtrMultipleValue);
 
         public double GetMinRewardRiskRatio() => 
-            _config.GetValue("Bracket:MinRewardRiskRatio", 1.2);
+            _config.GetValue("Bracket:MinRewardRiskRatio", MinRewardRiskRatioValue);
 
         public double GetMaxRewardRiskRatio() => 
-            _config.GetValue("Bracket:MaxRewardRiskRatio", 5.0);
+            _config.GetValue("Bracket:MaxRewardRiskRatio", MaxRewardRiskRatioValue);
 
         public bool EnableTrailingStops() => 
             _config.GetValue("Bracket:EnableTrailingStops", false);
 
         public double GetTrailingStopAtrMultiple() => 
-            _config.GetValue("Bracket:TrailingStopAtrMultiple", 0.8);
+            _config.GetValue("Bracket:TrailingStopAtrMultiple", TrailingStopAtrMultipleValue);
 
         public string GetDefaultBracketMode() => 
             _config.GetValue("Bracket:DefaultBracketMode", "OCO");
@@ -45,10 +52,10 @@ namespace TradingBot.BotCore.Services
 
         // Additional methods needed by consuming code
         public double GetDefaultStopAtrMultiple() =>
-            _config.GetValue("Bracket:DefaultStopAtrMultiple", 1.0);
+            _config.GetValue("Bracket:DefaultStopAtrMultiple", DefaultStopLossAtrMultipleValue);
 
         public double GetDefaultTargetAtrMultiple() =>
-            _config.GetValue("Bracket:DefaultTargetAtrMultiple", 2.0);
+            _config.GetValue("Bracket:DefaultTargetAtrMultiple", DefaultTakeProfitAtrMultipleValue);
 
         public bool EnableTrailingStop => 
             _config.GetValue("Bracket:EnableTrailingStop", false);
