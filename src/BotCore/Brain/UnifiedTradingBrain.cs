@@ -6,6 +6,7 @@ using BotCore.Models;
 using BotCore.ML;
 using BotCore.Bandits;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using TradingBot.RLAgent; // For CVaRPPO and ActionResult
 
@@ -1722,7 +1723,7 @@ namespace BotCore.Brain
         public decimal PriceProbability { get; set; }
         public decimal OptimalPositionMultiplier { get; set; }
         public MarketRegime MarketRegime { get; set; }
-        public List<Candidate> EnhancedCandidates { get; set; } = new();
+        public IReadOnlyList<Candidate> EnhancedCandidates { get; set; } = new List<Candidate>();
         public DateTime DecisionTime { get; set; }
         public double ProcessingTimeMs { get; set; }
         public decimal ModelConfidence { get; set; }

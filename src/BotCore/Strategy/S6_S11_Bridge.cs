@@ -491,9 +491,13 @@ namespace BotCore.Strategy
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                logger?.LogError(ex, "[S6Bridge] Strategy candidate generation failed");
+                logger?.LogError(ex, "[S6Bridge] Invalid operation in strategy candidate generation");
+            }
+            catch (ArgumentException ex)
+            {
+                logger?.LogError(ex, "[S6Bridge] Invalid argument in strategy candidate generation");
             }
 
             return candidates;
@@ -567,9 +571,13 @@ namespace BotCore.Strategy
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                logger?.LogError(ex, "[S11Bridge] Strategy candidate generation failed");
+                logger?.LogError(ex, "[S11Bridge] Invalid operation in strategy candidate generation");
+            }
+            catch (ArgumentException ex)
+            {
+                logger?.LogError(ex, "[S11Bridge] Invalid argument in strategy candidate generation");
             }
 
             return candidates;

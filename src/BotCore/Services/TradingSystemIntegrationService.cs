@@ -639,9 +639,17 @@ namespace TopstepX.Bot.Core.Services
                     _lastFeatureUpdate[symbol] = DateTime.UtcNow;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-STRATEGY] Error in ML/RL-enhanced strategy evaluation for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-STRATEGY] Invalid operation in ML/RL-enhanced strategy evaluation for {Symbol}", symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-STRATEGY] Invalid argument in ML/RL-enhanced strategy evaluation for {Symbol}", symbol);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("[ML/RL-STRATEGY] ML/RL-enhanced strategy evaluation cancelled for {Symbol}", symbol);
             }
         }
 
@@ -698,7 +706,7 @@ namespace TopstepX.Bot.Core.Services
         /// <summary>
         /// Convert AllStrategies candidates to standardized signals
         /// </summary>
-        private static List<Signal> ConvertCandidatesToSignals(List<Candidate> candidates)
+        private static List<Signal> ConvertCandidatesToSignals(IReadOnlyList<Candidate> candidates)
         {
             var signals = new List<Signal>();
             
@@ -755,8 +763,8 @@ namespace TopstepX.Bot.Core.Services
         /// Aggregate and validate signals from AllStrategies, ML models, and converted signals
         /// </summary>
         private List<Signal> AggregateAndValidateSignals(
-            List<Candidate> allStrategiesCandidates, 
-            List<Candidate> mlEnhancedCandidates, 
+            IReadOnlyList<Candidate> allStrategiesCandidates, 
+            IReadOnlyList<Candidate> mlEnhancedCandidates, 
             List<Signal> allStrategiesSignals, 
             string symbol)
         {
@@ -790,9 +798,14 @@ namespace TopstepX.Bot.Core.Services
 
                 return groupedSignals;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-AGGREGATION] Error aggregating signals for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-AGGREGATION] Invalid operation aggregating signals for {Symbol}", symbol);
+                return new List<Signal>();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-AGGREGATION] Invalid argument aggregating signals for {Symbol}", symbol);
                 return new List<Signal>();
             }
         }
@@ -848,9 +861,17 @@ namespace TopstepX.Bot.Core.Services
                 // Place order through existing system
                 await PlaceOrderAsync(orderRequest).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-EXECUTION] Error processing ML/RL enhanced signal for {Symbol}", signal.Symbol);
+                _logger.LogError(ex, "[ML/RL-EXECUTION] Invalid operation processing ML/RL enhanced signal for {Symbol}", signal.Symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-EXECUTION] Invalid argument processing ML/RL enhanced signal for {Symbol}", signal.Symbol);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("[ML/RL-EXECUTION] Processing ML/RL enhanced signal cancelled for {Symbol}", signal.Symbol);
             }
         }
 
@@ -1039,9 +1060,14 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("🤖 [ML/RL] Components initialized for {ContractCount} contracts: {Contracts} - TimeOptimizedStrategyManager, StrategyAgent, FeatureEngineering, StrategyMlModelManager ready (MES/MNQ excluded)", 
                     _chosenContracts.Length, string.Join(", ", _chosenContracts));
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "❌ [ML/RL] Failed to initialize ML/RL components");
+                _logger.LogError(ex, "❌ [ML/RL] Invalid operation initializing ML/RL components");
+                _mlRlSystemReady = false;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "❌ [ML/RL] Invalid argument initializing ML/RL components");
                 _mlRlSystemReady = false;
             }
         }
@@ -1111,9 +1137,13 @@ namespace TopstepX.Bot.Core.Services
                 {
                     await EvaluateTradeOpportunitiesAsync().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    _logger.LogError(ex, "[STRATEGY] Error in timer callback");
+                    _logger.LogError(ex, "[STRATEGY] Invalid operation in timer callback");
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("[STRATEGY] Timer callback operation cancelled");
                 }
             });
         }
@@ -1163,9 +1193,13 @@ namespace TopstepX.Bot.Core.Services
                         Px.F2(marketData.LastPrice), _barsSeen);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[MARKET_DATA] Error processing market data");
+                _logger.LogError(ex, "[MARKET_DATA] Invalid operation processing market data");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[MARKET_DATA] Invalid argument processing market data");
             }
             
             return Task.CompletedTask;

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
+using System.Collections.ObjectModel;
 
 namespace BotCore.ML;
 
@@ -238,7 +239,7 @@ public sealed class OnnxModelValidationService
         // Populate the readonly collection via Add method
         foreach (var failedModel in failedModels)
         {
-            summary.FailedModelPaths.Add(failedModel.ModelPath);
+            summary.AddFailedModelPath(failedModel.ModelPath);
         }
         
         return summary;
@@ -252,8 +253,11 @@ public sealed class OnnxModelValidationService
         public double SuccessRate { get; set; }
         public double TotalLoadTimeMs { get; set; }
         public long TotalMemoryUsageMB { get; set; }
-        public List<string> FailedModelPaths { get; } = new();
+        private readonly List<string> _failedModelPaths = new();
+        public IReadOnlyList<string> FailedModelPaths => _failedModelPaths;
         public DateTime ValidationDate { get; set; }
+        
+        internal void AddFailedModelPath(string path) => _failedModelPaths.Add(path);
     }
 
     /// <summary>

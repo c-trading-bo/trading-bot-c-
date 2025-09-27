@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace BotCore.Execution;
 
@@ -70,7 +71,7 @@ public record MicrostructureState
     public bool IsVolatile { get; init; } // High micro-volatility flag
     public bool IsLiquid { get; init; } // High volume/tight spread flag
     public MarketSession Session { get; init; }
-    public List<RecentTrade> RecentTrades { get; init; } = new();
+    public IReadOnlyList<RecentTrade> RecentTrades { get; init; } = new List<RecentTrade>();
 }
 
 /// <summary>
