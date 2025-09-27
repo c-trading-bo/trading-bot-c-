@@ -63,3 +63,7 @@ tools/build.log
 tools/cs_error_counts.txt
 tools/analyzers/*.sarif
 tools/analyzers/*.tsv
+
+# Automated artifacts and generated files
+artifacts_backup/
+trading.db*
