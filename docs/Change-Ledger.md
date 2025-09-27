@@ -35,7 +35,47 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 21 - Phase 2 CA1034 & S109 Systematic Fixes (Current Session)
+#### Round 22 - Phase 2 S109 & CA1510 ML/API Configuration Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 2830+ | 2820+ | MLConfigurationService.cs, ProductionTopstepXApiClient.cs, Program.cs | Named constants for ML configuration defaults, HTTP timeouts, retry parameters, and exit codes |
+| CA1510 | 1 | 0 | MLConfigurationService.cs | Replaced manual ArgumentNullException with ArgumentNullException.ThrowIfNull |
+
+**Example Pattern - S109 ML Configuration Constants**:
+```csharp
+// Before (Violation)
+public double GetMinimumConfidence() => _config.MinimumConfidence ?? 0.1;
+var confidenceAdjustment = Math.Min(confidence / threshold, 1.5);
+var volatilityAdjustment = Math.Max(0.5, 1.0 - volatility);
+
+// After (Compliant)
+private const double DefaultMinimumConfidence = 0.1;
+private const double MaxConfidenceAdjustment = 1.5;
+private const double MinVolatilityAdjustment = 0.5;
+
+public double GetMinimumConfidence() => _config.MinimumConfidence ?? DefaultMinimumConfidence;
+var confidenceAdjustment = Math.Min(confidence / threshold, MaxConfidenceAdjustment);
+var volatilityAdjustment = Math.Max(MinVolatilityAdjustment, BaseAdjustmentValue - volatility);
+```
+
+**Example Pattern - S109 HTTP Client Constants**:
+```csharp
+// Before (Violation)
+_httpClient.Timeout = TimeSpan.FromSeconds(30);
+var baseDelay = TimeSpan.FromSeconds(1);
+var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
+
+// After (Compliant)
+private const int HttpTimeoutSeconds = 30;
+private const int RetryBaseDelaySeconds = 1;
+private const int RetryJitterMaxMilliseconds = 1000;
+
+_httpClient.Timeout = TimeSpan.FromSeconds(HttpTimeoutSeconds);
+var baseDelay = TimeSpan.FromSeconds(RetryBaseDelaySeconds);
+var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, RetryJitterMaxMilliseconds));
+```
+
+#### Round 21 - Phase 2 CA1034 & S109 Systematic Fixes (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1034 | 8+ | 3+ | OrderFillConfirmationSystem.cs, PositionTrackingSystem.cs | Extracted nested types to separate BotCore.Models classes |
