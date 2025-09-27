@@ -34,7 +34,6 @@
     <ProjectReference Include="..\BotCore\BotCore.csproj" />
     <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
     <ProjectReference Include="..\IntelligenceStack\IntelligenceStack.csproj" />
-    <ProjectReference Include="..\OrchestratorAgent\OrchestratorAgent.csproj" />
   </ItemGroup>
   
   <ItemGroup>
