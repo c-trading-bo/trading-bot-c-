@@ -1369,6 +1369,14 @@ namespace TradingBot.Critical
         private readonly Timer? _correlationUpdateTimer;
         private const double MAX_CORRELATION_EXPOSURE = 0.7;
         private const double ES_NQ_CORRELATION = 0.85;
+        
+        // Portfolio Risk Constants
+        private const decimal MaxPortfolioConcentration = 0.5m;       // Maximum single direction portfolio percentage
+        private const decimal HedgeReductionFactor = 0.5m;           // Hedge risk reduction multiplier
+        private const int ProcessingDelayMs = 100;                   // Brief processing delay in milliseconds
+        private const decimal MaxSingleExposure = 10000m;            // Maximum single position exposure
+        private const decimal MaxESNQCombinedExposure = 5000m;       // Maximum combined ES/NQ exposure
+        
         private readonly ILogger<CorrelationProtectionSystem> _logger;
         
         public class PositionExposure
@@ -1467,7 +1475,7 @@ namespace TradingBot.Critical
             // Check portfolio concentration
             var concentration = CalculatePortfolioConcentration();
             
-            if (concentration > 0.5m) // No single direction > 50% of portfolio
+            if (concentration > MaxPortfolioConcentration) // No single direction > 50% of portfolio
             {
                 LogRejection($"Portfolio concentration limit exceeded for {symbol}");
                 return false;
@@ -1495,7 +1503,7 @@ namespace TradingBot.Critical
                     else
                     {
                         // Opposite direction provides hedge
-                        totalCorrelated -= Math.Abs(position.DirectionalExposure) * (decimal)correlation * 0.5m;
+                        totalCorrelated -= Math.Abs(position.DirectionalExposure) * (decimal)correlation * HedgeReductionFactor;
                     }
                 }
             }
@@ -1561,29 +1569,29 @@ namespace TradingBot.Critical
                 else
                 {
                     // Initialize with default ES/NQ correlation
-                    _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = 0.85 };
-                    _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
+                    _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = ES_NQ_CORRELATION };
+                    _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
                     
                     _logger?.LogInformation("[Correlation] Initialized with default correlations");
                 }
                 
-                await Task.Delay(100).ConfigureAwait(false); // Brief processing delay
+                await Task.Delay(ProcessingDelayMs).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "[Correlation] Failed to load historical correlations");
                 
                 // Fallback to defaults
-                _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = 0.85 };
-                _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
+                _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = ES_NQ_CORRELATION };
+                _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
             }
         }
         private static decimal CalculateExposure(int quantity) => quantity * 100m;
-        private static decimal GetMaxExposure() => 10000m;
+        private static decimal GetMaxExposure() => MaxSingleExposure;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
         private decimal GetExposure(string symbol) => _exposures.TryGetValue(symbol, out var exp) ? exp.DirectionalExposure : 0m;
-        private static decimal GetMaxESNQCombined() => 5000m;
+        private static decimal GetMaxESNQCombined() => MaxESNQCombinedExposure;
         private Task SendCorrelationAlert(CorrelationAlert alert) 
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));

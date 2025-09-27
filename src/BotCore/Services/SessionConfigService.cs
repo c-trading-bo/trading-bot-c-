@@ -11,6 +11,9 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class SessionConfigService : ISessionConfig
     {
+        // Session Configuration Constants
+        private const int DefaultMaintenanceWindowDurationMinutes = 30;
+        
         private readonly IConfiguration _config;
         private readonly ILogger<SessionConfigService> _logger;
 
@@ -42,7 +45,7 @@ namespace TradingBot.BotCore.Services
             TimeSpan.ParseExact(_config.GetValue("Session:MaintenanceWindowStartUtc", "05:00"), @"hh\:mm", null);
 
         public int GetMaintenanceWindowDurationMinutes() => 
-            _config.GetValue("Session:MaintenanceWindowDurationMinutes", 30);
+            _config.GetValue("Session:MaintenanceWindowDurationMinutes", DefaultMaintenanceWindowDurationMinutes);
 
         public bool AllowWeekendTrading() => 
             _config.GetValue("Session:AllowWeekendTrading", false);

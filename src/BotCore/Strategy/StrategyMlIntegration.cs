@@ -16,6 +16,8 @@ namespace BotCore.Strategy
         private const int ShortEmaWindow = 8;                    // Short-term EMA calculation window
         private const int LongEmaWindow = 21;                    // Long-term EMA calculation window  
         private const decimal MinimumPriceForRatio = 0.01m;     // Minimum price threshold for ratio calculations
+        private const int BollingerBandsPeriod = 20;            // Bollinger Bands calculation period
+        private const int BollingerBandsStdDev = 2;             // Bollinger Bands standard deviation multiplier
         
         /// <summary>
         /// Maps S1-S14 strategy IDs to the 4 ML strategy types for data collection
@@ -183,13 +185,13 @@ namespace BotCore.Strategy
             decimal rsi = bars.Count >= 14 ? CalculateRsi(bars, 14) : 50m;
             decimal bbUpper = 0m, bbLower = 0m, vwap = price;
 
-            if (bars.Count >= 20)
+            if (bars.Count >= BollingerBandsPeriod)
             {
-                var closes = bars.TakeLast(20).Select(b => b.Close).ToList();
+                var closes = bars.TakeLast(BollingerBandsPeriod).Select(b => b.Close).ToList();
                 var sma = closes.Average();
                 var stdDev = (decimal)Math.Sqrt((double)closes.Select(c => (c - sma) * (c - sma)).Average());
-                bbUpper = sma + (2 * stdDev);
-                bbLower = sma - (2 * stdDev);
+                bbUpper = sma + (BollingerBandsStdDev * stdDev);
+                bbLower = sma - (BollingerBandsStdDev * stdDev);
                 vwap = bars.Sum(b => b.Close * b.Volume) / bars.Sum(b => b.Volume);
             }
 
