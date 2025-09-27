@@ -143,22 +143,6 @@ public record BracketMode
 /// </summary>
 public record ParameterBundle
 {
-    // Default parameter constants for trading configuration
-    private const decimal DefaultPositionMultiplier = 1.0m;     // Conservative position sizing
-    private const decimal DefaultConfidenceThreshold = 0.70m;   // High confidence requirement
-    private const decimal MinPositionMultiplier = 1.0m;         // Minimum position multiplier
-    private const decimal MaxPositionMultiplier = 1.6m;         // Maximum position multiplier for aggressive sizing
-    private const decimal MinConfidenceThreshold = 0.60m;       // Minimum confidence threshold  
-    private const decimal MaxConfidenceThreshold = 0.70m;       // Maximum confidence threshold
-    private const decimal AggressiveMultiplier = 1.3m;          // Aggressive position multiplier
-    private const decimal MediumConfidenceThreshold = 0.65m;    // Medium confidence threshold
-    private const int ArrayDivisionFactor = 2;                  // Factor for array indexing calculations
-    
-    // Array index constants for bundle parsing
-    private const int StrategyIndex = 0;                        // Strategy part index in split bundle
-    private const int MultiplierIndex = 1;                      // Multiplier part index in split bundle
-    private const int ThresholdIndex = 2;                       // Threshold part index in split bundle
-    private const int BracketModeIndex = 3;                     // Bracket mode part index in split bundle
     /// <summary>
     /// Strategy identifier (S2, S3, S6, S11)
     /// </summary>
@@ -198,8 +182,8 @@ public record ParameterBundle
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrEmpty(Strategy) &&
-        Mult >= MinPositionMultiplier && Mult <= MaxPositionMultiplier &&
-        Thr >= MinConfidenceThreshold && Thr <= MaxConfidenceThreshold &&
+        Mult >= ParameterBundleFactory.MinPositionMultiplier && Mult <= ParameterBundleFactory.MaxPositionMultiplier &&
+        Thr >= ParameterBundleFactory.MinConfidenceThreshold && Thr <= ParameterBundleFactory.MaxConfidenceThreshold &&
         BracketMode.IsValid;
     
     /// <summary>
@@ -210,8 +194,8 @@ public record ParameterBundle
         return new ParameterBundle
         {
             Strategy = "S2",
-            Mult = DefaultPositionMultiplier,
-            Thr = MediumConfidenceThreshold,
+            Mult = ParameterBundleFactory.DefaultPositionMultiplier,
+            Thr = ParameterBundleFactory.MediumConfidenceThreshold,
             BracketMode = BracketMode.Presets.Conservative
         };
     }
@@ -223,6 +207,23 @@ public record ParameterBundle
 /// </summary>
 public static class ParameterBundleFactory
 {
+    // Default parameter constants for trading configuration
+    internal const decimal DefaultPositionMultiplier = 1.0m;     // Conservative position sizing
+    internal const decimal DefaultConfidenceThreshold = 0.70m;   // High confidence requirement
+    internal const decimal MinPositionMultiplier = 1.0m;         // Minimum position multiplier
+    internal const decimal MaxPositionMultiplier = 1.6m;         // Maximum position multiplier for aggressive sizing
+    internal const decimal MinConfidenceThreshold = 0.60m;       // Minimum confidence threshold  
+    internal const decimal MaxConfidenceThreshold = 0.70m;       // Maximum confidence threshold
+    internal const decimal AggressiveMultiplier = 1.3m;          // Aggressive position multiplier
+    internal const decimal MediumConfidenceThreshold = 0.65m;    // Medium confidence threshold
+    internal const int ArrayDivisionFactor = 2;                  // Factor for array indexing calculations
+    
+    // Array index constants for bundle parsing
+    internal const int StrategyIndex = 0;                        // Strategy part index in split bundle
+    internal const int MultiplierIndex = 1;                      // Multiplier part index in split bundle
+    internal const int ThresholdIndex = 2;                       // Threshold part index in split bundle
+    internal const int BracketModeIndex = 3;                     // Bracket mode part index in split bundle
+    
     /// <summary>
     /// Available strategies from existing system
     /// </summary>
@@ -297,8 +298,8 @@ public static class ParameterBundleFactory
         return new ParameterBundle
         {
             Strategy = "S2", // Most conservative strategy
-            Mult = DefaultPositionMultiplier,     // Conservative sizing
-            Thr = DefaultConfidenceThreshold,     // High confidence requirement
+            Mult = ParameterBundleFactory.DefaultPositionMultiplier,     // Conservative sizing
+            Thr = ParameterBundleFactory.DefaultConfidenceThreshold,     // High confidence requirement
             BracketMode = BracketMode.Presets.Conservative // Conservative bracket
         };
     }
