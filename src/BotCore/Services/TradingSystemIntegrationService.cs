@@ -56,6 +56,21 @@ namespace TopstepX.Bot.Core.Services
         private volatile bool _isSystemReady;
         private volatile bool _isTradingEnabled;
         
+        // ProjectX API order type constants
+        private const int OrderTypeLimitValue = 1;
+        private const int OrderTypeMarketValue = 2;
+        private const int OrderTypeStopValue = 4;
+        private const int OrderTypeTrailingStopValue = 5;
+        
+        // Trading analysis constants
+        private const int MinimumBarsRequired = 20; // Minimum bar data needed for technical analysis
+        private const decimal MinimumSignalScore = 0.6m; // Minimum score for signal processing
+        private const decimal HighConfidenceSignalScore = 0.7m; // High confidence signal threshold
+        private const decimal VolatilityFilterThreshold = 0.3m; // Volatility-based signal filtering
+        private const double MinimumHealthScore = 80.0; // Minimum adapter health score for trading
+        private const double FeatureActivityThreshold = 0.5; // Feature vector activity threshold
+        private const int PositionSizeMultiplierBase = 200; // Base multiplier for position sizing
+        
         // Market Data Cache - ENHANCED IMPLEMENTATION
         private readonly ConcurrentDictionary<string, MarketData> _priceCache = new();
         private volatile int _barsSeen;
@@ -483,11 +498,11 @@ namespace TopstepX.Bot.Core.Services
         {
             return orderType.ToUpper() switch
             {
-                "LIMIT" => 1,
-                "MARKET" => 2,
-                "STOP" => 4,
-                "TRAILING_STOP" => 5,
-                _ => 1 // Default to limit
+                "LIMIT" => OrderTypeLimitValue,
+                "MARKET" => OrderTypeMarketValue,
+                "STOP" => OrderTypeStopValue,
+                "TRAILING_STOP" => OrderTypeTrailingStopValue,
+                _ => OrderTypeLimitValue // Default to limit
             };
         }
 
@@ -555,9 +570,9 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // Get bar data for the symbol
-                if (!_barCache.TryGetValue(symbol, out var bars) || bars.Count < 20)
+                if (!_barCache.TryGetValue(symbol, out var bars) || bars.Count < MinimumBarsRequired)
                 {
-                    _logger.LogDebug("[ML/RL-STRATEGY] Insufficient bar data for {Symbol} (need 20+, have {Count})", symbol, bars?.Count ?? 0);
+                    _logger.LogDebug("[ML/RL-STRATEGY] Insufficient bar data for {Symbol} (need {MinBars}+, have {Count})", symbol, MinimumBarsRequired, bars?.Count ?? 0);
                     return;
                 }
 
@@ -603,7 +618,7 @@ namespace TopstepX.Bot.Core.Services
                 var aggregatedSignals = AggregateAndValidateSignals(candidates, mlEnhancedCandidates, allStrategiesSignals, symbol);
                 
                 // PHASE 8: Process validated signals for order placement
-                foreach (var signal in aggregatedSignals.Where(s => s.Score > 0.6m && s.Size > 0))
+                foreach (var signal in aggregatedSignals.Where(s => s.Score > MinimumSignalScore && s.Size > 0))
                 {
                     await ProcessMlRlEnhancedSignalAsync(signal).ConfigureAwait(false);
                 }
@@ -778,7 +793,7 @@ namespace TopstepX.Bot.Core.Services
                 var executionQuality = (double)signal.Score;
                 
                 // Only proceed if execution quality is acceptable (using Score as confidence proxy)
-                if (executionQuality < 0.6 || signal.Score < 0.6m)
+                if (executionQuality < (double)MinimumSignalScore || signal.Score < MinimumSignalScore)
                 {
                     _logger.LogInformation("[ML/RL-EXECUTION] Skipping signal for {Symbol} due to poor execution quality prediction: {Quality:F2} or low signal score: {Score:F2}", 
                         signal.Symbol, executionQuality, signal.Score);
@@ -1050,7 +1065,7 @@ namespace TopstepX.Bot.Core.Services
             var adapterConnected = _topstepXAdapter.IsConnected;
             var adapterHealthScore = await _topstepXAdapter.GetHealthScoreAsync().ConfigureAwait(false);
             
-            if (!adapterConnected || adapterHealthScore < 80)
+            if (!adapterConnected || adapterHealthScore < MinimumHealthScore)
             {
                 _logger.LogDebug("[PRECHECK] Failed - adapter not ready. Connected: {Connected}, Health: {Health}%",
                     adapterConnected, adapterHealthScore);
@@ -1207,7 +1222,7 @@ namespace TopstepX.Bot.Core.Services
                 {
                     // Check for high activity indicators
                     var avgFeatureValue = featureVector.Features.Average();
-                    if (Math.Abs(avgFeatureValue) > 0.5)
+                    if (Math.Abs(avgFeatureValue) > FeatureActivityThreshold)
                         return Task.FromResult(true);
                 }
 
@@ -1258,8 +1273,8 @@ namespace TopstepX.Bot.Core.Services
                     
                     bars.Add(newBar);
                     
-                    // Keep only last 200 bars for memory efficiency
-                    if (bars.Count > 200)
+                    // Keep only last bars for memory efficiency
+                    if (bars.Count > PositionSizeMultiplierBase)
                     {
                         bars.RemoveAt(0);
                     }
@@ -1352,7 +1367,7 @@ namespace TopstepX.Bot.Core.Services
                 var positionSignals = ConvertCandidatesToSignals(positionManagementCandidates);
 
                 // Process any immediate position management actions (stops, targets, scaling)
-                foreach (var signal in positionSignals.Where(s => s.Score > 0.7m))
+                foreach (var signal in positionSignals.Where(s => s.Score > HighConfidenceSignalScore))
                 {
                     await ProcessPositionManagementSignalAsync(signal, featureVector).ConfigureAwait(false);
                 }
@@ -1618,7 +1633,7 @@ namespace TopstepX.Bot.Core.Services
             // Health monitoring implementation
             var healthScore = CalculateHealthScore();
             
-            if (healthScore < 0.7)
+            if (healthScore < (double)HighConfidenceSignalScore)
             {
                 _logger.LogWarning("⚠️ System health degraded: {HealthScore:F2}", healthScore);
             }
@@ -1631,9 +1646,9 @@ namespace TopstepX.Bot.Core.Services
             var score = 1.0;
             
             // Reduce score for poor adapter health
-            if (!_topstepXAdapter.IsConnected) score -= 0.3;
-            if (double.TryParse(_topstepXAdapter.ConnectionHealth.Replace("%", ""), out var healthValue) && healthValue < 80) 
-                score -= 0.3;
+            if (!_topstepXAdapter.IsConnected) score -= (double)VolatilityFilterThreshold;
+            if (double.TryParse(_topstepXAdapter.ConnectionHealth.Replace("%", ""), out var healthValue) && healthValue < MinimumHealthScore) 
+                score -= (double)VolatilityFilterThreshold;
             
             // Reduce score for stale data
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;
