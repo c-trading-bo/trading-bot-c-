@@ -12,6 +12,31 @@ namespace BotCore
             Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
                 .CreateLogger<UserHubClient>();
 
+        // LoggerMessage delegates for improved performance (CA1848 compliance)
+        private static readonly Action<ILogger, string, Exception> LogArgumentError =
+            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3001), 
+                "Argument error in {EventName} handler");
+
+        private static readonly Action<ILogger, string, Exception> LogObjectDisposed =
+            LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3002), 
+                "Object disposed during {EventName} handler execution");
+
+        private static readonly Action<ILogger, string, Exception> LogInvalidOperation =
+            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3003), 
+                "Invalid operation in {EventName} handler");
+
+        private static readonly Action<ILogger, string, Exception> LogNotSupported =
+            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3004), 
+                "Not supported in {EventName} handler");
+
+        private static readonly Action<ILogger, string, Exception> LogTimeout =
+            LoggerMessage.Define<string>(LogLevel.Warning, new EventId(3005), 
+                "Timeout in {EventName} handler");
+
+        private static readonly Action<ILogger, Exception> LogOutOfMemory =
+            LoggerMessage.Define(LogLevel.Critical, new EventId(3006), 
+                "Critical: Out of memory during event handler execution");
+
         public event Action<JsonElement>? OnOrder;
         public event Action<JsonElement>? OnTrade;
         public event Action<JsonElement>? OnPosition;
@@ -33,28 +58,28 @@ namespace BotCore
             } 
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "Argument error in {EventName} handler", eventName);
+                LogArgumentError(_logger, eventName, ex);
             }
             catch (ObjectDisposedException ex)
             {
-                _logger.LogWarning(ex, "Object disposed during {EventName} handler execution", eventName);
+                LogObjectDisposed(_logger, eventName, ex);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "Invalid operation in {EventName} handler", eventName);
+                LogInvalidOperation(_logger, eventName, ex);
             }
             catch (NotSupportedException ex)
             {
-                _logger.LogError(ex, "Not supported in {EventName} handler", eventName);
+                LogNotSupported(_logger, eventName, ex);
             }
             catch (TimeoutException ex)
             {
-                _logger.LogWarning(ex, "Timeout in {EventName} handler", eventName);
+                LogTimeout(_logger, eventName, ex);
             }
-            catch (OutOfMemoryException)
+            catch (OutOfMemoryException ex)
             {
-                // Critical system exception - rethrow
-                throw;
+                LogOutOfMemory(_logger, ex);
+                throw; // Critical exception, re-throw
             }
             catch (StackOverflowException)
             {

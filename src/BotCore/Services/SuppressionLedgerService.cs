@@ -163,8 +163,7 @@ namespace TradingBot.BotCore.Services
                 suppression.ExpirationDate = expirationDate;
                 suppression.ExpirationReason = reason;
 
-                _logger.LogInformation("⏰ [SUPPRESSION] Set expiration for suppression {Id}: {Date} - {Reason}",
-                    suppressionId, expirationDate, reason);
+                _logSuppressionExpiration(_logger, suppressionId, expirationDate, reason, null);
             }
 
             return SaveLedgerAsync();
