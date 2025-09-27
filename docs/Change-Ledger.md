@@ -35,7 +35,54 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 1 - Phase 2 S109 Magic Numbers: Strategic Configuration Constants (Current Session)
+#### Round 21 - Phase 2 CA1034 & S109 Systematic Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1034 | 8+ | 3+ | OrderFillConfirmationSystem.cs, PositionTrackingSystem.cs | Extracted nested types to separate BotCore.Models classes |
+| S109 | 2900+ | 2830 | S11_MaxPerf_FullStack.cs | Created S11Constants class for trading strategy mathematical constants |
+
+**Example Pattern - CA1034 Nested Type Extraction**:
+```csharp
+// Before (Violation)
+public class OrderFillConfirmationSystem
+{
+    public class OrderTrackingRecord
+    {
+        public string ClientOrderId { get; set; } = string.Empty;
+        // ... more properties
+    }
+}
+
+// After (Compliant)
+// BotCore/Models/OrderTrackingRecord.cs
+namespace BotCore.Models
+{
+    public class OrderTrackingRecord
+    {
+        public string ClientOrderId { get; set; } = string.Empty;
+        // ... more properties  
+    }
+}
+```
+
+**Example Pattern - S109 Strategy Constants**:
+```csharp
+// Before (Violation)
+if (mod5 == 4 && Min1.Count >= 5)
+if (_tr <= 1e-12) return Value;
+
+// After (Compliant)
+internal static class S11Constants
+{
+    internal const int FiveMinuteModCheck = 4;
+    internal const int FiveMinuteBars = 5;
+    internal const double SmallEpsilon = 1E-12;
+}
+if (mod5 == S11Constants.FiveMinuteModCheck && Min1.Count >= S11Constants.FiveMinuteBars)
+if (_tr <= S11Constants.SmallEpsilon) return Value;
+```
+
+#### Round 1 - Phase 2 S109 Magic Numbers: Strategic Configuration Constants (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | S109 | 3092 | 3016 | CustomTagGenerator.cs, TradingSystemIntegrationService.cs, ParameterBundle.cs | Named constants for format validation, trading schedules, and parameter ranges |
