@@ -18,6 +18,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Channels;
 using BotCore.Models;
@@ -211,9 +212,9 @@ namespace TopstepX.S6
     public sealed class S6Config
     {
         // window (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("09:28");
-        public TimeSpan RTHOpen     = TimeSpan.Parse("09:30");
-        public TimeSpan WindowEnd   = TimeSpan.Parse("10:00");
+        public TimeSpan WindowStart = TimeSpan.Parse("09:28", CultureInfo.InvariantCulture);
+        public TimeSpan RTHOpen     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd   = TimeSpan.Parse("10:00", CultureInfo.InvariantCulture);
 
         // risk
         public int    BaseQty = 1;

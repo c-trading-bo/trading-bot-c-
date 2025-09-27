@@ -5,6 +5,16 @@ using Microsoft.Extensions.Logging;
 
 namespace BotCore
 {
+    /// <summary>
+    /// Response structure for searching open positions
+    /// </summary>
+    public sealed record SearchOpenPositionsResponse(IReadOnlyList<Position> positions, bool success, int errorCode, string? errorMessage);
+    
+    /// <summary>
+    /// Position data structure for API responses
+    /// </summary>
+    public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
+
     public sealed class ApiClient(HttpClient http, ILogger<ApiClient> log, string apiBase)
     {
         private readonly HttpClient _http = http;
@@ -217,10 +227,6 @@ namespace BotCore
             resp.EnsureSuccessStatusCode();
             return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct).ConfigureAwait(false);
         }
-
-        // Positions helpers (correct POST endpoints)
-        public sealed record SearchOpenPositionsResponse(IReadOnlyList<Position> positions, bool success, int errorCode, string? errorMessage);
-        public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
 
         // New wrapper-aware method (preferred)
         public async Task<IReadOnlyList<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)

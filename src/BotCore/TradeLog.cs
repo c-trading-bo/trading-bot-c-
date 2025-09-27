@@ -20,7 +20,7 @@ namespace BotCore
         static string Fpx(string sym, decimal px)
         {
             if (!Spec.TryGetValue(sym, out var c)) c = new ContractSpec(sym, 2, 0.25m, 1m);
-            return RoundToTick(px, c.TickSize).ToString($"F{c.Decimals}");
+            return RoundToTick(px, c.TickSize).ToString($"F{c.Decimals}", CultureInfo.InvariantCulture);
         }
         static string Fpn(decimal v) => v.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 

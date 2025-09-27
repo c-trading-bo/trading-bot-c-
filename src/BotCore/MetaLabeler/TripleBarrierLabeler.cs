@@ -186,7 +186,7 @@ public class TripleBarrierLabeler
         };
     }
 
-    private Dictionary<string, decimal> ExtractFeatures(
+    private static Dictionary<string, decimal> ExtractFeatures(
         HistoricalTradeSignal signal
         )
     {
@@ -207,7 +207,7 @@ public class TripleBarrierLabeler
         };
     }
 
-    private decimal CalculateRealizedR(HistoricalTradeSignal signal, decimal exitPrice)
+    private static decimal CalculateRealizedR(HistoricalTradeSignal signal, decimal exitPrice)
     {
         var risk = Math.Abs(signal.EntryPrice - signal.StopPrice);
         var reward = signal.IsLong
