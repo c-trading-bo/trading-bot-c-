@@ -54,6 +54,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<ModelVersionResult> VerifyModelVersionAsync(string modelPath, ModelMetadata metadata)
         {
+            if (metadata is null) throw new ArgumentNullException(nameof(metadata));
+            
             try
             {
                 _logger.LogInformation("[MODEL-VERSION] Verifying model version for {ModelPath}", modelPath);
@@ -208,6 +210,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task LogTrainingMetadataAsync(TrainingMetadata metadata)
         {
+            if (metadata is null) throw new ArgumentNullException(nameof(metadata));
+            
             try
             {
                 if (!_config.TrainingMetadataLogging)
@@ -235,6 +239,8 @@ namespace BotCore.Services
         /// </summary>
         public Task<bool> ValidateModelIntegrityAsync(string modelPath)
         {
+            if (modelPath is null) throw new ArgumentNullException(nameof(modelPath));
+            
             try
             {
                 if (!_config.ModelHashValidation)

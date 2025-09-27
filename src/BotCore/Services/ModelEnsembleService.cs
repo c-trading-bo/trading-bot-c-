@@ -112,6 +112,8 @@ public class ModelEnsembleService
         double[] marketFeatures,
         CancellationToken cancellationToken = default)
     {
+        if (marketFeatures is null) throw new ArgumentNullException(nameof(marketFeatures));
+        
         try
         {
             var predictions = new List<PriceDirectionPrediction>();
