@@ -24,6 +24,13 @@ using BotCore.Models;
 
 namespace TopstepX.S6
 {
+    // Mathematical constants for indicator calculations
+    internal static class IndicatorConstants
+    {
+        internal const double SmallEpsilon = 1E-12;      // Small epsilon for numerical comparisons
+        internal const double EmaMultiplier = 2.0;       // EMA calculation multiplier constant
+    }
+
     public enum Instrument { ES, NQ }
     public enum Side { Buy, Sell, Flat }
     public enum Mode { Idle, Drive, Reversal }
@@ -170,14 +177,14 @@ namespace TopstepX.S6
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
             if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; _ = Value; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
-            if (_tr <= SmallEpsilon) return Value;
+            if (_tr <= IndicatorConstants.SmallEpsilon) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
             double dx = 100.0 * Math.Abs(diP - diN) / Math.Max(1e-9, diP + diN);
             Value = Value <= 0 ? dx : (Value - (Value / _n) + dx);
             return Value;
         }
     }
-    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
+    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=IndicatorConstants.EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
 
     public sealed class RvolBaseline
     {
@@ -234,12 +241,10 @@ namespace TopstepX.S6
         private const double TrailingStopRThreshold = 0.8;
         private const double RthSessionHours = 6.5;              // Regular trading hours session length in hours
         private const int MinuteDataArrayLength = 4;            // Length for minute index array calculations  
-        private const double SmallEpsilon = 1E-12;              // Small epsilon for numerical comparisons
         private const double TinyEpsilon = 1E-09;               // Tiny epsilon for numerical precision
         private const double MinimumPriceThreshold = 0.01;      // Minimum price threshold for calculations
         private const int MovingAverageWindow = 8;              // Moving average window size
         private const int ExtendedMovingAverageWindow = 21;     // Extended moving average window size
-        private const double EmaMultiplier = 2.0;               // EMA calculation multiplier constant
         
         private readonly IOrderRouter _router; private readonly S6Config _cfg;
         private readonly State _es; private readonly State _nq;
