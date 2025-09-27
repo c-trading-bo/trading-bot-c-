@@ -35,7 +35,55 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 22 - Phase 2 S109 & CA1510 ML/API Configuration Fixes (Current Session)
+#### Round 23 - Phase 2 CA1031 & S109 Exception Handling + Trading Strategy Constants (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1031 | 2+ | 0 | ProductionTopstepXApiClient.cs | Replaced generic Exception catches with specific HttpRequestException, TaskCanceledException, JsonException |
+| S109 | 2820+ | 2810+ | ConfigurationSchemaService.cs, S2Upg.cs | Named constants for ML configuration defaults and trading strategy parameters |
+
+**Example Pattern - CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "[API-CLIENT] Error on POST request to {Endpoint}");
+    if (attempt == maxRetries) throw;
+}
+
+// After (Compliant)
+catch (HttpRequestException ex)
+{
+    _logger.LogError(ex, "[API-CLIENT] HTTP error on POST request to {Endpoint}");
+    if (attempt == maxRetries)
+        throw new HttpRequestException($"POST request to {endpoint} failed after {maxRetries} attempts", ex);
+}
+catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+{
+    _logger.LogError(ex, "[API-CLIENT] POST request timeout to {Endpoint}");
+    if (attempt == maxRetries)
+        throw new TimeoutException($"POST request to {endpoint} timed out after {maxRetries} attempts", ex);
+}
+```
+
+**Example Pattern - S109 Trading Strategy Constants**:
+```csharp
+// Before (Violation)
+if (absSlope > 0.25m) adj += 0.3m;       
+if (volz > 1.5m) adj += 0.2m;       
+if (mins >= 680 && mins <= 720) adj -= 0.1m;
+
+// After (Compliant)
+private const decimal StrongTrendThreshold = 0.25m;
+private const decimal StrongTrendAdjustment = 0.3m;
+private const decimal HighVolatilityThreshold = 1.5m;
+private const int LateMoningStartMinutes = 680; // 11:20 AM
+
+if (absSlope > StrongTrendThreshold) adj += StrongTrendAdjustment;
+if (volz > HighVolatilityThreshold) adj += HighVolatilityAdjustment;
+if (mins >= LateMoningStartMinutes && mins <= LateMoningEndMinutes) adj -= LateMoningRelaxation;
+```
+
+#### Round 22 - Phase 2 S109 & CA1510 ML/API Configuration Fixes (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | S109 | 2830+ | 2820+ | MLConfigurationService.cs, ProductionTopstepXApiClient.cs, Program.cs | Named constants for ML configuration defaults, HTTP timeouts, retry parameters, and exit codes |

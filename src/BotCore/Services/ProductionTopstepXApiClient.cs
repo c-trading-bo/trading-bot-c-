@@ -230,9 +230,25 @@ namespace BotCore.Services
                     _logger.LogWarning("[API-CLIENT] POST request to {Endpoint} was cancelled", endpoint);
                     throw;
                 }
-                catch (Exception ex)
+                catch (HttpRequestException ex)
                 {
-                    _logger.LogError(ex, "[API-CLIENT] Error on POST request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                    _logger.LogError(ex, "[API-CLIENT] HTTP error on POST request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                        endpoint, attempt, maxRetries);
+                    
+                    if (attempt == maxRetries)
+                        throw new HttpRequestException($"POST request to {endpoint} failed after {maxRetries} attempts", ex);
+                }
+                catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "[API-CLIENT] POST request timeout to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                        endpoint, attempt, maxRetries);
+                    
+                    if (attempt == maxRetries)
+                        throw new TimeoutException($"POST request to {endpoint} timed out after {maxRetries} attempts", ex);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "[API-CLIENT] JSON deserialization error on POST to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
                         endpoint, attempt, maxRetries);
                     
                     if (attempt == maxRetries)
@@ -277,9 +293,19 @@ namespace BotCore.Services
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (attempt < maxRetries)
+                catch (HttpRequestException ex) when (attempt < maxRetries)
                 {
-                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request to {Endpoint} failed, retrying...", endpoint);
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request HTTP error to {Endpoint}, retrying...", endpoint);
+                    await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException ex) when (attempt < maxRetries && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request timeout to {Endpoint}, retrying...", endpoint);
+                    await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (JsonException ex) when (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request JSON error to {Endpoint}, retrying...", endpoint);
                     await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
                 }
             }
