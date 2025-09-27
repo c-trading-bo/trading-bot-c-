@@ -28,6 +28,9 @@ namespace TradingBot.BotCore.Services
         private const decimal BaseSigmaAdjustment = 0.3m; // Sigma variance adjustment for parameter grid generation
         private const decimal MinimumSigmaMultiplier = 1.0m; // Minimum sigma multiplier for risk calculations
         private const decimal MaximumSigmaMultiplier = 3.0m; // Maximum sigma multiplier for risk calculations
+        private const decimal MinimumPositionSizeMultiplier = 0.5m; // Minimum position size multiplier for risk management
+        private const decimal MaximumPositionSizeMultiplier = 1.5m; // Maximum position size multiplier for risk management  
+        private const decimal PositionSizeAdjustment = 0.2m; // Position size variance adjustment for parameter tuning
 
         /// <summary>
         /// Parameter configuration record - immutable and configuration-driven
@@ -349,9 +352,9 @@ namespace TradingBot.BotCore.Services
             var baseMultiplier = (decimal)(0.8 + (positionMultiplier - 2.0) * 0.1);
             return new[]
             {
-                Math.Max(0.5m, baseMultiplier - 0.2m),
+                Math.Max(MinimumPositionSizeMultiplier, baseMultiplier - PositionSizeAdjustment),
                 baseMultiplier,
-                Math.Min(1.5m, baseMultiplier + 0.2m)
+                Math.Min(MaximumPositionSizeMultiplier, baseMultiplier + PositionSizeAdjustment)
             };
         }
 

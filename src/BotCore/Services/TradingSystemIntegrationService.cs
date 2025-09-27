@@ -1256,9 +1256,13 @@ namespace TopstepX.Bot.Core.Services
 
                 _lastFeatureUpdate[symbol] = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-REALTIME] Error processing real-time market data for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-REALTIME] Invalid operation processing real-time market data for {Symbol}", symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-REALTIME] Invalid argument processing real-time market data for {Symbol}", symbol);
             }
         }
 
@@ -1281,9 +1285,9 @@ namespace TopstepX.Bot.Core.Services
                 // Use TimeOptimizedStrategyManager basic functionality
                 return Task.FromResult(false); // Simplified for now
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-REALTIME] Error in immediate evaluation check for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-REALTIME] Invalid operation in immediate evaluation check for {Symbol}", symbol);
                 return Task.FromResult(false);
             }
         }
@@ -1344,9 +1348,13 @@ namespace TopstepX.Bot.Core.Services
                     symbol, bars.Count, 
                     lastBar?.Open ?? 0, lastBar?.High ?? 0, lastBar?.Low ?? 0, lastBar?.Close ?? 0);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[BAR_CACHE] Error updating bar cache for {Symbol}", symbol);
+                _logger.LogError(ex, "[BAR_CACHE] Invalid operation updating bar cache for {Symbol}", symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[BAR_CACHE] Invalid argument updating bar cache for {Symbol}", symbol);
             }
         }
 
@@ -1378,9 +1386,14 @@ namespace TopstepX.Bot.Core.Services
                 
                 return Task.CompletedTask;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-EXECUTION-UPDATE] Error updating ML system with fill data for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-EXECUTION-UPDATE] Invalid operation updating ML system with fill data for {Symbol}", symbol);
+                return Task.CompletedTask;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-EXECUTION-UPDATE] Invalid argument updating ML system with fill data for {Symbol}", symbol);
                 return Task.CompletedTask;
             }
         }
@@ -1427,9 +1440,13 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("[ML/RL-POSITION-MGMT] Processed post-fill position management for {Symbol}, generated {SignalCount} position management signals", 
                     symbol, positionSignals.Count);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-POSITION-MGMT] Error in post-fill position management for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-POSITION-MGMT] Invalid operation in post-fill position management for {Symbol}", symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-POSITION-MGMT] Invalid argument in post-fill position management for {Symbol}", symbol);
             }
         }
 
@@ -1460,9 +1477,13 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogDebug("[ML/RL-POS-MGMT-SIGNAL] Processed position management signal for {Symbol}: {Strategy}", 
                     signal.Symbol, signal.StrategyId);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-POS-MGMT-SIGNAL] Error processing position management signal for {Symbol}", signal.Symbol);
+                _logger.LogError(ex, "[ML/RL-POS-MGMT-SIGNAL] Invalid operation processing position management signal for {Symbol}", signal.Symbol);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-POS-MGMT-SIGNAL] Invalid argument processing position management signal for {Symbol}", signal.Symbol);
             }
         }
 

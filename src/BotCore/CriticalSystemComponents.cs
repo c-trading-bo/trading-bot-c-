@@ -1415,6 +1415,9 @@ namespace TradingBot.Critical
         private const int ProcessingDelayMs = 100;                   // Brief processing delay in milliseconds
         private const decimal MaxSingleExposure = 10000m;            // Maximum single position exposure
         private const decimal MaxESNQCombinedExposure = 5000m;       // Maximum combined ES/NQ exposure
+        private const decimal ExposureCalculationMultiplier = 100m;  // Multiplier for position exposure calculation
+        private const decimal DefaultPortfolioConcentration = 0.3m;  // Default portfolio concentration for fallback calculations
+        private const double DefaultCorrelationValue = 0.5;          // Default correlation value for statistical calculations
         
         private readonly ILogger<CorrelationProtectionSystem> _logger;
         
@@ -1625,7 +1628,7 @@ namespace TradingBot.Critical
                 _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
             }
         }
-        private static decimal CalculateExposure(int quantity) => quantity * 100m;
+        private static decimal CalculateExposure(int quantity) => quantity * ExposureCalculationMultiplier;
         private static decimal GetMaxExposure() => MaxSingleExposure;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
@@ -1635,9 +1638,9 @@ namespace TradingBot.Critical
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));
         }
-        private static decimal CalculatePortfolioConcentration() => 0.3m;
+        private static decimal CalculatePortfolioConcentration() => DefaultPortfolioConcentration;
         private static Dictionary<string, List<decimal>> GetRecentPriceData() => new();
-        private static double CalculatePearsonCorrelation() => 0.5;
+        private static double CalculatePearsonCorrelation() => DefaultCorrelationValue;
 
         public void UpdateExposure(string symbol, decimal exposure)
         {
