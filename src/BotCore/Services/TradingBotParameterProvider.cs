@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.BotCore.Services;
+using TradingBot.BotCore.Services.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace TradingBot.BotCore.Services
