@@ -209,7 +209,7 @@ namespace TopstepX.S11
         }
     }
 
-    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=2.0/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
+    public sealed class Ema { private readonly double _k; private bool _seed; public double Value { get; private set; } public Ema(int n){ _k=2.0/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
 
     public sealed class Rsi
     {
@@ -245,10 +245,10 @@ namespace TopstepX.S11
     public sealed class S11Config
     {
         // session windows (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("13:30", CultureInfo.InvariantCulture);
-        public TimeSpan WindowEnd   = TimeSpan.Parse("15:30", CultureInfo.InvariantCulture);
-        public TimeSpan IBStart     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
-        public TimeSpan IBEnd       = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowStart { get; set; } = TimeSpan.Parse("13:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd { get; set; } = TimeSpan.Parse("15:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBStart { get; set; } = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBEnd { get; set; } = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
 
         // risk
         public int    BaseQty = 1;

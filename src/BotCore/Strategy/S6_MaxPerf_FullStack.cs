@@ -61,9 +61,13 @@ namespace TopstepX.S6
     // --- DATA TYPES (ticks internally) ---
     public readonly struct Bar1M : IEquatable<Bar1M>
     {
-        public readonly DateTimeOffset TimeET; // end time of bar (ET)
-        public readonly long Open, High, Low, Close; // ticks
-        public readonly double Volume;
+        public DateTimeOffset TimeET { get; } // end time of bar (ET)
+        public long Open { get; } // ticks
+        public long High { get; } // ticks  
+        public long Low { get; } // ticks
+        public long Close { get; } // ticks
+        public double Volume { get; }
+        
         public Bar1M(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
         { TimeET = timeEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
