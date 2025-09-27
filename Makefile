@@ -58,12 +58,12 @@ test-alert-all: test-alert
 # Run the trading bot
 run-bot:
 	@echo "Starting trading bot with unified environment..."
-	@dotnet run --project app/TradingBot/TradingBot.csproj
+	@dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 
 # Run the orchestrator agent
 run-orchestrator:
 	@echo "Starting orchestrator agent..."
-	@dotnet run --project src/OrchestratorAgent/OrchestratorAgent.csproj
+	@dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 
 # Build the alert CLI tool
 build-alert-cli:
