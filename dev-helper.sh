@@ -112,6 +112,36 @@ cmd_clean() {
     log_success "Clean completed"
 }
 
+cmd_cleanup_generated() {
+    log_info "Cleaning up generated artifacts and temporary files..."
+    
+    # Remove analyzer snapshots and build artifacts
+    rm -f current_* build_* fresh_violations.txt 2>/dev/null || true
+    rm -f tools/analyzers/*.sarif cs_error_counts.txt 2>/dev/null || true
+    rm -f CRITICAL_ALERT_*.txt 2>/dev/null || true
+    rm -f updated_violation_counts.txt violation_counts.txt 2>/dev/null || true
+    rm -f *.backup 2>/dev/null || true
+    
+    # Remove IDE and temporary directories
+    find . -name ".idea" -type d -exec rm -rf {} + 2>/dev/null || true
+    find . -name ".checkpoints" -type d -exec rm -rf {} + 2>/dev/null || true
+    find . -name ".vs" -type d -exec rm -rf {} + 2>/dev/null || true
+    
+    # Remove build artifacts (but keep bin/obj clean)
+    find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
+    find . -name "obj" -type d -exec rm -rf {} + 2>/dev/null || true
+    
+    # Remove temporary state files
+    rm -f state/temp_* state/cache_* 2>/dev/null || true
+    
+    # Remove generated reports that should not be committed
+    rm -f comprehensive_*.txt comprehensive_*.json 2>/dev/null || true
+    rm -f runtime_proof_*.json workflow_*.json 2>/dev/null || true
+    
+    log_success "Generated artifacts cleanup completed"
+    log_info "To prevent regeneration, use this command regularly during development"
+}
+
 cmd_backtest() {
     log_info "Running backtest with local sample data..."
     log_warning "This uses committed sample data, no live API connections"
@@ -227,7 +257,8 @@ cmd_help() {
     echo "  riskcheck     - Validate risk constants against committed snapshots"
     echo "  run           - Run main application (UnifiedOrchestrator)"
     echo "  run-smoke     - Run UnifiedOrchestrator smoke test (replaces SimpleBot/MinimalDemo)"
-    echo "  clean         - Clean build artifacts"
+    echo "  clean         - Clean build artifacts
+  cleanup-generated - Clean up generated files, temporary artifacts, and analyzer snapshots"
     echo "  full          - Run full cycle: setup -> build -> test"
     echo "  help          - Show this help"
     echo ""
@@ -271,6 +302,9 @@ case "${1:-help}" in
         ;;
     "clean")
         cmd_clean
+        ;;
+    "cleanup-generated")
+        cmd_cleanup_generated
         ;;
     "full")
         cmd_full_cycle

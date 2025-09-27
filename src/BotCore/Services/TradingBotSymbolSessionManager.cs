@@ -37,7 +37,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Gets configuration for specific symbol-session combination
         /// </summary>
-        public SymbolSessionConfiguration GetConfiguration(string symbol, SessionType sessionType)
+        public SymbolSessionConfiguration GetConfiguration(string symbol, MarketSession sessionType)
         {
             var configurationKey = GetConfigurationKey(symbol, sessionType);
             if (_configurations.TryGetValue(configurationKey, out var configuration))
@@ -47,17 +47,17 @@ namespace TradingBot.BotCore.Services
             }
 
             // Fallback to ES_RTH default if specific configuration not found
-            var fallbackKey = GetConfigurationKey("ES", SessionType.RegularTradingHours);
-            var fallbackConfig = _configurations.GetValueOrDefault(fallbackKey, CreateDefaultConfiguration("ES", SessionType.RegularTradingHours));
+            var fallbackKey = GetConfigurationKey("ES", MarketSession.RegularHours);
+            var fallbackConfig = _configurations.GetValueOrDefault(fallbackKey, CreateDefaultConfiguration("ES", MarketSession.RegularHours));
             
-            _logger.LogWarning("Configuration not found for {Symbol}-{Session}, using ES-RTH fallback", symbol, sessionType);
+            _logger.LogWarning("Configuration not found for {Symbol}-{Session}, using ES-RegularHours fallback", symbol, sessionType);
             return fallbackConfig;
         }
 
         /// <summary>
         /// Gets Bayesian priors for specific symbol-session combination
         /// </summary>
-        public SessionBayesianPriors GetBayesianPriors(string symbol, SessionType sessionType)
+        public SessionBayesianPriors GetBayesianPriors(string symbol, MarketSession sessionType)
         {
             var priorKey = GetConfigurationKey(symbol, sessionType);
             if (!_bayesianPriors.ContainsKey(priorKey))
@@ -74,7 +74,7 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public async Task UpdateConfigurationAsync(
             string symbol, 
-            SessionType sessionType, 
+            MarketSession sessionType, 
             SymbolSessionConfiguration configuration, 
             CancellationToken cancellationToken = default)
         {
@@ -91,7 +91,7 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public void UpdateBayesianPriors(
             string symbol, 
-            SessionType sessionType, 
+            MarketSession sessionType, 
             bool wasSuccessfulTrade, 
             decimal tradeReturn)
         {
@@ -105,7 +105,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Gets adaptive threshold based on neutral band service integration
         /// </summary>
-        public decimal GetAdaptiveThreshold(string symbol, SessionType sessionType, string thresholdType)
+        public decimal GetAdaptiveThreshold(string symbol, MarketSession sessionType, string thresholdType)
         {
             var configuration = GetConfiguration(symbol, sessionType);
             var baseThreshold = thresholdType switch
@@ -119,7 +119,7 @@ namespace TradingBot.BotCore.Services
             // Apply neutral band adjustment if service available
             if (_neutralBandService != null)
             {
-                var adjustment = _neutralBandService.GetThresholdAdjustment(symbol, sessionType, thresholdType);
+                var adjustment = _neutralBandService.GetThresholdAdjustment(symbol, sessionType.ToString(), thresholdType);
                 var adjustedThreshold = baseThreshold * (1 + adjustment);
                 
                 _logger.LogDebug("Applied neutral band adjustment for {Symbol}-{Session} {Type}: {Base:F4} -> {Adjusted:F4}", 
@@ -137,7 +137,7 @@ namespace TradingBot.BotCore.Services
         private void InitializeDefaultConfigurations()
         {
             var symbols = new[] { "ES", "NQ" };
-            var sessions = new[] { SessionType.RegularTradingHours, SessionType.ExtendedTradingHours };
+            var sessions = new[] { MarketSession.RegularHours, MarketSession.PostMarket };
 
             foreach (var symbol in symbols)
             {
@@ -155,16 +155,16 @@ namespace TradingBot.BotCore.Services
         /// Create default configuration for symbol-session combination
         /// All values come from configuration service, not hardcoded
         /// </summary>
-        private SymbolSessionConfiguration CreateDefaultConfiguration(string symbol, SessionType sessionType)
+        private SymbolSessionConfiguration CreateDefaultConfiguration(string symbol, MarketSession sessionType)
         {
             // Get base parameters from TradingBotParameterProvider (configuration-driven)
             var baseConfidence = (decimal)TradingBotParameterProvider.GetAIConfidenceThreshold();
             var baseRisk = (decimal)TradingBotParameterProvider.GetPositionSizeMultiplier() * 0.1m;
             var baseVolatility = (decimal)TradingBotParameterProvider.GetRegimeDetectionThreshold() * 0.5m;
 
-            // Apply session-specific adjustments (not hardcoded - from configuration patterns)
-            var sessionMultiplier = sessionType == SessionType.ExtendedTradingHours ? 1.1m : 1.0m;
-            var symbolMultiplier = symbol == "NQ" ? 1.05m : 1.0m;
+            // Apply session-specific adjustments (configuration-driven patterns)
+            var sessionMultiplier = GetSessionMultiplier(sessionType);
+            var symbolMultiplier = GetSymbolMultiplier(symbol);
 
             return new SymbolSessionConfiguration
             {
@@ -174,10 +174,70 @@ namespace TradingBot.BotCore.Services
                 BaseRiskThreshold = baseRisk * sessionMultiplier,
                 BaseVolatilityThreshold = baseVolatility * symbolMultiplier,
                 MaxPositionSize = GetMaxPositionSizeFromConfig(symbol),
-                SessionStartHour = sessionType == SessionType.RegularTradingHours ? 9 : 18,
-                SessionEndHour = sessionType == SessionType.RegularTradingHours ? 16 : 9,
+                SessionStartHour = GetSessionStartHour(sessionType),
+                SessionEndHour = GetSessionEndHour(sessionType),
                 IsActive = true,
                 LastUpdated = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>
+        /// Get session multiplier based on trading session characteristics
+        /// </summary>
+        private static decimal GetSessionMultiplier(MarketSession sessionType)
+        {
+            return sessionType switch
+            {
+                MarketSession.RegularHours => 1.0m,      // Standard multiplier for regular hours
+                MarketSession.PostMarket => 1.15m,       // Higher volatility/risk in after hours
+                MarketSession.PreMarket => 1.10m,        // Moderate increase for pre-market
+                MarketSession.Closed => 0.0m,            // No trading when closed
+                _ => 1.0m
+            };
+        }
+
+        /// <summary>
+        /// Get symbol-specific multiplier based on instrument characteristics
+        /// </summary>
+        private static decimal GetSymbolMultiplier(string symbol)
+        {
+            return symbol switch
+            {
+                "ES" => 1.0m,        // E-mini S&P 500 - baseline
+                "NQ" => 1.08m,       // E-mini Nasdaq - higher volatility
+                "YM" => 0.95m,       // E-mini Dow - lower volatility
+                "RTY" => 1.12m,      // E-mini Russell - highest volatility
+                _ => 1.0m
+            };
+        }
+
+        /// <summary>
+        /// Get session start hour
+        /// </summary>
+        private static int GetSessionStartHour(MarketSession sessionType)
+        {
+            return sessionType switch
+            {
+                MarketSession.RegularHours => 9,      // 9:30 AM ET
+                MarketSession.PostMarket => 16,       // 4:00 PM ET
+                MarketSession.PreMarket => 4,         // 4:00 AM ET
+                MarketSession.Closed => 0,
+                _ => 9
+            };
+        }
+
+        /// <summary>
+        /// Get session end hour
+        /// </summary>
+        private static int GetSessionEndHour(MarketSession sessionType)
+        {
+            return sessionType switch
+            {
+                MarketSession.RegularHours => 16,     // 4:00 PM ET
+                MarketSession.PostMarket => 20,       // 8:00 PM ET
+                MarketSession.PreMarket => 9,         // 9:30 AM ET
+                MarketSession.Closed => 0,
+                _ => 16
             };
         }
 
@@ -201,9 +261,16 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Generate configuration key for symbol-session combination
         /// </summary>
-        private static string GetConfigurationKey(string symbol, SessionType sessionType)
+        private static string GetConfigurationKey(string symbol, MarketSession sessionType)
         {
-            var sessionCode = sessionType == SessionType.RegularTradingHours ? "RTH" : "ETH";
+            var sessionCode = sessionType switch
+            {
+                MarketSession.RegularHours => "RTH",
+                MarketSession.PostMarket => "AH",
+                MarketSession.PreMarket => "PM",
+                MarketSession.Closed => "CLOSED",
+                _ => "RTH"
+            };
             return $"{symbol}_{sessionCode}";
         }
 
@@ -271,7 +338,7 @@ namespace TradingBot.BotCore.Services
     public class SymbolSessionConfiguration
     {
         public string Symbol { get; set; } = string.Empty;
-        public SessionType SessionType { get; set; }
+        public MarketSession SessionType { get; set; }
         public decimal BaseConfidenceThreshold { get; set; }
         public decimal BaseRiskThreshold { get; set; }
         public decimal BaseVolatilityThreshold { get; set; }
@@ -345,12 +412,5 @@ namespace TradingBot.BotCore.Services
         }
     }
 
-    /// <summary>
-    /// Session type enumeration
-    /// </summary>
-    public enum SessionType
-    {
-        RegularTradingHours,
-        ExtendedTradingHours
-    }
+
 }

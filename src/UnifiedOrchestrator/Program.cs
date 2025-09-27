@@ -31,13 +31,13 @@ namespace TradingBot.UnifiedOrchestrator;
 /// <summary>
 /// 🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀
 /// 
-/// This is the ONE MASTER ORCHESTRATOR that replaces all 4+ separate orchestrators:
-/// - Enhanced/TradingOrchestrator.cs
-/// - Core/Intelligence/TradingIntelligenceOrchestrator.cs  
-/// - src/OrchestratorAgent/Program.cs
-/// - workflow-orchestrator.js
+/// This is the ONE MASTER ORCHESTRATOR that replaces all legacy orchestrators:
+/// - Enhanced/TradingOrchestrator.cs (legacy)
+/// - Core/Intelligence/TradingIntelligenceOrchestrator.cs (legacy)  
+/// - workflow-orchestrator.js (legacy)
 /// 
 /// ALL FUNCTIONALITY IS NOW UNIFIED INTO ONE SYSTEM THAT WORKS TOGETHER
+/// Legacy OrchestratorAgent, SimpleBot, MinimalDemo, TradingBot have been replaced
 /// </summary>
 internal static class Program
 {
@@ -149,7 +149,7 @@ internal static class Program
             // Validate service registration and configuration on startup
             await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
-            // Initialize ML parameter provider for OrchestratorAgent classes
+            // Initialize ML parameter provider for TradingBot classes
             TradingBot.BotCore.Services.TradingBotParameterProvider.Initialize(host.Services);
             
             // Display startup information
