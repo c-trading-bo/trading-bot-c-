@@ -28,18 +28,11 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public static double GetAIConfidenceThreshold()
         {
-            if (_serviceProvider == null)
-            {
-                // Conservative fallback when service provider not available
-                return 0.75; 
-            }
-            
-            using var scope = _serviceProvider.CreateScope();
-            var mlConfig = scope.ServiceProvider.GetService<MLConfigurationService>();
-            var threshold = mlConfig?.GetAIConfidenceThreshold() ?? 0.75;
-            
-            _logger?.LogDebug("Retrieved AI confidence threshold: {Threshold}", threshold);
-            return threshold;
+            return ServiceProviderHelper.ExecuteWithService<MLConfigurationService, double>(
+                _serviceProvider,
+                service => service.GetAIConfidenceThreshold(),
+                0.75 // Conservative fallback
+            );
         }
         
         /// <summary>
@@ -47,18 +40,11 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public static double GetPositionSizeMultiplier()
         {
-            if (_serviceProvider == null)
-            {
-                // Conservative fallback when service provider not available
-                return 2.0; 
-            }
-            
-            using var scope = _serviceProvider.CreateScope();
-            var mlConfig = scope.ServiceProvider.GetService<MLConfigurationService>();
-            var multiplier = mlConfig?.GetPositionSizeMultiplier() ?? 2.0;
-            
-            _logger?.LogDebug("Retrieved position size multiplier: {Multiplier}", multiplier);
-            return multiplier;
+            return ServiceProviderHelper.ExecuteWithService<MLConfigurationService, double>(
+                _serviceProvider,
+                service => service.GetPositionSizeMultiplier(),
+                2.0 // Conservative fallback
+            );
         }
         
         /// <summary>
@@ -66,19 +52,11 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public static double GetFallbackConfidence()
         {
-            if (_serviceProvider == null)
-            {
-                // Conservative fallback
-                return 0.65; 
-            }
-            
-            using var scope = _serviceProvider.CreateScope();
-            var mlConfig = scope.ServiceProvider.GetService<MLConfigurationService>();
-            // Use minimum confidence for fallback scenarios
-            var confidence = mlConfig?.GetMinimumConfidence() ?? 0.65;
-            
-            _logger?.LogDebug("Retrieved fallback confidence: {Confidence}", confidence);
-            return confidence;
+            return ServiceProviderHelper.ExecuteWithService<MLConfigurationService, double>(
+                _serviceProvider,
+                service => service.GetMinimumConfidence(),
+                0.65 // Conservative fallback
+            );
         }
 
         /// <summary>
@@ -86,17 +64,11 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public static double GetRegimeDetectionThreshold()
         {
-            if (_serviceProvider == null)
-            {
-                return 1.0;
-            }
-            
-            using var scope = _serviceProvider.CreateScope();
-            var mlConfig = scope.ServiceProvider.GetService<MLConfigurationService>();
-            var threshold = mlConfig?.GetRegimeDetectionThreshold() ?? 1.0;
-            
-            _logger?.LogDebug("Retrieved regime detection threshold: {Threshold}", threshold);
-            return threshold;
+            return ServiceProviderHelper.ExecuteWithService<MLConfigurationService, double>(
+                _serviceProvider,
+                service => service.GetRegimeDetectionThreshold(),
+                1.0 // Conservative fallback
+            );
         }
     }
 }

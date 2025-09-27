@@ -577,15 +577,8 @@ namespace TradingBot.BotCore.Services
             var totalBars = marketBars.Count;
             var validBars = Math.Max(1, totalBars - 100); // Exclude warmup period
             
-            // Apply strategy-specific logic based on strategyId
-            var strategyMultiplier = strategyId switch
-            {
-                "S2" => GetS2StrategyMultiplier(trialConfig),
-                "S3" => GetS3StrategyMultiplier(trialConfig), 
-                "S6" => GetS6StrategyMultiplier(trialConfig),
-                "S11" => GetS11StrategyMultiplier(trialConfig),
-                _ => 1.0m
-            };
+            // Apply strategy-specific logic based on strategyId using shared helper
+            var strategyMultiplier = StrategyMetricsHelper.GetStrategyMultiplier(strategyId, trialConfig.Parameters);
             
             // Calculate performance metrics based on market volatility and strategy parameters
             var marketVolatility = CalculateMarketVolatility(marketBars);
@@ -596,10 +589,10 @@ namespace TradingBot.BotCore.Services
             var tradingDays = Math.Max(1, validBars / 390); // Assuming 6.5 hour trading days
             var totalTrades = (int)Math.Max(1, expectedTradesPerDay * tradingDays);
             
-            // Calculate win rate based on strategy effectiveness and market conditions
-            var baseWinRate = GetStrategyBaseWinRate(strategyId);
+            // Calculate win rate based on strategy effectiveness and market conditions using shared helper
+            var baseWinRate = StrategyMetricsHelper.GetStrategyBaseWinRate(strategyId);
             var marketAdjustment = (adjustedVolatility - 0.02m) * 5; // Adjust based on volatility
-            var configurationImpact = GetConfigurationImpact(trialConfig);
+            var configurationImpact = StrategyMetricsHelper.GetConfigurationImpact(trialConfig.Parameters);
             var finalWinRate = Math.Max(0.35m, Math.Min(0.75m, baseWinRate + marketAdjustment + configurationImpact));
             
             var winningTrades = (int)(totalTrades * finalWinRate);
@@ -610,14 +603,14 @@ namespace TradingBot.BotCore.Services
             var averageRiskPerTrade = positionSizeMultiplier * 50; // Base risk unit from config
             
             // Calculate realistic P&L based on win rate and risk/reward ratios
-            var averageWin = averageRiskPerTrade * GetStrategyRiskRewardRatio(strategyId);
+            var averageWin = averageRiskPerTrade * StrategyMetricsHelper.GetStrategyRiskRewardRatio(strategyId);
             var averageLoss = averageRiskPerTrade;
             
             var grossProfit = winningTrades * averageWin;
             var grossLoss = losingTrades * averageLoss;
             var netPnL = grossProfit - grossLoss;
             var avgReturn = totalTrades > 0 ? netPnL / totalTrades : 0m;
-            var maxDrawdown = Math.Abs(netPnL * GetStrategyMaxDrawdownRatio(strategyId));
+            var maxDrawdown = Math.Abs(netPnL * StrategyMetricsHelper.GetStrategyMaxDrawdownRatio(strategyId));
             
             logger.LogDebug("[TuningRunner] Strategy {Strategy} backtest: Trades={Trades}, WinRate={WinRate:P1}, NetPnL=${NetPnL:F2}, MaxDD=${MaxDD:F2}", 
                 strategyId, totalTrades, finalWinRate, netPnL, maxDrawdown);
@@ -645,112 +638,6 @@ namespace TradingBot.BotCore.Services
             if (returns.Count == 0) return 0.02m;
             
             return returns.Average();
-        }
-
-        /// <summary>
-        /// Get strategy-specific multiplier based on configuration
-        /// </summary>
-        private static decimal GetS2StrategyMultiplier(StrategyTrialConfig config)
-        {
-            // S2 is mean-reversion strategy - lower volatility = higher activity
-            var sigmaParam = config.Parameters.FirstOrDefault(p => p.Key == "sigma_enter");
-            var sigmaValue = sigmaParam?.DecimalValue ?? 2.0m;
-            return Math.Max(0.5m, 3.0m - (sigmaValue * 0.5m));
-        }
-
-        /// <summary>
-        /// Get S3 strategy multiplier (Bollinger Band squeeze)
-        /// </summary>
-        private static decimal GetS3StrategyMultiplier(StrategyTrialConfig config)
-        {
-            var widthParam = config.Parameters.FirstOrDefault(p => p.Key == "width_rank_threshold");
-            var widthValue = widthParam?.DecimalValue ?? 0.20m;
-            return Math.Max(0.3m, 1.5m - (widthValue * 2.0m));
-        }
-
-        /// <summary>
-        /// Get S6 strategy multiplier (momentum)
-        /// </summary>
-        private static decimal GetS6StrategyMultiplier(StrategyTrialConfig config)
-        {
-            return 1.2m; // Momentum strategies typically more active
-        }
-
-        /// <summary>
-        /// Get S11 strategy multiplier (trend following)
-        /// </summary>
-        private static decimal GetS11StrategyMultiplier(StrategyTrialConfig config)
-        {
-            return 0.8m; // Trend following less frequent but higher conviction
-        }
-
-        /// <summary>
-        /// Get strategy base win rate (configuration-driven)
-        /// </summary>
-        private static decimal GetStrategyBaseWinRate(string strategyId)
-        {
-            // Base win rates come from historical performance analysis
-            return strategyId switch
-            {
-                "S2" => 0.58m, // Mean reversion typically higher win rate
-                "S3" => 0.52m, // Breakout strategies moderate win rate
-                "S6" => 0.55m, // Momentum moderate-high win rate
-                "S11" => 0.48m, // Trend following lower win rate but higher R:R
-                _ => 0.50m
-            };
-        }
-
-        /// <summary>
-        /// Get configuration impact on performance
-        /// </summary>
-        private static decimal GetConfigurationImpact(StrategyTrialConfig config)
-        {
-            // Analyze configuration parameters and their expected impact
-            decimal impact = 0m;
-            
-            foreach (var param in config.Parameters)
-            {
-                impact += param.Key switch
-                {
-                    "sigma_enter" when param.DecimalValue.HasValue => 
-                        Math.Max(-0.05m, Math.Min(0.05m, (2.0m - param.DecimalValue.Value) * 0.02m)),
-                    "width_rank_threshold" when param.DecimalValue.HasValue => 
-                        Math.Max(-0.03m, Math.Min(0.03m, (0.25m - param.DecimalValue.Value) * 0.1m)),
-                    _ => 0m
-                };
-            }
-            
-            return impact;
-        }
-
-        /// <summary>
-        /// Get strategy risk/reward ratio
-        /// </summary>
-        private static decimal GetStrategyRiskRewardRatio(string strategyId)
-        {
-            return strategyId switch
-            {
-                "S2" => 1.3m,  // Mean reversion modest R:R
-                "S3" => 1.8m,  // Breakout higher R:R
-                "S6" => 1.5m,  // Momentum moderate R:R
-                "S11" => 2.2m, // Trend following highest R:R
-                _ => 1.5m
-            };
-        }
-
-        /// <summary>
-        /// Get strategy maximum drawdown ratio
-        /// </summary>
-        private static decimal GetStrategyMaxDrawdownRatio(string strategyId)
-        {
-            return strategyId switch
-            {
-                "S2" => 0.15m,  // Mean reversion lower drawdown
-                "S3" => 0.25m,  // Breakout moderate drawdown
-                "S6" => 0.20m,  // Momentum moderate drawdown
-                "S11" => 0.30m, // Trend following higher drawdown
-                _ => 0.20m
-            };
         }
 
         /// <summary>

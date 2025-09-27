@@ -31,15 +31,26 @@ namespace TradingBot.BotCore.Services
             _neutralBandService = neutralBandService;
             _logger = logger;
             InitializeDefaultConfigurations();
-            LoadConfigurationsFromFile();
+            // Note: Call InitializeAsync after construction for async loading
         }
 
         /// <summary>
-        /// Gets configuration for specific symbol-session combination
+        /// Initialize with async configuration loading
+        /// </summary>
+        public async Task InitializeAsync(CancellationToken cancellationToken = default)
+        {
+            await LoadConfigurationsFromFileAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Gets configuration for specific symbol-session combination with null safety
         /// </summary>
         public SymbolSessionConfiguration GetConfiguration(string symbol, MarketSession sessionType)
         {
-            var configurationKey = GetConfigurationKey(symbol, sessionType);
+            if (string.IsNullOrWhiteSpace(symbol))
+                throw new ArgumentException("Symbol cannot be null or empty", nameof(symbol));
+
+            var configurationKey = ConfigurationKeyHelper.GetConfigurationKey(symbol, sessionType);
             if (_configurations.TryGetValue(configurationKey, out var configuration))
             {
                 _logger.LogDebug("Retrieved configuration for {Symbol}-{Session}", symbol, sessionType);
@@ -47,7 +58,7 @@ namespace TradingBot.BotCore.Services
             }
 
             // Fallback to ES_RTH default if specific configuration not found
-            var fallbackKey = GetConfigurationKey("ES", MarketSession.RegularHours);
+            var fallbackKey = ConfigurationKeyHelper.GetConfigurationKey("ES", MarketSession.RegularHours);
             var fallbackConfig = _configurations.GetValueOrDefault(fallbackKey, CreateDefaultConfiguration("ES", MarketSession.RegularHours));
             
             _logger.LogWarning("Configuration not found for {Symbol}-{Session}, using ES-RegularHours fallback", symbol, sessionType);
@@ -55,22 +66,25 @@ namespace TradingBot.BotCore.Services
         }
 
         /// <summary>
-        /// Gets Bayesian priors for specific symbol-session combination
+        /// Gets Bayesian priors for specific symbol-session combination with null safety
         /// </summary>
         public SessionBayesianPriors GetBayesianPriors(string symbol, MarketSession sessionType)
         {
-            var priorKey = GetConfigurationKey(symbol, sessionType);
+            if (string.IsNullOrWhiteSpace(symbol))
+                throw new ArgumentException("Symbol cannot be null or empty", nameof(symbol));
+
+            var priorKey = ConfigurationKeyHelper.GetConfigurationKey(symbol, sessionType);
             if (!_bayesianPriors.ContainsKey(priorKey))
             {
                 _bayesianPriors[priorKey] = new SessionBayesianPriors();
                 _logger.LogDebug("Created new Bayesian priors for {Symbol}-{Session}", symbol, sessionType);
             }
-            
+
             return _bayesianPriors[priorKey];
         }
 
         /// <summary>
-        /// Updates configuration for specific symbol-session combination
+        /// Updates configuration for specific symbol-session combination with validation
         /// </summary>
         public async Task UpdateConfigurationAsync(
             string symbol, 
@@ -78,7 +92,13 @@ namespace TradingBot.BotCore.Services
             SymbolSessionConfiguration configuration, 
             CancellationToken cancellationToken = default)
         {
-            var configurationKey = GetConfigurationKey(symbol, sessionType);
+            if (string.IsNullOrWhiteSpace(symbol))
+                throw new ArgumentException("Symbol cannot be null or empty", nameof(symbol));
+            
+            if (configuration == null)
+                throw new ArgumentNullException(nameof(configuration));
+
+            var configurationKey = ConfigurationKeyHelper.GetConfigurationKey(symbol, sessionType);
             _configurations[configurationKey] = configuration;
             
             _logger.LogInformation("Updated configuration for {Symbol}-{Session}", symbol, sessionType);
@@ -179,7 +199,7 @@ namespace TradingBot.BotCore.Services
             {
                 foreach (var session in sessions)
                 {
-                    var configurationKey = GetConfigurationKey(symbol, session);
+                    var configurationKey = ConfigurationKeyHelper.GetConfigurationKey(symbol, session);
                     _configurations[configurationKey] = CreateDefaultConfiguration(symbol, session);
                 }
             }
@@ -295,25 +315,9 @@ namespace TradingBot.BotCore.Services
         }
 
         /// <summary>
-        /// Generate configuration key for symbol-session combination
+        /// Load configurations from persistent storage with proper async pattern
         /// </summary>
-        private static string GetConfigurationKey(string symbol, MarketSession sessionType)
-        {
-            var sessionCode = sessionType switch
-            {
-                MarketSession.RegularHours => "RTH",
-                MarketSession.PostMarket => "AH",
-                MarketSession.PreMarket => "PM",
-                MarketSession.Closed => "CLOSED",
-                _ => "RTH"
-            };
-            return $"{symbol}_{sessionCode}";
-        }
-
-        /// <summary>
-        /// Load configurations from persistent storage
-        /// </summary>
-        private void LoadConfigurationsFromFile()
+        private async Task LoadConfigurationsFromFileAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -323,7 +327,7 @@ namespace TradingBot.BotCore.Services
                     return;
                 }
 
-                var jsonContent = File.ReadAllText(_configurationPath);
+                var jsonContent = await File.ReadAllTextAsync(_configurationPath, cancellationToken).ConfigureAwait(false);
                 var savedConfigurations = JsonSerializer.Deserialize<Dictionary<string, SymbolSessionConfiguration>>(jsonContent);
                 
                 if (savedConfigurations != null)
@@ -335,6 +339,11 @@ namespace TradingBot.BotCore.Services
                     
                     _logger.LogInformation("Loaded {Count} configurations from {Path}", savedConfigurations.Count, _configurationPath);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogDebug("Configuration loading was cancelled");
+                throw;
             }
             catch (Exception ex)
             {
