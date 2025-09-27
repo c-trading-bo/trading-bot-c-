@@ -1,5 +1,6 @@
 #nullable enable
 using System.Text.Json;
+using System.IO;
 
 namespace BotCore.Supervisor
 {
@@ -26,7 +27,26 @@ namespace BotCore.Supervisor
                 var snap = JsonSerializer.Deserialize<Snapshot>(json) ?? new Snapshot();
                 return snap;
             }
-            catch { return new Snapshot(); }
+            catch (FileNotFoundException)
+            {
+                return new Snapshot();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return new Snapshot();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return new Snapshot();
+            }
+            catch (JsonException)
+            {
+                return new Snapshot();
+            }
+            catch (IOException)
+            {
+                return new Snapshot();
+            }
         }
 
         public void Save(Snapshot snap)
@@ -36,7 +56,22 @@ namespace BotCore.Supervisor
                 var json = JsonSerializer.Serialize(snap, JsonOptions);
                 File.WriteAllText(_path, json);
             }
-            catch { }
+            catch (DirectoryNotFoundException)
+            {
+                // Silently ignore - directory might be missing in test scenarios
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Silently ignore - might not have write permissions in some environments
+            }
+            catch (JsonException)
+            {
+                // Silently ignore - snapshot might be corrupted, but don't crash
+            }
+            catch (IOException)
+            {
+                // Silently ignore - disk might be full or file locked
+            }
         }
     }
 }

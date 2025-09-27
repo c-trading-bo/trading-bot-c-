@@ -100,9 +100,17 @@ namespace BotCore.Strategy
                 logger.LogDebug("[ML-Integration] Logged {StrategyType} features for {StrategyId} signal {SignalId}",
                     strategyType, strategyId, signalId);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                logger.LogError(ex, "[ML-Integration] Failed to log strategy signal for {StrategyId}", strategyId);
+                logger.LogError(ex, "[ML-Integration] Invalid arguments for strategy signal {StrategyId}", strategyId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                logger.LogError(ex, "[ML-Integration] Invalid operation during feature calculation for {StrategyId}", strategyId);
+            }
+            catch (DivideByZeroException ex)
+            {
+                logger.LogError(ex, "[ML-Integration] Division by zero in calculations for {StrategyId}", strategyId);
             }
         }
 

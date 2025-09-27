@@ -58,6 +58,8 @@ public class EnhancedTradingBrainIntegration
         List<string> availableStrategies,
         CancellationToken cancellationToken = default)
     {
+        if (marketContext is null) throw new ArgumentNullException(nameof(marketContext));
+        
         try
         {
             _logger.LogDebug("🧠 [ENHANCED-BRAIN] Making enhanced decision for {Symbol}", symbol);

@@ -596,6 +596,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken)
         {
+            if (marketData is null) throw new ArgumentNullException(nameof(marketData));
+            
             try
             {
                 // Update internal metrics
