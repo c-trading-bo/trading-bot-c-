@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TopstepX.Bot.Abstractions;
+using BotCore.Models;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -29,58 +30,6 @@ namespace TopstepX.Bot.Core.Services
         public event EventHandler<OrderConfirmedEventArgs>? OrderConfirmed;
         public event EventHandler<OrderRejectedEventArgs>? OrderRejected;
         public event EventHandler<FillConfirmedEventArgs>? FillConfirmed;
-        
-        public class OrderTrackingRecord
-        {
-            private readonly List<FillConfirmation> _fills = new();
-            
-            public string ClientOrderId { get; set; } = string.Empty;
-            public string? GatewayOrderId { get; set; }
-            public string Symbol { get; set; } = string.Empty;
-            public int Quantity { get; set; }
-            public decimal Price { get; set; }
-            public string Side { get; set; } = string.Empty;
-            public string OrderType { get; set; } = string.Empty;
-            public DateTime SubmittedTime { get; set; }
-            public string Status { get; set; } = "PENDING";
-            public IReadOnlyList<FillConfirmation> Fills => _fills;
-            public string? RejectReason { get; set; }
-            public bool IsVerified { get; set; }
-            public int VerificationAttempts { get; set; }
-            
-            public void ReplaceFills(IEnumerable<FillConfirmation> fills)
-            {
-                _fills.Clear();
-                if (fills != null) _fills.AddRange(fills);
-            }
-            
-            public void AddFill(FillConfirmation fill)
-            {
-                if (fill != null) _fills.Add(fill);
-            }
-        }
-        
-        public class FillConfirmation
-        {
-            public string FillId { get; set; } = string.Empty;
-            public DateTime FillTime { get; set; }
-            public decimal FillPrice { get; set; }
-            public int FillQuantity { get; set; }
-            public decimal Commission { get; set; }
-            public string Exchange { get; set; } = string.Empty;
-            public bool IsVerified { get; set; }
-        }
-        
-        public class PlaceOrderRequest
-        {
-            public string Symbol { get; set; } = string.Empty;
-            public int Quantity { get; set; }
-            public decimal Price { get; set; }
-            public string Side { get; set; } = string.Empty; // BUY/SELL
-            public string OrderType { get; set; } = "LIMIT";
-            public string TimeInForce { get; set; } = "DAY";
-            public string ClientOrderId { get; set; } = string.Empty;
-        }
         
         /// <summary>
         /// Constructor using TopstepX adapter service for real-time data
@@ -153,7 +102,7 @@ namespace TopstepX.Bot.Core.Services
                     trackingRecord.Status = "SUBMITTED";
                     
                     // Add to position tracker as pending
-                    _positionTracker.AddPendingOrder(new PositionTrackingSystem.PendingOrder
+                    _positionTracker.AddPendingOrder(new PendingOrder
                     {
                         OrderId = orderResponse.OrderId ?? string.Empty,
                         ClientOrderId = request.ClientOrderId,
@@ -434,20 +383,20 @@ namespace TopstepX.Bot.Core.Services
     // Event argument classes
     public class OrderConfirmedEventArgs : EventArgs
     {
-        public OrderFillConfirmationSystem.OrderTrackingRecord TrackingRecord { get; set; } = new();
+        public OrderTrackingRecord TrackingRecord { get; set; } = new();
         public GatewayUserOrder GatewayOrderUpdate { get; set; } = new();
     }
     
     public class OrderRejectedEventArgs : EventArgs
     {
-        public OrderFillConfirmationSystem.OrderTrackingRecord TrackingRecord { get; set; } = new();
+        public OrderTrackingRecord TrackingRecord { get; set; } = new();
         public GatewayUserOrder GatewayOrderUpdate { get; set; } = new();
     }
     
     public class FillConfirmedEventArgs : EventArgs
     {
-        public OrderFillConfirmationSystem.OrderTrackingRecord TrackingRecord { get; set; } = new();
-        public OrderFillConfirmationSystem.FillConfirmation FillConfirmation { get; set; } = new();
+        public OrderTrackingRecord TrackingRecord { get; set; } = new();
+        public FillConfirmation FillConfirmation { get; set; } = new();
         public GatewayUserTrade GatewayTradeUpdate { get; set; } = new();
     }
 }
