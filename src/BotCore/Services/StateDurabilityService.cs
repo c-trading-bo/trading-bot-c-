@@ -188,9 +188,24 @@ namespace TradingBot.BotCore.Services
 
                 return Array.ConvertAll(backupFiles, file => Path.GetFileName(file) ?? "unknown");
             }
-            catch (Exception ex)
+            catch (DirectoryNotFoundException ex)
             {
-                _logger.LogError(ex, "Error listing available backups");
+                _logger.LogWarning(ex, "Backup directory not found when listing available backups");
+                return Array.Empty<string>();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied when listing available backups");
+                return Array.Empty<string>();
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "I/O error when listing available backups");
+                return Array.Empty<string>();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid path when listing available backups");
                 return Array.Empty<string>();
             }
         }

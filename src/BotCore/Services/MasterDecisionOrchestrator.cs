@@ -236,6 +236,9 @@ public class MasterDecisionOrchestrator : BackgroundService
         MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(symbol);
+        ArgumentNullException.ThrowIfNull(marketContext);
+        
         var startTime = DateTime.UtcNow;
         var decisionId = GenerateDecisionId();
         
@@ -325,6 +328,10 @@ public class MasterDecisionOrchestrator : BackgroundService
         Dictionary<string, object> metadata,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(decisionId);
+        ArgumentNullException.ThrowIfNull(decisionSource);
+        ArgumentNullException.ThrowIfNull(metadata);
+        
         try
         {
             _logger.LogInformation("📈 [MASTER-FEEDBACK] Recording outcome: {DecisionId} PnL={PnL:C2} Correct={Correct}",
