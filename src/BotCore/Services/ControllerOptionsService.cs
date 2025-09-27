@@ -11,6 +11,14 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class ControllerOptionsService : IControllerOptionsService
     {
+        // Controller Configuration Constants
+        private const double DefaultBullConfidenceLower = 0.6;        // Bull regime confidence lower bound
+        private const double DefaultBullConfidenceUpper = 0.9;        // Bull regime confidence upper bound
+        private const double DefaultBearConfidenceLower = 0.65;       // Bear regime confidence lower bound
+        private const double DefaultBearConfidenceUpper = 0.85;       // Bear regime confidence upper bound
+        private const double DefaultSidewaysConfidenceLower = 0.7;    // Sideways regime confidence lower bound
+        private const double DefaultSidewaysConfidenceUpper = 0.8;    // Sideways regime confidence upper bound
+        
         private readonly IConfiguration _config;
 
         public ControllerOptionsService(IConfiguration config)
@@ -21,16 +29,16 @@ namespace TradingBot.BotCore.Services
         public (double Lower, double Upper) GetConfidenceBands(string regimeType) => regimeType?.ToLower() switch
         {
             "bull" => (
-                _config.GetValue("Controller:ConfidenceBands:Bull:Lower", 0.6),
-                _config.GetValue("Controller:ConfidenceBands:Bull:Upper", 0.9)
+                _config.GetValue("Controller:ConfidenceBands:Bull:Lower", DefaultBullConfidenceLower),
+                _config.GetValue("Controller:ConfidenceBands:Bull:Upper", DefaultBullConfidenceUpper)
             ),
             "bear" => (
-                _config.GetValue("Controller:ConfidenceBands:Bear:Lower", 0.65),
-                _config.GetValue("Controller:ConfidenceBands:Bear:Upper", 0.85)
+                _config.GetValue("Controller:ConfidenceBands:Bear:Lower", DefaultBearConfidenceLower),
+                _config.GetValue("Controller:ConfidenceBands:Bear:Upper", DefaultBearConfidenceUpper)
             ),
             "sideways" => (
-                _config.GetValue("Controller:ConfidenceBands:Sideways:Lower", 0.7),
-                _config.GetValue("Controller:ConfidenceBands:Sideways:Upper", 0.8)
+                _config.GetValue("Controller:ConfidenceBands:Sideways:Lower", DefaultSidewaysConfidenceLower),
+                _config.GetValue("Controller:ConfidenceBands:Sideways:Upper", DefaultSidewaysConfidenceUpper)
             ),
             _ => (
                 _config.GetValue("Controller:ConfidenceBands:Default:Lower", 0.65),
