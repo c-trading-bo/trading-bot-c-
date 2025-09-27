@@ -99,9 +99,9 @@ cmd_run() {
     dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 }
 
-cmd_run_simple() {
-    log_info "Running SimpleBot (legacy, clean build)..."
-    dotnet run --project SimpleBot/SimpleBot.csproj
+cmd_run_smoke() {
+    log_info "Running UnifiedOrchestrator smoke test (replaces SimpleBot)..."
+    dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj -- --smoke
 }
 
 cmd_clean() {
@@ -226,7 +226,7 @@ cmd_help() {
     echo "  backtest      - Run backtest with local sample data (no live API)"
     echo "  riskcheck     - Validate risk constants against committed snapshots"
     echo "  run           - Run main application (UnifiedOrchestrator)"
-    echo "  run-simple    - Run SimpleBot (legacy, clean build)"
+    echo "  run-smoke     - Run UnifiedOrchestrator smoke test (replaces SimpleBot/MinimalDemo)"
     echo "  clean         - Clean build artifacts"
     echo "  full          - Run full cycle: setup -> build -> test"
     echo "  help          - Show this help"
@@ -266,8 +266,8 @@ case "${1:-help}" in
     "run")
         cmd_run
         ;;
-    "run-simple")
-        cmd_run_simple
+    "run-smoke")
+        cmd_run_smoke
         ;;
     "clean")
         cmd_clean
