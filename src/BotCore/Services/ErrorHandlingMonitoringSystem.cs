@@ -160,10 +160,15 @@ namespace TopstepX.Bot.Core.Services
                 // Clean up old error records (keep last 24 hours)
                 CleanupOldErrors();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 // Failsafe logging - don't let error logging itself crash the system
-                _logger.LogCritical(ex, "🚨 CRITICAL: Error in error logging system");
+                _logger.LogCritical(ex, "🚨 CRITICAL: Invalid operation in error logging system");
+            }
+            catch (ArgumentException ex)
+            {
+                // Failsafe logging - don't let error logging itself crash the system
+                _logger.LogCritical(ex, "🚨 CRITICAL: Invalid argument in error logging system");
             }
         }
         
@@ -197,9 +202,17 @@ namespace TopstepX.Bot.Core.Services
                 
                 await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogWarning(ex, "⚠️ Failed to write error to file");
+                _logger.LogWarning(ex, "⚠️ Failed to write error to file - IO error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Failed to write error to file - access denied");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Failed to write error to file - JSON error");
             }
         }
         
@@ -246,9 +259,13 @@ namespace TopstepX.Bot.Core.Services
                 
                 _logger.LogInformation("📋 Critical alert file created: {AlertPath}", alertPath);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogCritical(ex, "🚨 Failed to handle critical error");
+                _logger.LogCritical(ex, "🚨 Failed to handle critical error - IO error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogCritical(ex, "🚨 Failed to handle critical error - access denied");
             }
         }
         
@@ -353,9 +370,13 @@ namespace TopstepX.Bot.Core.Services
                         stale.ComponentName, stale.LastCheck);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "❌ Error during health check");
+                _logger.LogError(ex, "❌ Invalid operation during health check");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "❌ Invalid argument during health check");
             }
         }
         

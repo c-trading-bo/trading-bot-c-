@@ -131,10 +131,20 @@ namespace TopstepX.Bot.Core.Services
                     return OrderResult.Failed(orderResponse.ErrorMessage ?? "Unknown error");
                 }
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "❌ Error placing order {ClientOrderId}", request.ClientOrderId);
-                return OrderResult.Failed($"Exception: {ex.Message}");
+                _logger.LogError(ex, "❌ HTTP error placing order {ClientOrderId}", request.ClientOrderId);
+                return OrderResult.Failed($"HTTP Exception: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "❌ Timeout placing order {ClientOrderId}", request.ClientOrderId);
+                return OrderResult.Failed($"Timeout: {ex.Message}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "❌ Invalid operation placing order {ClientOrderId}", request.ClientOrderId);
+                return OrderResult.Failed($"Invalid Operation: {ex.Message}");
             }
         }
         
@@ -174,10 +184,20 @@ namespace TopstepX.Bot.Core.Services
                     return ApiOrderResponse.Failed($"HTTP {response.StatusCode}: {errorContent}");
                 }
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API call failed for order submission");
-                return ApiOrderResponse.Failed($"API Exception: {ex.Message}");
+                _logger.LogError(ex, "HTTP API call failed for order submission");
+                return ApiOrderResponse.Failed($"HTTP API Exception: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "API call timeout for order submission");
+                return ApiOrderResponse.Failed($"API Timeout: {ex.Message}");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing error for order submission");
+                return ApiOrderResponse.Failed($"JSON Exception: {ex.Message}");
             }
         }
 

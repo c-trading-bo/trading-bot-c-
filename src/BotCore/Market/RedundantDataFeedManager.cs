@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 
 namespace BotCore.Market;
@@ -38,8 +39,8 @@ public class MarketData
 public class OrderBook
 {
     public string Symbol { get; set; } = string.Empty;
-    public List<OrderBookLevel> Bids { get; } = new();
-    public List<OrderBookLevel> Asks { get; } = new();
+    public IReadOnlyList<OrderBookLevel> Bids { get; } = new List<OrderBookLevel>();
+    public IReadOnlyList<OrderBookLevel> Asks { get; } = new List<OrderBookLevel>();
     public DateTime Timestamp { get; set; }
 }
 

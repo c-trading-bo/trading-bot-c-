@@ -50,9 +50,9 @@ namespace TradingBot.BotCore.Services
                 
                 return result;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "🚨 [CONFIG-SAFETY] Configuration failure for {Operation}: {Error}", operationName, ex.Message);
+                _logger.LogError(ex, "🚨 [CONFIG-SAFETY] Invalid operation in configuration failure for {Operation}: {Error}", operationName, ex.Message);
                 
                 // Trip circuit breaker
                 _circuitBreakerTripped = true;
@@ -88,9 +88,13 @@ namespace TradingBot.BotCore.Services
                 
                 _logger.LogCritical("🚨 [CONFIG-SAFETY] CRITICAL ALERT RAISED: {AlertPath}", alertPath);
             }
-            catch (Exception alertEx)
+            catch (IOException ioEx)
             {
-                _logger.LogError(alertEx, "Failed to raise configuration alert for {Operation}", operationName);
+                _logger.LogError(ioEx, "Failed to raise configuration alert for {Operation} - IO error", operationName);
+            }
+            catch (UnauthorizedAccessException accessEx)
+            {
+                _logger.LogError(accessEx, "Failed to raise configuration alert for {Operation} - access denied", operationName);
             }
         }
     }
