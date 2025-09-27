@@ -283,7 +283,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 
                 // Calculate success rate
-                var totalChecks = health.ErrorCount + (health.Metrics.ContainsKey("SuccessCount") ? Convert.ToInt32(health.Metrics["SuccessCount"]) : 1);
+                var totalChecks = health.ErrorCount + (health.Metrics.TryGetValue("SuccessCount", out var successCountValue) ? Convert.ToInt32(successCountValue) : 1);
                 health.SuccessRate = Math.Max(0, 100.0 - (health.ErrorCount * 100.0 / totalChecks));
                 
                 _logger.LogDebug("📊 Component health updated: {Component} - {Status} (Success Rate: {SuccessRate:F1}%)", 
@@ -299,8 +299,8 @@ namespace TopstepX.Bot.Core.Services
             var metrics = new Dictionary<string, object>
             {
                 ["SuccessCount"] = (_componentHealth.TryGetValue(componentName, out var health) && 
-                                  health.Metrics.ContainsKey("SuccessCount")) ? 
-                                  Convert.ToInt32(health.Metrics["SuccessCount"]) + 1 : 1
+                                  health.Metrics.TryGetValue("SuccessCount", out var successValue)) ? 
+                                  Convert.ToInt32(successValue) + 1 : 1
             };
             
             if (responseTimeMs > 0)

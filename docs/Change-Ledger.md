@@ -831,7 +831,55 @@ var integrity = new ModelIntegrity {
 integrity.ReplaceMetadata(metadata);
 ```
 
-#### Round 19 - Phase 1 Final CS Errors & Phase 2 Priority Violations (Current Session)
+#### Round 20 - Phase 2 Systematic Priority Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------| 
+| S109 | 2940 | 2864 | BracketConfigService.cs, EmergencyStopSystem.cs | Named constants for trading bracket parameters and monitoring intervals |
+| CA1062 | 36 | 32 | HistoricalDataBridgeService.cs, EnhancedMarketDataFlowService.cs | ArgumentNullException.ThrowIfNull for public API parameters |
+| CA1031 | 938 | 936 | StateDurabilityService.cs | Specific exception handling (IOException, UnauthorizedAccessException) for file operations |
+| CA1854 | 206 | 204 | ErrorHandlingMonitoringSystem.cs | TryGetValue pattern for dictionary lookups |
+| CA1860 | 208 | 206 | TradingFeedbackService.cs | Count > 0 instead of Any() for performance |
+
+**Example Pattern - Phase 2 S109 Trading Constants**:
+```csharp
+// Before (Violation)
+public double GetMinRewardRiskRatio() => 
+    _config.GetValue("Bracket:MinRewardRiskRatio", 1.2);
+await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
+
+// After (Compliant)
+private const double MinRewardRiskRatioValue = 1.2;
+private const int MonitoringIntervalMs = 1000;
+
+public double GetMinRewardRiskRatio() => 
+    _config.GetValue("Bracket:MinRewardRiskRatio", MinRewardRiskRatioValue);
+await Task.Delay(MonitoringIntervalMs, stoppingToken).ConfigureAwait(false);
+```
+
+**Example Pattern - Phase 2 CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Error cleaning up old backups");
+}
+
+// After (Compliant)
+catch (IOException ex)
+{
+    _logger.LogError(ex, "File system error cleaning up old backups");
+}
+catch (UnauthorizedAccessException ex)
+{
+    _logger.LogError(ex, "Access denied while cleaning up old backups");
+}
+catch (DirectoryNotFoundException ex)
+{
+    _logger.LogError(ex, "Backup directory not found during cleanup");
+}
+```
+
+#### Round 19 - Phase 1 Final CS Errors & Phase 2 Priority Violations (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CS0103 | 4 | 0 | S6_MaxPerf_FullStack.cs | Fixed missing constant scoping - created IndicatorConstants class for shared mathematical constants |
