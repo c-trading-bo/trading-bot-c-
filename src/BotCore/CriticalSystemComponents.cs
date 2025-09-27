@@ -1807,9 +1807,19 @@ namespace TradingBot.Critical
                     _ => null
                 };
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                System.Console.WriteLine($"[AZURE_KV_ERROR] Failed to get secret {key}: {ex.Message}");
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Invalid operation for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Invalid argument for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (System.Net.NetworkInformation.NetworkInformationException ex)
+            {
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Network error getting secret {key}: {ex.Message}");
                 return null;
             }
         }
@@ -1846,9 +1856,19 @@ namespace TradingBot.Critical
                     _ => null
                 };
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                System.Console.WriteLine($"[AWS_SM_ERROR] Failed to get secret {key}: {ex.Message}");
+                System.Console.WriteLine($"[AWS_SM_ERROR] Invalid operation for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Console.WriteLine($"[AWS_SM_ERROR] Invalid argument for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (System.Security.SecurityException ex)
+            {
+                System.Console.WriteLine($"[AWS_SM_ERROR] Security error getting secret {key}: {ex.Message}");
                 return null;
             }
         }

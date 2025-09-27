@@ -194,9 +194,17 @@ namespace TopstepX.Bot.Core.Services
                 File.WriteAllText(logPath, logContent);
                 _logger.LogInformation("📋 Emergency log created: {LogPath}", logPath);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "❌ Failed to create emergency log");
+                _logger.LogError(ex, "❌ Failed to create emergency log - IO error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to create emergency log - access denied");
+            }
+            catch (SecurityException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to create emergency log - security error");
             }
         }
         
@@ -223,9 +231,14 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogWarning("🔄 Emergency stop reset - system ready");
                 return true;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "❌ Failed to reset emergency stop");
+                _logger.LogError(ex, "❌ Failed to reset emergency stop - IO error");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "❌ Failed to reset emergency stop - access denied");
                 return false;
             }
         }

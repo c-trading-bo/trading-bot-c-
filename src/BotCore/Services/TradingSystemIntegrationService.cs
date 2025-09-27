@@ -544,9 +544,17 @@ namespace TopstepX.Bot.Core.Services
                     await EvaluateSymbolStrategiesAsync(symbol).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[STRATEGY] Error during trade opportunity evaluation");
+                _logger.LogError(ex, "[STRATEGY] Invalid operation during trade opportunity evaluation");
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("[STRATEGY] Trade opportunity evaluation cancelled");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[STRATEGY] Invalid argument during trade opportunity evaluation");
             }
             finally
             {
