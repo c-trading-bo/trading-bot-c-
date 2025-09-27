@@ -459,8 +459,8 @@ public class RedundantDataFeedManager : IDisposable
                 var deviation = Math.Abs(snapshot.Price - avgPrice) / avgPrice;
                 if (deviation == maxDeviation && deviation > 0.001m)
                 {
-                    consistency.OutlierFeeds.Add(snapshot.FeedName);
-                    consistency.Issues.Add($"Price outlier: {snapshot.FeedName} deviates by {deviation:P2}");
+                    consistency.AddOutlierFeed(snapshot.FeedName);
+                    consistency.AddIssue($"Price outlier: {snapshot.FeedName} deviates by {deviation:P2}");
                 }
             }
 
@@ -469,7 +469,7 @@ public class RedundantDataFeedManager : IDisposable
             {
                 if (snapshot.DataAge.TotalSeconds > 30)
                 {
-                    consistency.Issues.Add($"Stale data: {snapshot.FeedName} is {snapshot.DataAge.TotalSeconds:F1}s old");
+                    consistency.AddIssue($"Stale data: {snapshot.FeedName} is {snapshot.DataAge.TotalSeconds:F1}s old");
                 }
             }
 
@@ -478,7 +478,7 @@ public class RedundantDataFeedManager : IDisposable
             {
                 if (snapshot.ResponseTime.TotalMilliseconds > 500)
                 {
-                    consistency.Issues.Add($"Slow response: {snapshot.FeedName} took {snapshot.ResponseTime.TotalMilliseconds:F0}ms");
+                    consistency.AddIssue($"Slow response: {snapshot.FeedName} took {snapshot.ResponseTime.TotalMilliseconds:F0}ms");
                 }
             }
         }
@@ -641,8 +641,13 @@ public class RedundantDataFeedManager : IDisposable
         public decimal SpreadDeviation { get; set; }
         public TimeSpan MaxDataAge { get; set; }
         public TimeSpan AverageDataAge { get; set; }
-        public List<string> OutlierFeeds { get; } = new();
-        public List<string> Issues { get; } = new();
+        private readonly List<string> _outlierFeeds = new();
+        private readonly List<string> _issues = new();
+        public IReadOnlyList<string> OutlierFeeds => _outlierFeeds;
+        public IReadOnlyList<string> Issues => _issues;
+        
+        internal void AddOutlierFeed(string feedName) => _outlierFeeds.Add(feedName);
+        internal void AddIssue(string issue) => _issues.Add(issue);
     }
 
     public class MarketDataSnapshot

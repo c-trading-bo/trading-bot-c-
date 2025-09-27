@@ -130,7 +130,11 @@ namespace BotCore.Risk
             public DateTime DrawdownStart { get; set; }
             public TimeSpan DrawdownDuration { get; set; }
             public int ConsecutiveLosses { get; set; }
-            public List<decimal> LossSequence { get; } = new();
+            private readonly List<decimal> _lossSequence = new();
+            public IReadOnlyList<decimal> LossSequence => _lossSequence;
+            
+            internal void AddLoss(decimal loss) => _lossSequence.Add(loss);
+            internal void ClearLossSequence() => _lossSequence.Clear();
         }
         
         public class DrawdownAction
@@ -238,7 +242,7 @@ namespace BotCore.Risk
             {
                 _consecutiveLosses++;
                 tracker.ConsecutiveLosses = _consecutiveLosses;
-                tracker.LossSequence.Add(lastTrade.PnL);
+                tracker.AddLoss(lastTrade.PnL);
                 
                 // Exponential backoff on losing streak
                 await ApplyLosingStreakProtection().ConfigureAwait(false);
@@ -246,7 +250,7 @@ namespace BotCore.Risk
             else if (lastTrade != null && lastTrade.PnL > 0)
             {
                 _consecutiveLosses = 0;
-                tracker.LossSequence.Clear();
+                tracker.ClearLossSequence();
             }
             
             // Check drawdown levels and take action

@@ -15,7 +15,7 @@ namespace BotCore.Supervisor
         {
             public Dictionary<string, DateTime>? RecentRoutes { get; set; }
             public Dictionary<string, long>? LastBarUnix { get; set; }
-            public List<string>? LastCids { get; set; }
+            public IReadOnlyList<string>? LastCids { get; set; }
         }
 
         public Snapshot Load()

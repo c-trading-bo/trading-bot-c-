@@ -414,9 +414,13 @@ namespace TradingBot.Critical
                         fillData.OrderId, fillData.Quantity, fillData.Price);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[CRITICAL] Failed to handle orphaned fill {OrderId}", fillData.OrderId);
+                _logger.LogError(ex, "[CRITICAL] Invalid operation handling orphaned fill {OrderId}", fillData.OrderId);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[CRITICAL] Invalid argument handling orphaned fill {OrderId}", fillData.OrderId);
             }
             
             return Task.CompletedTask;
@@ -1576,9 +1580,13 @@ namespace TradingBot.Critical
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "Failed to update correlations");
+                _logger.LogError(ex, "Invalid operation updating correlations");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid argument updating correlations");
             }
         }
 

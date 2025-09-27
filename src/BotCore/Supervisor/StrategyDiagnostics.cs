@@ -7,7 +7,7 @@ namespace BotCore.Supervisor
     public static class StrategyDiagnostics
     {
         public sealed record Check(string Name, bool Pass, string Detail);
-        public sealed record Report(string Strategy, string Symbol, List<Check> Checks, string Verdict);
+        public sealed record Report(string Strategy, string Symbol, IReadOnlyList<Check> Checks, string Verdict);
 
         public static Report Explain(TradingProfileConfig cfg, StrategyDef def, BotCore.Models.MarketSnapshot snap)
         {

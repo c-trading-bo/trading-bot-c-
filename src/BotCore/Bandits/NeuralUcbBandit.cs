@@ -496,9 +496,17 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                 _logger.LogWarning("[NEURAL_UCB] Failed to load ONNX model, using fallback implementation");
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[NEURAL_UCB] Error loading ONNX model: {ModelPath}", _modelPath);
+            _logger.LogError(ex, "[NEURAL_UCB] Invalid operation loading ONNX model: {ModelPath}", _modelPath);
+        }
+        catch (FileNotFoundException ex)
+        {
+            _logger.LogError(ex, "[NEURAL_UCB] ONNX model file not found: {ModelPath}", _modelPath);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[NEURAL_UCB] Invalid argument loading ONNX model: {ModelPath}", _modelPath);
         }
     }
 

@@ -320,9 +320,18 @@ internal sealed class LinUcbArm
             _AInverse = InvertMatrix(_A);
             _inverseNeedsUpdate = false;
         }
-        catch
+        catch (InvalidOperationException)
         {
             // Matrix inversion failed - use identity as fallback
+            _AInverse = new decimal[_dimension, _dimension];
+            for (int i = 0; i < _dimension; i++)
+            {
+                _AInverse[i, i] = 1m;
+            }
+        }
+        catch (ArithmeticException)
+        {
+            // Mathematical operation failed - use identity as fallback
             _AInverse = new decimal[_dimension, _dimension];
             for (int i = 0; i < _dimension; i++)
             {
