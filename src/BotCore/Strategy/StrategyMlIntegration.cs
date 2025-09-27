@@ -154,9 +154,13 @@ namespace BotCore.Strategy
                 logger.LogDebug("[ML-Integration] Logged trade outcome for {StrategyId} signal {SignalId}: {Result}",
                     strategyId, signalId, isWin ? "WIN" : "LOSS");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                logger.LogError(ex, "[ML-Integration] Failed to log trade outcome for {StrategyId}", strategyId);
+                logger.LogError(ex, "[ML-Integration] Invalid operation logging trade outcome for {StrategyId}", strategyId);
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogError(ex, "[ML-Integration] Invalid argument logging trade outcome for {StrategyId}", strategyId);
             }
         }
 

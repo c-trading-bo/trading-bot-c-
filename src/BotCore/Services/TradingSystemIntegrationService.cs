@@ -678,9 +678,19 @@ namespace TopstepX.Bot.Core.Services
 
                 return featureVector;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[ML/RL-FEATURES] Error generating features for {Symbol}", symbol);
+                _logger.LogError(ex, "[ML/RL-FEATURES] Invalid operation generating features for {Symbol}", symbol);
+                return null;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[ML/RL-FEATURES] Invalid argument generating features for {Symbol}", symbol);
+                return null;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("[ML/RL-FEATURES] Feature generation cancelled for {Symbol}", symbol);
                 return null;
             }
         }

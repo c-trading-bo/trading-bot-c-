@@ -682,9 +682,17 @@ namespace TradingBot.BotCore.Services
                 
                 logger.LogInformation("[TuningRunner] Saved {Count} backtest results to {Filename}", results.Count, filename);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                logger.LogError(ex, "[TuningRunner] Error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+                logger.LogError(ex, "[TuningRunner] IO error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                logger.LogError(ex, "[TuningRunner] Access denied saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "[TuningRunner] JSON error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
             }
         }
 
