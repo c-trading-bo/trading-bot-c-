@@ -12,6 +12,7 @@ using BotCore.Models;
 using BotCore.Brain;
 using BotCore.Services;
 using TradingBot.Abstractions;
+using TradingBot.BotCore.Services.Helpers;
 using System.Globalization;
 
 namespace BotCore.Services;
@@ -315,7 +316,7 @@ public class AutonomousDecisionEngine : BackgroundService
         // Autonomous strategy selection based on market conditions and performance
         var strategyScores = new Dictionary<string, decimal>();
         
-        foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
+        foreach (var strategy in StrategyConstants.AllStrategies)
         {
             var score = CalculateStrategyScore(strategy);
             strategyScores[strategy] = score;
@@ -769,7 +770,7 @@ public class AutonomousDecisionEngine : BackgroundService
     
     private void InitializeAutonomousStrategyMetrics()
     {
-        foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
+        foreach (var strategy in StrategyConstants.AllStrategies)
         {
             _strategyMetrics[strategy] = new AutonomousStrategyMetrics
             {
@@ -1164,7 +1165,7 @@ public class AutonomousDecisionEngine : BackgroundService
             // Load performance data for all strategies
             var performanceData = new Dictionary<string, StrategyPerformanceData>();
             
-            foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
+            foreach (var strategy in StrategyConstants.AllStrategies)
             {
                 // Try to get performance from analyzer if available
                 var strategyPerformance = GetStrategyPerformanceFromAnalyzer(strategy);
@@ -1192,7 +1193,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _logger.LogWarning(ex, "⚠️ [AUTONOMOUS-ENGINE] Failed to load historical performance data");
             
             // Create baseline data for all strategies
-            return new[] { "S2", "S3", "S6", "S11" }
+            return StrategyConstants.AllStrategies
                 .ToDictionary(s => s, CreateBaselinePerformanceData);
         }
     }
@@ -1356,8 +1357,7 @@ public class AutonomousDecisionEngine : BackgroundService
     /// </summary>
     private Task InitializeDefaultMetricsAsync(CancellationToken cancellationToken = default)
     {
-        var defaultStrategies = new[] { "S2", "S3", "S6", "S11" };
-        foreach (var strategy in defaultStrategies)
+        foreach (var strategy in StrategyConstants.AllStrategies)
         {
             if (_strategyMetrics.ContainsKey(strategy))
             {

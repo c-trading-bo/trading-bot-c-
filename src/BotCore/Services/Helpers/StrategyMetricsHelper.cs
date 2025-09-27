@@ -4,8 +4,49 @@ using System.Linq;
 using TradingBot.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TradingBot.BotCore.Services
+namespace TradingBot.BotCore.Services.Helpers
 {
+    /// <summary>
+    /// Centralized strategy constants and configuration to eliminate duplication
+    /// Single source of truth for all strategy-related constants and metadata
+    /// </summary>
+    internal static class StrategyConstants
+    {
+        /// <summary>
+        /// All supported trading strategies
+        /// </summary>
+        public static readonly string[] AllStrategies = { "S2", "S3", "S6", "S11" };
+
+        /// <summary>
+        /// Strategy names with descriptions
+        /// </summary>
+        public static readonly Dictionary<string, string> StrategyDescriptions = new()
+        {
+            ["S2"] = "VWAP Mean Reversion - Best overnight and lunch",
+            ["S3"] = "Compression Breakout - Best at session opens", 
+            ["S6"] = "Opening Drive - ONLY 9:28-10:00",
+            ["S11"] = "ADR Exhaustion - Best afternoon"
+        };
+
+        /// <summary>
+        /// Check if a strategy ID is valid
+        /// </summary>
+        public static bool IsValidStrategy(string strategyId)
+        {
+            return AllStrategies.Contains(strategyId);
+        }
+
+        /// <summary>
+        /// Get strategy description
+        /// </summary>
+        public static string GetStrategyDescription(string strategyId)
+        {
+            return StrategyDescriptions.TryGetValue(strategyId, out var description) 
+                ? description 
+                : "Unknown strategy";
+        }
+    }
+
     /// <summary>
     /// Shared helper for strategy metrics calculations
     /// Eliminates duplication of strategy-specific switch statements
