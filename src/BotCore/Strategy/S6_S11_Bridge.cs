@@ -27,7 +27,7 @@ namespace BotCore.Strategy
         private readonly IOrderService _orderService;
         private readonly ILogger<BridgeOrderRouter> _logger;
         private readonly ITopstepXAdapterService? _topstepXAdapter;
-        private readonly Dictionary<string, Position> _positionCache;
+        private readonly Dictionary<string, TradingBot.Abstractions.Position> _positionCache;
         private readonly SemaphoreSlim _positionCacheLock;
         private readonly string _configSnapshotId;
         
@@ -41,7 +41,7 @@ namespace BotCore.Strategy
             // Resolve TopstepX adapter service through abstractions layer (not direct UnifiedOrchestrator dependency)
             _topstepXAdapter = serviceProvider?.GetService<ITopstepXAdapterService>();
             
-            _positionCache = new Dictionary<string, Position>();
+            _positionCache = new Dictionary<string, TradingBot.Abstractions.Position>();
             _positionCacheLock = new SemaphoreSlim(1, 1);
             _configSnapshotId = $"CONFIG_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Environment.MachineName}";
 
@@ -269,7 +269,7 @@ namespace BotCore.Strategy
             }
         }
 
-        private async Task<Position?> GetPositionInternalAsync(string instrument)
+        private async Task<TradingBot.Abstractions.Position?> GetPositionInternalAsync(string instrument)
         {
             try
             {
@@ -377,7 +377,7 @@ namespace BotCore.Strategy
             await _positionCacheLock.WaitAsync().ConfigureAwait(false);
             try
             {
-                var position = new Position
+                var position = new TradingBot.Abstractions.Position
                 {
                     Id = orderId,
                     Symbol = instrument,
