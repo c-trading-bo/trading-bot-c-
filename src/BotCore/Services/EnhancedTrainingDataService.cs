@@ -365,7 +365,14 @@ namespace BotCore
         public string StrategyUsed { get; set; } = "";
         public decimal StopLoss { get; set; }
         public decimal TakeProfit { get; set; }
-        public List<decimal> Features { get; set; } = new();
+        private readonly List<decimal> _features = new();
+        public IReadOnlyList<decimal> Features => _features;
+        
+        public void ReplaceFeatures(IEnumerable<decimal> features)
+        {
+            _features.Clear();
+            if (features != null) _features.AddRange(features);
+        }
         public string Session { get; set; } = "";
         public string Regime { get; set; } = "";
         public decimal Atr { get; set; }

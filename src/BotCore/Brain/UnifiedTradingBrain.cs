@@ -1671,7 +1671,19 @@ namespace BotCore.Brain
         public int WinningTrades { get; set; }
         public decimal TotalPnL { get; set; }
         public decimal WinRate { get; set; }
-        public List<long> HoldTimes { get; } = new();
+        private readonly List<long> _holdTimes = new();
+        public IReadOnlyList<long> HoldTimes => _holdTimes;
+        
+        public void AddHoldTime(long holdTimeMs)
+        {
+            _holdTimes.Add(holdTimeMs);
+        }
+        
+        public void ReplaceHoldTimes(IEnumerable<long> holdTimes)
+        {
+            _holdTimes.Clear();
+            if (holdTimes != null) _holdTimes.AddRange(holdTimes);
+        }
     }
 
     public class MarketCondition

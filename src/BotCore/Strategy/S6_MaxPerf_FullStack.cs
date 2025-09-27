@@ -610,8 +610,7 @@ namespace TopstepX.S6
         public bool TryPost(in T item) => _ch.Writer.TryWrite(item);
         public async Task Run(Func<T, bool> onEvent, CancellationToken ct)
         {
-            if (onEvent == null)
-                throw new ArgumentNullException(nameof(onEvent));
+            ArgumentNullException.ThrowIfNull(onEvent);
 
             var r = _ch.Reader;
             while (await r.WaitToReadAsync(ct).ConfigureAwait(false))

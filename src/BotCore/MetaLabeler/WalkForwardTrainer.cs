@@ -434,7 +434,7 @@ public record WalkForwardResults
     public DateTime StartDate { get; init; }
     public DateTime EndDate { get; init; }
     public WalkForwardConfig Config { get; init; } = null!;
-    public List<ValidationFold> Folds { get; init; } = new();
+    public IReadOnlyList<ValidationFold> Folds { get; init; } = new List<ValidationFold>();
     public ValidationMetrics OverallMetrics { get; set; } = null!;
     public DateTime CompletedAt { get; init; } = DateTime.UtcNow;
 }
