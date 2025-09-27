@@ -46,6 +46,9 @@ public class ModelEnsembleService
         List<string> availableStrategies,
         CancellationToken cancellationToken = default)
     {
+        if (contextVector is null) throw new ArgumentNullException(nameof(contextVector));
+        if (availableStrategies is null) throw new ArgumentNullException(nameof(availableStrategies));
+        
         try
         {
             var predictions = new List<StrategyPrediction>();
