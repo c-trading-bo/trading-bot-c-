@@ -33,6 +33,8 @@ public class PerformanceTracker
     /// </summary>
     public async Task LogTradeAsync(TradeRecord trade)
     {
+        if (trade is null) throw new ArgumentNullException(nameof(trade));
+        
         try
         {
             // Calculate trade metrics
@@ -106,6 +108,8 @@ public class PerformanceTracker
     /// </summary>
     public async Task UpdatePersonalMetricsAsync(TradeRecord trade, double rMultiple)
     {
+        if (trade is null) throw new ArgumentNullException(nameof(trade));
+        
         try
         {
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
@@ -164,6 +168,8 @@ public class PerformanceTracker
     /// </summary>
     public async Task PushToCloudAsync(TradeRecord trade)
     {
+        if (trade is null) throw new ArgumentNullException(nameof(trade));
+        
         try
         {
             _logger.LogInformation("[CLOUD_PUSH] Pushing trade {TradeId} to cloud ML pipeline", trade.TradeId);

@@ -10,6 +10,15 @@ namespace BotCore.Bandits;
 /// </summary>
 public record BracketMode
 {
+    // Bracket validation constants for safe trading ranges
+    private const int MinStopTicks = 6;           // Minimum stop loss distance (safe for ES/MES)
+    private const int MaxStopTicks = 20;          // Maximum stop loss distance 
+    private const int MinTargetTicks = 8;         // Minimum target profit distance
+    private const int MaxTargetTicks = 30;        // Maximum target profit distance
+    private const int MinBreakevenTicks = 4;      // Minimum breakeven trigger distance
+    private const int MaxBreakevenTicks = 16;     // Maximum breakeven trigger distance 
+    private const int MinTrailTicks = 3;          // Minimum trailing stop distance
+    private const int MaxTrailTicks = 12;         // Maximum trailing stop distance
     /// <summary>
     /// Stop loss distance in ticks
     /// </summary>
@@ -55,10 +64,10 @@ public record BracketMode
     /// Validate bracket parameters are within safe ranges
     /// </summary>
     public bool IsValid =>
-        StopTicks >= 6 && StopTicks <= 20 &&         // Stop: 6-20 ticks (safe range for ES/MES)
-        TargetTicks >= 8 && TargetTicks <= 30 &&     // Target: 8-30 ticks
-        BreakevenAfterTicks >= 4 && BreakevenAfterTicks <= 16 && // Breakeven: 4-16 ticks
-        TrailTicks >= 3 && TrailTicks <= 12 &&       // Trail: 3-12 ticks
+        StopTicks >= MinStopTicks && StopTicks <= MaxStopTicks &&         // Stop: 6-20 ticks (safe range for ES/MES)
+        TargetTicks >= MinTargetTicks && TargetTicks <= MaxTargetTicks &&     // Target: 8-30 ticks
+        BreakevenAfterTicks >= MinBreakevenTicks && BreakevenAfterTicks <= MaxBreakevenTicks && // Breakeven: 4-16 ticks
+        TrailTicks >= MinTrailTicks && TrailTicks <= MaxTrailTicks &&       // Trail: 3-12 ticks
         TargetTicks > StopTicks &&                    // Target must be greater than stop
         !string.IsNullOrEmpty(ModeType);
     
@@ -173,8 +182,8 @@ public record ParameterBundle
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrEmpty(Strategy) &&
-        Mult >= 1.0m && Mult <= 1.6m &&
-        Thr >= 0.60m && Thr <= 0.70m &&
+        Mult >= ParameterBundleFactory.MinPositionMultiplier && Mult <= ParameterBundleFactory.MaxPositionMultiplier &&
+        Thr >= ParameterBundleFactory.MinConfidenceThreshold && Thr <= ParameterBundleFactory.MaxConfidenceThreshold &&
         BracketMode.IsValid;
     
     /// <summary>
@@ -185,8 +194,8 @@ public record ParameterBundle
         return new ParameterBundle
         {
             Strategy = "S2",
-            Mult = 1.0m,
-            Thr = 0.65m,
+            Mult = ParameterBundleFactory.DefaultPositionMultiplier,
+            Thr = ParameterBundleFactory.MediumConfidenceThreshold,
             BracketMode = BracketMode.Presets.Conservative
         };
     }
@@ -198,6 +207,23 @@ public record ParameterBundle
 /// </summary>
 public static class ParameterBundleFactory
 {
+    // Default parameter constants for trading configuration
+    internal const decimal DefaultPositionMultiplier = 1.0m;     // Conservative position sizing
+    internal const decimal DefaultConfidenceThreshold = 0.70m;   // High confidence requirement
+    internal const decimal MinPositionMultiplier = 1.0m;         // Minimum position multiplier
+    internal const decimal MaxPositionMultiplier = 1.6m;         // Maximum position multiplier for aggressive sizing
+    internal const decimal MinConfidenceThreshold = 0.60m;       // Minimum confidence threshold  
+    internal const decimal MaxConfidenceThreshold = 0.70m;       // Maximum confidence threshold
+    internal const decimal AggressiveMultiplier = 1.3m;          // Aggressive position multiplier
+    internal const decimal MediumConfidenceThreshold = 0.65m;    // Medium confidence threshold
+    internal const int ArrayDivisionFactor = 2;                  // Factor for array indexing calculations
+    
+    // Array index constants for bundle parsing
+    internal const int StrategyIndex = 0;                        // Strategy part index in split bundle
+    internal const int MultiplierIndex = 1;                      // Multiplier part index in split bundle
+    internal const int ThresholdIndex = 2;                       // Threshold part index in split bundle
+    internal const int BracketModeIndex = 3;                     // Bracket mode part index in split bundle
+    
     /// <summary>
     /// Available strategies from existing system
     /// </summary>
@@ -272,8 +298,8 @@ public static class ParameterBundleFactory
         return new ParameterBundle
         {
             Strategy = "S2", // Most conservative strategy
-            Mult = 1.0m,     // Conservative sizing
-            Thr = 0.70m,     // High confidence requirement
+            Mult = ParameterBundleFactory.DefaultPositionMultiplier,     // Conservative sizing
+            Thr = ParameterBundleFactory.DefaultConfidenceThreshold,     // High confidence requirement
             BracketMode = BracketMode.Presets.Conservative // Conservative bracket
         };
     }
@@ -292,21 +318,21 @@ public static class ParameterBundleFactory
         if (parts.Length < 3 || parts.Length > 4)
             return null;
             
-        var strategy = parts[0];
+        var strategy = parts[StrategyIndex];
         
         // Parse multiplier (remove 'x' suffix)
-        if (!decimal.TryParse(parts[1].TrimEnd('x'), out var multiplier))
+        if (!decimal.TryParse(parts[MultiplierIndex].TrimEnd('x'), out var multiplier))
             return null;
             
         // Parse threshold
-        if (!decimal.TryParse(parts[2], out var threshold))
+        if (!decimal.TryParse(parts[ThresholdIndex], out var threshold))
             return null;
         
         // Parse bracket mode (optional for backward compatibility)
         var bracketMode = BracketMode.Presets.Conservative; // Default fallback
         if (parts.Length == 4)
         {
-            var modeId = parts[3];
+            var modeId = parts[BracketModeIndex];
             bracketMode = BracketModes.FirstOrDefault(bm => bm.ModeId == modeId) 
                          ?? BracketMode.Presets.Conservative;
         }
@@ -331,27 +357,27 @@ public static class ParameterBundleFactory
         return condition switch
         {
             MarketCondition.Volatile => CreateAllBundles()
-                .Where(b => b.Mult <= 1.3m && b.Thr >= 0.65m && 
+                .Where(b => b.Mult <= AggressiveMultiplier && b.Thr >= MediumConfidenceThreshold && 
                            (b.BracketMode.ModeType == "Conservative" || b.BracketMode.ModeType == "Scalping")) // Tighter brackets for volatility
                 .ToList(),
                 
             MarketCondition.Trending => CreateAllBundles()
-                .Where(b => b.Mult >= 1.3m && b.Thr >= 0.60m && 
+                .Where(b => b.Mult >= AggressiveMultiplier && b.Thr >= MinConfidenceThreshold && 
                            (b.BracketMode.ModeType == "Aggressive" || b.BracketMode.ModeType == "Swing")) // Wider brackets for trends
                 .ToList(),
                 
             MarketCondition.Ranging => CreateAllBundles()
-                .Where(b => b.Mult <= 1.3m && b.Thr <= 0.65m && 
+                .Where(b => b.Mult <= AggressiveMultiplier && b.Thr <= MediumConfidenceThreshold && 
                            (b.BracketMode.ModeType == "Balanced" || b.BracketMode.ModeType == "Scalping")) // Balanced brackets for ranges
                 .ToList(),
                 
             MarketCondition.LowVolume => CreateAllBundles()
-                .Where(b => b.Mult <= 1.0m && 
+                .Where(b => b.Mult <= DefaultPositionMultiplier && 
                            (b.BracketMode.ModeType == "Conservative" || b.BracketMode.ModeType == "Scalping")) // Tight brackets for low volume
                 .ToList(),
                 
             MarketCondition.HighVolume => CreateAllBundles()
-                .Where(b => b.Thr >= 0.65m && 
+                .Where(b => b.Thr >= MediumConfidenceThreshold && 
                            (b.BracketMode.ModeType == "Aggressive" || b.BracketMode.ModeType == "Swing")) // Wider brackets for high volume
                 .ToList(),
                 

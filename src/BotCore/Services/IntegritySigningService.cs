@@ -315,10 +315,12 @@ namespace TradingBot.BotCore.Services
                     ModelPath = modelPath,
                     ModelHash = modelHash,
                     MetadataHash = metadataHash,
-                    Metadata = metadata,
                     CreatedAt = DateTime.UtcNow,
                     HashAlgorithm = "SHA256"
                 };
+                
+                // Use Replace method for immutable collection pattern
+                integrity.ReplaceMetadata(metadata);
 
                 var integrityJson = JsonSerializer.Serialize(integrity, new JsonSerializerOptions { WriteIndented = true });
                 integrity.Signature = SignContent(integrityJson);

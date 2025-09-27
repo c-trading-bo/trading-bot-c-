@@ -14,6 +14,14 @@ namespace BotCore.Utilities
         private const int MaxSequenceLimit = 999;
         private const int GuidSubstringLength = 20;
         
+        // Constants for tag format validation
+        private const int DateFormatLength = 8;          // YYYYMMDD
+        private const int TimeFormatLength = 6;          // HHMMSS  
+        private const int MinimumTagParts = 3;           // Minimum parts for valid tag
+        private const int DatePartIndex = 1;             // Index of date part in split tag
+        private const int TimePartIndex = 2;             // Index of time part in split tag
+        private const int DefaultSymbolAbbreviationLength = 2; // Default length for symbol abbreviations
+        
         private static readonly ConcurrentDictionary<string, DateTime> _generatedTags = new();
         private static readonly object _lock = new();
         
@@ -90,9 +98,9 @@ namespace BotCore.Utilities
             
             // Replace the default suffix with context: S11L-YYYYMMDD-HHMMSS-ESB (ES Buy)
             var parts = baseTag.Split('-');
-            if (parts.Length >= 3)
+            if (parts.Length >= MinimumTagParts)
             {
-                return $"{parts[0]}-{parts[1]}-{parts[2]}-{symbolCode}{sideCode}";
+                return $"{parts[0]}-{parts[DatePartIndex]}-{parts[TimePartIndex]}-{symbolCode}{sideCode}";
             }
             
             return baseTag;
@@ -110,16 +118,16 @@ namespace BotCore.Utilities
                 
             // Expected format: S11L-YYYYMMDD-HHMMSS-XXX
             var parts = customTag.Split('-');
-            if (parts.Length < 3 || parts[0] != "S11L")
+            if (parts.Length < MinimumTagParts || parts[0] != "S11L")
                 return false;
                 
             // Validate date part (YYYYMMDD)
-            if (parts[1].Length != 8 || !DateTime.TryParseExact(parts[1], "yyyyMMdd", 
+            if (parts[DatePartIndex].Length != DateFormatLength || !DateTime.TryParseExact(parts[DatePartIndex], "yyyyMMdd", 
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                 return false;
                 
             // Validate time part (HHMMSS)  
-            if (parts[2].Length != 6 || !DateTime.TryParseExact(parts[2], "HHmmss", 
+            if (parts[TimePartIndex].Length != TimeFormatLength || !DateTime.TryParseExact(parts[TimePartIndex], "HHmmss", 
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                 return false;
                 
@@ -170,7 +178,7 @@ namespace BotCore.Utilities
                 "NQ" => "NQ", 
                 "YM" => "YM",
                 "RTY" => "RT",
-                _ => symbol?.ToUpperInvariant()[..Math.Min(2, symbol.Length)] ?? "XX"
+                _ => symbol?.ToUpperInvariant()[..Math.Min(DefaultSymbolAbbreviationLength, symbol.Length)] ?? "XX"
             };
         }
     }

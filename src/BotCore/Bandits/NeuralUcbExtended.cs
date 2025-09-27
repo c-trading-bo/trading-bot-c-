@@ -21,6 +21,19 @@ namespace BotCore.Bandits;
 /// </summary>
 public class NeuralUcbExtended : IDisposable
 {
+    // Neural UCB fallback constants
+    private const decimal EmergencyUcbValue = 0.5m;           // Emergency fallback UCB value
+    private const decimal EmergencyPrediction = 0.5m;        // Emergency fallback prediction  
+    private const decimal EmergencyUncertainty = 1.0m;       // Emergency fallback uncertainty (maximum)
+    private const int PerformanceUpdateDelay = 5;            // Minutes delay for performance updates
+    private const decimal HighConfidenceThreshold = 0.7m;    // High confidence threshold for selection
+    private const decimal MediumConfidenceThreshold = 0.8m;  // Medium confidence threshold for selection
+    private const int DefaultBundleLimit = 5;               // Default bundle limit for fallback recommendations
+    private const decimal HighVolumeThreshold = 0.8m;       // High volume threshold for market conditions
+    private const decimal LowVolumeThreshold = 0.3m;        // Low volume threshold for market conditions  
+    private const decimal TrendThreshold = 0.6m;            // Trend strength threshold for trending conditions
+    private const decimal RangingThreshold = 0.3m;          // Trend threshold for ranging conditions
+    
     private readonly ILogger<NeuralUcbExtended> _logger;
     private readonly NeuralUcbBandit _underlyingBandit;
     private readonly List<ParameterBundle> _availableBundles;
@@ -130,9 +143,9 @@ public class NeuralUcbExtended : IDisposable
             return new BundleSelection
             {
                 Bundle = defaultBundle,
-                UcbValue = 0.5m,
-                Prediction = 0.5m,
-                Uncertainty = 1.0m,
+                UcbValue = EmergencyUcbValue,
+                Prediction = EmergencyPrediction,
+                Uncertainty = EmergencyUncertainty,
                 SelectionReason = "Emergency fallback due to selection error",
                 Timestamp = DateTime.UtcNow
             };
@@ -289,7 +302,7 @@ public class NeuralUcbExtended : IDisposable
             _logger.LogWarning("[NEURAL-UCB-EXTENDED] No recommended bundles, using default set");
             recommended = ParameterBundleFactory.CreateBundlesForStrategy("S2")
                 .Where(b => b.BracketMode.ModeType == "Conservative")
-                .Take(5)
+                .Take(DefaultBundleLimit)
                 .ToList(); // Conservative fallback
         }
         
@@ -376,19 +389,19 @@ public class NeuralUcbExtended : IDisposable
         return (volatility, volume, trend, momentum, riskEnvironment, timeScore) switch
         {
             // High volatility scenarios - favor conservative/scalping brackets
-            var (v, _, _, _, risk, _) when v > 0.7m || risk > 0.8m => MarketCondition.Volatile,
+            var (v, _, _, _, risk, _) when v > HighConfidenceThreshold || risk > MediumConfidenceThreshold => MarketCondition.Volatile,
             
             // High volume scenarios - can support aggressive brackets
-            var (_, volLevel, _, _, _, _) when volLevel > 0.8m => MarketCondition.HighVolume,
+            var (_, volLevel, _, _, _, _) when volLevel > HighVolumeThreshold => MarketCondition.HighVolume,
             
             // Low volume scenarios - favor tight brackets
-            var (_, volLevel, _, _, _, _) when volLevel < 0.3m => MarketCondition.LowVolume,
+            var (_, volLevel, _, _, _, _) when volLevel < LowVolumeThreshold => MarketCondition.LowVolume,
             
             // Strong trending scenarios - favor swing/aggressive brackets
-            var (_, _, t, m, _, _) when t > 0.6m && m > 0.6m => MarketCondition.Trending,
+            var (_, _, t, m, _, _) when t > TrendThreshold && m > TrendThreshold => MarketCondition.Trending,
             
             // Ranging/choppy scenarios - favor scalping/balanced brackets
-            var (_, _, t, _, _, _) when t < 0.3m => MarketCondition.Ranging,
+            var (_, _, t, _, _, _) when t < RangingThreshold => MarketCondition.Ranging,
             
             // Default condition
             _ => MarketCondition.Unknown

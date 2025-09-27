@@ -14,6 +14,11 @@ namespace BotCore.Auth
     /// </summary>
     public sealed class SimpleTopstepAuth : IAsyncDisposable, IDisposable
     {
+        // Base64 URL decoding constants
+        private const int Base64PaddingForModTwo = 2;          // Padding requirement for length % 4 == 2
+        private const int Base64PaddingForModThree = 3;        // Padding requirement for length % 4 == 3
+        private const int Base64ModulusDivisor = 4;            // Base64 padding calculation divisor
+        
         private readonly HttpClient _http;
         private readonly ILogger<SimpleTopstepAuth> _logger;
         private readonly string _username;
@@ -143,10 +148,10 @@ namespace BotCore.Auth
         private static byte[] Base64UrlDecode(string s)
         {
             s = s.Replace('-', '+').Replace('_', '/');
-            switch (s.Length % 4) 
+            switch (s.Length % Base64ModulusDivisor) 
             { 
-                case 2: s += "=="; break; 
-                case 3: s += "="; break; 
+                case Base64PaddingForModTwo: s += "=="; break; 
+                case Base64PaddingForModThree: s += "="; break; 
             }
             return Convert.FromBase64String(s);
         }

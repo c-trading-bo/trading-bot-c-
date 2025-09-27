@@ -414,7 +414,7 @@ public class RedundantDataFeedManager : IDisposable
         }
     }
 
-    private void AnalyzeDataConsistency(DataConsistencyResult consistency)
+    private static void AnalyzeDataConsistency(DataConsistencyResult consistency)
     {
         if (consistency.FeedData.Count < 2) return;
 
@@ -656,7 +656,7 @@ public class RedundantDataFeedManager : IDisposable
         public TimeSpan DataAge { get; set; }
     }
 
-    private double CalculateDataQuality(MarketData? data)
+    private static double CalculateDataQuality(MarketData? data)
     {
         if (data == null) return 0.0;
         

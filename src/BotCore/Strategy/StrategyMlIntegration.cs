@@ -12,6 +12,11 @@ namespace BotCore.Strategy
     /// </summary>
     public static class StrategyMlIntegration
     {
+        // ML integration constants
+        private const int ShortEmaWindow = 8;                    // Short-term EMA calculation window
+        private const int LongEmaWindow = 21;                    // Long-term EMA calculation window  
+        private const decimal MinimumPriceForRatio = 0.01m;     // Minimum price threshold for ratio calculations
+        
         /// <summary>
         /// Maps S1-S14 strategy IDs to the 4 ML strategy types for data collection
         /// </summary>
@@ -83,7 +88,7 @@ namespace BotCore.Strategy
 
                 // Calculate risk metrics
                 features.RiskPerShare = Math.Abs(entry - stop);
-                features.RewardRisk = Math.Abs(target - entry) / Math.Max(features.RiskPerShare, 0.01m);
+                features.RewardRisk = Math.Abs(target - entry) / Math.Max(features.RiskPerShare, MinimumPriceForRatio);
                 features.Side = side.ToString();
                 features.StrategyId = strategyId;
 
@@ -162,9 +167,9 @@ namespace BotCore.Strategy
                 features.DailyRange = latest.High - latest.Low;
 
                 // Additional calculations
-                features.Ema8 = CalculateEma(bars, 8);
-                features.Ema21 = CalculateEma(bars, 21);
-                features.MaAlignment = (features.Ema8 - features.Ema21) / Math.Max(features.Ema21, 0.01m);
+                features.Ema8 = CalculateEma(bars, ShortEmaWindow);
+                features.Ema21 = CalculateEma(bars, LongEmaWindow);
+                features.MaAlignment = (features.Ema8 - features.Ema21) / Math.Max(features.Ema21, MinimumPriceForRatio);
             }
 
             features.Score = score;
@@ -197,7 +202,7 @@ namespace BotCore.Strategy
                 var latest = bars.Last();
                 features.Volume = latest.Volume;
                 features.Price = latest.Close;
-                features.DistanceFromVwap = (price - vwap) / Math.Max(vwap, 0.01m);
+                features.DistanceFromVwap = (price - vwap) / Math.Max(vwap, MinimumPriceForRatio);
             }
 
             features.Score = score;

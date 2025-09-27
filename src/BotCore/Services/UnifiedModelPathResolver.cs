@@ -454,7 +454,7 @@ public class UnifiedModelPathResolver
         }
     }
     
-    private TradingBot.Abstractions.ModelInfo ExtractModelInfo(string modelIdentifier, ModelPathInfo pathInfo)
+    private static TradingBot.Abstractions.ModelInfo ExtractModelInfo(string modelIdentifier, ModelPathInfo pathInfo)
     {
         var validation = ValidateModelName(Path.GetFileName(pathInfo.FullPath));
         
