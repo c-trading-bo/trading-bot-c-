@@ -28,6 +28,24 @@ namespace BotCore.Services;
 /// </summary>
 public class UnifiedDecisionRouter
 {
+    // Trading analysis constants
+    private const double RSI_OVERSOLD_THRESHOLD = 40;       // RSI level indicating oversold condition
+    private const double RSI_OVERBOUGHT_THRESHOLD = 60;     // RSI level indicating overbought condition
+    private const int MAX_DECISION_HISTORY = 1000;          // Maximum decisions to retain in memory
+    
+    // Trading schedule constants (UTC hours)
+    private const int OPENING_DRIVE_START_HOUR = 9;         // Opening drive strategy start time
+    private const int OPENING_DRIVE_END_HOUR = 10;          // Opening drive strategy end time
+    private const int LUNCH_MEAN_REVERSION_START = 11;      // Lunch mean reversion start time
+    private const int LUNCH_MEAN_REVERSION_END = 13;        // Lunch mean reversion end time
+    private const int AFTERNOON_TRADING_START = 14;         // Afternoon trading start time
+    private const int AFTERNOON_TRADING_END = 16;           // Afternoon trading end time
+    
+    // Price level calculation constants (ticks)
+    private const decimal SUPPORT_RESISTANCE_TICK_OFFSET_1 = 10;  // First level support/resistance offset
+    private const decimal SUPPORT_RESISTANCE_TICK_OFFSET_2 = 20;  // Second level support/resistance offset
+    private const decimal SUPPORT_RESISTANCE_TICK_OFFSET_3 = 30;  // Third level support/resistance offset
+
     private readonly ILogger<UnifiedDecisionRouter> _logger;
     private readonly IServiceProvider _serviceProvider;
     
@@ -229,7 +247,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Create forced decision based on market conditions - NEVER RETURNS HOLD
     /// </summary>
-    private UnifiedTradingDecision CreateForceDecision(string symbol, TradingBot.Abstractions.MarketContext marketContext)
+    private static UnifiedTradingDecision CreateForceDecision(string symbol, TradingBot.Abstractions.MarketContext marketContext)
     {
         // Analyze market conditions to determine direction
         var marketAnalysis = AnalyzeMarketConditions(marketContext);
@@ -259,7 +277,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Create emergency decision - Last resort fallback
     /// </summary>
-    private UnifiedTradingDecision CreateEmergencyDecision(string symbol)
+    private static UnifiedTradingDecision CreateEmergencyDecision(string symbol)
     {
         // Emergency decisions are always conservative BUY (ES/NQ tend to trend up)
         return new UnifiedTradingDecision
@@ -289,8 +307,8 @@ public class UnifiedDecisionRouter
         // Simple trend analysis
         if (context.TechnicalIndicators.TryGetValue("rsi", out var rsi))
         {
-            if (rsi < 40) analysis.Signals.Add("oversold");
-            else if (rsi > 60) analysis.Signals.Add("overbought");
+            if (rsi < RSI_OVERSOLD_THRESHOLD) analysis.Signals.Add("oversold");
+            else if (rsi > RSI_OVERBOUGHT_THRESHOLD) analysis.Signals.Add("overbought");
         }
         
         if (context.TechnicalIndicators.TryGetValue("macd", out var macd))
@@ -337,8 +355,8 @@ public class UnifiedDecisionRouter
             {
                 _decisionHistory.Add(outcome);
                 
-                // Keep only last 1000 decisions
-                if (_decisionHistory.Count > 1000)
+                // Keep only last decisions in memory for performance
+                if (_decisionHistory.Count > MAX_DECISION_HISTORY)
                 {
                     _decisionHistory.RemoveAt(0);
                 }
@@ -491,19 +509,19 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private List<string> GetAvailableStrategies()
+    private static List<string> GetAvailableStrategies()
     {
         var hour = DateTime.UtcNow.Hour;
         return hour switch
         {
-            >= 9 and <= 10 => new List<string> { "S6" }, // Opening drive
-            >= 11 and <= 13 => new List<string> { "S2" }, // Lunch mean reversion
-            >= 14 and <= 16 => new List<string> { "S11", "S3" }, // Afternoon
+            >= OPENING_DRIVE_START_HOUR and <= OPENING_DRIVE_END_HOUR => new List<string> { "S6" }, // Opening drive
+            >= LUNCH_MEAN_REVERSION_START and <= LUNCH_MEAN_REVERSION_END => new List<string> { "S2" }, // Lunch mean reversion
+            >= AFTERNOON_TRADING_START and <= AFTERNOON_TRADING_END => new List<string> { "S11", "S3" }, // Afternoon
             _ => new List<string> { "S2", "S3", "S6", "S11" } // All strategies
         };
     }
     
-    private Env ConvertToEnv(TradingBot.Abstractions.MarketContext context)
+    private static Env ConvertToEnv(TradingBot.Abstractions.MarketContext context)
     {
         return new Env
         {
@@ -513,21 +531,21 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private Levels ConvertToLevels(TradingBot.Abstractions.MarketContext context)
+    private static Levels ConvertToLevels(TradingBot.Abstractions.MarketContext context)
     {
         var price = (decimal)context.Price;
         return new Levels
         {
-            Support1 = price - 10,
-            Support2 = price - 20,
-            Support3 = price - 30,
-            Resistance1 = price + 10,
-            Resistance2 = price + 20,
-            Resistance3 = price + 30,
+            Support1 = price - SUPPORT_RESISTANCE_TICK_OFFSET_1,
+            Support2 = price - SUPPORT_RESISTANCE_TICK_OFFSET_2,
+            Support3 = price - SUPPORT_RESISTANCE_TICK_OFFSET_3,
+            Resistance1 = price + SUPPORT_RESISTANCE_TICK_OFFSET_1,
+            Resistance2 = price + SUPPORT_RESISTANCE_TICK_OFFSET_2,
+            Resistance3 = price + SUPPORT_RESISTANCE_TICK_OFFSET_3,
             VWAP = price,
             DailyPivot = price,
-            WeeklyPivot = price + 5,
-            MonthlyPivot = price - 5
+            WeeklyPivot = price + 5, // Small weekly pivot offset
+            MonthlyPivot = price - 5  // Small monthly pivot offset
         };
     }
     

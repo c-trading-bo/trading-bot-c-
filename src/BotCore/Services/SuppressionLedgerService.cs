@@ -276,7 +276,8 @@ namespace TradingBot.BotCore.Services
                 
                 foreach (var file in codeFiles)
                 {
-                    if (file.Contains("bin") || file.Contains("obj")) continue;
+                    if (file.Contains("bin", StringComparison.OrdinalIgnoreCase) || 
+                        file.Contains("obj", StringComparison.OrdinalIgnoreCase)) continue;
 
                     var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false);
                     for (int i = 0; i < lines.Length; i++)
@@ -294,7 +295,7 @@ namespace TradingBot.BotCore.Services
                         }
                         
                         // Check for SuppressMessage attributes
-                        if (line.Contains("[SuppressMessage("))
+                        if (line.Contains("[SuppressMessage(", StringComparison.Ordinal))
                         {
                             var ruleId = ExtractRuleFromSuppressMessage(line);
                             if (!HasLedgerEntry(ruleId, file, i + 1))
