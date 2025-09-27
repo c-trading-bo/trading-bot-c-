@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using System.IO;
 using System.Threading.Tasks;
+using TradingBot.BotCore.Services.Helpers;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -28,7 +28,6 @@ public class UnifiedDecisionLogger
         LoggerMessage.Define(LogLevel.Error, new EventId(1003, "DecisionLogFailed"),
             "[UNIFIED_LOGGER] Failed to log decision");
     private readonly string _logFilePath;
-    private readonly JsonSerializerOptions _jsonOptions;
     
     public UnifiedDecisionLogger(ILogger<UnifiedDecisionLogger> logger, string logDirectory = "logs")
     {
@@ -40,12 +39,6 @@ public class UnifiedDecisionLogger
         // Create daily log file
         var logFileName = $"unified_decisions_{DateTime.UtcNow:yyyyMMdd}.jsonl";
         _logFilePath = Path.Combine(logDirectory, logFileName);
-        
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
         
         LoggerInitialized(_logger, _logFilePath, null);
     }
@@ -66,7 +59,7 @@ public class UnifiedDecisionLogger
             }
             
             // Serialize to JSON
-            var jsonLine = JsonSerializer.Serialize(decision, _jsonOptions);
+            var jsonLine = JsonSerializationHelper.SerializeCompact(decision);
             
             // Write to file (append mode)
             await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine).ConfigureAwait(false);

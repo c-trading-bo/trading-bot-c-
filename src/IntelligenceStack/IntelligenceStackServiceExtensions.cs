@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using TradingBot.IntelligenceStack.Helpers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,34 +40,24 @@ public static class IntelligenceStackServiceExtensions
         
         // Register IntelligenceStackConfig first (required dependency)
         services.Configure<IntelligenceStackConfig>(configuration.GetSection("IntelligenceStack"));
-        services.AddSingleton<IntelligenceStackConfig>(provider => 
-            provider.GetRequiredService<IOptions<IntelligenceStackConfig>>().Value);
+        services.AddSingleton<IntelligenceStackConfig>(provider => ServiceProviderHelper.GetConfiguration<IntelligenceStackConfig>(provider));
             
         // Register individual config sections as required dependencies for specific services
-        services.AddSingleton<HysteresisConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().ML.Regime.Hysteresis);
-        services.AddSingleton<PromotionsConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Promotions);
-        services.AddSingleton<QuarantineConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().ML.Quarantine);
-        services.AddSingleton<SloConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().SLO);
-        services.AddSingleton<ObservabilityConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Observability);
-        services.AddSingleton<RLConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().RL);
+        services.AddSingleton<HysteresisConfig>(provider => ServiceProviderHelper.GetMlRegimeHysteresisConfig(provider));
+        services.AddSingleton<PromotionsConfig>(provider => ServiceProviderHelper.GetPromotionsConfig(provider));
+        services.AddSingleton<QuarantineConfig>(provider => ServiceProviderHelper.GetQuarantineConfig(provider));
+        services.AddSingleton<SloConfig>(provider => ServiceProviderHelper.GetSloConfig(provider));
+        services.AddSingleton<ObservabilityConfig>(provider => ServiceProviderHelper.GetObservabilityConfig(provider));
+        services.AddSingleton<RLConfig>(provider => ServiceProviderHelper.GetRlConfig(provider));
         services.AddSingleton<TuningConfig>(provider => 
             new TuningConfig { Trials = DefaultTuningTrials, EarlyStopNoImprove = DefaultEarlyStopNoImprove }); // Default tuning config
-        services.AddSingleton<IdempotentConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Orders.Idempotent);
-        services.AddSingleton<NetworkConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Network);
-        services.AddSingleton<HistoricalConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Historical);
+        services.AddSingleton<IdempotentConfig>(provider => ServiceProviderHelper.GetIdempotentConfig(provider));
+        services.AddSingleton<NetworkConfig>(provider => ServiceProviderHelper.GetNetworkConfig(provider));
+        services.AddSingleton<HistoricalConfig>(provider => ServiceProviderHelper.GetHistoricalConfig(provider));
         services.AddSingleton<LeaderElectionConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().Orchestrator.LeaderElection);
+            ServiceProviderHelper.GetIntelligenceStackConfig(provider).Orchestrator.LeaderElection);
         services.AddSingleton<MLConfig>(provider => 
-            provider.GetRequiredService<IntelligenceStackConfig>().ML);
+            ServiceProviderHelper.GetIntelligenceStackConfig(provider).ML);
         services.AddSingleton<OnlineConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().Online);
         services.AddSingleton<OrdersConfig>(provider => 
