@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using TradingBot.BotCore.Services.Helpers;
+using TradingBot.Abstractions.Helpers;
 
 namespace TradingBot.IntelligenceStack;
 

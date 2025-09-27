@@ -10,7 +10,7 @@ using System.Text;
 using System.IO;
 using System.Globalization;
 using System.Linq;
-using TradingBot.BotCore.Services.Helpers;
+using TradingBot.Abstractions.Helpers;
 
 namespace TradingBot.IntelligenceStack;
 

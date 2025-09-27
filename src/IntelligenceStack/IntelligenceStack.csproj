@@ -24,7 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../RLAgent/RLAgent.csproj" />
-    <ProjectReference Include="../BotCore/BotCore.csproj" />
   </ItemGroup>
 
 </Project>

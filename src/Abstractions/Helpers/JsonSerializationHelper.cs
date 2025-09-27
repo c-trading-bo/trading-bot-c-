@@ -2,13 +2,13 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TradingBot.BotCore.Services.Helpers
+namespace TradingBot.Abstractions.Helpers
 {
     /// <summary>
     /// Centralized JSON serialization helper to eliminate duplication
     /// Provides standardized JsonSerializerOptions and serialization methods
     /// </summary>
-    internal static class JsonSerializationHelper
+    public static class JsonSerializationHelper
     {
         /// <summary>
         /// Standard JSON options for compact serialization (logging, network)
