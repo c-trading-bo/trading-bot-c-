@@ -252,9 +252,17 @@ namespace TradingBot.Critical
                             ReconcileOrderStatus(order, actualStatus);
                         }
                     }
-                    catch (Exception ex)
+                    catch (InvalidOperationException ex)
                     {
-                        _logger.LogError(ex, "Failed to reconcile order {OrderId}", order.OrderId);
+                        _logger.LogError(ex, "Invalid operation reconciling order {OrderId}", order.OrderId);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        _logger.LogError(ex, "Invalid argument reconciling order {OrderId}", order.OrderId);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogWarning("Order reconciliation cancelled for {OrderId}", order.OrderId);
                     }
                 });
             }
@@ -731,9 +739,19 @@ namespace TradingBot.Critical
                     await ResumeStrategies(state).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                // Catastrophic failure - emergency mode
+                // Trading system in invalid state - emergency mode
+                await ActivateEmergencyMode(ex).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex)
+            {
+                // Recovery operations cancelled - emergency mode
+                await ActivateEmergencyMode(ex).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                // Recovery timeout - emergency mode
                 await ActivateEmergencyMode(ex).ConfigureAwait(false);
             }
         }
@@ -784,9 +802,17 @@ namespace TradingBot.Critical
                     
                     _lastHeartbeat = DateTime.UtcNow;
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    LogCriticalError("State persistence failed", ex);
+                    LogCriticalError("State persistence failed - IO error", ex);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    LogCriticalError("State persistence failed - access denied", ex);
+                }
+                catch (JsonException ex)
+                {
+                    LogCriticalError("State persistence failed - serialization error", ex);
                 }
             }
         }
