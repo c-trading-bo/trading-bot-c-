@@ -63,12 +63,6 @@ public sealed class Program
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return ExitCodeError;  
         }
-        catch (ObjectDisposedException ex)
-        {
-            Console.WriteLine($"❌ Test app failed - Services disposed: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            return ExitCodeError;
-        }
     }
 }
 

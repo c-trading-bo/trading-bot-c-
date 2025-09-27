@@ -1244,7 +1244,7 @@ namespace BotCore.Brain
             
             perf.TotalTrades++;
             perf.TotalPnL += pnl;
-            perf.HoldTimes.Add(holdTime.Ticks);
+            perf.AddHoldTime(holdTime.Ticks);
             
             if (wasCorrect)
             {

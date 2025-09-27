@@ -11,6 +11,12 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class RollConfigService : IRollConfig
     {
+        // Roll Configuration Constants
+        private const int DefaultRollDaysBeforeExpiration = 3;      // Days before expiration to roll
+        private const long DefaultMinVolumeForRoll = 10000L;        // Minimum volume required for roll
+        private const double DefaultMaxRollSpreadTicks = 2.0;       // Maximum spread for roll execution
+        private const int DefaultRollNotificationLeadHours = 24;    // Hours advance notice for roll
+        
         private readonly IConfiguration _config;
         private readonly ILogger<RollConfigService> _logger;
 
@@ -21,13 +27,13 @@ namespace TradingBot.BotCore.Services
         }
 
         public int GetRollDaysBeforeExpiration() => 
-            _config.GetValue("Roll:DaysBeforeExpiration", 3);
+            _config.GetValue("Roll:DaysBeforeExpiration", DefaultRollDaysBeforeExpiration);
 
         public long GetMinVolumeForRoll() => 
-            _config.GetValue("Roll:MinVolumeForRoll", 10000L);
+            _config.GetValue("Roll:MinVolumeForRoll", DefaultMinVolumeForRoll);
 
         public double GetMaxRollSpreadTicks() => 
-            _config.GetValue("Roll:MaxRollSpreadTicks", 2.0);
+            _config.GetValue("Roll:MaxRollSpreadTicks", DefaultMaxRollSpreadTicks);
 
         public bool EnableAutomaticRoll() => 
             _config.GetValue("Roll:EnableAutomaticRoll", true);
@@ -51,6 +57,6 @@ namespace TradingBot.BotCore.Services
             _config.GetValue("Roll:ForceRollOnLastTradingDay", true);
 
         public int GetRollNotificationLeadHours() => 
-            _config.GetValue("Roll:RollNotificationLeadHours", 24);
+            _config.GetValue("Roll:RollNotificationLeadHours", DefaultRollNotificationLeadHours);
     }
 }

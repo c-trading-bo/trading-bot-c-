@@ -346,10 +346,5 @@ public class ProductionGuardrailTester
             Console.WriteLine($"❌ Quick test failed - Configuration error: {ex.Message}");
             return false;
         }
-        catch (ObjectDisposedException ex)
-        {
-            Console.WriteLine($"❌ Quick test failed - Services disposed: {ex.Message}");
-            return false;
-        }
     }
 }
