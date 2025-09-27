@@ -134,9 +134,9 @@ public class NeuralUcbExtended : IDisposable
             
             return result;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Error selecting bundle, using default");
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid operation selecting bundle, using default");
             
             // Emergency fallback to default conservative bundle
             var defaultBundle = ParameterBundleFactory.GetDefaultBundle();
@@ -181,9 +181,13 @@ public class NeuralUcbExtended : IDisposable
             
             _logger.LogDebug("[NEURAL-UCB-EXTENDED] Bundle performance updated successfully");
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Error updating bundle performance");
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid operation updating bundle performance");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid argument updating bundle performance");
         }
     }
     
@@ -231,9 +235,14 @@ public class NeuralUcbExtended : IDisposable
             
             return bundleStats;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Error getting bundle performance");
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid operation getting bundle performance");
+            return new Dictionary<string, BundlePerformance>();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid argument getting bundle performance");
             return new Dictionary<string, BundlePerformance>();
         }
     }
@@ -249,9 +258,9 @@ public class NeuralUcbExtended : IDisposable
             return await _underlyingBandit.AnalyzeFeatureImportanceAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Error analyzing feature importance");
+            _logger.LogError(ex, "[NEURAL-UCB-EXTENDED] Invalid operation analyzing feature importance");
             return new FeatureImportanceReport
             {
                 FeatureWeights = new Dictionary<string, decimal>(),

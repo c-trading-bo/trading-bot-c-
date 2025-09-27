@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.ObjectModel;
 
 namespace BotCore.Config;
 
@@ -14,7 +15,7 @@ public sealed class TradingProfileConfig
     [JsonPropertyName("hysteresis")] public Hysteresis Hysteresis { get; set; } = new();
     [JsonPropertyName("attempt_caps")] public Dictionary<string, int> AttemptCaps { get; set; } = [];
     [JsonPropertyName("buffers")] public BufferConfig Buffers { get; set; } = new();
-    [JsonPropertyName("strategies")] public List<StrategyDef> Strategies { get; init; } = [];
+    [JsonPropertyName("strategies")] public IReadOnlyList<StrategyDef> Strategies { get; init; } = [];
 
     // NEW: Always-on bias and News tuning
     [JsonPropertyName("AlwaysOn")] public AlwaysOnConfig AlwaysOn { get; set; } = new();
@@ -34,7 +35,7 @@ public sealed class RsGate
     [JsonPropertyName("z5m_threshold_mid")] public decimal ThresholdMid { get; set; }
     [JsonPropertyName("z5m_threshold_high")] public decimal ThresholdHigh { get; set; }
     [JsonPropertyName("z5m_threshold_low_mr_only")] public decimal ThresholdLowMrOnly { get; set; }
-    [JsonPropertyName("capital_bias")] public List<int> CapitalBias { get; init; } = [];
+    [JsonPropertyName("capital_bias")] public IReadOnlyList<int> CapitalBias { get; init; } = [];
     [JsonPropertyName("align_with_bias")] public bool AlignWithBias { get; set; }
 }
 

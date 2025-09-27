@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
 namespace BotCore.Market;
@@ -74,11 +75,14 @@ public class EconomicEvent
     public EventImpact Impact { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<string> AffectedSymbols { get; } = new();
+    private readonly List<string> _affectedSymbols = new();
+    public IReadOnlyList<string> AffectedSymbols => _affectedSymbols;
     public bool IsActual { get; set; }
     public string? ActualValue { get; set; }
     public string? ForecastValue { get; set; }
     public string? PreviousValue { get; set; }
+    
+    internal void AddAffectedSymbol(string symbol) => _affectedSymbols.Add(symbol);
 }
 
 /// <summary>
@@ -90,8 +94,11 @@ public class TradingRestriction
     public bool IsRestricted { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTime RestrictedUntil { get; set; }
-    public List<EconomicEvent> CausingEvents { get; } = new();
+    private readonly List<EconomicEvent> _causingEvents = new();
+    public IReadOnlyList<EconomicEvent> CausingEvents => _causingEvents;
     public EventImpact MaxImpact { get; set; }
+    
+    internal void AddCausingEvent(EconomicEvent eventItem) => _causingEvents.Add(eventItem);
 }
 
 /// <summary>
@@ -101,6 +108,9 @@ public class EconomicEventAlert
 {
     public EconomicEvent Event { get; set; } = new();
     public TimeSpan TimeUntilEvent { get; set; }
-    public List<string> AffectedSymbols { get; } = new();
+    private readonly List<string> _affectedSymbols = new();
+    public IReadOnlyList<string> AffectedSymbols => _affectedSymbols;
     public string RecommendedAction { get; set; } = string.Empty;
+    
+    internal void AddAffectedSymbol(string symbol) => _affectedSymbols.Add(symbol);
 }

@@ -4,13 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 using System.Security.Cryptography;
 using System.Security;
 using System.Text;
 using System.IO;
 using System.Globalization;
 using System.Linq;
+using TradingBot.Abstractions.Helpers;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -31,8 +31,6 @@ public class ModelRegistry : IModelRegistry
     // S109 Magic Number Constants - Hash and ID Processing
     private const int ChecksumHashLength = 16;
     private const int RuntimeSignatureLength = 16;
-    
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     // LoggerMessage delegates for CA1848 compliance - ModelRegistry
     private static readonly Action<ILogger, string, double, Exception?> ModelRetrieved =
@@ -168,7 +166,7 @@ public class ModelRegistry : IModelRegistry
             }
 
             var metadataContent = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
-            var model = JsonSerializer.Deserialize<ModelArtifact>(metadataContent);
+            var model = JsonSerializationHelper.Deserialize<ModelArtifact>(metadataContent);
             
             if (model == null)
             {
@@ -251,7 +249,7 @@ public class ModelRegistry : IModelRegistry
 
             // Save metadata
             var metadataPath = Path.Combine(_basePath, "metadata", $"{modelId}.json");
-            var metadataJson = JsonSerializer.Serialize(model, JsonOptions);
+            var metadataJson = JsonSerializationHelper.SerializePretty(model);
             await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Save model artifact
@@ -342,7 +340,7 @@ public class ModelRegistry : IModelRegistry
                 PromotedBy = "auto-promotion"
             };
 
-            var json = JsonSerializer.Serialize(promotionRecord, JsonOptions);
+            var json = JsonSerializationHelper.SerializePretty(promotionRecord);
             await File.WriteAllTextAsync(promotedPath, json, cancellationToken).ConfigureAwait(false);
 
             _lastPromotion = DateTime.UtcNow;
@@ -427,7 +425,7 @@ public class ModelRegistry : IModelRegistry
                 try
                 {
                     var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
-                    var model = JsonSerializer.Deserialize<ModelArtifact>(content);
+                    var model = JsonSerializationHelper.Deserialize<ModelArtifact>(content);
                     
                     if (model != null)
                     {
@@ -541,7 +539,7 @@ public class ModelRegistry : IModelRegistry
         }
 
         var content = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
-        return JsonSerializer.Deserialize<ModelArtifact>(content);
+        return JsonSerializationHelper.Deserialize<ModelArtifact>(content);
     }
 
     private async Task<string> FindLatestModelAsync(string familyName, CancellationToken cancellationToken)
@@ -563,7 +561,7 @@ public class ModelRegistry : IModelRegistry
             try
             {
                 var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
-                var model = JsonSerializer.Deserialize<ModelArtifact>(content);
+                var model = JsonSerializationHelper.Deserialize<ModelArtifact>(content);
                 
                 if (model != null && (latestModel == null || model.CreatedAt > latestModel.CreatedAt))
                 {

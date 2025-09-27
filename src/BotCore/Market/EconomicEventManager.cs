@@ -305,7 +305,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             var affectedSymbols = GetAffectedSymbols(template.Currency, template.Impact);
             foreach (var symbol in affectedSymbols)
             {
-                economicEvent.AffectedSymbols.Add(symbol);
+                economicEvent.AddAffectedSymbol(symbol);
             }
             
             events.Add(economicEvent);
@@ -376,7 +376,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                     // Populate the readonly collection
                     foreach (var symbol in economicEvent.AffectedSymbols)
                     {
-                        alert.AffectedSymbols.Add(symbol);
+                        alert.AddAffectedSymbol(symbol);
                     }
 
                     _logger.LogWarning("[EconomicEventManager] High-impact event approaching: {Name} in {TimeUntil}", 
@@ -489,7 +489,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         };
         
         // Add the economic event to the read-only CausingEvents collection
-        restriction.CausingEvents.Add(economicEvent);
+        restriction.AddCausingEvent(economicEvent);
 
         var isNewRestriction = !_tradingRestrictions.ContainsKey(symbol);
         _tradingRestrictions.AddOrUpdate(symbol, restriction, (key, existing) => restriction);

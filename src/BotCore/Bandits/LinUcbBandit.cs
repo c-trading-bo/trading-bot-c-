@@ -187,6 +187,10 @@ internal sealed class LinUcbArm
     private readonly decimal[,] _A; // A = I + sum(x_t * x_t^T)
     private readonly decimal[] _b;  // b = sum(r_t * x_t)
     private decimal[,]? _AInverse;
+    
+    // LinUCB arm constants for mathematical operations
+    private const decimal FallbackPrediction = 0.5m; // Default prediction when matrix inversion fails
+    private const decimal FallbackConfidenceInterval = 1m; // Default confidence interval for fallback scenarios
     private bool _inverseNeedsUpdate = true;
 
     public int UpdateCount { get; private set; }
@@ -218,7 +222,7 @@ internal sealed class LinUcbArm
         if (_AInverse == null)
         {
             // Fallback if matrix inversion fails
-            return (0.5m, 1m);
+            return (FallbackPrediction, FallbackConfidenceInterval);
         }
 
         // theta = A^(-1) * b
@@ -316,9 +320,18 @@ internal sealed class LinUcbArm
             _AInverse = InvertMatrix(_A);
             _inverseNeedsUpdate = false;
         }
-        catch
+        catch (InvalidOperationException)
         {
             // Matrix inversion failed - use identity as fallback
+            _AInverse = new decimal[_dimension, _dimension];
+            for (int i = 0; i < _dimension; i++)
+            {
+                _AInverse[i, i] = 1m;
+            }
+        }
+        catch (ArithmeticException)
+        {
+            // Mathematical operation failed - use identity as fallback
             _AInverse = new decimal[_dimension, _dimension];
             for (int i = 0; i < _dimension; i++)
             {

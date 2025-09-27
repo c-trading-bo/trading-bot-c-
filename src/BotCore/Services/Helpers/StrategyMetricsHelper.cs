@@ -1,9 +1,52 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TradingBot.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace TradingBot.BotCore.Services
+namespace TradingBot.BotCore.Services.Helpers
 {
+    /// <summary>
+    /// Centralized strategy constants and configuration to eliminate duplication
+    /// Single source of truth for all strategy-related constants and metadata
+    /// </summary>
+    internal static class StrategyConstants
+    {
+        /// <summary>
+        /// All supported trading strategies
+        /// </summary>
+        public static readonly string[] AllStrategies = { "S2", "S3", "S6", "S11" };
+
+        /// <summary>
+        /// Strategy names with descriptions
+        /// </summary>
+        public static readonly Dictionary<string, string> StrategyDescriptions = new()
+        {
+            ["S2"] = "VWAP Mean Reversion - Best overnight and lunch",
+            ["S3"] = "Compression Breakout - Best at session opens", 
+            ["S6"] = "Opening Drive - ONLY 9:28-10:00",
+            ["S11"] = "ADR Exhaustion - Best afternoon"
+        };
+
+        /// <summary>
+        /// Check if a strategy ID is valid
+        /// </summary>
+        public static bool IsValidStrategy(string strategyId)
+        {
+            return AllStrategies.Contains(strategyId);
+        }
+
+        /// <summary>
+        /// Get strategy description
+        /// </summary>
+        public static string GetStrategyDescription(string strategyId)
+        {
+            return StrategyDescriptions.TryGetValue(strategyId, out var description) 
+                ? description 
+                : "Unknown strategy";
+        }
+    }
+
     /// <summary>
     /// Shared helper for strategy metrics calculations
     /// Eliminates duplication of strategy-specific switch statements
@@ -61,7 +104,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get strategy multiplier for performance calculations with null safety
         /// </summary>
-        public static decimal GetStrategyMultiplier(string strategyId, IReadOnlyList<ParameterConfig> parameters)
+        public static decimal GetStrategyMultiplier(string strategyId, IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             if (parameters == null || !parameters.Any())
             {
@@ -81,7 +124,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get configuration impact on performance with null safety
         /// </summary>
-        public static decimal GetConfigurationImpact(IReadOnlyList<ParameterConfig> parameters)
+        public static decimal GetConfigurationImpact(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             if (parameters == null || !parameters.Any())
             {
@@ -110,7 +153,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// S2 strategy multiplier calculation with null safety
         /// </summary>
-        private static decimal GetS2StrategyMultiplier(IReadOnlyList<ParameterConfig> parameters)
+        private static decimal GetS2StrategyMultiplier(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             var sigmaEnter = GetParameterValue(parameters, "sigma_enter", 2.0m);
             var widthRank = GetParameterValue(parameters, "width_rank_threshold", 0.25m);
@@ -120,7 +163,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// S3 strategy multiplier calculation with null safety
         /// </summary>
-        private static decimal GetS3StrategyMultiplier(IReadOnlyList<ParameterConfig> parameters)
+        private static decimal GetS3StrategyMultiplier(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             var squeezeThreshold = GetParameterValue(parameters, "squeeze_threshold", 0.8m);
             var breakoutConfidence = GetParameterValue(parameters, "breakout_confidence", 0.7m);
@@ -130,7 +173,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// S6 strategy multiplier calculation with null safety
         /// </summary>
-        private static decimal GetS6StrategyMultiplier(IReadOnlyList<ParameterConfig> parameters)
+        private static decimal GetS6StrategyMultiplier(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             var momentumLookback = GetParameterValue(parameters, "momentum_lookback", 20);
             var momentumThreshold = GetParameterValue(parameters, "momentum_threshold", 0.6m);
@@ -140,7 +183,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// S11 strategy multiplier calculation with null safety
         /// </summary>
-        private static decimal GetS11StrategyMultiplier(IReadOnlyList<ParameterConfig> parameters)
+        private static decimal GetS11StrategyMultiplier(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             var trendLength = GetParameterValue(parameters, "trend_length", 30);
             var trendStrength = GetParameterValue(parameters, "trend_strength", 0.8m);
@@ -150,7 +193,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Helper method to safely extract parameter values from configuration with null safety
         /// </summary>
-        private static decimal GetParameterValue(IReadOnlyList<ParameterConfig> parameters, string parameterName, decimal defaultValue)
+        private static decimal GetParameterValue(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters, string parameterName, decimal defaultValue)
         {
             if (parameters == null || string.IsNullOrEmpty(parameterName))
             {
@@ -170,7 +213,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Helper method to safely extract integer parameter values with null safety
         /// </summary>
-        private static int GetParameterValue(IReadOnlyList<ParameterConfig> parameters, string parameterName, int defaultValue)
+        private static int GetParameterValue(IReadOnlyList<TradingBotTuningRunner.ParameterConfig> parameters, string parameterName, int defaultValue)
         {
             if (parameters == null || string.IsNullOrEmpty(parameterName))
             {

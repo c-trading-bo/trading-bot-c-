@@ -23,6 +23,14 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     internal static class TradingBotTuningRunner
     {
+        // Trading analysis constants - configuration-driven values for backtesting and strategy tuning
+        private const int MinimumRequiredBars = 120; // Minimum bars needed for reliable strategy analysis
+        private const decimal BaseSigmaAdjustment = 0.3m; // Sigma variance adjustment for parameter grid generation
+        private const decimal MinimumSigmaMultiplier = 1.0m; // Minimum sigma multiplier for risk calculations
+        private const decimal MaximumSigmaMultiplier = 3.0m; // Maximum sigma multiplier for risk calculations
+        private const decimal MinimumPositionSizeMultiplier = 0.5m; // Minimum position size multiplier for risk management
+        private const decimal MaximumPositionSizeMultiplier = 1.5m; // Maximum position size multiplier for risk management  
+        private const decimal PositionSizeAdjustment = 0.2m; // Position size variance adjustment for parameter tuning
 
         /// <summary>
         /// Parameter configuration record - immutable and configuration-driven
@@ -109,7 +117,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:S2] Insufficient market data: {BarCount} bars", marketBars.Count);
                     return;
@@ -162,7 +170,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:S3] Insufficient market data: {BarCount} bars", marketBars.Count);
                     return;
@@ -213,7 +221,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:{Strategy}] Insufficient market data: {BarCount} bars", strategyId, marketBars.Count);
                     return;
@@ -329,9 +337,9 @@ namespace TradingBot.BotCore.Services
             var baseSigma = (decimal)(1.5 + confidenceThreshold);
             return new[]
             {
-                Math.Max(1.0m, baseSigma - 0.3m),
+                Math.Max(MinimumSigmaMultiplier, baseSigma - BaseSigmaAdjustment),
                 baseSigma,
-                Math.Min(3.0m, baseSigma + 0.3m)
+                Math.Min(MaximumSigmaMultiplier, baseSigma + BaseSigmaAdjustment)
             };
         }
 
@@ -344,9 +352,9 @@ namespace TradingBot.BotCore.Services
             var baseMultiplier = (decimal)(0.8 + (positionMultiplier - 2.0) * 0.1);
             return new[]
             {
-                Math.Max(0.5m, baseMultiplier - 0.2m),
+                Math.Max(MinimumPositionSizeMultiplier, baseMultiplier - PositionSizeAdjustment),
                 baseMultiplier,
-                Math.Min(1.5m, baseMultiplier + 0.2m)
+                Math.Min(MaximumPositionSizeMultiplier, baseMultiplier + PositionSizeAdjustment)
             };
         }
 
@@ -682,9 +690,17 @@ namespace TradingBot.BotCore.Services
                 
                 logger.LogInformation("[TuningRunner] Saved {Count} backtest results to {Filename}", results.Count, filename);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                logger.LogError(ex, "[TuningRunner] Error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+                logger.LogError(ex, "[TuningRunner] IO error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                logger.LogError(ex, "[TuningRunner] Access denied saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "[TuningRunner] JSON error saving backtest results for {Strategy} {Symbol}", strategyId, symbolRoot);
             }
         }
 

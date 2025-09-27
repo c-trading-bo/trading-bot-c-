@@ -345,9 +345,17 @@ namespace TradingBot.BotCore.Services
                 _logger.LogDebug("Configuration loading was cancelled");
                 throw;
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
             {
-                _logger.LogError(ex, "Error loading configurations from {Path}, using defaults", _configurationPath);
+                _logger.LogError(ex, "Configuration file not found at {Path}, using defaults", _configurationPath);
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error loading configurations from {Path}, using defaults", _configurationPath);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing error loading configurations from {Path}, using defaults", _configurationPath);
             }
         }
 
@@ -369,9 +377,17 @@ namespace TradingBot.BotCore.Services
                 
                 _logger.LogDebug("Saved {Count} configurations to {Path}", _configurations.Count, _configurationPath);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error saving configurations to {Path}", _configurationPath);
+                _logger.LogError(ex, "IO error saving configurations to {Path}", _configurationPath);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied saving configurations to {Path}", _configurationPath);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON error saving configurations to {Path}", _configurationPath);
             }
         }
     }

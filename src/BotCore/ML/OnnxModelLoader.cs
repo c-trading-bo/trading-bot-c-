@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -1007,28 +1008,28 @@ public sealed class OnnxModelLoader : IDisposable
 
                 if (latestModel == null)
                 {
-                    status.Issues.Add("No valid model found");
+                    status.AddIssue("No valid model found");
                 }
                 else
                 {
                     // Check if model file exists
                     if (!File.Exists(latestModel.RegistryPath))
                     {
-                        status.Issues.Add("Model file missing");
+                        status.AddIssue("Model file missing");
                     }
                     
                     // Check file integrity
                     var currentHash = await CalculateFileHashAsync(latestModel.RegistryPath, cancellationToken).ConfigureAwait(false);
                     if (currentHash != latestModel.Hash)
                     {
-                        status.Issues.Add("Model file hash mismatch - file may be corrupted");
+                        status.AddIssue("Model file hash mismatch - file may be corrupted");
                     }
                     
                     // Check age
                     var age = DateTime.UtcNow - latestModel.Timestamp;
                     if (age > TimeSpan.FromDays(_registryOptions.ModelExpiryDays))
                     {
-                        status.Issues.Add($"Model is {age.TotalDays:F1} days old (expires after {_registryOptions.ModelExpiryDays} days)");
+                        status.AddIssue($"Model is {age.TotalDays:F1} days old (expires after {_registryOptions.ModelExpiryDays} days)");
                     }
 
                     status.IsHealthy = !status.Issues.Any();
@@ -1036,7 +1037,7 @@ public sealed class OnnxModelLoader : IDisposable
                     status.Version = latestModel.Version;
                 }
 
-                report.ModelStatuses.Add(status);
+                report.AddModelStatus(status);
             }
 
             report.IsHealthy = report.ModelStatuses.All(s => s.IsHealthy);
@@ -1356,7 +1357,10 @@ public class ModelRegistryMetadata
     public double ValidationAccuracy { get; set; }
     public Dictionary<string, double> TrainingMetrics { get; } = new();
     public string Description { get; set; } = string.Empty;
-    public List<string> Tags { get; } = new();
+    private readonly List<string> _tags = new();
+    public IReadOnlyList<string> Tags => _tags;
+    
+    internal void AddTag(string tag) => _tags.Add(tag);
 }
 
 /// <summary>
@@ -1377,7 +1381,10 @@ public class ModelHealthReport
 {
     public DateTime Timestamp { get; set; }
     public bool IsHealthy { get; set; }
-    public List<ModelHealthStatus> ModelStatuses { get; } = new();
+    private readonly List<ModelHealthStatus> _modelStatuses = new();
+    public IReadOnlyList<ModelHealthStatus> ModelStatuses => _modelStatuses;
+    
+    internal void AddModelStatus(ModelHealthStatus status) => _modelStatuses.Add(status);
 }
 
 /// <summary>
@@ -1389,7 +1396,10 @@ public class ModelHealthStatus
     public string Version { get; set; } = string.Empty;
     public bool IsHealthy { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<string> Issues { get; } = new();
+    private readonly List<string> _issues = new();
+    public IReadOnlyList<string> Issues => _issues;
+    
+    internal void AddIssue(string issue) => _issues.Add(issue);
 }
 
 #endregion

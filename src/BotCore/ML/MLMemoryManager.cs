@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime;
 
@@ -43,7 +44,10 @@ public class MLMemoryManager : IMLMemoryManager
         public Dictionary<string, long> ModelMemory { get; } = new();
         public int LoadedModels { get; set; }
         public int CachedPredictions { get; set; }
-        public List<string> MemoryLeaks { get; } = new();
+        private readonly List<string> _memoryLeaks = new();
+        public IReadOnlyList<string> MemoryLeaks => _memoryLeaks;
+        
+        internal void AddMemoryLeak(string leak) => _memoryLeaks.Add(leak);
     }
 
     public MLMemoryManager(ILogger<MLMemoryManager> logger, OnnxModelLoader onnxLoader)
@@ -398,7 +402,7 @@ public class MLMemoryManager : IMLMemoryManager
                 if (model.WeakRef?.IsAlive == true && model.UsageCount == 0 && 
                     DateTime.UtcNow - model.LastUsed > TimeSpan.FromHours(1))
                 {
-                    snapshot.MemoryLeaks.Add($"Potential leak: {model.ModelId} still in memory");
+                    snapshot.AddMemoryLeak($"Potential leak: {model.ModelId} still in memory");
                 }
             }
             

@@ -252,9 +252,17 @@ namespace TradingBot.Critical
                             ReconcileOrderStatus(order, actualStatus);
                         }
                     }
-                    catch (Exception ex)
+                    catch (InvalidOperationException ex)
                     {
-                        _logger.LogError(ex, "Failed to reconcile order {OrderId}", order.OrderId);
+                        _logger.LogError(ex, "Invalid operation reconciling order {OrderId}", order.OrderId);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        _logger.LogError(ex, "Invalid argument reconciling order {OrderId}", order.OrderId);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogWarning("Order reconciliation cancelled for {OrderId}", order.OrderId);
                     }
                 });
             }
@@ -406,9 +414,13 @@ namespace TradingBot.Critical
                         fillData.OrderId, fillData.Quantity, fillData.Price);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[CRITICAL] Failed to handle orphaned fill {OrderId}", fillData.OrderId);
+                _logger.LogError(ex, "[CRITICAL] Invalid operation handling orphaned fill {OrderId}", fillData.OrderId);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[CRITICAL] Invalid argument handling orphaned fill {OrderId}", fillData.OrderId);
             }
             
             return Task.CompletedTask;
@@ -731,9 +743,19 @@ namespace TradingBot.Critical
                     await ResumeStrategies(state).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                // Catastrophic failure - emergency mode
+                // Trading system in invalid state - emergency mode
+                await ActivateEmergencyMode(ex).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex)
+            {
+                // Recovery operations cancelled - emergency mode
+                await ActivateEmergencyMode(ex).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                // Recovery timeout - emergency mode
                 await ActivateEmergencyMode(ex).ConfigureAwait(false);
             }
         }
@@ -784,9 +806,17 @@ namespace TradingBot.Critical
                     
                     _lastHeartbeat = DateTime.UtcNow;
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    LogCriticalError("State persistence failed", ex);
+                    LogCriticalError("State persistence failed - IO error", ex);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    LogCriticalError("State persistence failed - access denied", ex);
+                }
+                catch (JsonException ex)
+                {
+                    LogCriticalError("State persistence failed - serialization error", ex);
                 }
             }
         }
@@ -1389,6 +1419,9 @@ namespace TradingBot.Critical
         private const int ProcessingDelayMs = 100;                   // Brief processing delay in milliseconds
         private const decimal MaxSingleExposure = 10000m;            // Maximum single position exposure
         private const decimal MaxESNQCombinedExposure = 5000m;       // Maximum combined ES/NQ exposure
+        private const decimal ExposureCalculationMultiplier = 100m;  // Multiplier for position exposure calculation
+        private const decimal DefaultPortfolioConcentration = 0.3m;  // Default portfolio concentration for fallback calculations
+        private const double DefaultCorrelationValue = 0.5;          // Default correlation value for statistical calculations
         
         private readonly ILogger<CorrelationProtectionSystem> _logger;
         
@@ -1547,9 +1580,13 @@ namespace TradingBot.Critical
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "Failed to update correlations");
+                _logger.LogError(ex, "Invalid operation updating correlations");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid argument updating correlations");
             }
         }
 
@@ -1599,7 +1636,7 @@ namespace TradingBot.Critical
                 _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
             }
         }
-        private static decimal CalculateExposure(int quantity) => quantity * 100m;
+        private static decimal CalculateExposure(int quantity) => quantity * ExposureCalculationMultiplier;
         private static decimal GetMaxExposure() => MaxSingleExposure;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
@@ -1609,9 +1646,9 @@ namespace TradingBot.Critical
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));
         }
-        private static decimal CalculatePortfolioConcentration() => 0.3m;
+        private static decimal CalculatePortfolioConcentration() => DefaultPortfolioConcentration;
         private static Dictionary<string, List<decimal>> GetRecentPriceData() => new();
-        private static double CalculatePearsonCorrelation() => 0.5;
+        private static double CalculatePearsonCorrelation() => DefaultCorrelationValue;
 
         public void UpdateExposure(string symbol, decimal exposure)
         {
@@ -1807,9 +1844,19 @@ namespace TradingBot.Critical
                     _ => null
                 };
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                System.Console.WriteLine($"[AZURE_KV_ERROR] Failed to get secret {key}: {ex.Message}");
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Invalid operation for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Invalid argument for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (System.Net.NetworkInformation.NetworkInformationException ex)
+            {
+                System.Console.WriteLine($"[AZURE_KV_ERROR] Network error getting secret {key}: {ex.Message}");
                 return null;
             }
         }
@@ -1846,9 +1893,19 @@ namespace TradingBot.Critical
                     _ => null
                 };
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                System.Console.WriteLine($"[AWS_SM_ERROR] Failed to get secret {key}: {ex.Message}");
+                System.Console.WriteLine($"[AWS_SM_ERROR] Invalid operation for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Console.WriteLine($"[AWS_SM_ERROR] Invalid argument for secret {key}: {ex.Message}");
+                return null;
+            }
+            catch (System.Security.SecurityException ex)
+            {
+                System.Console.WriteLine($"[AWS_SM_ERROR] Security error getting secret {key}: {ex.Message}");
                 return null;
             }
         }

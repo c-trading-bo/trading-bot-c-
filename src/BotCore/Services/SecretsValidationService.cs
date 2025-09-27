@@ -76,9 +76,21 @@ namespace TradingBot.BotCore.Services
                         result.Errors.Count, result.MissingSecrets.Count);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "🚨 [SECRETS] Critical error during secrets validation");
+                _logger.LogError(ex, "🚨 [SECRETS] Invalid operation during secrets validation");
+                result.AddError($"Critical validation error: {ex.Message}");
+                result.IsValid = false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "🚨 [SECRETS] Access denied during secrets validation");
+                result.AddError($"Critical validation error: {ex.Message}");
+                result.IsValid = false;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "🚨 [SECRETS] Invalid argument during secrets validation");
                 result.AddError($"Critical validation error: {ex.Message}");
                 result.IsValid = false;
             }
@@ -245,10 +257,20 @@ namespace TradingBot.BotCore.Services
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                result.AddError($"Secret store validation error: {ex.Message}");
-                _logger.LogError(ex, "🚨 [SECRETS] Error validating secret store access");
+                result.AddError($"Invalid operation validating secret store: {ex.Message}");
+                _logger.LogError(ex, "🚨 [SECRETS] Invalid operation validating secret store access");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                result.AddError($"Access denied to secret store: {ex.Message}");
+                _logger.LogError(ex, "🚨 [SECRETS] Access denied validating secret store access");
+            }
+            catch (ArgumentException ex)
+            {
+                result.AddError($"Invalid argument for secret store: {ex.Message}");
+                _logger.LogError(ex, "🚨 [SECRETS] Invalid argument validating secret store access");
             }
         }
 

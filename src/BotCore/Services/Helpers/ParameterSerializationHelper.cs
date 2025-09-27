@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using TradingBot.Abstractions;
 
 namespace TradingBot.BotCore.Services
 {
@@ -49,7 +50,7 @@ namespace TradingBot.BotCore.Services
         /// </summary>
         public static void ApplyParametersFromConfig(
             Dictionary<string, JsonElement> strategyParameters, 
-            IEnumerable<ParameterConfig> parameters)
+            IEnumerable<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             if (strategyParameters == null)
                 throw new ArgumentNullException(nameof(strategyParameters));
@@ -84,7 +85,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Create strategy parameters dictionary from parameter configs with validation
         /// </summary>
-        public static Dictionary<string, JsonElement> CreateStrategyParameters(IEnumerable<ParameterConfig> parameters)
+        public static Dictionary<string, JsonElement> CreateStrategyParameters(IEnumerable<TradingBotTuningRunner.ParameterConfig> parameters)
         {
             var strategyParameters = new Dictionary<string, JsonElement>();
             

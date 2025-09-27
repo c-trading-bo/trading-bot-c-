@@ -108,9 +108,19 @@ namespace BotCore
                 }
                 return null;
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _log.LogWarning(ex, "Contract available EX (live={Live}) for root={Root}", live, root);
+                _log.LogWarning(ex, "HTTP error in contract available (live={Live}) for root={Root}", live, root);
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _log.LogWarning(ex, "Request timeout in contract available (live={Live}) for root={Root}", live, root);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _log.LogWarning(ex, "JSON parsing error in contract available (live={Live}) for root={Root}", live, root);
                 return null;
             }
         }
@@ -142,9 +152,19 @@ namespace BotCore
 
                 return pick?.id;
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _log.LogWarning(ex, "Contract search EX (q='{Q}', live={Live})", searchText, live);
+                _log.LogWarning(ex, "HTTP error in contract search (q='{Q}', live={Live})", searchText, live);
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _log.LogWarning(ex, "Request timeout in contract search (q='{Q}', live={Live})", searchText, live);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _log.LogWarning(ex, "JSON parsing error in contract search (q='{Q}', live={Live})", searchText, live);
                 return null;
             }
         }
