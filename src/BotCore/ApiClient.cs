@@ -17,6 +17,9 @@ namespace BotCore
 
     public sealed class ApiClient(HttpClient http, ILogger<ApiClient> log, string apiBase)
     {
+        // Retry Configuration Constants
+        private const double ExponentialBackoffBase = 2.0;  // Base for exponential backoff calculation
+        
         private readonly HttpClient _http = http;
         private readonly ILogger<ApiClient> _log = log;
         private readonly string _apiBase = apiBase;
@@ -166,7 +169,7 @@ namespace BotCore
                     {
                         _log.LogWarning("[APICLIENT] PlaceOrder attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
                             attempt, maxRetries, (int)resp.StatusCode);
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(ExponentialBackoffBase, attempt)), ct).ConfigureAwait(false);
                         continue;
                     }
                     else
@@ -179,7 +182,7 @@ namespace BotCore
                 {
                     _log.LogWarning(ex, "[APICLIENT] PlaceOrder HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
                         attempt, maxRetries);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(ExponentialBackoffBase, attempt)), ct).ConfigureAwait(false);
                 }
             }
 

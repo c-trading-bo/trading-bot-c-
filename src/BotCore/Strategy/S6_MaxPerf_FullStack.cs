@@ -61,9 +61,13 @@ namespace TopstepX.S6
     // --- DATA TYPES (ticks internally) ---
     public readonly struct Bar1M : IEquatable<Bar1M>
     {
-        public readonly DateTimeOffset TimeET; // end time of bar (ET)
-        public readonly long Open, High, Low, Close; // ticks
-        public readonly double Volume;
+        public DateTimeOffset TimeET { get; } // end time of bar (ET)
+        public long Open { get; } // ticks
+        public long High { get; } // ticks  
+        public long Low { get; } // ticks
+        public long Close { get; } // ticks
+        public double Volume { get; }
+        
         public Bar1M(DateTimeOffset timeEt, long o, long h, long l, long c, double v)
         { TimeET = timeEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
@@ -97,9 +101,20 @@ namespace TopstepX.S6
     public readonly struct DepthLadder : IEquatable<DepthLadder>
     // L1-L3 snapshot
     {
-        public readonly DateTimeOffset TimeET;
-        public readonly long Bid1, Ask1, Bid2, Ask2, Bid3, Ask3; // ticks
-        public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
+        public DateTimeOffset TimeET { get; }
+        public long Bid1 { get; }
+        public long Ask1 { get; }
+        public long Bid2 { get; }
+        public long Ask2 { get; }
+        public long Bid3 { get; }
+        public long Ask3 { get; } // ticks
+        public int BidSz1 { get; }
+        public int AskSz1 { get; }
+        public int BidSz2 { get; }
+        public int AskSz2 { get; }
+        public int BidSz3 { get; }
+        public int AskSz3 { get; }
+        
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
         
@@ -196,7 +211,7 @@ namespace TopstepX.S6
             return Value;
         }
     }
-    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=IndicatorConstants.EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
+    public sealed class Ema { private readonly double _k; private bool _seed; public double Value { get; private set; } public Ema(int n){ _k=IndicatorConstants.EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
 
     public sealed class RvolBaseline
     {
@@ -212,38 +227,38 @@ namespace TopstepX.S6
     public sealed class S6Config
     {
         // window (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("09:28", CultureInfo.InvariantCulture);
-        public TimeSpan RTHOpen     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
-        public TimeSpan WindowEnd   = TimeSpan.Parse("10:00", CultureInfo.InvariantCulture);
+        public TimeSpan WindowStart { get; set; } = TimeSpan.Parse("09:28", CultureInfo.InvariantCulture);
+        public TimeSpan RTHOpen { get; set; } = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd { get; set; } = TimeSpan.Parse("10:00", CultureInfo.InvariantCulture);
 
         // risk
-        public int    BaseQty = 1;
-        public double MultiplierInWindow = 1.2;
-        public int    MaxSpreadTicks = 2;
-        public int    StopTicksMin = 6;
-        public double StopAtrMult = 0.7;
-        public double TargetAdrFrac = 0.18;
-        public int    MaxHoldMinutes = 45;
-        public double FlipMinR = 1.25;
+        public int BaseQty { get; set; } = 1;
+        public double MultiplierInWindow { get; set; } = 1.2;
+        public int MaxSpreadTicks { get; set; } = 2;
+        public int StopTicksMin { get; set; } = 6;
+        public double StopAtrMult { get; set; } = 0.7;
+        public double TargetAdrFrac { get; set; } = 0.18;
+        public int MaxHoldMinutes { get; set; } = 45;
+        public double FlipMinR { get; set; } = 1.25;
 
         // filters
-        public double MinADX = 18.0;
-        public double MinRVOL = 1.2;
-        public int    DivMaxBp = 12;          // ES–NQ divergence bps
-        public double MinDomImbalance = 0.18; // L1–L3
+        public double MinADX { get; set; } = 18.0;
+        public double MinRVOL { get; set; } = 1.2;
+        public int DivMaxBp { get; set; } = 12;          // ES–NQ divergence bps
+        public double MinDomImbalance { get; set; } = 0.18; // L1–L3
 
         // retests
-        public bool   RetestEnable = true;
-        public int    RetestGraceTicks = 2;
-        public int    RetestConfirmBars1m = 2;
+        public bool RetestEnable { get; set; } = true;
+        public int RetestGraceTicks { get; set; } = 2;
+        public int RetestConfirmBars1m { get; set; } = 2;
 
         // history
-        public int AdrLookbackDays = 14;
-        public int RvolLookbackDays = 20;
+        public int AdrLookbackDays { get; set; } = 14;
+        public int RvolLookbackDays { get; set; } = 20;
 
         // failed breakout
-        public int FailBreakPenetrationTicks_ES = 3;
-        public int FailBreakPenetrationTicks_NQ = 4;
+        public int FailBreakPenetrationTicks_ES { get; set; } = 3;
+        public int FailBreakPenetrationTicks_NQ { get; set; } = 4;
     }
 
     // --- STRATEGY ---
@@ -610,8 +625,7 @@ namespace TopstepX.S6
         public bool TryPost(in T item) => _ch.Writer.TryWrite(item);
         public async Task Run(Func<T, bool> onEvent, CancellationToken ct)
         {
-            if (onEvent == null)
-                throw new ArgumentNullException(nameof(onEvent));
+            ArgumentNullException.ThrowIfNull(onEvent);
 
             var r = _ch.Reader;
             while (await r.WaitToReadAsync(ct).ConfigureAwait(false))

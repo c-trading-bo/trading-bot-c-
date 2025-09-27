@@ -49,14 +49,7 @@ public class WalkForwardTrainer
         DateTime endDate,
         CancellationToken ct = default)
     {
-        var results = new WalkForwardResults
-        {
-            StartDate = startDate,
-            EndDate = endDate,
-            Config = _config,
-            Folds = new List<ValidationFold>()
-        };
-
+        var folds = new List<ValidationFold>();
         var currentDate = startDate;
         var foldNumber = 0;
 
@@ -71,7 +64,7 @@ public class WalkForwardTrainer
             Console.WriteLine($"[WALK-FORWARD] Processing fold {foldNumber}...");
 
             var fold = await ProcessFoldAsync(currentDate, foldNumber, ct).ConfigureAwait(false);
-            results.Folds.Add(fold);
+            folds.Add(fold);
 
             // Move to next fold
             currentDate = currentDate.AddDays(_config.TestWindowDays);
@@ -81,11 +74,21 @@ public class WalkForwardTrainer
         }
 
         // Calculate overall results
-        results.OverallMetrics = CalculateOverallMetrics(results.Folds);
+        var overallMetrics = CalculateOverallMetrics(folds);
 
         Console.WriteLine($"[WALK-FORWARD] Completed {foldNumber} folds. " +
-                         $"Overall accuracy: {results.OverallMetrics.Accuracy:P1}, " +
-                         $"Brier score: {results.OverallMetrics.BrierScore:F3}");
+                         $"Overall accuracy: {overallMetrics.Accuracy:P1}, " +
+                         $"Brier score: {overallMetrics.BrierScore:F3}");
+
+        // Create final results record
+        var results = new WalkForwardResults
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+            Config = _config,
+            Folds = folds,
+            OverallMetrics = overallMetrics
+        };
 
         await SaveResultsAsync(results, ct).ConfigureAwait(false);
         return results;
@@ -434,7 +437,7 @@ public record WalkForwardResults
     public DateTime StartDate { get; init; }
     public DateTime EndDate { get; init; }
     public WalkForwardConfig Config { get; init; } = null!;
-    public List<ValidationFold> Folds { get; init; } = new();
+    public IReadOnlyList<ValidationFold> Folds { get; init; } = new List<ValidationFold>();
     public ValidationMetrics OverallMetrics { get; set; } = null!;
     public DateTime CompletedAt { get; init; } = DateTime.UtcNow;
 }

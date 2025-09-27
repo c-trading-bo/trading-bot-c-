@@ -26,6 +26,11 @@ namespace TradingBot.BotCore.Services
         private const double DefaultPositionSizeMultiplierBaseline = 1.0;
         private const double DefaultMinPositionSizeMultiplier = 0.1;
         private const double DefaultMaxPositionSizeMultiplier = 2.5;
+        private const double DefaultExplorationRate = 0.05;
+        private const double DefaultWeightFloor = 0.10;
+        
+        // Model Refresh Constants
+        private const int DefaultModelRefreshIntervalMinutes = 120;
         
         private readonly IConfiguration _config;
         private readonly ILogger<SizerConfigService> _logger;
@@ -62,12 +67,12 @@ namespace TradingBot.BotCore.Services
             _config.GetValue("Sizer:MaxPositionSizeMultiplier", DefaultMaxPositionSizeMultiplier);
 
         public double GetExplorationRate() => 
-            _config.GetValue("Sizer:ExplorationRate", 0.05);
+            _config.GetValue("Sizer:ExplorationRate", DefaultExplorationRate);
 
         public double GetWeightFloor() => 
-            _config.GetValue("Sizer:WeightFloor", 0.10);
+            _config.GetValue("Sizer:WeightFloor", DefaultWeightFloor);
 
         public int GetModelRefreshIntervalMinutes() => 
-            _config.GetValue("Sizer:ModelRefreshIntervalMinutes", 120);
+            _config.GetValue("Sizer:ModelRefreshIntervalMinutes", DefaultModelRefreshIntervalMinutes);
     }
 }

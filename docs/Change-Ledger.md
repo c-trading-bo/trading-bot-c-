@@ -35,7 +35,51 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 23 - Phase 2 CA1031 & S109 Exception Handling + Trading Strategy Constants (Current Session)
+#### Round 24 - Phase 2 Priority 2 API & Encapsulation Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1051 | 136+ | 114+ | S6_MaxPerf_FullStack.cs, S11_MaxPerf_FullStack.cs | Converted public fields to properties in struct/class definitions |
+| CA1034 | 68+ | 60+ | CriticalSystemComponents.cs | Changed nested type accessibility from public to internal |
+| S109 | 2716+ | 2704+ | StrategyMlIntegration.cs | Added trading analysis constants (breakout periods, RSI values) |
+
+**Example Pattern - CA1051 Field Encapsulation**:
+```csharp
+// Before (Violation)
+public readonly struct Bar1M
+{
+    public readonly DateTimeOffset TimeET;
+    public readonly long Open, High, Low, Close;
+    public readonly double Volume;
+}
+
+// After (Compliant)
+public readonly struct Bar1M
+{
+    public DateTimeOffset TimeET { get; }
+    public long Open { get; }
+    public long High { get; }
+    public long Low { get; }
+    public long Close { get; }
+    public double Volume { get; }
+}
+```
+
+**Example Pattern - CA1034 Nested Type Accessibility**:
+```csharp
+// Before (Violation)
+public class CorrelationProtectionSystem
+{
+    public class PositionExposure { /* ... */ }
+}
+
+// After (Compliant)
+public class CorrelationProtectionSystem
+{
+    internal class PositionExposure { /* ... */ }
+}
+```
+
+#### Round 23 - Phase 2 CA1031 & S109 Exception Handling + Trading Strategy Constants (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CA1031 | 2+ | 0 | ProductionTopstepXApiClient.cs | Replaced generic Exception catches with specific HttpRequestException, TaskCanceledException, JsonException |

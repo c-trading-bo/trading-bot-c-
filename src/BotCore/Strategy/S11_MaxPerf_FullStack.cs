@@ -34,6 +34,10 @@ namespace TopstepX.S11
         internal const int FifteenMinuteBars = 15; // Number of 1-minute bars in a 15-minute bar
         internal const double AdrExhaustionThreshold = 6.5; // ADR exhaustion threshold
         internal const int BarLookbackLimit = 5; // Limit for bar lookback operations
+        
+        // RSI Calculation Constants
+        internal const double RsiNeutralValue = 50.0; // RSI neutral/default value
+        internal const double RsiMaxValue = 100.0; // RSI maximum value
     }
 
     public enum Instrument { ES, NQ }
@@ -209,7 +213,7 @@ namespace TopstepX.S11
         }
     }
 
-    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=2.0/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
+    public sealed class Ema { private readonly double _k; private bool _seed; public double Value { get; private set; } public Ema(int n){ _k=2.0/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
 
     public sealed class Rsi
     {
@@ -217,18 +221,18 @@ namespace TopstepX.S11
         public Rsi(int n) { _n = n; }
         public double Update(double close)
         {
-            if (!_seeded) { _lastClose = close; _seeded = true; return 50; }
+            if (!_seeded) { _lastClose = close; _seeded = true; return S11Constants.RsiNeutralValue; }
             double change = close - _lastClose;
             double gain = change > 0 ? change : 0;
             double loss = change < 0 ? -change : 0;
             if (_avgGain == 0 && _avgLoss == 0) { _avgGain = gain; _avgLoss = loss; }
             else { _avgGain = (_avgGain * (_n - 1) + gain) / _n; _avgLoss = (_avgLoss * (_n - 1) + loss) / _n; }
             _lastClose = close;
-            if (_avgLoss == 0) return 100;
+            if (_avgLoss == 0) return S11Constants.RsiMaxValue;
             double rs = _avgGain / _avgLoss;
-            return 100 - (100 / (1 + rs));
+            return S11Constants.RsiMaxValue - (S11Constants.RsiMaxValue / (1 + rs));
         }
-        public double Value => _seeded ? (100 - (100 / (1 + (_avgGain / Math.Max(_avgLoss, S11Constants.SmallEpsilon))))) : 50;
+        public double Value => _seeded ? (S11Constants.RsiMaxValue - (S11Constants.RsiMaxValue / (1 + (_avgGain / Math.Max(_avgLoss, S11Constants.SmallEpsilon))))) : S11Constants.RsiNeutralValue;
     }
 
     public sealed class RvolBaseline
@@ -245,38 +249,38 @@ namespace TopstepX.S11
     public sealed class S11Config
     {
         // session windows (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("13:30", CultureInfo.InvariantCulture);
-        public TimeSpan WindowEnd   = TimeSpan.Parse("15:30", CultureInfo.InvariantCulture);
-        public TimeSpan IBStart     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
-        public TimeSpan IBEnd       = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowStart { get; set; } = TimeSpan.Parse("13:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd { get; set; } = TimeSpan.Parse("15:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBStart { get; set; } = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan IBEnd { get; set; } = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
 
         // risk
-        public int    BaseQty = 1;
-        public double MultiplierAfternoon = 0.8; // conservative sizing
-        public int    MaxSpreadTicks = 2;
-        public int    StopTicksMin = 8;
-        public double StopAtrMult = 1.2;
-        public double TargetAdrFrac = 0.12;
-        public int    MaxHoldMinutes = 90;
+        public int BaseQty { get; set; } = 1;
+        public double MultiplierAfternoon { get; set; } = 0.8; // conservative sizing
+        public int MaxSpreadTicks { get; set; } = 2;
+        public int StopTicksMin { get; set; } = 8;
+        public double StopAtrMult { get; set; } = 1.2;
+        public double TargetAdrFrac { get; set; } = 0.12;
+        public int MaxHoldMinutes { get; set; } = 90;
 
         // filters
-        public double MaxADX = 20.0;     // range-bound only
-        public double MinRVOL = 1.5;
-        public double MinRSI = 25.0;     // oversold/overbought thresholds
-        public double MaxRSI = 75.0;
-        public double MinDomImbalance = 0.25;
+        public double MaxADX { get; set; } = 20.0;     // range-bound only
+        public double MinRVOL { get; set; } = 1.5;
+        public double MinRSI { get; set; } = 25.0;     // oversold/overbought thresholds
+        public double MaxRSI { get; set; } = 75.0;
+        public double MinDomImbalance { get; set; } = 0.25;
 
         // exhaustion detection
-        public double ExhaustionVolMult = 2.0;   // volume spike
-        public int    ExhaustionBars = 3;        // look back bars
-        public double RejectionWickRatio = 0.6;  // wick vs body ratio
+        public double ExhaustionVolMult { get; set; } = 2.0;   // volume spike
+        public int ExhaustionBars { get; set; } = 3;        // look back bars
+        public double RejectionWickRatio { get; set; } = 0.6;  // wick vs body ratio
 
         // ADR tracking
-        public int AdrLookbackDays = 20;
-        public double AdrExhaustionThreshold = 0.75; // 75% of ADR used
+        public int AdrLookbackDays { get; set; } = 20;
+        public double AdrExhaustionThreshold { get; set; } = 0.75; // 75% of ADR used
 
         // news avoidance
-        public bool EnableNewsGate;
+        public bool EnableNewsGate { get; set; }
     }
 
     // --- STRATEGY ---

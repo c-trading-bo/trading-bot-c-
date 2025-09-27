@@ -16,6 +16,11 @@ namespace BotCore.Strategy
         private const int ShortEmaWindow = 8;                    // Short-term EMA calculation window
         private const int LongEmaWindow = 21;                    // Long-term EMA calculation window  
         private const decimal MinimumPriceForRatio = 0.01m;     // Minimum price threshold for ratio calculations
+        private const int BollingerBandsPeriod = 20;            // Bollinger Bands calculation period
+        private const int BollingerBandsStdDev = 2;             // Bollinger Bands standard deviation multiplier
+        private const int BreakoutLookbackPeriod = 20;          // Breakout analysis lookback period
+        private const decimal DefaultRsiValue = 50m;            // Default RSI value when insufficient data
+        private const decimal RsiMaxValue = 100m;               // Maximum RSI value for calculations
         
         /// <summary>
         /// Maps S1-S14 strategy IDs to the 4 ML strategy types for data collection
@@ -98,9 +103,17 @@ namespace BotCore.Strategy
                 logger.LogDebug("[ML-Integration] Logged {StrategyType} features for {StrategyId} signal {SignalId}",
                     strategyType, strategyId, signalId);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                logger.LogError(ex, "[ML-Integration] Failed to log strategy signal for {StrategyId}", strategyId);
+                logger.LogError(ex, "[ML-Integration] Invalid arguments for strategy signal {StrategyId}", strategyId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                logger.LogError(ex, "[ML-Integration] Invalid operation during feature calculation for {StrategyId}", strategyId);
+            }
+            catch (DivideByZeroException ex)
+            {
+                logger.LogError(ex, "[ML-Integration] Division by zero in calculations for {StrategyId}", strategyId);
             }
         }
 
@@ -183,13 +196,13 @@ namespace BotCore.Strategy
             decimal rsi = bars.Count >= 14 ? CalculateRsi(bars, 14) : 50m;
             decimal bbUpper = 0m, bbLower = 0m, vwap = price;
 
-            if (bars.Count >= 20)
+            if (bars.Count >= BollingerBandsPeriod)
             {
-                var closes = bars.TakeLast(20).Select(b => b.Close).ToList();
+                var closes = bars.TakeLast(BollingerBandsPeriod).Select(b => b.Close).ToList();
                 var sma = closes.Average();
                 var stdDev = (decimal)Math.Sqrt((double)closes.Select(c => (c - sma) * (c - sma)).Average());
-                bbUpper = sma + (2 * stdDev);
-                bbLower = sma - (2 * stdDev);
+                bbUpper = sma + (BollingerBandsStdDev * stdDev);
+                bbLower = sma - (BollingerBandsStdDev * stdDev);
                 vwap = bars.Sum(b => b.Close * b.Volume) / bars.Sum(b => b.Volume);
             }
 
@@ -215,14 +228,14 @@ namespace BotCore.Strategy
         {
             decimal highBreakout = 0m, lowBreakout = 0m, volume = 1000m, avgVolume = 1000m, consolidationTime = 10m;
 
-            if (bars.Count >= 20)
+            if (bars.Count >= BreakoutLookbackPeriod)
             {
-                var recent = bars.TakeLast(20).ToList();
+                var recent = bars.TakeLast(BreakoutLookbackPeriod).ToList();
                 highBreakout = recent.Max(b => b.High);
                 lowBreakout = recent.Min(b => b.Low);
                 volume = bars.Last().Volume;
                 avgVolume = (decimal)recent.Average(b => b.Volume);
-                consolidationTime = 20m; // Simplified
+                consolidationTime = BreakoutLookbackPeriod; // Simplified
             }
 
             var features = MultiStrategyRlCollector.CreateBreakoutFeatures(signalId, symbol, price, highBreakout, lowBreakout, volume, avgVolume, consolidationTime);
@@ -302,7 +315,7 @@ namespace BotCore.Strategy
 
         private static decimal CalculateRsi(IList<Bar> bars, int period)
         {
-            if (bars.Count < period + 1) return 50m;
+            if (bars.Count < period + 1) return DefaultRsiValue;
 
             var gains = 0m;
             var losses = 0m;
@@ -317,10 +330,10 @@ namespace BotCore.Strategy
             var avgGain = gains / period;
             var avgLoss = losses / period;
 
-            if (avgLoss == 0) return 100m;
+            if (avgLoss == 0) return RsiMaxValue;
 
             var rs = avgGain / avgLoss;
-            return 100m - (100m / (1 + rs));
+            return RsiMaxValue - (RsiMaxValue / (1 + rs));
         }
 
         private static decimal CalculateAtr(IList<Bar> bars, int period)

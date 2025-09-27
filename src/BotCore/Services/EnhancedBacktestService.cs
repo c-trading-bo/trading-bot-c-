@@ -38,7 +38,7 @@ namespace BotCore.Services
             IOptions<BacktestEnhancementConfiguration> config)
         {
             _logger = logger;
-            _config = config.Value;
+            _config = (config ?? throw new ArgumentNullException(nameof(config))).Value;
             _random = new Random();
         }
 
@@ -101,6 +101,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<ExecutionResult> SimulateOrderExecutionAsync(OrderRequest order, MarketConditions conditions)
         {
+            if (order is null) throw new ArgumentNullException(nameof(order));
+            
             if (!_config.EnableMarketFriction)
             {
                 // Return simplified execution without friction

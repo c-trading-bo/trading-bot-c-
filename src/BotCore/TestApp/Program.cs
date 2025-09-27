@@ -51,11 +51,17 @@ public sealed class Program
                 return ExitCodeFailure;
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"❌ Test app failed: {ex.Message}");
+            Console.WriteLine($"❌ Test app failed - Service resolution error: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return ExitCodeError;
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"❌ Test app failed - Configuration error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return ExitCodeError;  
         }
     }
 }

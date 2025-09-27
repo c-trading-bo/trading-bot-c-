@@ -10,6 +10,9 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class RiskConfigService : IRiskConfig
     {
+        // Risk Configuration Constants
+        private const decimal DefaultMaxDailyLossUsd = 1000.0m;     // Maximum daily loss limit
+        
         private readonly IConfiguration _config;
         private readonly ILogger<RiskConfigService> _logger;
 
@@ -20,7 +23,7 @@ namespace TradingBot.BotCore.Services
         }
 
         public decimal GetMaxDailyLossUsd() => 
-            _config.GetValue("Risk:MaxDailyLossUsd", 1000.0m);
+            _config.GetValue("Risk:MaxDailyLossUsd", DefaultMaxDailyLossUsd);
 
         public decimal GetMaxWeeklyLossUsd() => 
             _config.GetValue("Risk:MaxWeeklyLossUsd", 3000.0m);

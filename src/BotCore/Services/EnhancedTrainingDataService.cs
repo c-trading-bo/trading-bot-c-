@@ -62,13 +62,15 @@ namespace BotCore
                 StrategyUsed = signalData.Strategy ?? "Unknown",
                 StopLoss = signalData.StopLoss,
                 TakeProfit = signalData.TakeProfit,
-                Features = features,
                 Session = DetermineSession(DateTime.UtcNow),
                 Regime = signalData.Regime ?? "Range",
                 Atr = signalData.Atr,
                 Rsi = signalData.Rsi,
                 SlipTicks = 0.1m  // Default slip estimate
             };
+            
+            // Set features using the Replace method
+            tradeData.ReplaceFeatures(features);
 
             _currentSession.Add(tradeData);
 
@@ -365,7 +367,14 @@ namespace BotCore
         public string StrategyUsed { get; set; } = "";
         public decimal StopLoss { get; set; }
         public decimal TakeProfit { get; set; }
-        public List<decimal> Features { get; set; } = new();
+        private readonly List<decimal> _features = new();
+        public IReadOnlyList<decimal> Features => _features;
+        
+        public void ReplaceFeatures(IEnumerable<decimal> features)
+        {
+            _features.Clear();
+            if (features != null) _features.AddRange(features);
+        }
         public string Session { get; set; } = "";
         public string Regime { get; set; } = "";
         public decimal Atr { get; set; }

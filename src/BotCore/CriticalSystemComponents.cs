@@ -28,6 +28,9 @@ namespace TradingBot.Critical
     
     public class ExecutionVerificationSystem : IDisposable
     {
+        // Execution Verification Constants
+        private const int VerificationDelayMs = 100;  // Brief delay during verification processing
+        
         private readonly ConcurrentDictionary<string, OrderRecord> _pendingOrders = new();
         private readonly ConcurrentDictionary<string, FillRecord> _confirmedFills = new();
         private readonly TradingBot.Abstractions.ITopstepXClient _topstepXClient;
@@ -348,7 +351,7 @@ namespace TradingBot.Critical
                     }
                 }
                 
-                await Task.Delay(100).ConfigureAwait(false);
+                await Task.Delay(VerificationDelayMs).ConfigureAwait(false);
             }
             
             return false;
@@ -556,6 +559,16 @@ namespace TradingBot.Critical
     
     public class DisasterRecoverySystem : IDisposable
     {
+        // Disaster Recovery Constants
+        private const int HeartbeatMonitorIntervalMs = 5000;         // Monitor system health every 5 seconds
+        private const int SystemRecoveryDelayMs = 5000;             // Wait time for system recovery
+        private const int BackupExecutionDelayMs = 100;             // Backup execution simulation time
+        private const int EmergencyCommandDelayMs = 100;            // Brief pause for command propagation
+        private const int MemoryPressureThresholdGB = 2;            // Memory pressure threshold in GB
+        private const int MemoryRecoveryDelayMs = 2000;             // Delay after memory collection
+        private const decimal StopLossPercentage = 0.98m;           // Stop loss at 2% below entry
+        private const decimal TakeProfitPercentage = 1.02m;         // Take profit at 2% above entry
+        
         private readonly string _stateFile = "trading_state.json";
         private readonly string _backupStateFile = "trading_state.backup.json";
         private readonly Timer _statePersistenceTimer;
@@ -623,13 +636,13 @@ namespace TradingBot.Critical
             public decimal DailyPnL { get; set; }
         }
 
-        public class MarketState
+        internal class MarketState
         {
             public bool IsMarketOpen { get; set; }
             public DateTime LastUpdate { get; set; }
         }
 
-        public class Order
+        internal class Order
         {
             public string OrderId { get; set; } = string.Empty;
             public string Symbol { get; set; } = string.Empty;
@@ -987,7 +1000,7 @@ namespace TradingBot.Critical
             {
                 while (true)
                 {
-                    await Task.Delay(5000).ConfigureAwait(false);
+                    await Task.Delay(HeartbeatMonitorIntervalMs).ConfigureAwait(false);
                     
                     if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(10))
                     {
@@ -1009,12 +1022,12 @@ namespace TradingBot.Critical
             var memoryBefore = GC.GetTotalMemory(false);
             var memoryPressure = memoryBefore / (1024 * 1024 * 1024); // GB
             
-            if (memoryPressure > 2) // If using more than 2GB
+            if (memoryPressure > MemoryPressureThresholdGB) // If using more than 2GB
             {
                 _logger.LogWarning("[CRITICAL] High memory pressure detected ({MemoryGB:F1}GB), suggesting collection", memoryPressure);
                 // Gentle suggestion to runtime, not forced
                 GC.Collect(0, GCCollectionMode.Optimized, false);
-                await Task.Delay(2000).ConfigureAwait(false); // Give runtime time to respond
+                await Task.Delay(MemoryRecoveryDelayMs).ConfigureAwait(false); // Give runtime time to respond
             }
             
             // Check for thread pool starvation
@@ -1026,7 +1039,7 @@ namespace TradingBot.Critical
             }
             
             // If still frozen after intelligent recovery, initiate emergency protocol
-            await Task.Delay(5000).ConfigureAwait(false); // Wait 5 seconds for recovery
+            await Task.Delay(SystemRecoveryDelayMs).ConfigureAwait(false); // Wait 5 seconds for recovery
             if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(35))
             {
                 await ActivateEmergencyMode(new InvalidOperationException("System freeze > 35 seconds after recovery attempt")).ConfigureAwait(false);
@@ -1067,8 +1080,8 @@ namespace TradingBot.Critical
         private static Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
         private static Task<bool> CheckOrderExists() => Task.FromResult(false);
-        private static decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
-        private static decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
+        private static decimal CalculateStopLoss(Position position) => position.EntryPrice * StopLossPercentage;
+        private static decimal CalculateTakeProfit(Position position) => position.EntryPrice * TakeProfitPercentage;
         private static Task<Order?> PlaceStopLossOrder() => Task.FromResult<Order?>(null);
         private static Task<Order?> PlaceTakeProfitOrder() => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);
@@ -1118,7 +1131,7 @@ namespace TradingBot.Critical
                 };
                 
                 _logger?.LogError("[Emergency] Backup liquidation attempted: {Data}", liquidationData);
-                await Task.Delay(100).ConfigureAwait(false); // Simulate backup execution time
+                await Task.Delay(BackupExecutionDelayMs).ConfigureAwait(false); // Simulate backup execution time
             }
             catch (Exception ex)
             {
@@ -1162,7 +1175,7 @@ namespace TradingBot.Critical
                 var disableCommand = new { Command = "DISABLE_ALL", Reason = "EMERGENCY_MODE", Timestamp = DateTime.UtcNow };
                 _logger?.LogWarning("[Emergency] All strategies disabled: {Command}", disableCommand);
                 
-                await Task.Delay(100).ConfigureAwait(false); // Brief pause to ensure command propagation
+                await Task.Delay(EmergencyCommandDelayMs).ConfigureAwait(false); // Brief pause to ensure command propagation
             }
             catch (Exception ex)
             {
@@ -1291,7 +1304,7 @@ namespace TradingBot.Critical
                     }
                 }
                 
-                await Task.Delay(100).ConfigureAwait(false); // Brief processing delay
+                await Task.Delay(EmergencyCommandDelayMs).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
@@ -1369,9 +1382,17 @@ namespace TradingBot.Critical
         private readonly Timer? _correlationUpdateTimer;
         private const double MAX_CORRELATION_EXPOSURE = 0.7;
         private const double ES_NQ_CORRELATION = 0.85;
+        
+        // Portfolio Risk Constants
+        private const decimal MaxPortfolioConcentration = 0.5m;       // Maximum single direction portfolio percentage
+        private const decimal HedgeReductionFactor = 0.5m;           // Hedge risk reduction multiplier
+        private const int ProcessingDelayMs = 100;                   // Brief processing delay in milliseconds
+        private const decimal MaxSingleExposure = 10000m;            // Maximum single position exposure
+        private const decimal MaxESNQCombinedExposure = 5000m;       // Maximum combined ES/NQ exposure
+        
         private readonly ILogger<CorrelationProtectionSystem> _logger;
         
-        public class PositionExposure
+        internal class PositionExposure
         {
             public string Symbol { get; set; } = string.Empty;
             public decimal DirectionalExposure { get; set; }
@@ -1381,7 +1402,7 @@ namespace TradingBot.Critical
             public DateTime LastUpdated { get; set; }
         }
         
-        public class CorrelationAlert
+        internal class CorrelationAlert
         {
             private readonly List<string> _affectedSymbols = new();
             
@@ -1467,7 +1488,7 @@ namespace TradingBot.Critical
             // Check portfolio concentration
             var concentration = CalculatePortfolioConcentration();
             
-            if (concentration > 0.5m) // No single direction > 50% of portfolio
+            if (concentration > MaxPortfolioConcentration) // No single direction > 50% of portfolio
             {
                 LogRejection($"Portfolio concentration limit exceeded for {symbol}");
                 return false;
@@ -1495,7 +1516,7 @@ namespace TradingBot.Critical
                     else
                     {
                         // Opposite direction provides hedge
-                        totalCorrelated -= Math.Abs(position.DirectionalExposure) * (decimal)correlation * 0.5m;
+                        totalCorrelated -= Math.Abs(position.DirectionalExposure) * (decimal)correlation * HedgeReductionFactor;
                     }
                 }
             }
@@ -1561,29 +1582,29 @@ namespace TradingBot.Critical
                 else
                 {
                     // Initialize with default ES/NQ correlation
-                    _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = 0.85 };
-                    _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
+                    _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = ES_NQ_CORRELATION };
+                    _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
                     
                     _logger?.LogInformation("[Correlation] Initialized with default correlations");
                 }
                 
-                await Task.Delay(100).ConfigureAwait(false); // Brief processing delay
+                await Task.Delay(ProcessingDelayMs).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "[Correlation] Failed to load historical correlations");
                 
                 // Fallback to defaults
-                _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = 0.85 };
-                _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = 0.85 };
+                _correlationMatrix["ES"] = new Dictionary<string, double> { ["NQ"] = ES_NQ_CORRELATION };
+                _correlationMatrix["NQ"] = new Dictionary<string, double> { ["ES"] = ES_NQ_CORRELATION };
             }
         }
         private static decimal CalculateExposure(int quantity) => quantity * 100m;
-        private static decimal GetMaxExposure() => 10000m;
+        private static decimal GetMaxExposure() => MaxSingleExposure;
         private void LogRejection(string message) => _logger.LogWarning("[CORRELATION_REJECT] {Message}", message);
         private bool HasPosition(string symbol) => _exposures.ContainsKey(symbol);
         private decimal GetExposure(string symbol) => _exposures.TryGetValue(symbol, out var exp) ? exp.DirectionalExposure : 0m;
-        private static decimal GetMaxESNQCombined() => 5000m;
+        private static decimal GetMaxESNQCombined() => MaxESNQCombinedExposure;
         private Task SendCorrelationAlert(CorrelationAlert alert) 
         {
             return Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction));

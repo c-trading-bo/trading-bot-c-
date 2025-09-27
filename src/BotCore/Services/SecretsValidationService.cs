@@ -14,6 +14,16 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class SecretsValidationService
     {
+        // API Key Validation Length Constants
+        private const int TopstepXApiKeyMinLength = 32;
+        private const int TopstepXApiSecretMinLength = 32;  
+        private const int DefaultApiKeyMinLength = 16;
+        
+        // Secret Masking Constants
+        private const int SecretPrefixLength = 3;           // Characters to show at start of masked secret
+        private const int SecretSuffixLength = 3;           // Characters to show at end of masked secret 
+        private const int SecretMaskingOverhead = 6;        // Total prefix + suffix characters (3 + 3)
+        
         private readonly ILogger<SecretsValidationService> _logger;
         private readonly IConfiguration _config;
         private readonly List<SecretValidationRule> _validationRules;
@@ -280,9 +290,9 @@ namespace TradingBot.BotCore.Services
             // Basic API key format validation
             return keyName switch
             {
-                "TOPSTEPX_API_KEY" => keyValue.Length >= 32 && keyValue.All(c => char.IsLetterOrDigit(c) || c == '-'),
-                "TOPSTEPX_API_SECRET" => keyValue.Length >= 32,
-                _ => keyValue.Length >= 16
+                "TOPSTEPX_API_KEY" => keyValue.Length >= TopstepXApiKeyMinLength && keyValue.All(c => char.IsLetterOrDigit(c) || c == '-'),
+                "TOPSTEPX_API_SECRET" => keyValue.Length >= TopstepXApiSecretMinLength,
+                _ => keyValue.Length >= DefaultApiKeyMinLength
             };
         }
 
@@ -322,7 +332,7 @@ namespace TradingBot.BotCore.Services
             
             return value.Length <= 8 
                 ? new string('*', value.Length)
-                : value[..3] + new string('*', value.Length - 6) + value[^3..];
+                : value[..SecretPrefixLength] + new string('*', value.Length - SecretMaskingOverhead) + value[^SecretSuffixLength..];
         }
 
         private static List<SecretValidationRule> InitializeValidationRules()

@@ -336,9 +336,14 @@ public class ProductionGuardrailTester
             var tester = ActivatorUtilities.CreateInstance<ProductionGuardrailTester>(services);
             return await tester.RunAllTestsAsync().ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"❌ Quick test failed: {ex.Message}");
+            Console.WriteLine($"❌ Quick test failed - Service resolution error: {ex.Message}");
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"❌ Quick test failed - Configuration error: {ex.Message}");
             return false;
         }
     }
