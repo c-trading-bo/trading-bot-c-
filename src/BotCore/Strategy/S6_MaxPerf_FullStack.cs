@@ -28,7 +28,18 @@ namespace TopstepX.S6
     internal static class IndicatorConstants
     {
         internal const double SmallEpsilon = 1E-12;      // Small epsilon for numerical comparisons
+        internal const double TinyEpsilon = 1E-09;       // Tiny epsilon for division safety
         internal const double EmaMultiplier = 2.0;       // EMA calculation multiplier constant
+        internal const int MinHistoryForSwingDetection = 5; // Minimum bars needed for swing price detection
+        internal const int FiveMinuteBarsToAggregate = 5;  // Number of 1-minute bars to aggregate into 5-minute bars
+        internal const int FiveMinuteAggregationTrigger = 4; // Minute index (mod 5) that triggers 5-minute bar aggregation
+        
+        // Bar indexing constants for 5-minute aggregation (0=current, 1=previous, etc.)
+        internal const int CurrentBarIndex = 0;
+        internal const int PreviousBar1Index = 1;
+        internal const int PreviousBar2Index = 2;
+        internal const int PreviousBar3Index = 3;
+        internal const int PreviousBar4Index = 4;
     }
 
     public enum Instrument { ES, NQ }
@@ -413,12 +424,12 @@ namespace TopstepX.S6
 
                 // build 5m aggregate at minute 4/9/14...
                 int mod5 = bar.TimeET.Minute % 5;
-                if (mod5 == 4)
+                if (mod5 == IndicatorConstants.FiveMinuteAggregationTrigger)
                 {
                     // aggregate last 5 1m bars
-                    if (Min1.Count >= 5)
+                    if (Min1.Count >= IndicatorConstants.FiveMinuteBarsToAggregate)
                     {
-                        var b4 = Min1.Last(4); var b3 = Min1.Last(3); var b2 = Min1.Last(2); var b1 = Min1.Last(1); var b0 = Min1.Last(0);
+                        var b4 = Min1.Last(IndicatorConstants.PreviousBar4Index); var b3 = Min1.Last(IndicatorConstants.PreviousBar3Index); var b2 = Min1.Last(IndicatorConstants.PreviousBar2Index); var b1 = Min1.Last(IndicatorConstants.PreviousBar1Index); var b0 = Min1.Last(IndicatorConstants.CurrentBarIndex);
                         long o = b4.Open; long h = Math.Max(Math.Max(Math.Max(Math.Max(b4.High,b3.High),b2.High),b1.High),b0.High);
                         long l = Math.Min(Math.Min(Math.Min(Math.Min(b4.Low, b3.Low), b2.Low), b1.Low), b0.Low);
                         long c = b0.Close; double v = b4.Volume + b3.Volume + b2.Volume + b1.Volume + b0.Volume;
@@ -565,17 +576,17 @@ namespace TopstepX.S6
             {
                 double stop = longSide ? ComputeStopPx(true) : ComputeStopPx(false);
                 double target = ComputeTargetPx(longSide);
-                return longSide ? (target - fromPx) / Math.Max(1e-9, (fromPx - stop)) : (fromPx - target) / Math.Max(1e-9,(stop - fromPx));
+                return longSide ? (target - fromPx) / Math.Max(IndicatorConstants.TinyEpsilon, (fromPx - stop)) : (fromPx - target) / Math.Max(IndicatorConstants.TinyEpsilon,(stop - fromPx));
             }
             public double RealizedR(Side side, double avgPx)
             {
                 double stop = side==Side.Buy ? ComputeStopPx(true) : ComputeStopPx(false);
                 double last = ToPx(LastClose);
-                return side==Side.Buy ? (last - avgPx) / Math.Max(1e-9,(avgPx - stop)) : (avgPx - last) / Math.Max(1e-9,(stop - avgPx));
+                return side==Side.Buy ? (last - avgPx) / Math.Max(IndicatorConstants.TinyEpsilon,(avgPx - stop)) : (avgPx - last) / Math.Max(IndicatorConstants.TinyEpsilon,(stop - avgPx));
             }
             public double? RecentSwingPx(Side side)
             {
-                if (Min1.Count < 5) return null; long swing = side==Side.Buy ? long.MaxValue : long.MinValue; for (int i=0;i<5;i++)
+                if (Min1.Count < IndicatorConstants.MinHistoryForSwingDetection) return null; long swing = side==Side.Buy ? long.MaxValue : long.MinValue; for (int i=0;i<IndicatorConstants.MinHistoryForSwingDetection;i++)
                 { var b = Min1.Last(i); if (side==Side.Buy) { if (b.Low < swing) swing = b.Low; } else { if (b.High > swing) swing = b.High; } }
                 return ToPx(swing);
             }

@@ -15,6 +15,10 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class SuppressionLedgerService
     {
+        // Constants for analyzer suppression processing
+        private const int MaxLineNumberDrift = 2;           // Tolerance for line number changes in suppressions
+        private const int PragmaRuleIdIndex = 3;            // Index of rule ID in pragma warning disable statements
+        
         private readonly ILogger<SuppressionLedgerService> _logger;
         private readonly string _ledgerPath;
         private readonly List<SuppressionEntry> _suppressions = new();
@@ -343,7 +347,7 @@ namespace TradingBot.BotCore.Services
                 return _suppressions.Exists(s => 
                     s.RuleId == ruleId && 
                     s.FilePath.EndsWith(filePath.Replace("./", "")) &&
-                    Math.Abs(s.LineNumber - lineNumber) <= 2); // Allow some line number drift
+                    Math.Abs(s.LineNumber - lineNumber) <= MaxLineNumberDrift); // Allow some line number drift
             }
         }
 
@@ -351,7 +355,7 @@ namespace TradingBot.BotCore.Services
         {
             // Extract rule ID from "#pragma warning disable CA1234"
             var parts = pragmaLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length >= 4 ? parts[3] : "Unknown";
+            return parts.Length >= 4 ? parts[PragmaRuleIdIndex] : "Unknown";
         }
 
         private static string ExtractRuleFromSuppressMessage(string suppressLine)

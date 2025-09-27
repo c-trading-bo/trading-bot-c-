@@ -7,6 +7,8 @@ namespace BotCore
     /// <summary>Simple in-memory duplicate suppressor for identical ticks within a short window.</summary>
     public static class TradeDeduper
     {
+        private const int MaxCacheSize = 5000;  // Maximum entries before cleanup to prevent memory growth
+        
         private static readonly ConcurrentDictionary<string, DateTimeOffset> _seen = new();
         private static readonly TimeSpan Window = TimeSpan.FromSeconds(5);
 
@@ -20,7 +22,7 @@ namespace BotCore
 
             _seen[key] = now;
 
-            if (_seen.Count > 5000)
+            if (_seen.Count > MaxCacheSize)
             {
                 foreach (var kv in _seen)
                     if (now - kv.Value > Window) _seen.TryRemove(kv.Key, out _);

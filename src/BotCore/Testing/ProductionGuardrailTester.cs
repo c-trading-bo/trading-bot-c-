@@ -15,6 +15,9 @@ namespace BotCore.Testing;
 /// </summary>
 public class ProductionGuardrailTester
 {
+    // Testing constants
+    private const int KillSwitchDetectionDelayMs = 100;   // Time to wait for file watcher to detect kill.txt
+    
     private readonly ILogger<ProductionGuardrailTester> _logger;
     private readonly ProductionGuardrailOrchestrator _orchestrator;
     private readonly ProductionOrderEvidenceService _evidenceService;
@@ -124,7 +127,7 @@ public class ProductionGuardrailTester
             await File.WriteAllTextAsync("kill.txt", "Test kill switch").ConfigureAwait(false);
 
             // Give file watcher time to detect
-            await Task.Delay(100).ConfigureAwait(false);
+            await Task.Delay(KillSwitchDetectionDelayMs).ConfigureAwait(false);
 
             var killSwitchActive = ProductionKillSwitchService.IsKillSwitchActive();
             var isDryRun = ProductionKillSwitchService.IsDryRunMode();
