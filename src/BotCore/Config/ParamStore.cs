@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using BotCore.Models;
 
 namespace BotCore.Config;
 
@@ -10,10 +11,6 @@ public static class ParamStore
 {
     private const string EvtSave = "save";
     private const string EvtApply = "apply";
-    public sealed record S2Override(string SymbolRoot, DateTime ExpiresUtc, Dictionary<string, JsonElement> Extra);
-    public sealed record S3Override(string SymbolRoot, DateTime ExpiresUtc, string JsonConfig);
-    public sealed record S6Override(string SymbolRoot, DateTime ExpiresUtc, Dictionary<string, JsonElement> Extra);
-    public sealed record S11Override(string SymbolRoot, DateTime ExpiresUtc, Dictionary<string, JsonElement> Extra);
 
     private static string ParamsDir()
         => Path.Combine(AppContext.BaseDirectory, "state", "params");

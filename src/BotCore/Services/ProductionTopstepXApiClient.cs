@@ -14,6 +14,11 @@ namespace BotCore.Services
     /// </summary>
     public class ProductionTopstepXApiClient
     {
+        // HTTP Configuration Constants
+        private const int HttpTimeoutSeconds = 30;
+        private const int RetryBaseDelaySeconds = 1;
+        private const int RetryJitterMaxMilliseconds = 1000;
+        
         private readonly HttpClient _httpClient;
         private readonly ILogger<ProductionTopstepXApiClient> _logger;
         private readonly string _baseUrl = "https://api.topstepx.com";
@@ -25,7 +30,7 @@ namespace BotCore.Services
             
             // Configure HttpClient for production use
             _httpClient.BaseAddress = new Uri(_baseUrl);
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            _httpClient.Timeout = TimeSpan.FromSeconds(HttpTimeoutSeconds);
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "TradingBot-Production/1.0");
         }
 
@@ -125,7 +130,7 @@ namespace BotCore.Services
         private async Task<JsonElement> ExecuteWithRetryAsync(string endpoint, CancellationToken cancellationToken)
         {
             const int maxRetries = 3;
-            var baseDelay = TimeSpan.FromSeconds(1);
+            var baseDelay = TimeSpan.FromSeconds(RetryBaseDelaySeconds);
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
@@ -175,7 +180,7 @@ namespace BotCore.Services
                 if (attempt < maxRetries)
                 {
                     var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
+                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, RetryJitterMaxMilliseconds));
                     var totalDelay = delay + jitter;
 
                     _logger.LogInformation("[API-CLIENT] Retrying request to {Endpoint} in {DelayMs}ms",
@@ -197,7 +202,7 @@ namespace BotCore.Services
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
             const int maxRetries = 3;
-            var baseDelay = TimeSpan.FromSeconds(1);
+            var baseDelay = TimeSpan.FromSeconds(RetryBaseDelaySeconds);
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
@@ -225,9 +230,25 @@ namespace BotCore.Services
                     _logger.LogWarning("[API-CLIENT] POST request to {Endpoint} was cancelled", endpoint);
                     throw;
                 }
-                catch (Exception ex)
+                catch (HttpRequestException ex)
                 {
-                    _logger.LogError(ex, "[API-CLIENT] Error on POST request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                    _logger.LogError(ex, "[API-CLIENT] HTTP error on POST request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                        endpoint, attempt, maxRetries);
+                    
+                    if (attempt == maxRetries)
+                        throw new HttpRequestException($"POST request to {endpoint} failed after {maxRetries} attempts", ex);
+                }
+                catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "[API-CLIENT] POST request timeout to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
+                        endpoint, attempt, maxRetries);
+                    
+                    if (attempt == maxRetries)
+                        throw new TimeoutException($"POST request to {endpoint} timed out after {maxRetries} attempts", ex);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "[API-CLIENT] JSON deserialization error on POST to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
                         endpoint, attempt, maxRetries);
                     
                     if (attempt == maxRetries)
@@ -250,7 +271,7 @@ namespace BotCore.Services
         private async Task<JsonElement> ExecuteDeleteWithRetryAsync(string endpoint, CancellationToken cancellationToken)
         {
             const int maxRetries = 3;
-            var baseDelay = TimeSpan.FromSeconds(1);
+            var baseDelay = TimeSpan.FromSeconds(RetryBaseDelaySeconds);
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
@@ -272,9 +293,19 @@ namespace BotCore.Services
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (attempt < maxRetries)
+                catch (HttpRequestException ex) when (attempt < maxRetries)
                 {
-                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request to {Endpoint} failed, retrying...", endpoint);
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request HTTP error to {Endpoint}, retrying...", endpoint);
+                    await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException ex) when (attempt < maxRetries && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request timeout to {Endpoint}, retrying...", endpoint);
+                    await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (JsonException ex) when (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "[API-CLIENT] DELETE request JSON error to {Endpoint}, retrying...", endpoint);
                     await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
                 }
             }

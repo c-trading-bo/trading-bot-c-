@@ -18,6 +18,10 @@ public class ProductionGuardrailTester
     // Testing constants
     private const int KillSwitchDetectionDelayMs = 100;   // Time to wait for file watcher to detect kill.txt
     
+    // ES/MES tick rounding test constants
+    private const decimal EsTestPrice1Expected = 4125.00m; // Expected rounded price for ES tick test
+    private const decimal EsTestPrice2Expected = 4125.50m; // Expected rounded price for ES tick test
+    
     private readonly ILogger<ProductionGuardrailTester> _logger;
     private readonly ProductionGuardrailOrchestrator _orchestrator;
     private readonly ProductionOrderEvidenceService _evidenceService;
@@ -192,7 +196,7 @@ public class ProductionGuardrailTester
             var rounded1 = ProductionPriceService.RoundToTick(price1);
             var rounded2 = ProductionPriceService.RoundToTick(price2);
 
-            if (rounded1 == 4125.00m && rounded2 == 4125.50m)
+            if (rounded1 == EsTestPrice1Expected && rounded2 == EsTestPrice2Expected)
             {
                 _logger.LogInformation("✅ [TEST] ES/MES tick rounding test PASSED ({Price1} -> {Rounded1}, {Price2} -> {Rounded2})",
                     price1, rounded1, price2, rounded2);

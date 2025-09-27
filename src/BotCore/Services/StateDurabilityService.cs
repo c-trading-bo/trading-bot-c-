@@ -259,9 +259,17 @@ namespace TradingBot.BotCore.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (DirectoryNotFoundException ex)
             {
-                _logger.LogError(ex, "Error cleaning up old backups");
+                _logger.LogError(ex, "Backup directory not found during cleanup");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied while cleaning up old backups");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "File system error cleaning up old backups");
             }
         }
 
@@ -275,9 +283,13 @@ namespace TradingBot.BotCore.Services
                 await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 _logger.LogCritical("🚨 [STATE-DURABILITY] CRITICAL ALERT: Backup failure alert created at {AlertPath}", alertPath);
             }
-            catch (Exception alertEx)
+            catch (IOException alertEx)
             {
-                _logger.LogError(alertEx, "Failed to create backup failure alert");
+                _logger.LogError(alertEx, "Failed to write backup failure alert to disk");
+            }
+            catch (UnauthorizedAccessException alertEx)
+            {
+                _logger.LogError(alertEx, "Access denied creating backup failure alert");
             }
         }
     }

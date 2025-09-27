@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TopstepX.Bot.Abstractions;
+using BotCore.Models;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -33,64 +34,6 @@ namespace TopstepX.Bot.Core.Services
         
         public event EventHandler<PositionUpdateEventArgs>? PositionUpdated;
         public event EventHandler<RiskViolationEventArgs>? RiskViolationDetected;
-        
-        public class Position
-        {
-            public string Symbol { get; set; } = string.Empty;
-            public int NetQuantity { get; set; }
-            public decimal AveragePrice { get; set; }
-            public decimal UnrealizedPnL { get; set; }
-            public decimal RealizedPnL { get; set; }
-            public DateTime LastUpdate { get; set; }
-            private readonly List<Fill> _fills = new();
-            public IReadOnlyList<Fill> Fills => _fills;
-            
-            public void ReplaceFills(IEnumerable<Fill> fills)
-            {
-                _fills.Clear();
-                if (fills != null) _fills.AddRange(fills);
-            }
-            
-            public void AddFill(Fill fill)
-            {
-                if (fill != null) _fills.Add(fill);
-            }
-            public decimal MarketValue { get; set; }
-            public decimal DailyPnL { get; set; }
-        }
-        
-        public class PendingOrder
-        {
-            public string OrderId { get; set; } = string.Empty;
-            public string ClientOrderId { get; set; } = string.Empty;
-            public string Symbol { get; set; } = string.Empty;
-            public int Quantity { get; set; }
-            public decimal Price { get; set; }
-            public string Side { get; set; } = string.Empty;
-            public string Status { get; set; } = string.Empty;
-            public DateTime SubmittedTime { get; set; }
-            public string OrderType { get; set; } = string.Empty;
-        }
-        
-        public class Fill
-        {
-            public string FillId { get; set; } = string.Empty;
-            public string OrderId { get; set; } = string.Empty;
-            public DateTime Time { get; set; }
-            public decimal Price { get; set; }
-            public int Quantity { get; set; }
-            public decimal Commission { get; set; }
-        }
-        
-        public class RiskLimits
-        {
-            public decimal MaxDailyLoss { get; set; } = DEFAULT_MAX_DAILY_LOSS;
-            public decimal MaxPositionSize { get; set; } = DEFAULT_MAX_POSITION_SIZE;
-            public decimal MaxDrawdown { get; set; } = DEFAULT_MAX_DRAWDOWN;
-            public int MaxOrdersPerMinute { get; set; } = DEFAULT_MAX_ORDERS_PER_MINUTE;
-            public decimal AccountBalance { get; set; } = DEFAULT_ACCOUNT_BALANCE;
-            public decimal MaxRiskPerTrade { get; set; } = DEFAULT_MAX_RISK_PER_TRADE;
-        }
         
         public PositionTrackingSystem(ILogger<PositionTrackingSystem> logger, RiskLimits? riskLimits = null)
         {
@@ -388,6 +331,6 @@ namespace TopstepX.Bot.Core.Services
     
     public class PositionUpdateEventArgs : EventArgs
     {
-        public PositionTrackingSystem.Position Position { get; set; } = new();
+        public Position Position { get; set; } = new();
     }
 }

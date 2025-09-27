@@ -13,6 +13,11 @@ namespace BotCore.TestApp;
 /// </summary>
 public sealed class Program
 {
+    // Exit code constants
+    private const int ExitCodeSuccess = 0;
+    private const int ExitCodeFailure = 1; 
+    private const int ExitCodeError = 2;
+    
     static async Task<int> Main(string[] args)
     {
         Console.WriteLine("🛡️ Production Guardrail Test App");
@@ -38,19 +43,19 @@ public sealed class Program
             if (allPassed)
             {
                 logger.LogInformation("✅ All tests PASSED - Production guardrails are working correctly");
-                return 0;
+                return ExitCodeSuccess;
             }
             else
             {
                 logger.LogCritical("🔴 Some tests FAILED - Production guardrails need attention");
-                return 1;
+                return ExitCodeFailure;
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Test app failed: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            return 2;
+            return ExitCodeError;
         }
     }
 }

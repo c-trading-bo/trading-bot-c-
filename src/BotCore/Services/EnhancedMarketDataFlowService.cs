@@ -60,6 +60,7 @@ namespace BotCore.Services
             HttpClient httpClient)
         {
             _logger = logger;
+            ArgumentNullException.ThrowIfNull(config);
             _config = config.Value;
             _httpClient = httpClient;
 
@@ -232,6 +233,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task RequestSnapshotDataAsync(IEnumerable<string> symbols)
         {
+            ArgumentNullException.ThrowIfNull(symbols);
+            
             try
             {
                 if (!_config.EnableSnapshotRequests)

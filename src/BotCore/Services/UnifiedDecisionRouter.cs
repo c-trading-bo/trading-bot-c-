@@ -575,7 +575,7 @@ public class UnifiedDecisionRouter
         return bars;
     }
     
-    private RiskEngine CreateRiskEngine()
+    private static RiskEngine CreateRiskEngine()
     {
         var riskEngine = new RiskEngine();
         riskEngine.cfg.risk_per_trade = 100m;
@@ -584,7 +584,7 @@ public class UnifiedDecisionRouter
         return riskEngine;
     }
     
-    private TradingBot.Abstractions.MarketContext EnhanceMarketContext(TradingBot.Abstractions.MarketContext context)
+    private static TradingBot.Abstractions.MarketContext EnhanceMarketContext(TradingBot.Abstractions.MarketContext context)
     {
         // Enhance the context with additional properties if not already set
         if (context.Bid == 0 && context.Ask == 0)
@@ -704,7 +704,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private string GenerateDecisionId()
+    private static string GenerateDecisionId()
     {
         return $"UD{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Random.Shared.Next(1000, 9999)}";
     }

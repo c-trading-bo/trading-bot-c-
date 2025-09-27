@@ -54,6 +54,7 @@ namespace BotCore.Services
             IHistoricalBarConsumer? barConsumer = null)
         {
             _logger = logger;
+            ArgumentNullException.ThrowIfNull(config);
             _config = config.Value;
             _httpClient = httpClient;
             _barConsumer = barConsumer;
@@ -64,6 +65,8 @@ namespace BotCore.Services
         /// </summary>
         public async Task<bool> SeedTradingSystemAsync(string[] contractIds)
         {
+            ArgumentNullException.ThrowIfNull(contractIds);
+            
             if (!_config.EnableHistoricalSeeding)
             {
                 _logger.LogInformation("[HISTORICAL-BRIDGE] Historical seeding disabled");

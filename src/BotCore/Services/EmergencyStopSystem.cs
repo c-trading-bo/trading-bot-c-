@@ -18,6 +18,9 @@ namespace TopstepX.Bot.Core.Services
         private readonly ILogger<EmergencyStopSystem> _logger;
         private readonly string _killFilePath;
         private readonly CancellationTokenSource _emergencyStopSource;
+        
+        // Emergency stop monitoring constants
+        private const int MonitoringIntervalMs = 1000; // Kill file monitoring interval
         private FileSystemWatcher? _fileWatcher;
         private volatile bool _isEmergencyStop;
         
@@ -48,7 +51,7 @@ namespace TopstepX.Bot.Core.Services
                 // Keep monitoring until cancellation
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
+                    await Task.Delay(MonitoringIntervalMs, stoppingToken).ConfigureAwait(false);
                     
                     // Periodic check in case file watcher fails
                     if (!_isEmergencyStop)
@@ -212,7 +215,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 
                 // Wait a moment
-                await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(MonitoringIntervalMs).ConfigureAwait(false);
                 
                 // Reset state
                 _isEmergencyStop = false;

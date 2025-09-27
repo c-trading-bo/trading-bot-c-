@@ -10,6 +10,13 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     public class MLConfigurationService : IMLConfigurationService
     {
+        // ML Configuration Constants
+        private const double DefaultMinimumConfidence = 0.1;
+        private const double MaxConfidenceAdjustment = 1.5; 
+        private const double MinVolatilityAdjustment = 0.5;
+        private const double BaseAdjustmentValue = 1.0;
+        private const double MinRiskAdjustment = 0.3;
+        
         private readonly TradingConfiguration _config;
 
         /// <summary>
@@ -19,8 +26,7 @@ namespace TradingBot.BotCore.Services
 
         public MLConfigurationService(IOptions<TradingConfiguration> config)
         {
-            if (config == null)
-                throw new ArgumentNullException(nameof(config));
+            ArgumentNullException.ThrowIfNull(config);
 
             _config = config.Value;
         }
@@ -33,7 +39,7 @@ namespace TradingBot.BotCore.Services
         /// <summary>
         /// Get minimum confidence for model fallback - replaces hardcoded 0.1
         /// </summary>
-        public double GetMinimumConfidence() => _config.MinimumConfidence ?? 0.1;
+        public double GetMinimumConfidence() => _config.MinimumConfidence ?? DefaultMinimumConfidence;
 
         /// <summary>
         /// Get position size multiplier - replaces hardcoded 2.5
@@ -63,13 +69,13 @@ namespace TradingBot.BotCore.Services
             var baseSize = _config.DefaultPositionSizeMultiplier;
             
             // Adjust based on confidence (higher confidence = larger position, but capped)
-            var confidenceAdjustment = Math.Min(confidence / _config.AIConfidenceThreshold, 1.5);
+            var confidenceAdjustment = Math.Min(confidence / _config.AIConfidenceThreshold, MaxConfidenceAdjustment);
             
             // Adjust based on volatility (higher volatility = smaller position)
-            var volatilityAdjustment = Math.Max(0.5, 1.0 - volatility);
+            var volatilityAdjustment = Math.Max(MinVolatilityAdjustment, BaseAdjustmentValue - volatility);
             
             // Adjust based on risk level
-            var riskAdjustment = Math.Max(0.3, 1.0 - riskLevel);
+            var riskAdjustment = Math.Max(MinRiskAdjustment, BaseAdjustmentValue - riskLevel);
             
             return baseSize * confidenceAdjustment * volatilityAdjustment * riskAdjustment;
         }

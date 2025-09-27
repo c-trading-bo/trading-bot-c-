@@ -35,7 +35,142 @@ This ledger documents all fixes made during the analyzer compliance initiative. 
 5. **Async/Resource safety**: CA1854, CA1869
 6. **Style/micro-perf**: CA1822, S2325, CA1707
 
-#### Round 1 - Phase 2 S109 Magic Numbers: Strategic Configuration Constants (Current Session)
+#### Round 23 - Phase 2 CA1031 & S109 Exception Handling + Trading Strategy Constants (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1031 | 2+ | 0 | ProductionTopstepXApiClient.cs | Replaced generic Exception catches with specific HttpRequestException, TaskCanceledException, JsonException |
+| S109 | 2820+ | 2810+ | ConfigurationSchemaService.cs, S2Upg.cs | Named constants for ML configuration defaults and trading strategy parameters |
+
+**Example Pattern - CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "[API-CLIENT] Error on POST request to {Endpoint}");
+    if (attempt == maxRetries) throw;
+}
+
+// After (Compliant)
+catch (HttpRequestException ex)
+{
+    _logger.LogError(ex, "[API-CLIENT] HTTP error on POST request to {Endpoint}");
+    if (attempt == maxRetries)
+        throw new HttpRequestException($"POST request to {endpoint} failed after {maxRetries} attempts", ex);
+}
+catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+{
+    _logger.LogError(ex, "[API-CLIENT] POST request timeout to {Endpoint}");
+    if (attempt == maxRetries)
+        throw new TimeoutException($"POST request to {endpoint} timed out after {maxRetries} attempts", ex);
+}
+```
+
+**Example Pattern - S109 Trading Strategy Constants**:
+```csharp
+// Before (Violation)
+if (absSlope > 0.25m) adj += 0.3m;       
+if (volz > 1.5m) adj += 0.2m;       
+if (mins >= 680 && mins <= 720) adj -= 0.1m;
+
+// After (Compliant)
+private const decimal StrongTrendThreshold = 0.25m;
+private const decimal StrongTrendAdjustment = 0.3m;
+private const decimal HighVolatilityThreshold = 1.5m;
+private const int LateMoningStartMinutes = 680; // 11:20 AM
+
+if (absSlope > StrongTrendThreshold) adj += StrongTrendAdjustment;
+if (volz > HighVolatilityThreshold) adj += HighVolatilityAdjustment;
+if (mins >= LateMoningStartMinutes && mins <= LateMoningEndMinutes) adj -= LateMoningRelaxation;
+```
+
+#### Round 22 - Phase 2 S109 & CA1510 ML/API Configuration Fixes (Previous Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| S109 | 2830+ | 2820+ | MLConfigurationService.cs, ProductionTopstepXApiClient.cs, Program.cs | Named constants for ML configuration defaults, HTTP timeouts, retry parameters, and exit codes |
+| CA1510 | 1 | 0 | MLConfigurationService.cs | Replaced manual ArgumentNullException with ArgumentNullException.ThrowIfNull |
+
+**Example Pattern - S109 ML Configuration Constants**:
+```csharp
+// Before (Violation)
+public double GetMinimumConfidence() => _config.MinimumConfidence ?? 0.1;
+var confidenceAdjustment = Math.Min(confidence / threshold, 1.5);
+var volatilityAdjustment = Math.Max(0.5, 1.0 - volatility);
+
+// After (Compliant)
+private const double DefaultMinimumConfidence = 0.1;
+private const double MaxConfidenceAdjustment = 1.5;
+private const double MinVolatilityAdjustment = 0.5;
+
+public double GetMinimumConfidence() => _config.MinimumConfidence ?? DefaultMinimumConfidence;
+var confidenceAdjustment = Math.Min(confidence / threshold, MaxConfidenceAdjustment);
+var volatilityAdjustment = Math.Max(MinVolatilityAdjustment, BaseAdjustmentValue - volatility);
+```
+
+**Example Pattern - S109 HTTP Client Constants**:
+```csharp
+// Before (Violation)
+_httpClient.Timeout = TimeSpan.FromSeconds(30);
+var baseDelay = TimeSpan.FromSeconds(1);
+var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
+
+// After (Compliant)
+private const int HttpTimeoutSeconds = 30;
+private const int RetryBaseDelaySeconds = 1;
+private const int RetryJitterMaxMilliseconds = 1000;
+
+_httpClient.Timeout = TimeSpan.FromSeconds(HttpTimeoutSeconds);
+var baseDelay = TimeSpan.FromSeconds(RetryBaseDelaySeconds);
+var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, RetryJitterMaxMilliseconds));
+```
+
+#### Round 21 - Phase 2 CA1034 & S109 Systematic Fixes (Previous Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------|
+| CA1034 | 8+ | 3+ | OrderFillConfirmationSystem.cs, PositionTrackingSystem.cs | Extracted nested types to separate BotCore.Models classes |
+| S109 | 2900+ | 2830 | S11_MaxPerf_FullStack.cs | Created S11Constants class for trading strategy mathematical constants |
+
+**Example Pattern - CA1034 Nested Type Extraction**:
+```csharp
+// Before (Violation)
+public class OrderFillConfirmationSystem
+{
+    public class OrderTrackingRecord
+    {
+        public string ClientOrderId { get; set; } = string.Empty;
+        // ... more properties
+    }
+}
+
+// After (Compliant)
+// BotCore/Models/OrderTrackingRecord.cs
+namespace BotCore.Models
+{
+    public class OrderTrackingRecord
+    {
+        public string ClientOrderId { get; set; } = string.Empty;
+        // ... more properties  
+    }
+}
+```
+
+**Example Pattern - S109 Strategy Constants**:
+```csharp
+// Before (Violation)
+if (mod5 == 4 && Min1.Count >= 5)
+if (_tr <= 1e-12) return Value;
+
+// After (Compliant)
+internal static class S11Constants
+{
+    internal const int FiveMinuteModCheck = 4;
+    internal const int FiveMinuteBars = 5;
+    internal const double SmallEpsilon = 1E-12;
+}
+if (mod5 == S11Constants.FiveMinuteModCheck && Min1.Count >= S11Constants.FiveMinuteBars)
+if (_tr <= S11Constants.SmallEpsilon) return Value;
+```
+
+#### Round 1 - Phase 2 S109 Magic Numbers: Strategic Configuration Constants (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | S109 | 3092 | 3016 | CustomTagGenerator.cs, TradingSystemIntegrationService.cs, ParameterBundle.cs | Named constants for format validation, trading schedules, and parameter ranges |
@@ -831,7 +966,55 @@ var integrity = new ModelIntegrity {
 integrity.ReplaceMetadata(metadata);
 ```
 
-#### Round 19 - Phase 1 Final CS Errors & Phase 2 Priority Violations (Current Session)
+#### Round 20 - Phase 2 Systematic Priority Fixes (Current Session)
+| Rule | Before | After | Files Affected | Pattern Applied |
+|------|--------|-------|----------------|-----------------| 
+| S109 | 2940 | 2864 | BracketConfigService.cs, EmergencyStopSystem.cs | Named constants for trading bracket parameters and monitoring intervals |
+| CA1062 | 36 | 32 | HistoricalDataBridgeService.cs, EnhancedMarketDataFlowService.cs | ArgumentNullException.ThrowIfNull for public API parameters |
+| CA1031 | 938 | 936 | StateDurabilityService.cs | Specific exception handling (IOException, UnauthorizedAccessException) for file operations |
+| CA1854 | 206 | 204 | ErrorHandlingMonitoringSystem.cs | TryGetValue pattern for dictionary lookups |
+| CA1860 | 208 | 206 | TradingFeedbackService.cs | Count > 0 instead of Any() for performance |
+
+**Example Pattern - Phase 2 S109 Trading Constants**:
+```csharp
+// Before (Violation)
+public double GetMinRewardRiskRatio() => 
+    _config.GetValue("Bracket:MinRewardRiskRatio", 1.2);
+await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
+
+// After (Compliant)
+private const double MinRewardRiskRatioValue = 1.2;
+private const int MonitoringIntervalMs = 1000;
+
+public double GetMinRewardRiskRatio() => 
+    _config.GetValue("Bracket:MinRewardRiskRatio", MinRewardRiskRatioValue);
+await Task.Delay(MonitoringIntervalMs, stoppingToken).ConfigureAwait(false);
+```
+
+**Example Pattern - Phase 2 CA1031 Specific Exception Handling**:
+```csharp
+// Before (Violation)
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Error cleaning up old backups");
+}
+
+// After (Compliant)
+catch (IOException ex)
+{
+    _logger.LogError(ex, "File system error cleaning up old backups");
+}
+catch (UnauthorizedAccessException ex)
+{
+    _logger.LogError(ex, "Access denied while cleaning up old backups");
+}
+catch (DirectoryNotFoundException ex)
+{
+    _logger.LogError(ex, "Backup directory not found during cleanup");
+}
+```
+
+#### Round 19 - Phase 1 Final CS Errors & Phase 2 Priority Violations (Previous Session)
 | Rule | Before | After | Files Affected | Pattern Applied |
 |------|--------|-------|----------------|-----------------|
 | CS0103 | 4 | 0 | S6_MaxPerf_FullStack.cs | Fixed missing constant scoping - created IndicatorConstants class for shared mathematical constants |

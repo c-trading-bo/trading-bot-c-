@@ -8,6 +8,16 @@ namespace BotCore.Strategy
     // Minimal helpers to enhance S2 without overlapping existing upgrades
     internal static class S2Upg
     {
+        // S2 Strategy Trading Constants
+        private const decimal MinimumTickLevel = 0.25m;
+        private const decimal StrongTrendAdjustment = 0.3m;
+        private const decimal HighVolatilityAdjustment = 0.2m;
+        private const decimal Nasdaq100Adjustment = 0.2m;
+        private const decimal LateMoningRelaxation = 0.1m;
+        private const decimal HighVolatilityThreshold = 1.5m;
+        private const decimal StrongTrendThreshold = 0.25m;
+        private const int LateMoningStartMinutes = 680; // 11:20 AM
+        private const int LateMoningEndMinutes = 720;   // 12:00 PM
         // Volume imbalance of up vs down bars over lookback window
         public static decimal UpDownImbalance(IList<Bar> bars, int look = 10)
         {
@@ -52,7 +62,7 @@ namespace BotCore.Strategy
         {
             var (pHi, pLo) = PriorDayHiLo(bars, nowLocal);
             if (pHi == 0m && pLo == 0m) return true; // no data → allow
-            var req = Math.Max(thresh.minAtrFrac * Math.Max(tick, atr), thresh.minTicks * Math.Max(tick, 0.25m));
+            var req = Math.Max(thresh.minAtrFrac * Math.Max(tick, atr), thresh.minTicks * Math.Max(tick, MinimumTickLevel));
             if (longSide) return (price - pLo) >= req;
             else return (pHi - price) >= req;
         }
@@ -83,11 +93,11 @@ namespace BotCore.Strategy
         {
             decimal adj = 0;
             var absSlope = Math.Abs(slope5);
-            if (absSlope > 0.25m) adj += 0.3m;       // strong trend on 1m EMA20 slope proxy
-            if (volz > 1.5m) adj += 0.2m;       // high-vol regime
-            if (sym.Contains("NQ", StringComparison.OrdinalIgnoreCase)) adj += 0.2m; // NQ spikier
+            if (absSlope > StrongTrendThreshold) adj += StrongTrendAdjustment;       // strong trend on 1m EMA20 slope proxy
+            if (volz > HighVolatilityThreshold) adj += HighVolatilityAdjustment;       // high-vol regime
+            if (sym.Contains("NQ", StringComparison.OrdinalIgnoreCase)) adj += Nasdaq100Adjustment; // NQ spikier
             var mins = nowLocal.Hour * 60 + nowLocal.Minute;
-            if (mins >= 680 && mins <= 720) adj -= 0.1m; // ~11:20–12:00 slight relax
+            if (mins >= LateMoningStartMinutes && mins <= LateMoningEndMinutes) adj -= LateMoningRelaxation; // ~11:20–12:00 slight relax
             return Math.Max(baseSigma, baseSigma + adj);
         }
 

@@ -316,7 +316,7 @@ public class TradingFeedbackService : BackgroundService
             .Select(g => g.Key)
             .ToList();
         
-        if (underperformingStrategies.Any())
+        if (underperformingStrategies.Count > 0)
         {
             _logger.LogWarning("🔄 [FEEDBACK] Triggering retraining for underperforming strategies: {Strategies}", 
                 string.Join(", ", underperformingStrategies));
@@ -330,7 +330,7 @@ public class TradingFeedbackService : BackgroundService
         
         // Phase 6A: Exception Guards - Add .Any() check before .Average()
         var validStats = ensembleStats.Values.Where(s => s.PredictionCount >= 10).ToList();
-        var overallAccuracy = validStats.Any() ? validStats.Average(s => s.AccuracyScore) : 0.0;
+        var overallAccuracy = validStats.Count > 0 ? validStats.Average(s => s.AccuracyScore) : 0.0;
         
         if (overallAccuracy < _performanceThreshold && ensembleStats.Count >= 3)
         {

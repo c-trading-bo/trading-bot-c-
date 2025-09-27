@@ -21,6 +21,21 @@ using BotCore.Models;
 
 namespace TopstepX.S11
 {
+    /// <summary>
+    /// Strategy constants for S11 MaxPerf FullStack
+    /// </summary>
+    internal static class S11Constants
+    {
+        internal const double MathEpsilon = 1E-09; // Mathematical epsilon for comparisons
+        internal const double SmallEpsilon = 1E-12; // Small epsilon for precise calculations
+        internal const int FiveMinuteModCheck = 4; // Check for 5-minute bar completion
+        internal const int FiveMinuteBars = 5; // Number of 1-minute bars in a 5-minute bar
+        internal const int FifteenMinuteModCheck = 14; // Check for 15-minute bar completion  
+        internal const int FifteenMinuteBars = 15; // Number of 1-minute bars in a 15-minute bar
+        internal const double AdrExhaustionThreshold = 6.5; // ADR exhaustion threshold
+        internal const int BarLookbackLimit = 5; // Limit for bar lookback operations
+    }
+
     public enum Instrument { ES, NQ }
     public enum Side { Buy, Sell, Flat }
     public enum Mode { Idle, Fade }
@@ -186,7 +201,7 @@ namespace TopstepX.S11
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
             if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
-            if (_tr <= 1e-12) return Value;
+            if (_tr <= S11Constants.SmallEpsilon) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
             double dx = 100.0 * Math.Abs(diP - diN) / Math.Max(1e-9, diP + diN);
             Value = Value <= 0 ? dx : (Value - (Value / _n) + dx);
@@ -213,7 +228,7 @@ namespace TopstepX.S11
             double rs = _avgGain / _avgLoss;
             return 100 - (100 / (1 + rs));
         }
-        public double Value => _seeded ? (100 - (100 / (1 + (_avgGain / Math.Max(_avgLoss, 1e-12))))) : 50;
+        public double Value => _seeded ? (100 - (100 / (1 + (_avgGain / Math.Max(_avgLoss, S11Constants.SmallEpsilon))))) : 50;
     }
 
     public sealed class RvolBaseline
@@ -415,7 +430,7 @@ namespace TopstepX.S11
 
                 // build 5m bars
                 int mod5 = bar.TimeET.Minute % 5;
-                if (mod5 == 4 && Min1.Count >= 5)
+                if (mod5 == S11Constants.FiveMinuteModCheck && Min1.Count >= S11Constants.FiveMinuteBars)
                 {
                     var b4 = Min1.Last(4); var b3 = Min1.Last(3); var b2 = Min1.Last(2); var b1 = Min1.Last(1); var b0 = Min1.Last(0);
                     long o = b4.Open; long h = Math.Max(Math.Max(Math.Max(Math.Max(b4.High,b3.High),b2.High),b1.High),b0.High);
@@ -426,10 +441,10 @@ namespace TopstepX.S11
 
                 // build 15m bars
                 int mod15 = bar.TimeET.Minute % 15;
-                if (mod15 == 14 && Min1.Count >= 15)
+                if (mod15 == S11Constants.FifteenMinuteModCheck && Min1.Count >= S11Constants.FifteenMinuteBars)
                 {
                     long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15 = 0;
-                    for (int i = 0; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
+                    for (int i = 0; i < S11Constants.FifteenMinuteBars; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
                     Min15.Add(new Bar1M(bar.TimeET, o15, h15, l15, c15, v15));
                 }
 
@@ -461,7 +476,7 @@ namespace TopstepX.S11
                 }
             }
 
-            private int RthMinuteIndex(DateTimeOffset et) { var start = et.Date + C.IBStart; if (et < start || et >= start.AddHours(6.5)) return -1; return (int)(et - start).TotalMinutes; }
+            private int RthMinuteIndex(DateTimeOffset et) { var start = et.Date + C.IBStart; if (et < start || et >= start.AddHours(S11Constants.AdrExhaustionThreshold)) return -1; return (int)(et - start).TotalMinutes; }
             private double ComputeRVOL(int minuteIdx, double vol)
             {
                 double baseVol = rvolBase.GetBaseline(minuteIdx);
@@ -537,14 +552,14 @@ namespace TopstepX.S11
             {
                 double stop = side==Side.Buy ? ComputeStopBeyondExtreme(true) : ComputeStopBeyondExtreme(false);
                 double last = ToPx(LastClose);
-                return side==Side.Buy ? (last - avgPx) / Math.Max(1e-9,(avgPx - stop)) : (avgPx - last) / Math.Max(1e-9,(stop - avgPx));
+                return side==Side.Buy ? (last - avgPx) / Math.Max(S11Constants.MathEpsilon,(avgPx - stop)) : (avgPx - last) / Math.Max(S11Constants.MathEpsilon,(stop - avgPx));
             }
 
             public double? RecentExtremePx(Side side)
             {
-                if (Min1.Count < 5) return null; 
+                if (Min1.Count < S11Constants.BarLookbackLimit) return null; 
                 long extreme = side==Side.Buy ? long.MaxValue : long.MinValue; 
-                for (int i=0;i<5;i++)
+                for (int i=0;i<S11Constants.BarLookbackLimit;i++)
                 { 
                     var b = Min1.Last(i); 
                     if (side==Side.Buy) { if (b.Low < extreme) extreme = b.Low; } 
