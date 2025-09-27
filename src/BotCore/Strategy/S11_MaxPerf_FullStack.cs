@@ -251,28 +251,28 @@ namespace TopstepX.S11
         public TimeSpan IBEnd { get; set; } = TimeSpan.Parse("10:30", CultureInfo.InvariantCulture);
 
         // risk
-        public int    BaseQty = 1;
-        public double MultiplierAfternoon = 0.8; // conservative sizing
-        public int    MaxSpreadTicks = 2;
-        public int    StopTicksMin = 8;
-        public double StopAtrMult = 1.2;
-        public double TargetAdrFrac = 0.12;
-        public int    MaxHoldMinutes = 90;
+        public int BaseQty { get; set; } = 1;
+        public double MultiplierAfternoon { get; set; } = 0.8; // conservative sizing
+        public int MaxSpreadTicks { get; set; } = 2;
+        public int StopTicksMin { get; set; } = 8;
+        public double StopAtrMult { get; set; } = 1.2;
+        public double TargetAdrFrac { get; set; } = 0.12;
+        public int MaxHoldMinutes { get; set; } = 90;
 
         // filters
-        public double MaxADX = 20.0;     // range-bound only
-        public double MinRVOL = 1.5;
-        public double MinRSI = 25.0;     // oversold/overbought thresholds
-        public double MaxRSI = 75.0;
-        public double MinDomImbalance = 0.25;
+        public double MaxADX { get; set; } = 20.0;     // range-bound only
+        public double MinRVOL { get; set; } = 1.5;
+        public double MinRSI { get; set; } = 25.0;     // oversold/overbought thresholds
+        public double MaxRSI { get; set; } = 75.0;
+        public double MinDomImbalance { get; set; } = 0.25;
 
         // exhaustion detection
-        public double ExhaustionVolMult = 2.0;   // volume spike
-        public int    ExhaustionBars = 3;        // look back bars
-        public double RejectionWickRatio = 0.6;  // wick vs body ratio
+        public double ExhaustionVolMult { get; set; } = 2.0;   // volume spike
+        public int ExhaustionBars { get; set; } = 3;        // look back bars
+        public double RejectionWickRatio { get; set; } = 0.6;  // wick vs body ratio
 
         // ADR tracking
-        public int AdrLookbackDays = 20;
+        public int AdrLookbackDays { get; set; } = 20;
         public double AdrExhaustionThreshold = 0.75; // 75% of ADR used
 
         // news avoidance

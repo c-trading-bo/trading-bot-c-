@@ -23,7 +23,7 @@ public class MLMemoryManager : IMLMemoryManager
     private const int MAX_MODEL_VERSIONS = 3;
     private bool _disposed;
 
-    public class ModelVersion
+    internal class ModelVersion
     {
         public string ModelId { get; set; } = string.Empty;
         public string Version { get; set; } = string.Empty;
