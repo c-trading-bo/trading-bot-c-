@@ -23,6 +23,11 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     internal static class TradingBotTuningRunner
     {
+        // Trading analysis constants - configuration-driven values for backtesting and strategy tuning
+        private const int MinimumRequiredBars = 120; // Minimum bars needed for reliable strategy analysis
+        private const decimal BaseSigmaAdjustment = 0.3m; // Sigma variance adjustment for parameter grid generation
+        private const decimal MinimumSigmaMultiplier = 1.0m; // Minimum sigma multiplier for risk calculations
+        private const decimal MaximumSigmaMultiplier = 3.0m; // Maximum sigma multiplier for risk calculations
 
         /// <summary>
         /// Parameter configuration record - immutable and configuration-driven
@@ -109,7 +114,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:S2] Insufficient market data: {BarCount} bars", marketBars.Count);
                     return;
@@ -162,7 +167,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:S3] Insufficient market data: {BarCount} bars", marketBars.Count);
                     return;
@@ -213,7 +218,7 @@ namespace TradingBot.BotCore.Services
                 var marketBars = await FetchMarketDataAsync(httpClient, getJwtToken, contractId, startDate, endDate, cancellationToken)
                     .ConfigureAwait(false);
                 
-                if (marketBars.Count < 120)
+                if (marketBars.Count < MinimumRequiredBars)
                 {
                     logger.LogWarning("[TuningRunner:{Strategy}] Insufficient market data: {BarCount} bars", strategyId, marketBars.Count);
                     return;
@@ -329,9 +334,9 @@ namespace TradingBot.BotCore.Services
             var baseSigma = (decimal)(1.5 + confidenceThreshold);
             return new[]
             {
-                Math.Max(1.0m, baseSigma - 0.3m),
+                Math.Max(MinimumSigmaMultiplier, baseSigma - BaseSigmaAdjustment),
                 baseSigma,
-                Math.Min(3.0m, baseSigma + 0.3m)
+                Math.Min(MaximumSigmaMultiplier, baseSigma + BaseSigmaAdjustment)
             };
         }
 
