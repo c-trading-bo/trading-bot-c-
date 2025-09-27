@@ -5,7 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
-using OrchestratorAgent.Execution;
+using TradingBot.BotCore.Services;
 
 namespace UnifiedOrchestrator.Services
 {
@@ -130,28 +130,28 @@ namespace UnifiedOrchestrator.Services
             {
                 // Run S2 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S2 strategy backtesting...");
-                await TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+                await TradingBotTuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
                 await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S3 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S3 strategy backtesting...");
-                await TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+                await TradingBotTuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
                 await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S6 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S6 strategy backtesting...");
-                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+                await TradingBotTuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
                 await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S11 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S11 strategy backtesting...");
-                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+                await TradingBotTuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("✅ [BACKTEST_LEARNING] Backtesting session completed successfully - All 4 ML strategies tested");
 

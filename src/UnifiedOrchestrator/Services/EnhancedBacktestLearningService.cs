@@ -10,7 +10,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OrchestratorAgent.Execution;
+using TradingBot.BotCore.Services;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.Abstractions;
@@ -196,22 +196,22 @@ internal class EnhancedBacktestLearningService : BackgroundService
         {
             // Run S2 strategy (VWAP Mean Reversion) on ES
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S2 (VWAP Mean Reversion) strategy backtesting on ES...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await TradingBotTuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
             await Task.Delay(2000, cancellationToken).ConfigureAwait(false); // Brief pause between strategies
 
             // Run S3 strategy (Bollinger Compression) on NQ  
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S3 (Bollinger Compression) strategy backtesting on NQ...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await TradingBotTuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
             await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
             // Run S6 strategy (Momentum) on ES
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S6 (Momentum) strategy backtesting on ES...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS6Async(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await TradingBotTuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
             await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
             // Run S11 strategy (Exhaustion/Specialized) on NQ
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S11 (Exhaustion/Specialized) strategy backtesting on NQ...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS11Async(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await TradingBotTuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("✅ [STRATEGY-EXECUTION] ALL 4 ML strategies executed successfully - S2, S3, S6, S11 now have real trade data and learning");
         }

@@ -30,7 +30,6 @@
     <ProjectReference Include="../../src/BotCore/BotCore.csproj">
       <Aliases>BotCoreTest</Aliases>
     </ProjectReference>
-    <ProjectReference Include="../../src/OrchestratorAgent/OrchestratorAgent.csproj" />
     <ProjectReference Include="../../src/Abstractions/Abstractions.csproj" />
   </ItemGroup>
 

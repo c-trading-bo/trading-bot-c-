@@ -142,7 +142,7 @@ internal static class Program
             await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
             // Initialize ML parameter provider for OrchestratorAgent classes
-            OrchestratorAgent.Configuration.MLParameterProvider.Initialize(host.Services);
+            TradingBot.BotCore.Services.TradingBotParameterProvider.Initialize(host.Services);
             
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
@@ -372,10 +372,11 @@ Stack Trace:
         services.AddSingleton<SafeHoldDecisionPolicy>();
         
         // Register Per-Symbol Session Lattices with neutral band integration
-        services.AddSingleton<OrchestratorAgent.Execution.PerSymbolSessionLattices>(provider =>
+        services.AddSingleton<TradingBot.BotCore.Services.TradingBotSymbolSessionManager>(provider =>
         {
             var neutralBandService = provider.GetService<SafeHoldDecisionPolicy>();
-            return new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+            var logger = provider.GetRequiredService<ILogger<TradingBot.BotCore.Services.TradingBotSymbolSessionManager>>();
+            return new TradingBot.BotCore.Services.TradingBotSymbolSessionManager(neutralBandService, logger);
         });
         
         // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
