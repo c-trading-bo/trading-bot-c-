@@ -101,9 +101,20 @@ namespace TopstepX.S6
     public readonly struct DepthLadder : IEquatable<DepthLadder>
     // L1-L3 snapshot
     {
-        public readonly DateTimeOffset TimeET;
-        public readonly long Bid1, Ask1, Bid2, Ask2, Bid3, Ask3; // ticks
-        public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
+        public DateTimeOffset TimeET { get; }
+        public long Bid1 { get; }
+        public long Ask1 { get; }
+        public long Bid2 { get; }
+        public long Ask2 { get; }
+        public long Bid3 { get; }
+        public long Ask3 { get; } // ticks
+        public int BidSz1 { get; }
+        public int AskSz1 { get; }
+        public int BidSz2 { get; }
+        public int AskSz2 { get; }
+        public int BidSz3 { get; }
+        public int AskSz3 { get; }
+        
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
         

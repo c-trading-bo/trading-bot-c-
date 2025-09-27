@@ -34,6 +34,10 @@ namespace TopstepX.S11
         internal const int FifteenMinuteBars = 15; // Number of 1-minute bars in a 15-minute bar
         internal const double AdrExhaustionThreshold = 6.5; // ADR exhaustion threshold
         internal const int BarLookbackLimit = 5; // Limit for bar lookback operations
+        
+        // RSI Calculation Constants
+        internal const double RsiNeutralValue = 50.0; // RSI neutral/default value
+        internal const double RsiMaxValue = 100.0; // RSI maximum value
     }
 
     public enum Instrument { ES, NQ }
@@ -217,18 +221,18 @@ namespace TopstepX.S11
         public Rsi(int n) { _n = n; }
         public double Update(double close)
         {
-            if (!_seeded) { _lastClose = close; _seeded = true; return 50; }
+            if (!_seeded) { _lastClose = close; _seeded = true; return S11Constants.RsiNeutralValue; }
             double change = close - _lastClose;
             double gain = change > 0 ? change : 0;
             double loss = change < 0 ? -change : 0;
             if (_avgGain == 0 && _avgLoss == 0) { _avgGain = gain; _avgLoss = loss; }
             else { _avgGain = (_avgGain * (_n - 1) + gain) / _n; _avgLoss = (_avgLoss * (_n - 1) + loss) / _n; }
             _lastClose = close;
-            if (_avgLoss == 0) return 100;
+            if (_avgLoss == 0) return S11Constants.RsiMaxValue;
             double rs = _avgGain / _avgLoss;
-            return 100 - (100 / (1 + rs));
+            return S11Constants.RsiMaxValue - (S11Constants.RsiMaxValue / (1 + rs));
         }
-        public double Value => _seeded ? (100 - (100 / (1 + (_avgGain / Math.Max(_avgLoss, S11Constants.SmallEpsilon))))) : 50;
+        public double Value => _seeded ? (S11Constants.RsiMaxValue - (S11Constants.RsiMaxValue / (1 + (_avgGain / Math.Max(_avgLoss, S11Constants.SmallEpsilon))))) : S11Constants.RsiNeutralValue;
     }
 
     public sealed class RvolBaseline
@@ -273,10 +277,10 @@ namespace TopstepX.S11
 
         // ADR tracking
         public int AdrLookbackDays { get; set; } = 20;
-        public double AdrExhaustionThreshold = 0.75; // 75% of ADR used
+        public double AdrExhaustionThreshold { get; set; } = 0.75; // 75% of ADR used
 
         // news avoidance
-        public bool EnableNewsGate;
+        public bool EnableNewsGate { get; set; }
     }
 
     // --- STRATEGY ---
