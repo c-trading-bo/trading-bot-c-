@@ -282,7 +282,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Analyze market conditions for forced decision making
     /// </summary>
-    private MarketAnalysis AnalyzeMarketConditions(TradingBot.Abstractions.MarketContext context)
+    private static MarketAnalysis AnalyzeMarketConditions(TradingBot.Abstractions.MarketContext context)
     {
         var analysis = new MarketAnalysis();
         
@@ -479,7 +479,7 @@ public class UnifiedDecisionRouter
     
     #region Conversion Methods
     
-    private Dictionary<string, object> ConvertToEnhancedContext(TradingBot.Abstractions.MarketContext context)
+    private static Dictionary<string, object> ConvertToEnhancedContext(TradingBot.Abstractions.MarketContext context)
     {
         return new Dictionary<string, object>
         {
