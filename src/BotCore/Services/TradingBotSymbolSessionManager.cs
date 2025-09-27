@@ -119,16 +119,52 @@ namespace TradingBot.BotCore.Services
             // Apply neutral band adjustment if service available
             if (_neutralBandService != null)
             {
-                var adjustment = _neutralBandService.GetThresholdAdjustment(symbol, sessionType.ToString(), thresholdType);
+                // Get a simple adjustment based on symbol and session characteristics
+                var adjustment = GetSymbolSessionAdjustment(symbol, sessionType, thresholdType);
                 var adjustedThreshold = baseThreshold * (1 + adjustment);
                 
-                _logger.LogDebug("Applied neutral band adjustment for {Symbol}-{Session} {Type}: {Base:F4} -> {Adjusted:F4}", 
+                _logger.LogDebug("Applied threshold adjustment for {Symbol}-{Session} {Type}: {Base:F4} -> {Adjusted:F4}", 
                     symbol, sessionType, thresholdType, baseThreshold, adjustedThreshold);
                 
                 return adjustedThreshold;
             }
 
             return baseThreshold;
+        }
+
+        /// <summary>
+        /// Get symbol and session-specific threshold adjustment
+        /// </summary>
+        private static decimal GetSymbolSessionAdjustment(string symbol, MarketSession sessionType, string thresholdType)
+        {
+            // Calculate adjustment based on symbol volatility and session characteristics
+            var symbolAdjustment = symbol switch
+            {
+                "ES" => 0.0m,      // Baseline
+                "NQ" => 0.05m,     // Higher volatility, increase thresholds
+                "YM" => -0.03m,    // Lower volatility, decrease thresholds  
+                "RTY" => 0.08m,    // Highest volatility, increase thresholds
+                _ => 0.0m
+            };
+
+            var sessionAdjustment = sessionType switch
+            {
+                MarketSession.RegularHours => 0.0m,        // Standard
+                MarketSession.PostMarket => 0.10m,         // After hours - more conservative
+                MarketSession.PreMarket => 0.05m,          // Pre-market - slightly more conservative
+                MarketSession.Closed => 0.0m,
+                _ => 0.0m
+            };
+
+            var typeAdjustment = thresholdType switch
+            {
+                "confidence" => 0.0m,     // No type-specific adjustment
+                "risk" => 0.02m,          // Slightly more conservative for risk
+                "volatility" => -0.01m,   // Slightly less conservative for volatility
+                _ => 0.0m
+            };
+
+            return symbolAdjustment + sessionAdjustment + typeAdjustment;
         }
 
         /// <summary>
