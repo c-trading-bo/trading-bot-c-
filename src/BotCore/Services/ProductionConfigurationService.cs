@@ -22,6 +22,8 @@ public class ProductionConfigurationService : IValidateOptions<ProductionTrading
 
     public ValidateOptionsResult Validate(string? name, ProductionTradingConfig options)
     {
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        
         var errors = new List<string>();
 
         // Validate GitHub configuration

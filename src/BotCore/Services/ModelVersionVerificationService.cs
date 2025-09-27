@@ -40,6 +40,7 @@ namespace BotCore.Services
             IOptions<ModelVersioningConfiguration> config)
         {
             _logger = logger;
+            if (config is null) throw new ArgumentNullException(nameof(config));
             _config = config.Value;
             _versionRegistryPath = Path.Combine(_config.ModelRegistry.BaseDirectory, "version_registry.json");
             

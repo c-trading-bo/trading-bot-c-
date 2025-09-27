@@ -65,6 +65,8 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public Task AnalyzeStrategyPerformanceAsync(string strategy, AnalyzerTradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
     {
+        if (trades is null) throw new ArgumentNullException(nameof(trades));
+        
         lock (_analysisLock)
         {
             if (!_strategyAnalysis.ContainsKey(strategy))

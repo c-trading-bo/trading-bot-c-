@@ -98,6 +98,10 @@ public class AutonomousDecisionEngine : BackgroundService
     private const decimal MinRiskPerTrade = 0.005m; // 0.5%
     private const decimal MaxRiskPerTrade = 0.015m; // 1.5%
     private const decimal DailyProfitTarget = 300m; // Target $300 daily profit
+    private const decimal PercentageConversionFactor = 100m; // Convert decimal to percentage
+    private const decimal DefaultConfidenceThreshold = 0.5m; // Default confidence threshold for trading decisions
+    private const decimal HighConfidenceThreshold = 0.6m;    // High confidence threshold for aggressive trades
+    private const decimal MediumConfidenceThreshold = 0.4m; // Medium confidence threshold for balanced trades
     
     public AutonomousDecisionEngine(
         ILogger<AutonomousDecisionEngine> logger,
@@ -130,7 +134,7 @@ public class AutonomousDecisionEngine : BackgroundService
         
         _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Initialized - Profit-maximizing autonomous trading engine ready");
         _logger.LogInformation("💰 [AUTONOMOUS-ENGINE] Target: ${DailyTarget}/day, Risk: {MinRisk}%-{MaxRisk}%, Account: ${Balance}",
-            DailyProfitTarget, MinRiskPerTrade * 100, MaxRiskPerTrade * 100, _currentAccountBalance);
+            DailyProfitTarget, MinRiskPerTrade * PercentageConversionFactor, MaxRiskPerTrade * PercentageConversionFactor, _currentAccountBalance);
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -332,7 +336,7 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         if (!_strategyMetrics.ContainsKey(strategy))
         {
-            return 0.5m; // Default score for unknown strategies
+            return DefaultConfidenceThreshold; // Default score for unknown strategies
         }
         
         var metrics = _strategyMetrics[strategy];
@@ -355,7 +359,7 @@ public class AutonomousDecisionEngine : BackgroundService
     
     private decimal CalculateRecentPerformanceScore(AutonomousStrategyMetrics metrics)
     {
-        if (metrics.RecentTrades.Count == 0) return 0.5m;
+        if (metrics.RecentTrades.Count == 0) return DefaultConfidenceThreshold;
         
         var recentWinRate = metrics.RecentTrades.Count(t => t.PnL > 0) / (decimal)metrics.RecentTrades.Count;
         var recentAvgPnL = metrics.RecentTrades.Average(t => t.PnL);
@@ -364,7 +368,7 @@ public class AutonomousDecisionEngine : BackgroundService
         var winRateScore = recentWinRate;
         var pnlScore = Math.Max(0, Math.Min(1, (recentAvgPnL + 100) / 200m)); // Normalize around ±$100
         
-        return (winRateScore * 0.6m) + (pnlScore * 0.4m);
+        return (winRateScore * HighConfidenceThreshold) + (pnlScore * MediumConfidenceThreshold);
     }
     
     private decimal CalculateMarketFitScore(string strategy)
