@@ -259,17 +259,17 @@ namespace TradingBot.BotCore.Services
                     }
                 }
             }
-            catch (IOException ex)
+            catch (DirectoryNotFoundException ex)
             {
-                _logger.LogError(ex, "File system error cleaning up old backups");
+                _logger.LogError(ex, "Backup directory not found during cleanup");
             }
             catch (UnauthorizedAccessException ex)
             {
                 _logger.LogError(ex, "Access denied while cleaning up old backups");
             }
-            catch (DirectoryNotFoundException ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Backup directory not found during cleanup");
+                _logger.LogError(ex, "File system error cleaning up old backups");
             }
         }
 
