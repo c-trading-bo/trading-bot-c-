@@ -12,6 +12,62 @@ using System.Globalization;
 namespace TopstepX.Bot.Core.Services
 {
     /// <summary>
+    /// Severity level for error classification
+    /// </summary>
+    public enum ErrorSeverity
+    {
+        None = 0,        // CA1008 compliance - zero value
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
+    }
+    
+    /// <summary>
+    /// Health status enumeration for component monitoring
+    /// </summary>
+    public enum HealthStatus
+    {
+        None = 0,        // CA1008 compliance - zero value
+        Healthy = 1,
+        Warning = 2,
+        Critical = 3,
+        Unknown = 4
+    }
+
+    /// <summary>
+    /// Error record data structure for tracking system errors
+    /// </summary>
+    public class ErrorRecord
+    {
+        public string ErrorId { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string Component { get; set; } = string.Empty;
+        public string ErrorType { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string? StackTrace { get; set; }
+        public ErrorSeverity Severity { get; set; }
+        public int OccurrenceCount { get; set; } = 1;
+        public bool IsResolved { get; set; }
+        public string? Resolution { get; set; }
+    }
+    
+    /// <summary>
+    /// Component health tracking data structure
+    /// </summary>
+    public class ComponentHealth
+    {
+        public string ComponentName { get; set; } = string.Empty;
+        public HealthStatus Status { get; set; } = HealthStatus.Unknown;
+        public DateTime LastCheck { get; set; }
+        public string? LastError { get; set; }
+        public int ErrorCount { get; set; }
+        public double SuccessRate { get; set; } = 100.0;
+        public long ResponseTimeMs { get; set; }
+        public Dictionary<string, object> Metrics { get; } = new();
+    }
+
+    /// <summary>
     /// Comprehensive Error Handling and Monitoring System
     /// Tracks system health, errors, and performance metrics
     /// </summary>
@@ -28,48 +84,6 @@ namespace TopstepX.Bot.Core.Services
         
         public event EventHandler<CriticalErrorEventArgs>? CriticalErrorDetected;
         public event EventHandler<HealthStatusEventArgs>? HealthStatusChanged;
-        
-        public class ErrorRecord
-        {
-            public string ErrorId { get; set; } = string.Empty;
-            public DateTime Timestamp { get; set; }
-            public string Component { get; set; } = string.Empty;
-            public string ErrorType { get; set; } = string.Empty;
-            public string Message { get; set; } = string.Empty;
-            public string? StackTrace { get; set; }
-            public ErrorSeverity Severity { get; set; }
-            public int OccurrenceCount { get; set; } = 1;
-            public bool IsResolved { get; set; }
-            public string? Resolution { get; set; }
-        }
-        
-        public class ComponentHealth
-        {
-            public string ComponentName { get; set; } = string.Empty;
-            public HealthStatus Status { get; set; } = HealthStatus.Unknown;
-            public DateTime LastCheck { get; set; }
-            public string? LastError { get; set; }
-            public int ErrorCount { get; set; }
-            public double SuccessRate { get; set; } = 100.0;
-            public long ResponseTimeMs { get; set; }
-            public Dictionary<string, object> Metrics { get; } = new();
-        }
-        
-        public enum ErrorSeverity
-        {
-            Low = 1,
-            Medium = 2,
-            High = 3,
-            Critical = 4
-        }
-        
-        public enum HealthStatus
-        {
-            Healthy = 1,
-            Warning = 2,
-            Critical = 3,
-            Unknown = 4
-        }
         
         public ErrorHandlingMonitoringSystem(ILogger<ErrorHandlingMonitoringSystem> logger)
         {

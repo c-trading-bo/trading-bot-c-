@@ -33,6 +33,16 @@ namespace BotCore.Services;
 /// </summary>
 public class MasterDecisionOrchestrator : BackgroundService
 {
+    // Trading reward calculation constants
+    private const decimal MaxTimeRewardMagnitude = 0.1m;    // Maximum time-based reward/penalty
+    private const double HoursInDay = 24.0;                 // Hours in a day for time calculations
+    private const decimal MaxRewardBound = 1m;              // Maximum reward value boundary
+    private const decimal MinRewardBound = -1m;             // Minimum reward value boundary
+    
+    // Decision ID generation constants  
+    private const int DecisionIdRandomMin = 1000;           // Minimum random number for decision IDs
+    private const int DecisionIdRandomMax = 9999;           // Maximum random number for decision IDs
+    
     private readonly ILogger<MasterDecisionOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
     
@@ -236,6 +246,9 @@ public class MasterDecisionOrchestrator : BackgroundService
         MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(symbol);
+        ArgumentNullException.ThrowIfNull(marketContext);
+        
         var startTime = DateTime.UtcNow;
         var decisionId = GenerateDecisionId();
         
@@ -325,6 +338,10 @@ public class MasterDecisionOrchestrator : BackgroundService
         Dictionary<string, object> metadata,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(decisionId);
+        ArgumentNullException.ThrowIfNull(decisionSource);
+        ArgumentNullException.ThrowIfNull(metadata);
+        
         try
         {
             _logger.LogInformation("📈 [MASTER-FEEDBACK] Recording outcome: {DecisionId} PnL={PnL:C2} Correct={Correct}",
@@ -667,12 +684,13 @@ public class MasterDecisionOrchestrator : BackgroundService
             // Reward shorter holding periods for profitable trades
             if (realizedPnL > 0)
             {
-                timeReward = Math.Max(-0.1m, Math.Min(0.1m, (decimal)(1.0 - holdTime.TotalHours / 24.0) * 0.1m));
+                timeReward = Math.Max(-MaxTimeRewardMagnitude, Math.Min(MaxTimeRewardMagnitude, 
+                    (decimal)(1.0 - holdTime.TotalHours / HoursInDay) * MaxTimeRewardMagnitude));
             }
         }
         
         var totalReward = pnlReward + accuracyReward + timeReward;
-        return Math.Max(-1m, Math.Min(1m, totalReward)); // Clamp to [-1, 1] range
+        return Math.Max(MinRewardBound, Math.Min(MaxRewardBound, totalReward)); // Clamp to [-1, 1] range
     }
     
     /// <summary>
@@ -901,7 +919,7 @@ public class MasterDecisionOrchestrator : BackgroundService
     
     private string GenerateDecisionId()
     {
-        return $"MD{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Random.Shared.Next(1000, 9999)}";
+        return $"MD{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Random.Shared.Next(DecisionIdRandomMin, DecisionIdRandomMax)}";
     }
     
     #endregion

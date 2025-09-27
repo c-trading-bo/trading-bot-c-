@@ -15,6 +15,9 @@ namespace BotCore.Testing;
 /// </summary>
 public class ProductionGuardrailTester
 {
+    // Testing constants
+    private const int KillSwitchDetectionDelayMs = 100;   // Time to wait for file watcher to detect kill.txt
+    
     private readonly ILogger<ProductionGuardrailTester> _logger;
     private readonly ProductionGuardrailOrchestrator _orchestrator;
     private readonly ProductionOrderEvidenceService _evidenceService;
@@ -124,7 +127,7 @@ public class ProductionGuardrailTester
             await File.WriteAllTextAsync("kill.txt", "Test kill switch").ConfigureAwait(false);
 
             // Give file watcher time to detect
-            await Task.Delay(100).ConfigureAwait(false);
+            await Task.Delay(KillSwitchDetectionDelayMs).ConfigureAwait(false);
 
             var killSwitchActive = ProductionKillSwitchService.IsKillSwitchActive();
             var isDryRun = ProductionKillSwitchService.IsDryRunMode();
@@ -165,7 +168,14 @@ public class ProductionGuardrailTester
                     File.Delete("kill.txt");
                 }
             }
-            catch { /* Ignore cleanup errors */ }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete kill.txt during cleanup - file may be locked");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Access denied when deleting kill.txt during cleanup");
+            }
         }
     }
 
@@ -195,9 +205,19 @@ public class ProductionGuardrailTester
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "❌ [TEST] Price validation test FAILED with exception");
+            _logger.LogError(ex, "❌ [TEST] Price validation test FAILED with invalid argument");
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Price validation test FAILED with invalid operation");
+            return false;
+        }
+        catch (ArithmeticException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Price validation test FAILED with arithmetic error");
             return false;
         }
     }
@@ -230,9 +250,19 @@ public class ProductionGuardrailTester
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "❌ [TEST] Risk validation test FAILED with exception");
+            _logger.LogError(ex, "❌ [TEST] Risk validation test FAILED with invalid argument");
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Risk validation test FAILED with invalid operation");
+            return false;
+        }
+        catch (ArithmeticException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Risk validation test FAILED with arithmetic error");
             return false;
         }
     }
@@ -271,9 +301,19 @@ public class ProductionGuardrailTester
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "❌ [TEST] Order evidence test FAILED with exception");
+            _logger.LogError(ex, "❌ [TEST] Order evidence test FAILED with invalid operation");
+            return false;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Order evidence test FAILED with invalid argument");
+            return false;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "❌ [TEST] Order evidence test FAILED with timeout");
             return false;
         }
     }

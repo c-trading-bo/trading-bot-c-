@@ -267,22 +267,22 @@ namespace TopstepX.Bot.Core.Services
             }
             catch (InvalidOperationException ex)
             {
-                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorSeverity.Critical).ConfigureAwait(false);
                 _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service invalid operation");
             }
             catch (TimeoutException ex)
             {
-                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorSeverity.Critical).ConfigureAwait(false);
                 _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service timeout");
             }
             catch (HttpRequestException ex)
             {
-                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorSeverity.Critical).ConfigureAwait(false);
                 _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service HTTP error");
             }
             catch (UnauthorizedAccessException ex)
             {
-                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorSeverity.Critical).ConfigureAwait(false);
                 _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service access denied");
             }
             finally
@@ -421,7 +421,7 @@ namespace TopstepX.Bot.Core.Services
                 // Submit real order to TopstepX API - FIXED: Use ProjectX API specification
                 var orderPayload = new
                 {
-                    accountId = long.Parse(request.AccountId),
+                    accountId = long.Parse(request.AccountId, CultureInfo.InvariantCulture),
                     contractId = request.Symbol,               // ProjectX uses contractId, not symbol  
                     type = GetOrderTypeValue(request.OrderType), // ProjectX: 1=Limit, 2=Market, 4=Stop
                     side = GetSideValue(request.Side),         // ProjectX: 0=Bid(buy), 1=Ask(sell)
@@ -1437,15 +1437,15 @@ namespace TopstepX.Bot.Core.Services
             _logger.LogInformation("🔧 Initializing trading system components...");
             
             // Initialize existing components
-            _errorMonitoring.UpdateComponentHealth("ErrorMonitoring", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
+            _errorMonitoring.UpdateComponentHealth("ErrorMonitoring", HealthStatus.Healthy);
             _emergencyStop.EmergencyStopTriggered += OnEmergencyStopTriggered;
-            _errorMonitoring.UpdateComponentHealth("EmergencyStop", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
+            _errorMonitoring.UpdateComponentHealth("EmergencyStop", HealthStatus.Healthy);
             
             // Initialize order confirmation system
             _orderConfirmation = _serviceProvider.GetService<OrderFillConfirmationSystem>();
             if (_orderConfirmation != null)
             {
-                _errorMonitoring.UpdateComponentHealth("OrderConfirmation", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
+                _errorMonitoring.UpdateComponentHealth("OrderConfirmation", HealthStatus.Healthy);
             }
             
             // Initialize contracts for trading ES and NQ based on conditions

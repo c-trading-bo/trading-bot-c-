@@ -267,7 +267,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
     }
 
-    private List<EconomicEvent> GetKnownScheduledEvents()
+    private static List<EconomicEvent> GetKnownScheduledEvents()
     {
         var now = DateTime.UtcNow;
         var events = new List<EconomicEvent>();

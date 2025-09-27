@@ -18,12 +18,31 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Channels;
 using BotCore.Models;
 
 namespace TopstepX.S6
 {
+    // Mathematical constants for indicator calculations
+    internal static class IndicatorConstants
+    {
+        internal const double SmallEpsilon = 1E-12;      // Small epsilon for numerical comparisons
+        internal const double TinyEpsilon = 1E-09;       // Tiny epsilon for division safety
+        internal const double EmaMultiplier = 2.0;       // EMA calculation multiplier constant
+        internal const int MinHistoryForSwingDetection = 5; // Minimum bars needed for swing price detection
+        internal const int FiveMinuteBarsToAggregate = 5;  // Number of 1-minute bars to aggregate into 5-minute bars
+        internal const int FiveMinuteAggregationTrigger = 4; // Minute index (mod 5) that triggers 5-minute bar aggregation
+        
+        // Bar indexing constants for 5-minute aggregation (0=current, 1=previous, etc.)
+        internal const int CurrentBarIndex = 0;
+        internal const int PreviousBar1Index = 1;
+        internal const int PreviousBar2Index = 2;
+        internal const int PreviousBar3Index = 3;
+        internal const int PreviousBar4Index = 4;
+    }
+
     public enum Instrument { ES, NQ }
     public enum Side { Buy, Sell, Flat }
     public enum Mode { Idle, Drive, Reversal }
@@ -170,14 +189,14 @@ namespace TopstepX.S6
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
             if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; _ = Value; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
-            if (_tr <= SmallEpsilon) return Value;
+            if (_tr <= IndicatorConstants.SmallEpsilon) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
             double dx = 100.0 * Math.Abs(diP - diN) / Math.Max(1e-9, diP + diN);
             Value = Value <= 0 ? dx : (Value - (Value / _n) + dx);
             return Value;
         }
     }
-    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
+    public sealed class Ema { private readonly double _k; private bool _seed; public double Value; public Ema(int n){ _k=IndicatorConstants.EmaMultiplier/(n+1);} public double Update(double v){ if(!_seed){ Value=v; _seed=true; } else Value = v*_k + Value*(1-_k); return Value; } }
 
     public sealed class RvolBaseline
     {
@@ -193,9 +212,9 @@ namespace TopstepX.S6
     public sealed class S6Config
     {
         // window (ET)
-        public TimeSpan WindowStart = TimeSpan.Parse("09:28");
-        public TimeSpan RTHOpen     = TimeSpan.Parse("09:30");
-        public TimeSpan WindowEnd   = TimeSpan.Parse("10:00");
+        public TimeSpan WindowStart = TimeSpan.Parse("09:28", CultureInfo.InvariantCulture);
+        public TimeSpan RTHOpen     = TimeSpan.Parse("09:30", CultureInfo.InvariantCulture);
+        public TimeSpan WindowEnd   = TimeSpan.Parse("10:00", CultureInfo.InvariantCulture);
 
         // risk
         public int    BaseQty = 1;
@@ -234,12 +253,10 @@ namespace TopstepX.S6
         private const double TrailingStopRThreshold = 0.8;
         private const double RthSessionHours = 6.5;              // Regular trading hours session length in hours
         private const int MinuteDataArrayLength = 4;            // Length for minute index array calculations  
-        private const double SmallEpsilon = 1E-12;              // Small epsilon for numerical comparisons
         private const double TinyEpsilon = 1E-09;               // Tiny epsilon for numerical precision
         private const double MinimumPriceThreshold = 0.01;      // Minimum price threshold for calculations
         private const int MovingAverageWindow = 8;              // Moving average window size
         private const int ExtendedMovingAverageWindow = 21;     // Extended moving average window size
-        private const double EmaMultiplier = 2.0;               // EMA calculation multiplier constant
         
         private readonly IOrderRouter _router; private readonly S6Config _cfg;
         private readonly State _es; private readonly State _nq;
@@ -408,12 +425,12 @@ namespace TopstepX.S6
 
                 // build 5m aggregate at minute 4/9/14...
                 int mod5 = bar.TimeET.Minute % 5;
-                if (mod5 == 4)
+                if (mod5 == IndicatorConstants.FiveMinuteAggregationTrigger)
                 {
                     // aggregate last 5 1m bars
-                    if (Min1.Count >= 5)
+                    if (Min1.Count >= IndicatorConstants.FiveMinuteBarsToAggregate)
                     {
-                        var b4 = Min1.Last(4); var b3 = Min1.Last(3); var b2 = Min1.Last(2); var b1 = Min1.Last(1); var b0 = Min1.Last(0);
+                        var b4 = Min1.Last(IndicatorConstants.PreviousBar4Index); var b3 = Min1.Last(IndicatorConstants.PreviousBar3Index); var b2 = Min1.Last(IndicatorConstants.PreviousBar2Index); var b1 = Min1.Last(IndicatorConstants.PreviousBar1Index); var b0 = Min1.Last(IndicatorConstants.CurrentBarIndex);
                         long o = b4.Open; long h = Math.Max(Math.Max(Math.Max(Math.Max(b4.High,b3.High),b2.High),b1.High),b0.High);
                         long l = Math.Min(Math.Min(Math.Min(Math.Min(b4.Low, b3.Low), b2.Low), b1.Low), b0.Low);
                         long c = b0.Close; double v = b4.Volume + b3.Volume + b2.Volume + b1.Volume + b0.Volume;
@@ -560,17 +577,17 @@ namespace TopstepX.S6
             {
                 double stop = longSide ? ComputeStopPx(true) : ComputeStopPx(false);
                 double target = ComputeTargetPx(longSide);
-                return longSide ? (target - fromPx) / Math.Max(1e-9, (fromPx - stop)) : (fromPx - target) / Math.Max(1e-9,(stop - fromPx));
+                return longSide ? (target - fromPx) / Math.Max(IndicatorConstants.TinyEpsilon, (fromPx - stop)) : (fromPx - target) / Math.Max(IndicatorConstants.TinyEpsilon,(stop - fromPx));
             }
             public double RealizedR(Side side, double avgPx)
             {
                 double stop = side==Side.Buy ? ComputeStopPx(true) : ComputeStopPx(false);
                 double last = ToPx(LastClose);
-                return side==Side.Buy ? (last - avgPx) / Math.Max(1e-9,(avgPx - stop)) : (avgPx - last) / Math.Max(1e-9,(stop - avgPx));
+                return side==Side.Buy ? (last - avgPx) / Math.Max(IndicatorConstants.TinyEpsilon,(avgPx - stop)) : (avgPx - last) / Math.Max(IndicatorConstants.TinyEpsilon,(stop - avgPx));
             }
             public double? RecentSwingPx(Side side)
             {
-                if (Min1.Count < 5) return null; long swing = side==Side.Buy ? long.MaxValue : long.MinValue; for (int i=0;i<5;i++)
+                if (Min1.Count < IndicatorConstants.MinHistoryForSwingDetection) return null; long swing = side==Side.Buy ? long.MaxValue : long.MinValue; for (int i=0;i<IndicatorConstants.MinHistoryForSwingDetection;i++)
                 { var b = Min1.Last(i); if (side==Side.Buy) { if (b.Low < swing) swing = b.Low; } else { if (b.High > swing) swing = b.High; } }
                 return ToPx(swing);
             }

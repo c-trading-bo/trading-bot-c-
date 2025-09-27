@@ -43,15 +43,25 @@ namespace TopstepX.S11
     // --- DATA TYPES ---
     public readonly struct Bar1M : IEquatable<Bar1M>
     {
-        public readonly DateTimeOffset TimeET; // ET time
-        public readonly long Open, High, Low, Close; // ticks
-        public readonly double Volume;
+        public DateTimeOffset TimeET { get; } // ET time
+        public long Open { get; }
+        public long High { get; }
+        public long Low { get; }
+        public long Close { get; } // ticks
+        public double Volume { get; }
+        
         public Bar1M(DateTimeOffset tEt, long o, long h, long l, long c, double v)
         { TimeET = tEt; Open = o; High = h; Low = l; Close = c; Volume = v; }
 
         public override bool Equals(object? obj)
         {
             return obj is Bar1M other && Equals(other);
+        }
+
+        public bool Equals(Bar1M other)
+        {
+            return TimeET == other.TimeET && Open == other.Open && High == other.High && 
+                   Low == other.Low && Close == other.Close && Volume.Equals(other.Volume);
         }
 
         public override int GetHashCode()
@@ -68,19 +78,24 @@ namespace TopstepX.S11
         {
             return !(left == right);
         }
-
-        public bool Equals(Bar1M other)
-        {
-            return TimeET == other.TimeET && Open == other.Open && High == other.High && 
-                   Low == other.Low && Close == other.Close && Volume.Equals(other.Volume);
-        }
     }
 
     public readonly struct DepthLadder : IEquatable<DepthLadder>
     {
-        public readonly DateTimeOffset TimeET;
-        public readonly long Bid1, Ask1, Bid2, Ask2, Bid3, Ask3; // ticks
-        public readonly int BidSz1, AskSz1, BidSz2, AskSz2, BidSz3, AskSz3;
+        public DateTimeOffset TimeET { get; }
+        public long Bid1 { get; }
+        public long Ask1 { get; }
+        public long Bid2 { get; }
+        public long Ask2 { get; }
+        public long Bid3 { get; }
+        public long Ask3 { get; } // ticks
+        public int BidSz1 { get; }
+        public int AskSz1 { get; }
+        public int BidSz2 { get; }
+        public int AskSz2 { get; }
+        public int BidSz3 { get; }
+        public int AskSz3 { get; }
+        
         public DepthLadder(DateTimeOffset t, long b1, long a1, int bs1, int as1, long b2, long a2, int bs2, int as2, long b3, long a3, int bs3, int as3)
         { TimeET=t; Bid1=b1; Ask1=a1; Bid2=b2; Ask2=a2; Bid3=b3; Ask3=a3; BidSz1=bs1; AskSz1=as1; BidSz2=bs2; AskSz2=as2; BidSz3=bs3; AskSz3=as3; }
         

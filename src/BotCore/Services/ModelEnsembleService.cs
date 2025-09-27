@@ -234,6 +234,9 @@ public class ModelEnsembleService
     /// </summary>
     public async Task LoadModelAsync(string modelName, string modelPath, ModelSource source, double weight = 1.0, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(modelName);
+        ArgumentNullException.ThrowIfNull(modelPath);
+        
         try
         {
             _logger.LogInformation("🔀 [ENSEMBLE] Loading model: {ModelName} from {Source}", modelName, source);
