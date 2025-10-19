@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -403,8 +404,13 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     internal class SeedFileFormat
     {
+        [JsonPropertyName("symbol")]
         public string Symbol { get; set; } = string.Empty;
+        
+        [JsonPropertyName("bar_count")]
         public int BarCount { get; set; }
+        
+        [JsonPropertyName("bars")]
         public List<BarDto> Bars { get; set; } = new();
     }
 
@@ -413,11 +419,22 @@ namespace TradingBot.BotCore.Services
     /// </summary>
     internal class BarDto
     {
+        [JsonPropertyName("timestamp")]
         public string Timestamp { get; set; } = string.Empty;
+        
+        [JsonPropertyName("open")]
         public decimal Open { get; set; }
+        
+        [JsonPropertyName("high")]
         public decimal High { get; set; }
+        
+        [JsonPropertyName("low")]
         public decimal Low { get; set; }
+        
+        [JsonPropertyName("close")]
         public decimal Close { get; set; }
+        
+        [JsonPropertyName("volume")]
         public long Volume { get; set; }
     }
 }
