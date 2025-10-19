@@ -99,6 +99,38 @@ cmd_run() {
     dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 }
 
+cmd_run_interactive() {
+    log_info "Running UnifiedOrchestrator in INTERACTIVE TESTING MODE..."
+    log_info "This mode lets you debug bot logic step-by-step with real data"
+    log_info "All trades are DRY_RUN - no live execution"
+    echo ""
+    dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj -- --interactive
+}
+
+cmd_test_function() {
+    log_info "Testing specific bot function or strategy..."
+    
+    if [ -z "$2" ]; then
+        log_info "Available test functions:"
+        echo "  1. risk-calc    - Test risk calculation logic"
+        echo "  2. tick-round   - Test ES/MES price rounding (0.25 tick)"
+        echo "  3. order-proof  - Test order evidence validation"
+        echo "  4. strategy     - Test specific strategy (S2, S3, S6, S11)"
+        echo "  5. market-data  - Test market data parsing"
+        echo ""
+        echo "Usage: $0 test-function <function-name> [args]"
+        echo "Example: $0 test-function risk-calc"
+        echo "Example: $0 test-function strategy S6"
+        return 1
+    fi
+    
+    local function_name="$2"
+    local function_args="${@:3}"
+    
+    log_info "Testing function: $function_name $function_args"
+    dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj -- --test-function "$function_name" $function_args
+}
+
 cmd_run_smoke() {
     log_info "Running UnifiedOrchestrator smoke test (replaces SimpleBot)..."
     dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj -- --smoke
@@ -374,6 +406,8 @@ cmd_help() {
     echo "  backtest      - Run backtest with local sample data (no live API)"
     echo "  riskcheck     - Validate risk constants against committed snapshots"
     echo "  run           - Run main application (UnifiedOrchestrator)"
+    echo "  run-interactive - Run in INTERACTIVE mode for step-by-step debugging"
+    echo "  test-function <name> - Test specific function (risk-calc, tick-round, order-proof, strategy, market-data)"
     echo "  run-smoke     - Run UnifiedOrchestrator smoke test (replaces SimpleBot/MinimalDemo)"
     echo "  run-historical-smoke - Run historical feed smoke test (TradingSystemBarConsumer/HistoricalDataBridgeService)"
     echo "  clean         - Clean build artifacts"
@@ -381,6 +415,11 @@ cmd_help() {
     echo "  verify-guardrails - Verify all production guardrails are properly implemented"
     echo "  full          - Run full cycle: setup -> build -> test"
     echo "  help          - Show this help"
+    echo ""
+    echo "Interactive Testing:"
+    echo "  $0 run-interactive              - Debug bot logic step-by-step with real data"
+    echo "  $0 test-function risk-calc      - Test risk calculation"
+    echo "  $0 test-function strategy S6    - Test S6 strategy"
     echo ""
     echo "Quick start for new agents:"
     echo "  $0 setup && $0 build"
@@ -416,6 +455,12 @@ case "${1:-help}" in
         ;;
     "run")
         cmd_run
+        ;;
+    "run-interactive")
+        cmd_run_interactive
+        ;;
+    "test-function")
+        cmd_test_function "$@"
         ;;
     "run-smoke")
         cmd_run_smoke

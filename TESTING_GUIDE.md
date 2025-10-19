@@ -1,5 +1,25 @@
 # Testing & Validation Guide for WSL Fix
 
+## 🆕 NEW: Interactive Testing Mode
+
+When code agents struggle to debug your bot or you need to test logic in a real environment (not a sandbox), use the new **Interactive Testing Mode**:
+
+```bash
+# Step-by-step debugging with real data (DRY_RUN enforced)
+./dev-helper.sh run-interactive
+
+# Test specific functions in isolation
+./dev-helper.sh test-function risk-calc
+./dev-helper.sh test-function tick-round
+./dev-helper.sh test-function order-proof
+./dev-helper.sh test-function strategy S6
+./dev-helper.sh test-function market-data
+```
+
+**See [INTERACTIVE_TESTING_GUIDE.md](INTERACTIVE_TESTING_GUIDE.md) for complete documentation.**
+
+---
+
 ## Quick Start - Run Tests Now
 
 ### Option 1: Quick Validation (15 seconds)

@@ -67,6 +67,25 @@
 - **Secure Configuration**: Environment-based settings with credential protection
 - **Complete ML/RL Integration**: All algorithms active in unified decision flow
 - **Bootstrap System**: Idempotent directory/file creation with sample configurations
+- **Interactive Testing**: Step-by-step debugging with real data (DRY_RUN enforced)
+
+### 🧪 **Interactive Testing & Debugging**
+
+New interactive testing mode helps debug bot logic when code agents struggle:
+
+```bash
+# Step-by-step debugging with real market data (DRY_RUN enforced)
+./dev-helper.sh run-interactive
+
+# Test specific functions in isolation
+./dev-helper.sh test-function risk-calc      # Test risk calculation
+./dev-helper.sh test-function tick-round     # Test ES/MES price rounding
+./dev-helper.sh test-function order-proof    # Test order evidence
+./dev-helper.sh test-function strategy S6    # Test specific strategy
+./dev-helper.sh test-function market-data    # Test market data parsing
+```
+
+**See [INTERACTIVE_TESTING_GUIDE.md](INTERACTIVE_TESTING_GUIDE.md) for complete documentation.**
 
 ### 🎯 **Auto-Enabled Features (Production Ready)**
 - **Enhanced Learning**: Auto-starts with light (60min) and intensive (15min) modes
