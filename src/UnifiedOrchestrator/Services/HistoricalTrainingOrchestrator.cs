@@ -5,8 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.BotCore.Data;
-using TradingBot.UnifiedOrchestrator.Interfaces;
+using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -15,9 +14,12 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Historical Training Orchestrator - Master controller for Lab training pipeline
 /// Runs complete training session on Sunday (segregated from Terminal)
 /// 
+/// Uses existing SDK infrastructure (IHistoricalDataBridgeService) to load historical data
+/// This ensures we're using the production TopstepX API, not creating parallel systems
+/// 
 /// This is the "shift supervisor" that coordinates the entire training factory:
 /// 1. Load experiences from last 7 days
-/// 2. Load 90-day historical bars
+/// 2. Load 90-day historical bars via existing SDK
 /// 3. Run sequential training pipeline
 /// 4. Save challengers to registry
 /// 5. Run promotion evaluations
@@ -25,10 +27,10 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 internal sealed class HistoricalTrainingOrchestrator
 {
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
-    private readonly HistoricalDataProvider _historicalDataProvider;
+    private readonly IHistoricalDataBridgeService _historicalDataBridge;
     private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
-    private readonly IModelRegistry _modelRegistry;
-    private readonly IPromotionService _promotionService;
+    private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
+    private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -40,18 +42,18 @@ internal sealed class HistoricalTrainingOrchestrator
 
     public HistoricalTrainingOrchestrator(
         ILogger<HistoricalTrainingOrchestrator> logger,
-        HistoricalDataProvider historicalDataProvider,
+        IHistoricalDataBridgeService historicalDataBridge,
         global::BotCore.Data.ExperienceRepository? experienceRepository,
-        IModelRegistry modelRegistry,
-        IPromotionService promotionService)
+        TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
+        TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService)
     {
         _logger = logger;
-        _historicalDataProvider = historicalDataProvider;
+        _historicalDataBridge = historicalDataBridge;
         _experienceRepository = experienceRepository;
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
         
-        _logger.LogInformation("HistoricalTrainingOrchestrator initialized");
+        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - using existing TopstepX SDK");
     }
 
     /// <summary>
@@ -131,24 +133,29 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task<Dictionary<string, int>> LoadHistoricalDataAsync(CancellationToken cancellationToken)
     {
-        // Returns count of bars loaded per symbol
-        // Actual bar data would be stored in experience repository or passed to training methods
+        // Load historical bars using existing TopstepX SDK (IHistoricalDataBridgeService)
+        // This ensures we're using production APIs, not creating parallel systems
         var data = new Dictionary<string, int>();
         var symbols = new[] { "ES", "NQ" };
-        var to = DateTime.UtcNow.Date;
-        var from = to.AddDays(-90);
+        
+        // Request 90 days * 390 bars/day ≈ 35,100 bars per symbol
+        const int barsToLoad = 35100;
 
         foreach (var symbol in symbols)
         {
             try
             {
-                var historicalBars = await _historicalDataProvider.GetCachedBarsAsync(symbol, from, to, cancellationToken).ConfigureAwait(false);
-                data[symbol] = historicalBars.Count;
-                _logger.LogInformation("Loaded {Count} bars for {Symbol}", historicalBars.Count, symbol);
+                _logger.LogInformation("Loading {BarsCount} historical bars for {Symbol} via TopstepX SDK", barsToLoad, symbol);
+                
+                // Use existing SDK bridge service to get real historical data from TopstepX
+                var historicalBars = await _historicalDataBridge.GetRecentHistoricalBarsAsync(symbol, barsToLoad).ConfigureAwait(false);
+                data[symbol] = historicalBars?.Count ?? 0;
+                
+                _logger.LogInformation("✅ Loaded {Count} bars for {Symbol} from TopstepX API", data[symbol], symbol);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load historical data for {Symbol}", symbol);
+                _logger.LogError(ex, "❌ Failed to load historical data for {Symbol} from TopstepX SDK", symbol);
                 data[symbol] = 0;
             }
         }

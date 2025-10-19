@@ -663,7 +663,7 @@ Please check the configuration and ensure all required services are registered.
         {
             Console.WriteLine("📊 LAB MODE - Training Pipeline");
             Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
-            Console.WriteLine("   ✓ HistoricalDataProvider, HistoricalTrainingOrchestrator registered");
+            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses existing TopstepX SDK)");
             Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
             Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
             Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
@@ -2379,11 +2379,12 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
         services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
         
-        // Historical Data Provider (Phase 1)
-        Console.WriteLine("   ✓ Registering HistoricalDataProvider (90-day bar management)");
-        services.AddSingleton<TradingBot.BotCore.Data.HistoricalDataProvider>();
+        // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
+        // TopstepXHistoricalDataProvider already registered at line ~2312
+        // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
+        Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
         
-        // Training Orchestrator (Phase 1)
+        // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
         
@@ -2441,8 +2442,8 @@ Please check the configuration and ensure all required services are registered.
         // DO NOT register Lab-only services in Terminal mode
         Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
         Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
-        Console.WriteLine("   ✗ HistoricalDataProvider NOT registered (Terminal = no historical data)");
         Console.WriteLine("   ✗ HistoricalTrainingOrchestrator NOT registered (Terminal = no Sunday training)");
+        Console.WriteLine("   ℹ️  Uses existing TopstepX SDK (IHistoricalDataBridgeService) - no parallel systems");
         
         Console.WriteLine("✅ [TERMINAL] Terminal services registration complete\n");
     }
