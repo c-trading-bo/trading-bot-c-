@@ -25,13 +25,17 @@ using Bar = global::BotCore.Models.Bar;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// ✅ UNIFIED LEARNING SYSTEM - Enhanced BacktestLearningService
+/// ✅ LAB-ONLY SERVICE - Enhanced BacktestLearningService (Task 2.4 - Lab/Terminal Separation)
+/// 
+/// CRITICAL: This service is LAB-ONLY and should NEVER run in Terminal mode
+/// - TERMINAL: Uses real-time data only (fast, lean, <10ms decisions)
+/// - LAB: Uses this service for offline training on Sunday (slow, heavy, 2-3 hours)
 /// 
 /// ARCHITECTURE: Single Brain for Both Historical and Live Trading
 /// ================================================================
 /// This service implements the UNIFIED learning system where the bot learns from:
-/// 1. Historical data (backtesting on 90-day rolling window)
-/// 2. Live trading results (real-time adaptation)
+/// 1. Historical data (backtesting on 90-day rolling window) - LAB ONLY
+/// 2. Live trading results (real-time adaptation) - TERMINAL
 /// 
 /// BOTH use the SAME UnifiedTradingBrain for ALL decisions:
 /// - Same decision-making logic: UnifiedTradingBrain.MakeIntelligentDecisionAsync (lines 548, 674)
@@ -40,10 +44,9 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// - Same risk management and position sizing
 /// - Identical context and outputs for reproducible results
 /// 
-/// LEARNING SCHEDULE (Unified for both historical and live):
-/// - Market Open: Light learning every 60 minutes
-/// - Market Closed: Intensive learning every 15 minutes
-/// - Rolling 90-day historical window (always fresh data)
+/// LEARNING SCHEDULE (LAB mode only):
+/// - Market Closed (Sunday): Intensive learning every 15 minutes on 90-day historical window
+/// - Terminal mode: Does NOT run this service (uses real-time learning only)
 /// 
 /// KEY INTEGRATION POINTS:
 /// - Line 46: Direct UnifiedTradingBrain injection

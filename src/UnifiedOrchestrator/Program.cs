@@ -2243,16 +2243,25 @@ Please check the configuration and ensure all required services are registered.
         var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
         var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
         
-        // In HISTORICAL_MODE, force enable the existing EnhancedBacktestLearningService
-        // This service already integrates properly with UnifiedTradingBrain for learning
+        // LAB-ONLY SERVICE: EnhancedBacktestLearningService (Task 2.4 - Lab/Terminal Separation)
+        // This service loads 90-day historical data, replays through UnifiedTradingBrain, and generates training experiences
+        // TERMINAL MODE: This service is NOT registered (Terminal uses real-time data only)
+        // LAB MODE: This service IS registered (Lab runs offline training on Sunday)
+        //
+        // The service is enabled when:
+        // - HISTORICAL_MODE=1 (Lab training mode)
+        // - ENABLE_HISTORICAL_LEARNING=1 (Lab mode with historical data)
+        // - RlRuntimeMode=Train (RL training mode = Lab)
+        //
+        // Terminal should NEVER register this service - it would slow down decisions and mix historical/live data
         if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
             services.AddHostedService<EnhancedBacktestLearningService>();
             
             if (isHistoricalMode)
             {
-                Console.WriteLine("✅ [HISTORICAL-MODE] Historical training mode ENABLED");
-                Console.WriteLine("   📊 Using EnhancedBacktestLearningService for proper brain integration");
+                Console.WriteLine("✅ [LAB-MODE] Historical training mode ENABLED - EnhancedBacktestLearningService registered");
+                Console.WriteLine("   📊 Using EnhancedBacktestLearningService for offline training (Lab only)");
                 Console.WriteLine("   🎓 Models will learn from historical backtesting");
                 Console.WriteLine("   📝 Comprehensive learning updates logged");
             }
