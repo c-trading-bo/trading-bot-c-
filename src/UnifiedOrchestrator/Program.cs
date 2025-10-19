@@ -1078,6 +1078,12 @@ Please check the configuration and ensure all required services are registered.
             serviceProvider.GetRequiredService<global::BotCore.Services.ProductionKillSwitchService>());
         services.AddSingleton<IRiskManager, Trading.Safety.RiskManager>();
         services.AddSingleton<IHealthMonitor, Trading.Safety.HealthMonitor>();
+        
+        // Register SlippageLatencyModel for execution simulation in DRY_RUN and historical modes
+        services.AddSingleton<Trading.Safety.Simulation.ISlippageLatencyModel, Trading.Safety.Simulation.SlippageLatencyModel>();
+        services.AddHostedService<Trading.Safety.Simulation.SlippageLatencyModel>(provider => 
+            provider.GetRequiredService<Trading.Safety.Simulation.ISlippageLatencyModel>() as Trading.Safety.Simulation.SlippageLatencyModel 
+            ?? throw new InvalidOperationException("SlippageLatencyModel not registered correctly"));
 
         // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
