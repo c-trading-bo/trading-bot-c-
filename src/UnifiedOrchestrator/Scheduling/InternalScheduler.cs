@@ -17,11 +17,15 @@ internal sealed class InternalScheduler : BackgroundService
 {
     private readonly ILogger<InternalScheduler> _logger;
     private readonly HistoricalTrainingOrchestrator _trainingOrchestrator;
+    private readonly ResourcePreCheckService _resourceChecker;
+    private readonly TrainingAlertService _alertService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     private bool _idleLogged = false;
     private DateTime? _lastTrainingStart = null;
     private readonly string _lockFilePath;
+    private readonly string _checkpointFilePath;
     private readonly TimeZoneInfo _easternTimeZone;
+    private CancellationTokenSource? _currentTrainingCts;
 
     // Training window configuration (Eastern Time)
     private readonly TimeSpan TrainingWindowStart = new(12, 0, 0);  // 12:00 PM ET
@@ -31,11 +35,16 @@ internal sealed class InternalScheduler : BackgroundService
 
     public InternalScheduler(
         ILogger<InternalScheduler> logger,
-        HistoricalTrainingOrchestrator trainingOrchestrator)
+        HistoricalTrainingOrchestrator trainingOrchestrator,
+        ResourcePreCheckService resourceChecker,
+        TrainingAlertService alertService)
     {
         _logger = logger;
         _trainingOrchestrator = trainingOrchestrator;
+        _resourceChecker = resourceChecker;
+        _alertService = alertService;
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
+        _checkpointFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state", "training_checkpoint.json");
         
         // Initialize Eastern timezone - handles DST automatically
         try
@@ -54,7 +63,10 @@ internal sealed class InternalScheduler : BackgroundService
         // Clean up stale lock files on startup
         CleanupStaleLockFile();
         
-        _logger.LogInformation("[LAB] Scheduler initialized - Production-grade with lock files, health checks, watchdog");
+        // Check for incomplete training runs
+        CheckForIncompleteTrainingAsync().ConfigureAwait(false);
+        
+        _logger.LogInformation("[LAB] Scheduler initialized - Production-grade with lock files, health checks, watchdog, graceful shutdown");
     }
 
     /// <summary>
@@ -104,10 +116,26 @@ internal sealed class InternalScheduler : BackgroundService
                                     }
                                 }
 
-                                // Pre-training health checks
+                                // Pre-training health checks (basic)
                                 if (!await RunHealthChecksAsync(stoppingToken).ConfigureAwait(false))
                                 {
                                     _logger.LogError("[LAB] Health checks failed - skipping training");
+                                    await _alertService.AlertHealthCheckFailureAsync(
+                                        "Basic health checks",
+                                        "Pre-training validation failed",
+                                        stoppingToken).ConfigureAwait(false);
+                                    continue;
+                                }
+
+                                // Resource pre-checks
+                                var (resourcesOk, failedChecks) = await _resourceChecker.RunAllChecksAsync(stoppingToken).ConfigureAwait(false);
+                                if (!resourcesOk)
+                                {
+                                    _logger.LogError("[LAB] Resource checks failed: {Checks}", string.Join(", ", failedChecks));
+                                    await _alertService.AlertHealthCheckFailureAsync(
+                                        "Resource checks",
+                                        $"Failed: {string.Join(", ", failedChecks)}",
+                                        stoppingToken).ConfigureAwait(false);
                                     continue;
                                 }
 
@@ -118,26 +146,52 @@ internal sealed class InternalScheduler : BackgroundService
                                 _lastTrainingStart = DateTime.UtcNow;
 
                                 // Run training with watchdog timeout
-                                using var trainingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                                trainingCts.CancelAfter(MaxTrainingDuration);
+                                _currentTrainingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                                _currentTrainingCts.CancelAfter(MaxTrainingDuration);
 
                                 try
                                 {
-                                    await _trainingOrchestrator.RunTrainingSessionAsync(trainingCts.Token).ConfigureAwait(false);
+                                    // Alert training started
+                                    await _alertService.AlertTrainingStartedAsync(
+                                        "training_session",
+                                        "N/A",
+                                        new Dictionary<string, object>(),
+                                        stoppingToken).ConfigureAwait(false);
+
+                                    await _trainingOrchestrator.RunTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
                                     _logger.LogInformation("[LAB] Training completed successfully");
+                                    
+                                    // Alert success
+                                    await _alertService.AlertTrainingSuccessAsync(
+                                        "training_session",
+                                        (DateTime.UtcNow - _lastTrainingStart.Value).TotalMinutes,
+                                        0, 0,
+                                        new Dictionary<string, object>(),
+                                        stoppingToken).ConfigureAwait(false);
                                 }
-                                catch (OperationCanceledException) when (trainingCts.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
+                                catch (OperationCanceledException) when (_currentTrainingCts.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
                                 {
                                     _logger.LogError("[LAB] Training TIMEOUT - exceeded {Hours} hour maximum", MaxTrainingDuration.TotalHours);
+                                    await _alertService.AlertTrainingTimeoutAsync(
+                                        "training_session",
+                                        MaxTrainingDuration.TotalHours,
+                                        stoppingToken).ConfigureAwait(false);
                                 }
                                 catch (Exception ex)
                                 {
                                     _logger.LogError(ex, "[LAB] Training failed: {Error}", ex.Message);
+                                    await _alertService.AlertTrainingFailureAsync(
+                                        "training_session",
+                                        ex.Message,
+                                        new List<string> { ex.GetType().Name },
+                                        stoppingToken).ConfigureAwait(false);
                                 }
                                 finally
                                 {
                                     // Always clean up lock file
                                     CleanupStaleLockFile();
+                                    _currentTrainingCts?.Dispose();
+                                    _currentTrainingCts = null;
                                 }
                             }
                             finally
@@ -394,9 +448,86 @@ internal sealed class InternalScheduler : BackgroundService
         return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _easternTimeZone);
     }
 
+    /// <summary>
+    /// Check for incomplete training runs on startup
+    /// </summary>
+    private async Task CheckForIncompleteTrainingAsync()
+    {
+        try
+        {
+            if (File.Exists(_checkpointFilePath))
+            {
+                var content = await File.ReadAllTextAsync(_checkpointFilePath).ConfigureAwait(false);
+                using var doc = System.Text.Json.JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                
+                var runId = root.GetProperty("RunId").GetString();
+                var startTime = root.GetProperty("StartTime").GetDateTime();
+                
+                _logger.LogWarning("[LAB] Detected incomplete training run: {RunId} started {Time}",
+                    runId, startTime);
+                _logger.LogInformation("[LAB] Incomplete run will be discarded (no resume capability yet)");
+                
+                // Delete checkpoint file
+                File.Delete(_checkpointFilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Failed to check for incomplete training: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Save checkpoint during training for graceful shutdown
+    /// </summary>
+    private async Task SaveCheckpointAsync(string runId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var checkpoint = new
+            {
+                RunId = runId,
+                StartTime = _lastTrainingStart ?? DateTime.UtcNow,
+                CheckpointTime = DateTime.UtcNow
+            };
+            
+            var json = System.Text.Json.JsonSerializer.Serialize(checkpoint);
+            await File.WriteAllTextAsync(_checkpointFilePath, json, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] Checkpoint saved for run: {RunId}", runId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Failed to save checkpoint: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handle graceful shutdown - save checkpoint if training in progress
+    /// </summary>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LAB] Graceful shutdown requested...");
+        
+        if (_currentTrainingCts != null && !_currentTrainingCts.IsCancellationRequested)
+        {
+            _logger.LogWarning("[LAB] Training in progress - saving checkpoint before shutdown");
+            await SaveCheckpointAsync("training_session", cancellationToken).ConfigureAwait(false);
+            
+            // Request cancellation and wait a bit for cleanup
+            _currentTrainingCts.Cancel();
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+        }
+        
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("[LAB] Graceful shutdown complete");
+    }
+
     public override void Dispose()
     {
         _trainingLock?.Dispose();
+        _currentTrainingCts?.Dispose();
         CleanupStaleLockFile();
         base.Dispose();
     }
