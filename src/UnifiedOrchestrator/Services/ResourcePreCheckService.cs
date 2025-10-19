@@ -72,7 +72,7 @@ internal sealed class ResourcePreCheckService
     /// <summary>
     /// Check available disk space
     /// </summary>
-    private async Task<bool> CheckDiskSpaceAsync(CancellationToken cancellationToken)
+    private Task<bool> CheckDiskSpaceAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -89,16 +89,16 @@ internal sealed class ResourcePreCheckService
             {
                 _logger.LogError("[RESOURCE-CHECK] ❌ Insufficient disk space: {Free:F1} GB < {Required} GB",
                     freeSpaceGB, MinDiskSpaceGB);
-                return false;
+                return Task.FromResult(false);
             }
 
             _logger.LogInformation("[RESOURCE-CHECK] ✓ Sufficient disk space available");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[RESOURCE-CHECK] Failed to check disk space: {Error}", ex.Message);
-            return false;
+            return Task.FromResult(false);
         }
     }
 

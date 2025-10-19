@@ -398,7 +398,7 @@ internal sealed class HistoricalTrainingOrchestrator
         }
     }
 
-    private async Task TrainNeuralUCBAsync(
+    private Task TrainNeuralUCBAsync(
         TrainingSessionResult result,
         List<Experience> experiences,
         CancellationToken cancellationToken)
@@ -430,6 +430,7 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbSuccess = true;
             
             _logger.LogInformation("[LAB] Neural UCB acknowledged - Online learning active in Terminal mode");
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -438,6 +439,7 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = false;
             result.FailedComponents.Add("Neural UCB");
+            return Task.CompletedTask;
         }
     }
 
