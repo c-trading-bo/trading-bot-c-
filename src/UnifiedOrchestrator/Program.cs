@@ -664,6 +664,7 @@ Please check the configuration and ensure all required services are registered.
             Console.WriteLine("📊 LAB MODE - Training Pipeline");
             Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
             Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses existing TopstepX SDK)");
+            Console.WriteLine("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
             Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
             Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
             Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
@@ -2387,6 +2388,10 @@ Please check the configuration and ensure all required services are registered.
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
+        
+        // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
+        Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
