@@ -150,6 +150,7 @@ namespace TradingBot.BotCore.Services
 
         /// <summary>
         /// Validate seed data integrity (contiguous timestamps, sane volumes, no duplicates).
+        /// Automatically deduplicates bars with the same timestamp if found.
         /// </summary>
         private SeedValidationResult ValidateSeed(SeedData seedData)
         {
@@ -166,21 +167,26 @@ namespace TradingBot.BotCore.Services
                 return result;
             }
 
-            // Sort by timestamp
-            var sortedBars = seedData.Bars.OrderBy(b => b.Timestamp).ToList();
+            // Sort by timestamp and deduplicate (keep last bar if multiple with same timestamp)
+            var sortedBars = seedData.Bars
+                .GroupBy(b => new { b.Symbol, b.Timestamp })
+                .Select(g => g.Last()) // Keep last bar with duplicate timestamp
+                .OrderBy(b => b.Timestamp)
+                .ToList();
+            
+            // Track duplicates removed
+            var duplicatesRemoved = seedData.Bars.Count - sortedBars.Count;
+            if (duplicatesRemoved > 0)
+            {
+                result.HasDuplicates = true;
+                _logger.LogInformation("Removed {DuplicateCount} duplicate bars during validation (keeping latest)", duplicatesRemoved);
+                // Update seed data with deduplicated bars
+                seedData.Bars = sortedBars;
+            }
             
             result.OldestBar = sortedBars.First().Timestamp;
             result.NewestBar = sortedBars.Last().Timestamp;
-
-            // Check for duplicates
-            var timestamps = sortedBars.Select(b => b.Timestamp).ToList();
-            var distinctTimestamps = timestamps.Distinct().Count();
-            
-            if (distinctTimestamps < timestamps.Count)
-            {
-                result.HasDuplicates = true;
-                result.Errors.Add($"Found {timestamps.Count - distinctTimestamps} duplicate timestamps");
-            }
+            result.BarCount = sortedBars.Count;
 
             // Check volume sanity (no negative, no extreme values)
             var invalidVolumes = sortedBars.Where(b => b.Volume < 0 || b.Volume > 1_000_000).ToList();
@@ -214,18 +220,30 @@ namespace TradingBot.BotCore.Services
                 result.Errors.Add($"Found {gapCount} significant time gaps");
             }
 
-            result.Passed = !result.HasDuplicates && result.VolumeValid && !result.HasGaps;
+            // Pass validation if duplicates were auto-removed and no other critical issues
+            result.Passed = result.VolumeValid && !result.HasGaps;
             
             return result;
         }
 
         /// <summary>
         /// Auto-refresh seed data if stale. Runs during futures maintenance window (5 PM ET daily, skip weekends).
+        /// Can be disabled via DISABLE_SEED_AUTO_REFRESH environment variable to use only cached historical bars.
         /// </summary>
         private async Task<bool> RefreshSeedIfStaleAsync(CancellationToken cancellationToken)
         {
             try
             {
+                // Check if auto-refresh is disabled (for using only cached historical bars without API calls)
+                var disableAutoRefresh = Environment.GetEnvironmentVariable("DISABLE_SEED_AUTO_REFRESH");
+                if (!string.IsNullOrEmpty(disableAutoRefresh) && 
+                    (disableAutoRefresh.Equals("true", StringComparison.OrdinalIgnoreCase) || 
+                     disableAutoRefresh.Equals("1", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.LogInformation("🔒 Seed auto-refresh is disabled (DISABLE_SEED_AUTO_REFRESH=true) - using cached historical bars only");
+                    return false;
+                }
+                
                 var now = DateTimeOffset.UtcNow;
                 var nowEt = TimeZoneInfo.ConvertTime(now, _easternTimeZone);
 
