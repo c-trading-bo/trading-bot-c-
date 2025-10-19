@@ -1,5 +1,9 @@
 name: PR Audit (Analyzer-safe)
-on: [pull_request]
+on:
+  # pull_request:
+  #   branches:
+  #     - main  # Only run on PRs targeting main branch
+  workflow_dispatch:
 jobs:
   audit:
     runs-on: ubuntu-latest

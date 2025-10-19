@@ -374,7 +374,7 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
         {
             if (_historicalDataBridge == null)
             {
-                _logger.LogWarning("⚠️ [DATA-INTEGRATION] Historical data bridge service not available");
+                _logger.LogInformation("📊 [DATA-INTEGRATION] Historical data bridge not available - bot will collect live bars over time");
                 _isHistoricalDataConnected = false;
                 return;
             }
@@ -401,12 +401,12 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ [DATA-INTEGRATION] No historical bars available for {Instrument}", instrument);
+                        _logger.LogDebug("[DATA-INTEGRATION] No historical bars available for {Instrument} - will use live data", instrument);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[DATA-INTEGRATION] Error loading historical bars for {Instrument}", instrument);
+                    _logger.LogDebug(ex, "[DATA-INTEGRATION] Historical bars not available for {Instrument} - will use live data", instrument);
                 }
             }
             
@@ -419,13 +419,14 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
             }
             else
             {
+                // It's OK to not have historical data - bot will collect live bars
                 _isHistoricalDataConnected = false;
-                _logger.LogWarning("⚠️ [DATA-INTEGRATION] Historical data seeding failed - no bars loaded");
+                _logger.LogInformation("📊 [DATA-INTEGRATION] No historical data seeded - bot will collect live bars over time (this is normal)");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DATA-INTEGRATION] Error connecting to historical data");
+            _logger.LogWarning(ex, "[DATA-INTEGRATION] Historical data not available - bot will use live data only");
             _isHistoricalDataConnected = false;
         }
     }

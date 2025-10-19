@@ -583,7 +583,8 @@ class TopstepXAdapter:
                 # Map standard symbol to TopstepX instrument code
                 topstepx_instrument = self._map_symbol_to_topstepx(instrument)
                 self.logger.info(f"Using TopstepX instrument code: {topstepx_instrument}")
-                suite = await TradingSuite.from_env(instrument=topstepx_instrument)
+                # Load 90 days of historical data for comprehensive learning (matches EnhancedBacktestLearningService)
+                suite = await TradingSuite.from_env(instrument=topstepx_instrument, initial_days=90)
                 
                 # CRITICAL: Initialize WebSocket connection for real-time data streaming with timeout
                 self.logger.info(f"🔌 Initializing WebSocket connection for {instrument}...")
@@ -2107,37 +2108,151 @@ if __name__ == "__main__":
             """Run adapter in persistent mode with stdin/stdout communication."""
             adapter = None
             try:
-                # Initialize adapter once
+                # Create adapter instance (don't initialize yet)
                 adapter = TopstepXAdapter(["ES", "NQ"])
-                await adapter.initialize()
                 
-                # Send initialization success
-                print(json.dumps({"type": "init", "success": True, "message": "Adapter initialized"}), flush=True)
+                # WINDOWS FIX: Use synchronous stdin reading in a separate thread
+                # asyncio.connect_read_pipe() doesn't work reliably on Windows
+                import threading
+                import queue
                 
-                # Create async stdin reader
+                # Create thread-safe queue for stdin commands
+                stdin_queue = queue.Queue()
+                
+                def stdin_reader_thread():
+                    """Synchronous thread that reads stdin and puts lines in queue"""
+                    try:
+                        print(json.dumps({"type": "debug", "message": "Stdin reader thread started"}), flush=True)
+                        while True:
+                            line = sys.stdin.readline()
+                            if not line:
+                                print(json.dumps({"type": "debug", "message": "Stdin EOF detected"}), flush=True)
+                                break
+                            stdin_queue.put(line)
+                    except Exception as e:
+                        print(json.dumps({"type": "error", "message": f"Stdin reader thread error: {str(e)}"}), flush=True)
+                
+                # Start stdin reader thread
+                thread = threading.Thread(target=stdin_reader_thread, daemon=True)
+                thread.start()
+                
+                print(json.dumps({"type": "debug", "message": "Stdin reader thread launched"}), flush=True)
+                
+                # Send initialization success IMMEDIATELY so C# bot doesn't timeout
+                # We'll initialize TopstepX connection in background
+                print(json.dumps({"type": "init", "success": True, "message": "Adapter created, connecting to TopstepX in background"}), flush=True)
+                
+                # Track initialization status
+                initialization_complete = False
+                initialization_error = None
+                
+                # Run SDK initialization in a SEPARATE THREAD for true parallelism
+                # The SDK has blocking I/O that prevents async event loop from processing commands
+                def initialize_sdk_in_thread():
+                    nonlocal initialization_complete, initialization_error
+                    try:
+                        print(json.dumps({"type": "debug", "message": "Starting TopstepX initialization in background thread..."}), flush=True)
+                        
+                        # Redirect stdout during SDK initialization to prevent non-JSON output
+                        original_stdout = sys.stdout
+                        sys.stdout = sys.stderr  # Send SDK prints to stderr
+                        
+                        try:
+                            # Create new event loop for this thread
+                            thread_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(thread_loop)
+                            
+                            # Run initialization synchronously in this thread
+                            thread_loop.run_until_complete(asyncio.wait_for(adapter.initialize(), timeout=60.0))
+                            thread_loop.close()
+                        finally:
+                            sys.stdout = original_stdout  # Restore stdout
+                        
+                        initialization_complete = True
+                        print(json.dumps({"type": "info", "message": "TopstepX connection established"}), flush=True)
+                    except asyncio.TimeoutError:
+                        initialization_error = "TopstepX connection timed out after 60s"
+                        print(json.dumps({"type": "warning", "message": initialization_error}), flush=True)
+                    except Exception as e:
+                        initialization_error = f"TopstepX connection error: {str(e)}"
+                        print(json.dumps({"type": "warning", "message": initialization_error}), flush=True)
+                
+                # Start background initialization in separate thread (true parallelism)
+                print(json.dumps({"type": "debug", "message": "Creating SDK initialization thread..."}), flush=True)
+                init_thread = threading.Thread(target=initialize_sdk_in_thread, daemon=True, name="TopstepX-Init")
+                init_thread.start()
+                print(json.dumps({"type": "debug", "message": f"SDK initialization thread started: {init_thread.name}"}), flush=True)
+                
+                # Process commands from stdin queue (Windows-compatible approach)
                 loop = asyncio.get_event_loop()
-                reader = asyncio.StreamReader(loop=loop)
-                protocol = asyncio.StreamReaderProtocol(reader)
-                await loop.connect_read_pipe(lambda: protocol, sys.stdin)
-                
-                # Process commands from stdin
                 while True:
                     try:
-                        # Read command from stdin asynchronously
-                        line = await reader.readline()
+                        # Poll the queue with short timeout to allow event loop to process other tasks
+                        line = await loop.run_in_executor(None, stdin_queue.get, True, 0.1)
                         if not line:
                             break  # EOF reached
                         
-                        line = line.decode('utf-8').strip()
+                        # Line is already a string from stdin.readline()
+                        line = line.strip()
                         if not line:
                             continue
+                        
+                        print(json.dumps({"type": "debug", "message": f"Received command: {line[:100]}"}), flush=True)
                         
                         cmd_data = json.loads(line)
                         action = cmd_data.get("action")
                         
+                        print(json.dumps({"type": "debug", "message": f"Processing action: {action}"}), flush=True)
+                        
                         if action == "shutdown":
                             print(json.dumps({"type": "response", "action": "shutdown", "success": True}), flush=True)
                             break
+                        
+                        # Wait for initialization to complete for operations that need it
+                        if not initialization_complete and action in ["get_price", "get_health_score", "fetch_historical_bars", "place_order", "get_positions"]:
+                            if initialization_error:
+                                # Initialization failed, send error immediately
+                                error_response = {
+                                    "type": "response",
+                                    "action": action,
+                                    "success": False,
+                                    "error": f"TopstepX initialization failed: {initialization_error}"
+                                }
+                                print(json.dumps(error_response), flush=True)
+                                continue
+                            else:
+                                # Wait for initialization to complete (with timeout)
+                                print(json.dumps({"type": "debug", "message": f"⏳ Waiting for SDK initialization before {action}..."}), flush=True)
+                                wait_start = time.time()
+                                while not initialization_complete and not initialization_error:
+                                    elapsed = time.time() - wait_start
+                                    if elapsed > 25.0:  # 25s timeout (less than C# 30s to send proper error)
+                                        error_response = {
+                                            "type": "response",
+                                            "action": action,
+                                            "success": False,
+                                            "error": f"TopstepX initialization timeout after {elapsed:.1f}s (SDK still connecting)"
+                                        }
+                                        print(json.dumps(error_response), flush=True)
+                                        break
+                                    await asyncio.sleep(0.5)  # Check every 500ms, allow other tasks to run
+                                
+                                # Check if initialization failed during wait
+                                if initialization_error:
+                                    error_response = {
+                                        "type": "response",
+                                        "action": action,
+                                        "success": False,
+                                        "error": f"TopstepX initialization failed: {initialization_error}"
+                                    }
+                                    print(json.dumps(error_response), flush=True)
+                                    continue
+                                
+                                # If still not complete after wait, skip this command (already sent error)
+                                if not initialization_complete:
+                                    continue
+                                
+                                print(json.dumps({"type": "debug", "message": f"Initialization complete, processing {action}"}), flush=True)
                         
                         # Process command and send response with timeout
                         result = None
@@ -2233,6 +2348,10 @@ if __name__ == "__main__":
                             error_response = {"type": "error", "action": action, "error": f"Command '{action}' timed out"}
                             print(json.dumps(error_response), flush=True)
                     
+                    except queue.Empty:
+                        # No command available, sleep briefly and continue
+                        await asyncio.sleep(0.01)
+                        continue
                     except json.JSONDecodeError as e:
                         error_response = {"type": "error", "error": f"Invalid JSON: {str(e)}"}
                         print(json.dumps(error_response), flush=True)

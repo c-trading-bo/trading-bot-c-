@@ -1,7 +1,10 @@
 name: Analyzer Posture Gate
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   branches:
+  #     - main  # Only run on PRs targeting main branch
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

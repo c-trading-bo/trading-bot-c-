@@ -46,10 +46,11 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: "🔧 Setup .NET SDK"
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+      # Skip .NET setup - self-hosted runner already has .NET 8.0 installed
+      # - name: "🔧 Setup .NET SDK"
+      #   uses: actions/setup-dotnet@v4
+      #   with:
+      #     dotnet-version: '8.0.x'
 
       - name: "🔍 Pre-Launch Environment Validation"
         id: env_validation

@@ -81,6 +81,7 @@ namespace BotCore.Brain
         // Scheduling and learning intervals
         public const int MaintenanceLearningIntervalMinutes = 10;    // Learning interval during maintenance window
         public const int ClosedMarketLearningIntervalMinutes = 15;   // Learning interval when market is closed
+        public const int OpenMarketLearningIntervalMinutes = 60;     // Learning interval when market is open
         
         // Commentary thresholds
         public const decimal LowConfidenceThreshold = 0.4m;          // Below this triggers waiting commentary
@@ -97,7 +98,6 @@ namespace BotCore.Brain
         public const int SimulationRandomSeed = 12345;               // Seed for reproducible simulation data
         public const double SimulationFeatureRange = 2.0;            // Range for random feature generation
         public const double SimulationFeatureOffset = 1.0;           // Offset for centering feature range
-        public const int OpenMarketLearningIntervalMinutes = 60;     // Learning interval when market is open
         public const int TrainingDataHistorySize = 2000;             // Number of recent decisions to use for training
         
         // CVaR-PPO state vector normalization constants

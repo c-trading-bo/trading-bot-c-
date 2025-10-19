@@ -1,5 +1,18 @@
 # 🏗️ Code Quality & Development Standards
 
+## 🔒 CRITICAL: LOCKED FILES (READ FIRST!)
+
+**BEFORE making ANY changes, read**: `.github/AI_AGENT_CONSTRAINTS.md`
+
+**LOCKED FILES - NEVER MODIFY**:
+- ❌ `.github/workflows/selfhosted-bot-run.yml` - Python/SDK setup section
+- ❌ Workflow trigger configuration (branches-ignore)
+- ❌ Workflow timeout settings
+
+**If you see workflow/SDK errors**: Fix the **BOT CODE**, NOT the workflow setup.
+
+---
+
 ## ❌ NEVER DO THESE (BUILD/CODE QUALITY)
 
 ❌ **Stub Code**: Never generate stub methods, placeholder implementations, or TODO comments in production code  

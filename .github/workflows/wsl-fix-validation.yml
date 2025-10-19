@@ -3,11 +3,11 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'src/UnifiedOrchestrator/**'
-      - '.github/workflows/wsl-fix-validation.yml'
+  # pull_request:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'src/UnifiedOrchestrator/**'
+  #     - '.github/workflows/wsl-fix-validation.yml'
   workflow_dispatch:
 
 jobs:

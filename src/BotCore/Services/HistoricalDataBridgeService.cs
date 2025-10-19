@@ -14,6 +14,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Hosting;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services
 {
@@ -58,6 +59,7 @@ namespace BotCore.Services
         private readonly TradingReadinessConfiguration _config;
         private readonly HttpClient _httpClient;
         private readonly IHistoricalBarConsumer? _barConsumer;
+        private readonly ITopstepXAdapterService? _topstepXAdapter;
         
         private bool _isSeeded = false;
         private int _totalBarsLoaded = 0;
@@ -80,12 +82,14 @@ namespace BotCore.Services
             ILogger<HistoricalDataBridgeService> logger,
             IOptions<TradingReadinessConfiguration> config,
             HttpClient httpClient,
+            ITopstepXAdapterService? topstepXAdapter = null,
             IHistoricalBarConsumer? barConsumer = null)
         {
             _logger = logger;
             ArgumentNullException.ThrowIfNull(config);
             _config = config.Value;
             _httpClient = httpClient;
+            _topstepXAdapter = topstepXAdapter;
             _barConsumer = barConsumer;
         }
 
@@ -225,11 +229,11 @@ namespace BotCore.Services
         {
             try
             {
-                // PRIMARY: Try SDK adapter for historical data
-                var sdkAdapterBars = await TryGetSdkAdapterBarsAsync(contractId, barCount).ConfigureAwait(false);
+                // PRIMARY: Try TopstepX adapter service for historical data (uses stdin/stdout commands)
+                var sdkAdapterBars = await TryGetSdkAdapterBarsAsync(contractId, barCount, CancellationToken.None).ConfigureAwait(false);
                 if (sdkAdapterBars.Count > 0)
                 {
-                    _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from SDK adapter for {ContractId}", 
+                    _logger.LogDebug("[HISTORICAL-BRIDGE] ✅ Retrieved {BarCount} bars from TopstepX adapter for {ContractId}", 
                         sdkAdapterBars.Count, contractId);
                     return sdkAdapterBars;
                 }
@@ -308,86 +312,81 @@ namespace BotCore.Services
         #region Private Helper Methods
 
         /// <summary>
-        /// Try to get historical bars using the HTTP adapter (preferred method)
+        /// Try to get historical bars using the TopstepX adapter service (preferred method)
+        /// Uses stdin/stdout command protocol, not HTTP
         /// </summary>
-        private async Task<List<BotCore.Models.Bar>> TryGetSdkAdapterBarsAsync(string contractId, int barCount)
+        private async Task<List<BotCore.Models.Bar>> TryGetSdkAdapterBarsAsync(string contractId, int barCount, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Using HTTP adapter for historical data");
+                // Check if TopstepX adapter is available
+                if (_topstepXAdapter == null)
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] TopstepX adapter not available, cannot fetch historical data");
+                    return new List<BotCore.Models.Bar>();
+                }
+
+                _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Using TopstepX adapter service for historical data");
 
                 // Map contract ID to symbol (CON.F.US.EP.Z25 -> ES, CON.F.US.ENQ.Z25 -> NQ)
                 var symbol = contractId.Contains("EP") ? "ES" : contractId.Contains("ENQ") ? "NQ" : contractId;
                 
-                // Call the HTTP adapter endpoint (localhost:8765/historical/{symbol})
-                var adapterUrl = $"http://localhost:8765/historical/{symbol}?timeframe=5&limit={barCount}";
-                _logger.LogInformation("[HISTORICAL-BRIDGE] Calling HTTP adapter: {Url}", adapterUrl);
-
-                var response = await _httpClient.GetAsync(adapterUrl).ConfigureAwait(false);
+                // Calculate how many days of data we need to get the requested bar count
+                // Assuming 5-minute bars, ~78 bars per trading session (6.5 hours)
+                // Request more days to ensure we have enough bars
+                var daysNeeded = Math.Max(1, (barCount / 78) + 2); // Add buffer
                 
-                if (!response.IsSuccessStatusCode)
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Fetching {Days} days of historical data for {Symbol} via TopstepX adapter (target: {BarCount} bars)", 
+                    daysNeeded, symbol, barCount);
+
+                // Call TopstepX adapter service using stdin/stdout commands
+                var historicalBars = await _topstepXAdapter.GetHistoricalBarsAsync(
+                    symbol, 
+                    days: daysNeeded, 
+                    intervalMinutes: 5,
+                    cancellationToken
+                ).ConfigureAwait(false);
+
+                if (historicalBars == null || historicalBars.Count == 0)
                 {
-                    _logger.LogWarning("[HISTORICAL-BRIDGE] HTTP adapter returned status: {StatusCode}", response.StatusCode);
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] TopstepX adapter returned no historical bars for {Symbol}", symbol);
                     return new List<BotCore.Models.Bar>();
                 }
 
-                var jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                
-                if (string.IsNullOrWhiteSpace(jsonResponse))
-                {
-                    _logger.LogWarning("[HISTORICAL-BRIDGE] HTTP adapter returned empty response");
-                    return new List<BotCore.Models.Bar>();
-                }
+                _logger.LogInformation("[HISTORICAL-BRIDGE] TopstepX adapter returned {Count} bars, converting to BotCore.Models.Bar format", historicalBars.Count);
 
-                // Parse JSON response from HTTP adapter
-                var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(jsonResponse);
-                
-                if (!data.TryGetProperty("success", out var successProp) || !successProp.GetBoolean())
-                {
-                    var errorMsg = data.TryGetProperty("error", out var errProp) ? errProp.GetString() : "Unknown error";
-                    _logger.LogWarning("[HISTORICAL-BRIDGE] HTTP adapter returned error: {Error}", errorMsg);
-                    return new List<BotCore.Models.Bar>();
-                }
-
-                if (!data.TryGetProperty("bars", out var barsArray))
-                {
-                    _logger.LogWarning("[HISTORICAL-BRIDGE] HTTP adapter response missing 'bars' property");
-                    return new List<BotCore.Models.Bar>();
-                }
-
+                // Convert HistoricalBar to BotCore.Models.Bar
                 var bars = new List<BotCore.Models.Bar>();
-
-                foreach (var barElement in barsArray.EnumerateArray())
+                
+                foreach (var histBar in historicalBars.TakeLast(barCount)) // Take only the requested number of most recent bars
                 {
                     try
                     {
                         var botBar = new BotCore.Models.Bar
                         {
-                            Symbol = contractId,
-                            Open = barElement.GetProperty("open").GetDecimal(),
-                            High = barElement.GetProperty("high").GetDecimal(),
-                            Low = barElement.GetProperty("low").GetDecimal(),
-                            Close = barElement.GetProperty("close").GetDecimal(),
-                            Volume = barElement.GetProperty("volume").GetInt32(),
-                            Ts = DateTime.TryParse(barElement.GetProperty("timestamp").GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ts) ? 
-                                ((DateTimeOffset)ts).ToUnixTimeMilliseconds() :
-                                ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds(),
-                            Start = DateTime.TryParse(barElement.GetProperty("timestamp").GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var startTime) ? startTime : DateTime.UtcNow
+                            Symbol = contractId, // Use original contract ID, not simplified symbol
+                            Open = histBar.Open,
+                            High = histBar.High,
+                            Low = histBar.Low,
+                            Close = histBar.Close,
+                            Volume = (int)histBar.Volume, // Convert long to int
+                            Ts = ((DateTimeOffset)histBar.Timestamp).ToUnixTimeMilliseconds(),
+                            Start = histBar.Timestamp
                         };
                         bars.Add(botBar);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "[HISTORICAL-BRIDGE] Failed to parse bar data");
+                        _logger.LogWarning(ex, "[HISTORICAL-BRIDGE] Failed to convert historical bar at {Timestamp}", histBar.Timestamp);
                     }
                 }
 
-                _logger.LogInformation("[HISTORICAL-BRIDGE] Retrieved {Count} bars via SDK adapter for {ContractId}", bars.Count, contractId);
+                _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Retrieved {Count} bars via TopstepX adapter for {ContractId}", bars.Count, contractId);
                 return bars;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[HISTORICAL-BRIDGE] SDK adapter bars failed for {ContractId}: {Error}", contractId, ex.Message);
+                _logger.LogError(ex, "[HISTORICAL-BRIDGE] TopstepX adapter fetch failed for {ContractId}: {Error}", contractId, ex.Message);
                 return new List<BotCore.Models.Bar>();
             }
         }
