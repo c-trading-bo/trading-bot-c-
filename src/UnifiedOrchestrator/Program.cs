@@ -279,7 +279,7 @@ internal static class Program
 
     /// <summary>
     /// Interactive prompt to select trading mode before bot starts
-    /// Allows user to choose between Historical Training, Live, or Dry-Run modes
+    /// Allows user to choose between Historical Training, Dry-Run, or Live modes
     /// </summary>
     private static async Task PromptForTradingModeAsync()
     {
@@ -296,21 +296,23 @@ internal static class Program
         Console.WriteLine("      - No API calls, no real money");
         Console.WriteLine("      - Comprehensive terminal audit logs");
         Console.WriteLine();
-        Console.WriteLine("  [2] 🚀 LIVE MODE");
-        Console.WriteLine("      - Real trading with TopstepX API");
-        Console.WriteLine("      - ⚠️  REAL MONEY AT RISK ⚠️");
-        Console.WriteLine("      - Requires DRY_RUN=0 in .env");
-        Console.WriteLine();
-        Console.WriteLine("  [3] 📝 DRY-RUN MODE (Paper Trading)");
-        Console.WriteLine("      - Real live market data");
+        Console.WriteLine("  [2] 📝 DRY-RUN MODE (Paper Trading)");
+        Console.WriteLine("      - Real live market data from TopstepX API");
         Console.WriteLine("      - Simulated trades (no real money)");
         Console.WriteLine("      - Safe for testing strategies");
+        Console.WriteLine("      - Models learn from paper trades");
         Console.WriteLine();
-        Console.WriteLine("  [Q] Quit");
+        Console.WriteLine("  [3] 🚀 LIVE MODE");
+        Console.WriteLine("      - Real trading with TopstepX API");
+        Console.WriteLine("      - ⚠️  REAL MONEY AT RISK ⚠️");
+        Console.WriteLine("      - Real orders sent to broker");
+        Console.WriteLine("      - Requires explicit YES confirmation");
         Console.WriteLine();
-        Console.Write("Enter your choice [1-3 or Q]: ");
+        Console.WriteLine("  [4] Exit");
+        Console.WriteLine();
+        Console.Write("Enter your choice [1-4]: ");
         
-        var input = Console.ReadLine()?.Trim().ToUpperInvariant();
+        var input = Console.ReadLine()?.Trim();
         
         switch (input)
         {
@@ -318,48 +320,49 @@ internal static class Program
                 Console.WriteLine("\n✅ Historical Training Mode selected");
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Force dry-run for historical
-                Console.WriteLine("📊 Bot will replay historical data and train models");
+                Console.WriteLine("📊 Bot will replay 90 days of historical data at high speed");
+                Console.WriteLine("🎓 Models will be trained on simulated trading");
                 break;
                 
             case "2":
-                Console.WriteLine("\n✅ Live Mode selected");
-                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
-                var currentDryRun = Environment.GetEnvironmentVariable("DRY_RUN");
-                if (currentDryRun == "1")
-                {
-                    Console.WriteLine("\n⚠️  WARNING: DRY_RUN is currently enabled in .env");
-                    Console.Write("Do you want to disable DRY_RUN and trade with REAL MONEY? [yes/NO]: ");
-                    var confirm = Console.ReadLine()?.Trim().ToLowerInvariant();
-                    if (confirm == "yes")
-                    {
-                        Environment.SetEnvironmentVariable("DRY_RUN", "0");
-                        Console.WriteLine("🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
-                    }
-                    else
-                    {
-                        Console.WriteLine("✅ Keeping DRY_RUN enabled (paper trading)");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("🚨 LIVE TRADING MODE - REAL MONEY AT RISK 🚨");
-                }
-                break;
-                
-            case "3":
                 Console.WriteLine("\n✅ Dry-Run Mode (Paper Trading) selected");
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1");
-                Console.WriteLine("📝 Bot will use live data but simulate trades");
+                Console.WriteLine("📝 Bot will connect to TopstepX API for live data");
+                Console.WriteLine("💡 Trades will be simulated (paper trading)");
                 break;
                 
-            case "Q":
+            case "3":
+                Console.WriteLine("\n⚠️  WARNING: You are about to enable LIVE TRADING with REAL MONEY");
+                Console.WriteLine("⚠️  Real orders will be sent to TopstepX");
+                Console.WriteLine("⚠️  You can lose real money");
+                Console.WriteLine();
+                Console.Write("Type YES in all capitals to confirm live trading: ");
+                var confirm = Console.ReadLine()?.Trim();
+                if (confirm == "YES")
+                {
+                    Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                    Environment.SetEnvironmentVariable("DRY_RUN", "0");
+                    Console.WriteLine("\n🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
+                    Console.WriteLine("💰 Real orders will be placed");
+                }
+                else
+                {
+                    Console.WriteLine("\n❌ Live trading NOT enabled (you must type YES exactly)");
+                    Console.WriteLine("🔄 Returning to menu...");
+                    Console.WriteLine();
+                    await PromptForTradingModeAsync().ConfigureAwait(false); // Return to menu
+                    return;
+                }
+                break;
+                
+            case "4":
                 Console.WriteLine("\n👋 Exiting...");
                 Environment.Exit(0);
                 break;
                 
             default:
-                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, 3, or Q");
+                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, 3, or 4");
                 await PromptForTradingModeAsync().ConfigureAwait(false); // Recursive retry
                 return;
         }
