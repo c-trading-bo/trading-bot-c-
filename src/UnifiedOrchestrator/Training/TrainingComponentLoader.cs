@@ -30,8 +30,30 @@ public sealed class TrainingComponentLoader
         string? componentsFilePath = null)
     {
         _logger = logger;
-        _componentsFilePath = componentsFilePath ??
-            Path.Combine(Directory.GetCurrentDirectory(), "src", "UnifiedOrchestrator", "training-components.json");
+        
+        // Default path: check multiple locations
+        if (componentsFilePath == null)
+        {
+            var locations = new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), "training-components.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "src", "UnifiedOrchestrator", "training-components.json"),
+                Path.Combine(AppContext.BaseDirectory, "training-components.json")
+            };
+            
+            foreach (var location in locations)
+            {
+                if (File.Exists(location))
+                {
+                    componentsFilePath = location;
+                    break;
+                }
+            }
+            
+            componentsFilePath ??= locations[0]; // Fallback to first location
+        }
+        
+        _componentsFilePath = componentsFilePath;
     }
 
     /// <summary>
