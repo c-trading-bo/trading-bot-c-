@@ -221,11 +221,22 @@ namespace TradingBot.BotCore.Services
 
         /// <summary>
         /// Auto-refresh seed data if stale. Runs during futures maintenance window (5 PM ET daily, skip weekends).
+        /// Can be disabled via DISABLE_SEED_AUTO_REFRESH environment variable to use only cached historical bars.
         /// </summary>
         private async Task<bool> RefreshSeedIfStaleAsync(CancellationToken cancellationToken)
         {
             try
             {
+                // Check if auto-refresh is disabled (for using only cached historical bars without API calls)
+                var disableAutoRefresh = Environment.GetEnvironmentVariable("DISABLE_SEED_AUTO_REFRESH");
+                if (!string.IsNullOrEmpty(disableAutoRefresh) && 
+                    (disableAutoRefresh.Equals("true", StringComparison.OrdinalIgnoreCase) || 
+                     disableAutoRefresh.Equals("1", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.LogInformation("🔒 Seed auto-refresh is disabled (DISABLE_SEED_AUTO_REFRESH=true) - using cached historical bars only");
+                    return false;
+                }
+                
                 var now = DateTimeOffset.UtcNow;
                 var nowEt = TimeZoneInfo.ConvertTime(now, _easternTimeZone);
 
