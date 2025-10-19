@@ -17,6 +17,7 @@ internal sealed class InternalScheduler : BackgroundService
 {
     private readonly ILogger<InternalScheduler> _logger;
     private readonly HistoricalTrainingOrchestrator _trainingOrchestrator;
+    private readonly Training.TrainingOrchestratorService? _enhancedOrchestrator;
     private readonly ResourcePreCheckService _resourceChecker;
     private readonly TrainingAlertService _alertService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
@@ -37,14 +38,21 @@ internal sealed class InternalScheduler : BackgroundService
         ILogger<InternalScheduler> logger,
         HistoricalTrainingOrchestrator trainingOrchestrator,
         ResourcePreCheckService resourceChecker,
-        TrainingAlertService alertService)
+        TrainingAlertService alertService,
+        Training.TrainingOrchestratorService? enhancedOrchestrator = null)
     {
         _logger = logger;
         _trainingOrchestrator = trainingOrchestrator;
+        _enhancedOrchestrator = enhancedOrchestrator;
         _resourceChecker = resourceChecker;
         _alertService = alertService;
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state", "training_checkpoint.json");
+        
+        if (_enhancedOrchestrator != null)
+        {
+            _logger.LogInformation("[LAB] Using enhanced TrainingOrchestratorService with progress tracking");
+        }
         
         // Initialize Eastern timezone - handles DST automatically
         try
@@ -151,23 +159,67 @@ internal sealed class InternalScheduler : BackgroundService
 
                                 try
                                 {
-                                    // Alert training started
-                                    await _alertService.AlertTrainingStartedAsync(
-                                        "training_session",
-                                        "N/A",
-                                        new Dictionary<string, object>(),
-                                        stoppingToken).ConfigureAwait(false);
+                                    // Use enhanced orchestrator if available, fallback to legacy
+                                    if (_enhancedOrchestrator != null)
+                                    {
+                                        _logger.LogInformation("[LAB] Starting enhanced training session with progress tracking");
+                                        
+                                        // Start session
+                                        var session = await _enhancedOrchestrator.StartTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
+                                        
+                                        // Alert training started
+                                        await _alertService.AlertTrainingStartedAsync(
+                                            session.SessionId,
+                                            "N/A",
+                                            new Dictionary<string, object>
+                                            {
+                                                ["TotalComponents"] = session.ComponentsTotal
+                                            },
+                                            stoppingToken).ConfigureAwait(false);
+                                        
+                                        // Run health checks
+                                        if (!await _enhancedOrchestrator.RunPreTrainingHealthChecksAsync(session, _currentTrainingCts.Token).ConfigureAwait(false))
+                                        {
+                                            throw new InvalidOperationException("Pre-training health checks failed");
+                                        }
+                                        
+                                        // Execute training phases
+                                        await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Heavy, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Medium, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Light, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        
+                                        // Run validation and promotion
+                                        await _enhancedOrchestrator.RunPostTrainingValidationAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        await _enhancedOrchestrator.EvaluateAndPromoteModelsAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        
+                                        // Generate summary
+                                        var summary = await _enhancedOrchestrator.GenerateSessionSummaryAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        
+                                        // Cleanup
+                                        await _enhancedOrchestrator.CleanupAndFinalizeAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        
+                                        _logger.LogInformation("[LAB] Enhanced training session completed successfully");
+                                    }
+                                    else
+                                    {
+                                        // Fallback to legacy orchestrator
+                                        await _alertService.AlertTrainingStartedAsync(
+                                            "training_session",
+                                            "N/A",
+                                            new Dictionary<string, object>(),
+                                            stoppingToken).ConfigureAwait(false);
 
-                                    await _trainingOrchestrator.RunTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
-                                    _logger.LogInformation("[LAB] Training completed successfully");
-                                    
-                                    // Alert success
-                                    await _alertService.AlertTrainingSuccessAsync(
-                                        "training_session",
-                                        (DateTime.UtcNow - _lastTrainingStart.Value).TotalMinutes,
-                                        0, 0,
-                                        new Dictionary<string, object>(),
-                                        stoppingToken).ConfigureAwait(false);
+                                        await _trainingOrchestrator.RunTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
+                                        _logger.LogInformation("[LAB] Training completed successfully");
+                                        
+                                        // Alert success
+                                        await _alertService.AlertTrainingSuccessAsync(
+                                            "training_session",
+                                            (DateTime.UtcNow - _lastTrainingStart.Value).TotalMinutes,
+                                            0, 0,
+                                            new Dictionary<string, object>(),
+                                            stoppingToken).ConfigureAwait(false);
+                                    }
                                 }
                                 catch (OperationCanceledException) when (_currentTrainingCts.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
                                 {
