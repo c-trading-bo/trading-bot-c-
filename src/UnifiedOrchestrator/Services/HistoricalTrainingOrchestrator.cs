@@ -121,7 +121,14 @@ internal sealed class HistoricalTrainingOrchestrator
                 _metricsCollector.StopTimer("DataLoading");
                 _metricsCollector.RecordMetric("HistoricalBarsLoaded", result.HistoricalBarsLoaded);
 
-                // Step 2: Load recent experiences (last 7 days)
+                // Step 2: Cleanup old experiences (keep last 90 days only)
+                if (_experienceRepository != null)
+                {
+                    _logger.LogInformation("[LAB] Cleaning up old experiences (retention: 90 days)...");
+                    await _experienceRepository.CleanupOldExperiencesAsync(90).ConfigureAwait(false);
+                }
+                
+                // Step 3: Load recent experiences (last 7 days)
                 _logger.LogInformation("[LAB] Loading experiences - started");
                 _metricsCollector.StartTimer("ExperienceLoading");
                 
@@ -131,7 +138,7 @@ internal sealed class HistoricalTrainingOrchestrator
                 _metricsCollector.StopTimer("ExperienceLoading");
                 _metricsCollector.RecordMetric("ExperiencesLoaded", result.ExperiencesLoaded);
 
-                // Step 3: Data integrity verification
+                // Step 4: Data integrity verification
                 _logger.LogInformation("[LAB] Verifying data integrity - started");
                 var dataVerification = await _dataIntegrityService.VerifyTrainingDataAsync(
                     historicalData,
