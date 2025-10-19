@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -8,26 +9,25 @@ using TradingBot.UnifiedOrchestrator.Services;
 namespace TradingBot.UnifiedOrchestrator.Scheduling;
 
 /// <summary>
-/// Internal Training Scheduler - Self-contained scheduling system for Lab training
-/// Runs automatically on Sunday 12:00 PM - 5:45 PM ET without external schedulers
-/// No Task Scheduler, no cron jobs - just pure self-contained scheduling
+/// Internal Training Scheduler - Production-grade scheduling system for Lab training
+/// Runs automatically on Sunday 12:00 PM - 5:45 PM America/New_York timezone
+/// Features: DST handling, lock files, health checks, watchdog, proper event-driven architecture
 /// </summary>
 internal sealed class InternalScheduler : BackgroundService
 {
     private readonly ILogger<InternalScheduler> _logger;
     private readonly HistoricalTrainingOrchestrator _trainingOrchestrator;
-    private bool _trainingInProgress = false;
+    private readonly SemaphoreSlim _trainingLock = new(1, 1);
     private bool _idleLogged = false;
     private DateTime? _lastTrainingStart = null;
+    private readonly string _lockFilePath;
+    private readonly TimeZoneInfo _easternTimeZone;
 
     // Training window configuration (Eastern Time)
     private readonly TimeSpan TrainingWindowStart = new(12, 0, 0);  // 12:00 PM ET
     private readonly TimeSpan TrainingWindowEnd = new(17, 45, 0);   // 5:45 PM ET
     private readonly DayOfWeek TrainingDay = DayOfWeek.Sunday;
-
-    // Optional: Daily maintenance window (5:00-5:15 PM ET Monday-Thursday)
-    private readonly TimeSpan MaintenanceWindowStart = new(17, 0, 0);  // 5:00 PM ET
-    private readonly TimeSpan MaintenanceWindowEnd = new(17, 15, 0);   // 5:15 PM ET
+    private readonly TimeSpan MaxTrainingDuration = TimeSpan.FromHours(5); // 5 hour watchdog
 
     public InternalScheduler(
         ILogger<InternalScheduler> logger,
@@ -35,111 +35,312 @@ internal sealed class InternalScheduler : BackgroundService
     {
         _logger = logger;
         _trainingOrchestrator = trainingOrchestrator;
+        _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         
-        _logger.LogInformation("[LAB] Internal scheduler initialized - No external Task Scheduler needed");
+        // Initialize Eastern timezone - handles DST automatically
+        try
+        {
+            _easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+            _logger.LogInformation("[LAB] Scheduler initialized with America/New_York timezone (DST-aware)");
+        }
+        catch
+        {
+            // Fallback for systems without timezone database
+            _easternTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                "Eastern", TimeSpan.FromHours(-5), "Eastern Time", "EST");
+            _logger.LogWarning("[LAB] Using fallback timezone (EST -5). Install tzdata for proper DST handling.");
+        }
+        
+        // Clean up stale lock files on startup
+        CleanupStaleLockFile();
+        
+        _logger.LogInformation("[LAB] Scheduler initialized - Production-grade with lock files, health checks, watchdog");
     }
 
     /// <summary>
-    /// Main scheduler loop - runs continuously while process is alive
-    /// Checks clock every few minutes and starts training when it's time
+    /// Main scheduler loop - event-driven with proper shutdown handling
+    /// Uses WaitHandle for efficient sleeping instead of busy loop
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("[LAB] Scheduler starting - will train every Sunday 12:00 PM - 5:45 PM ET");
+        _logger.LogInformation("[LAB] Scheduler starting - Training Sunday 12:00 PM - 5:45 PM America/New_York");
 
-        while (!stoppingToken.IsCancellationRequested)
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5)); // Event-driven, not busy loop
+
+        try
         {
-            try
+            do
             {
-                // Step 1: Get current time in Eastern Time
-                var currentTime = GetEasternTime();
-                
-                // Step 2: Check if it's training time
-                var isTrainingTime = IsTrainingTime(currentTime);
-
-                if (isTrainingTime)
+                try
                 {
-                    // Reset idle flag when entering training time
-                    if (_idleLogged)
-                    {
-                        _idleLogged = false;
-                    }
+                    var easternTime = GetEasternTime();
+                    var isTrainingTime = IsTrainingTime(easternTime);
 
-                    // Step 3: Start training if not already in progress
-                    if (!_trainingInProgress)
+                    if (isTrainingTime)
                     {
-                        _logger.LogInformation("[LAB] Training window OPEN - Starting training session");
-                        _trainingInProgress = true;
-                        _lastTrainingStart = DateTime.UtcNow;
+                        if (_idleLogged)
+                        {
+                            _idleLogged = false;
+                        }
 
-                        // Start training in background task so scheduler loop can continue
-                        _ = Task.Run(async () =>
+                        // Use semaphore for proper concurrency control
+                        if (await _trainingLock.WaitAsync(0, stoppingToken).ConfigureAwait(false))
                         {
                             try
                             {
-                                await _trainingOrchestrator.RunTrainingSessionAsync(stoppingToken).ConfigureAwait(false);
+                                // Check lock file - prevent concurrent runs
+                                if (File.Exists(_lockFilePath))
+                                {
+                                    var lockInfo = await ReadLockFileAsync().ConfigureAwait(false);
+                                    if (IsLockStale(lockInfo))
+                                    {
+                                        _logger.LogWarning("[LAB] Stale lock detected - cleaning up and proceeding");
+                                        CleanupStaleLockFile();
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation("[LAB] Training already in progress (lock file exists)");
+                                        continue;
+                                    }
+                                }
+
+                                // Pre-training health checks
+                                if (!await RunHealthChecksAsync(stoppingToken).ConfigureAwait(false))
+                                {
+                                    _logger.LogError("[LAB] Health checks failed - skipping training");
+                                    continue;
+                                }
+
+                                _logger.LogInformation("[LAB] Training window OPEN - Starting training with watchdog");
                                 
-                                _logger.LogInformation("[LAB] Training session complete - Entering idle mode");
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "[LAB] ERROR: Training session failed - {Error}", ex.Message);
+                                // Create lock file
+                                await CreateLockFileAsync().ConfigureAwait(false);
+                                _lastTrainingStart = DateTime.UtcNow;
+
+                                // Run training with watchdog timeout
+                                using var trainingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                                trainingCts.CancelAfter(MaxTrainingDuration);
+
+                                try
+                                {
+                                    await _trainingOrchestrator.RunTrainingSessionAsync(trainingCts.Token).ConfigureAwait(false);
+                                    _logger.LogInformation("[LAB] Training completed successfully");
+                                }
+                                catch (OperationCanceledException) when (trainingCts.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
+                                {
+                                    _logger.LogError("[LAB] Training TIMEOUT - exceeded {Hours} hour maximum", MaxTrainingDuration.TotalHours);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "[LAB] Training failed: {Error}", ex.Message);
+                                }
+                                finally
+                                {
+                                    // Always clean up lock file
+                                    CleanupStaleLockFile();
+                                }
                             }
                             finally
                             {
-                                _trainingInProgress = false;
+                                _trainingLock.Release();
                             }
-                        }, stoppingToken);
+                        }
+                        else
+                        {
+                            var elapsed = DateTime.UtcNow - (_lastTrainingStart ?? DateTime.UtcNow);
+                            _logger.LogInformation("[LAB] Training in progress: {Elapsed:F0} minutes", elapsed.TotalMinutes);
+                        }
                     }
                     else
                     {
-                        // Step 4: Training is in progress - log status periodically
-                        var elapsed = DateTime.UtcNow - (_lastTrainingStart ?? DateTime.UtcNow);
-                        _logger.LogInformation("[LAB] Training in progress: {Elapsed:F0} minutes elapsed", 
-                            elapsed.TotalMinutes);
+                        // Idle mode - log once and use efficient waiting
+                        if (!_idleLogged)
+                        {
+                            var nextTraining = GetNextTrainingWindow(easternTime);
+                            _logger.LogInformation("[LAB] Idle - next training: {NextTraining}",
+                                nextTraining.ToString("dddd MMM dd, h:mm tt") + " ET");
+                            _idleLogged = true;
+                        }
                     }
-
-                    // Step 5: Sleep for 5 minutes during training time to check progress
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
                 }
-                else
+                catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
-                    // Step 6: Not training time - enter idle mode
-                    if (!_idleLogged)
-                    {
-                        var nextTraining = GetNextTrainingWindow(currentTime);
-                        _logger.LogInformation("[LAB] Lab idle - next training: {NextTraining}", 
-                            nextTraining.ToString("dddd MMM dd, h:mm tt") + " ET");
-                        _idleLogged = true;
-                    }
-
-                    // Step 7: Sleep for 1 hour during idle to prevent CPU burn
-                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken).ConfigureAwait(false);
+                    _logger.LogError(ex, "[LAB] Scheduler error: {Error}", ex.Message);
+                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException)
+            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("[LAB] Scheduler stopping - shutdown requested");
+        }
+        finally
+        {
+            CleanupStaleLockFile();
+            _logger.LogInformation("[LAB] Scheduler stopped");
+        }
+    }
+
+    /// <summary>
+    /// Run pre-training health checks - must pass before starting training
+    /// </summary>
+    private async Task<bool> RunHealthChecksAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LAB] Running pre-training health checks...");
+        
+        try
+        {
+            // Check 1: Sufficient disk space (require at least 10GB free)
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+            if (Directory.Exists(dataPath))
             {
-                // Expected during shutdown
-                _logger.LogInformation("[LAB] Scheduler stopping - shutdown requested");
-                break;
+                var drive = new DriveInfo(Path.GetPathRoot(dataPath) ?? "/");
+                var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                if (freeSpaceGB < 10)
+                {
+                    _logger.LogError("[LAB] Health check FAILED: Insufficient disk space ({Free:F1} GB < 10 GB required)", freeSpaceGB);
+                    return false;
+                }
+                _logger.LogInformation("[LAB] ✓ Disk space: {Free:F1} GB available", freeSpaceGB);
+            }
+
+            // Check 2: Model registry accessible
+            var modelRegistry = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+            Directory.CreateDirectory(modelRegistry); // Ensure it exists
+            var testFile = Path.Combine(modelRegistry, ".health_check");
+            try
+            {
+                await File.WriteAllTextAsync(testFile, DateTime.UtcNow.ToString(), cancellationToken).ConfigureAwait(false);
+                File.Delete(testFile);
+                _logger.LogInformation("[LAB] ✓ Model registry writable");
             }
             catch (Exception ex)
             {
-                // Step 8: Handle errors gracefully - do not crash scheduler
-                _logger.LogError(ex, "[LAB] ERROR: Scheduler encountered error - {Error}", ex.Message);
-                _logger.LogError(ex, "[LAB] ERROR: Stack trace - {StackTrace}", ex.StackTrace);
-                
-                // Sleep 10 seconds after error to prevent rapid failure loop
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken).ConfigureAwait(false);
+                _logger.LogError(ex, "[LAB] Health check FAILED: Model registry not writable");
+                return false;
             }
+
+            // Check 3: Historical data directory exists
+            var historicalDataPath = Path.Combine(dataPath, "historical");
+            if (!Directory.Exists(historicalDataPath))
+            {
+                _logger.LogWarning("[LAB] Historical data directory missing - will be created");
+                Directory.CreateDirectory(historicalDataPath);
+            }
+            _logger.LogInformation("[LAB] ✓ Historical data directory accessible");
+
+            // Check 4: Experiences database/directory exists
+            var experiencesPath = Path.Combine("state", "learning");
+            if (!Directory.Exists(experiencesPath))
+            {
+                _logger.LogWarning("[LAB] Experiences directory missing - training may have limited data");
+                Directory.CreateDirectory(experiencesPath);
+            }
+            _logger.LogInformation("[LAB] ✓ Experiences directory accessible");
+
+            _logger.LogInformation("[LAB] All health checks passed");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] Health checks failed with exception: {Error}", ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Create lock file to prevent concurrent training runs
+    /// </summary>
+    private async Task CreateLockFileAsync()
+    {
+        var lockInfo = new
+        {
+            PID = Environment.ProcessId,
+            StartTime = DateTime.UtcNow,
+            MachineName = Environment.MachineName
+        };
+        
+        var lockContent = System.Text.Json.JsonSerializer.Serialize(lockInfo);
+        await File.WriteAllTextAsync(_lockFilePath, lockContent).ConfigureAwait(false);
+        _logger.LogInformation("[LAB] Lock file created: {LockFile}", _lockFilePath);
+    }
+
+    /// <summary>
+    /// Read lock file information
+    /// </summary>
+    private async Task<(int PID, DateTime StartTime)?> ReadLockFileAsync()
+    {
+        try
+        {
+            if (!File.Exists(_lockFilePath))
+                return null;
+
+            var content = await File.ReadAllTextAsync(_lockFilePath).ConfigureAwait(false);
+            using var doc = System.Text.Json.JsonDocument.Parse(content);
+            var root = doc.RootElement;
+            
+            return (
+                root.GetProperty("PID").GetInt32(),
+                root.GetProperty("StartTime").GetDateTime()
+            );
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Check if lock file is stale (process no longer running or > 6 hours old)
+    /// </summary>
+    private bool IsLockStale((int PID, DateTime StartTime)? lockInfo)
+    {
+        if (!lockInfo.HasValue)
+            return true;
+
+        // Check if lock is older than 6 hours (training should never take this long)
+        if ((DateTime.UtcNow - lockInfo.Value.StartTime).TotalHours > 6)
+        {
+            _logger.LogWarning("[LAB] Lock file is stale (> 6 hours old)");
+            return true;
         }
 
-        _logger.LogInformation("[LAB] Scheduler stopped");
+        // Check if process is still running
+        try
+        {
+            var process = System.Diagnostics.Process.GetProcessById(lockInfo.Value.PID);
+            return false; // Process exists, lock is valid
+        }
+        catch
+        {
+            _logger.LogWarning("[LAB] Lock file process {PID} no longer running", lockInfo.Value.PID);
+            return true; // Process doesn't exist, lock is stale
+        }
+    }
+
+    /// <summary>
+    /// Clean up stale lock file
+    /// </summary>
+    private void CleanupStaleLockFile()
+    {
+        try
+        {
+            if (File.Exists(_lockFilePath))
+            {
+                File.Delete(_lockFilePath);
+                _logger.LogInformation("[LAB] Lock file cleaned up");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Failed to clean up lock file: {Error}", ex.Message);
+        }
     }
 
     /// <summary>
     /// Check if current time falls within training window
-    /// Training window: Sunday 12:00 PM - 5:45 PM ET
+    /// Training window: Sunday 12:00 PM - 5:45 PM America/New_York (DST-aware)
     /// </summary>
     private bool IsTrainingTime(DateTime easternTime)
     {
@@ -156,26 +357,7 @@ internal sealed class InternalScheduler : BackgroundService
     }
 
     /// <summary>
-    /// Check if current time is in daily maintenance window (OPTIONAL)
-    /// Maintenance window: Monday-Thursday 5:00-5:15 PM ET
-    /// </summary>
-    private bool IsMaintenanceTime(DateTime easternTime)
-    {
-        var dayOfWeek = easternTime.DayOfWeek;
-        var timeOfDay = easternTime.TimeOfDay;
-
-        // Skip Friday (market closes at 5 PM Friday)
-        if (dayOfWeek == DayOfWeek.Friday || dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
-        {
-            return false;
-        }
-
-        return timeOfDay >= MaintenanceWindowStart &&
-               timeOfDay < MaintenanceWindowEnd;
-    }
-
-    /// <summary>
-    /// Calculate next Sunday training window
+    /// Calculate next Sunday training window in Eastern Time
     /// </summary>
     private DateTime GetNextTrainingWindow(DateTime currentEasternTime)
     {
@@ -205,19 +387,17 @@ internal sealed class InternalScheduler : BackgroundService
     }
 
     /// <summary>
-    /// Get current time in Eastern Time (handles DST properly)
+    /// Get current time in America/New_York timezone (handles DST automatically)
     /// </summary>
     private DateTime GetEasternTime()
     {
-        try
-        {
-            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
-            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, easternZone);
-        }
-        catch
-        {
-            // Fallback to UTC-5 (EST) if timezone not found
-            return DateTime.UtcNow.AddHours(-5);
-        }
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _easternTimeZone);
+    }
+
+    public override void Dispose()
+    {
+        _trainingLock?.Dispose();
+        CleanupStaleLockFile();
+        base.Dispose();
     }
 }
