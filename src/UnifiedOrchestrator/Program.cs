@@ -284,55 +284,35 @@ internal static class Program
     private static async Task PromptForTradingModeAsync()
     {
         Console.WriteLine(@"
-================================================================================
-                    🎯 TRADING MODE SELECTION 🎯
-================================================================================
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    TopstepX Trading Bot - Mode Selection                      ║
+╚════════════════════════════════════════════════════════════════════════════════╝
 ");
-        Console.WriteLine("Please select your trading mode:");
+        Console.WriteLine("  [1] Terminal Mode (Live Trading)");
+        Console.WriteLine("      • Real-time market execution");
+        Console.WriteLine("      • Inference-only operations");
+        Console.WriteLine("      • Safety systems active");
+        Console.WriteLine("      • Model loading from registry");
         Console.WriteLine();
-        Console.WriteLine("  [1] 📊 HISTORICAL TRAINING MODE");
-        Console.WriteLine("      - Replay 90 days of historical data at high speed");
-        Console.WriteLine("      - Train models on simulated trading");
-        Console.WriteLine("      - No API calls, no real money");
-        Console.WriteLine("      - Comprehensive terminal audit logs");
+        Console.WriteLine("  [2] Lab Mode (Historical Training)");
+        Console.WriteLine("      • Historical data replay");
+        Console.WriteLine("      • Model training & optimization");
+        Console.WriteLine("      • Scheduled Sunday 12:00 PM - 5:45 PM ET");
+        Console.WriteLine("      • No live trading");
         Console.WriteLine();
-        Console.WriteLine("  [2] 📝 DRY-RUN MODE (Paper Trading)");
-        Console.WriteLine("      - Real live market data from TopstepX API");
-        Console.WriteLine("      - Simulated trades (no real money)");
-        Console.WriteLine("      - Safe for testing strategies");
-        Console.WriteLine("      - Models learn from paper trades");
+        Console.WriteLine("  [3] Backtest Mode (Strategy Testing)");
+        Console.WriteLine("      • Historical strategy validation");
+        Console.WriteLine("      • Performance metrics");
+        Console.WriteLine("      • No training or live execution");
         Console.WriteLine();
-        Console.WriteLine("  [3] 🚀 LIVE MODE");
-        Console.WriteLine("      - Real trading with TopstepX API");
-        Console.WriteLine("      - ⚠️  REAL MONEY AT RISK ⚠️");
-        Console.WriteLine("      - Real orders sent to broker");
-        Console.WriteLine("      - Requires explicit YES confirmation");
-        Console.WriteLine();
-        Console.WriteLine("  [4] Exit");
-        Console.WriteLine();
-        Console.Write("Enter your choice [1-4]: ");
+        Console.Write("Select mode [1-3]: ");
         
         var input = Console.ReadLine()?.Trim();
         
         switch (input)
         {
             case "1":
-                Console.WriteLine("\n✅ Historical Training Mode selected");
-                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
-                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Force dry-run for historical
-                Console.WriteLine("📊 Bot will replay 90 days of historical data at high speed");
-                Console.WriteLine("🎓 Models will be trained on simulated trading");
-                break;
-                
-            case "2":
-                Console.WriteLine("\n✅ Dry-Run Mode (Paper Trading) selected");
-                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
-                Environment.SetEnvironmentVariable("DRY_RUN", "1");
-                Console.WriteLine("📝 Bot will connect to TopstepX API for live data");
-                Console.WriteLine("💡 Trades will be simulated (paper trading)");
-                break;
-                
-            case "3":
+                // Terminal Mode (Live Trading)
                 Console.WriteLine("\n⚠️  WARNING: You are about to enable LIVE TRADING with REAL MONEY");
                 Console.WriteLine("⚠️  Real orders will be sent to TopstepX");
                 Console.WriteLine("⚠️  You can lose real money");
@@ -341,9 +321,11 @@ internal static class Program
                 var confirm = Console.ReadLine()?.Trim();
                 if (confirm == "YES")
                 {
+                    Console.WriteLine("\n✅ Terminal Mode (Live Trading) activated");
                     Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                    Environment.SetEnvironmentVariable("LAB_MODE", "0");
                     Environment.SetEnvironmentVariable("DRY_RUN", "0");
-                    Console.WriteLine("\n🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
+                    Console.WriteLine("🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
                     Console.WriteLine("💰 Real orders will be placed");
                 }
                 else
@@ -356,13 +338,49 @@ internal static class Program
                 }
                 break;
                 
-            case "4":
-                Console.WriteLine("\n👋 Exiting...");
-                Environment.Exit(0);
+            case "2":
+                // Lab Mode (Historical Training)
+                Console.WriteLine(@"
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                         🧪 LAB MODE ACTIVATED 🧪                          ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  LAB MODE is the automated training environment - SEPARATE from Live      ║
+║                                                                            ║
+║  ✓ Scheduled training: Sundays 12:00 PM - 5:45 PM ET (DST-aware)         ║
+║  ✓ Pre-training health checks (disk, RAM, CPU, data integrity)            ║
+║  ✓ Retry logic with exponential backoff (5m, 15m, 30m)                    ║
+║  ✓ Watchdog timeout enforcement (5 hour maximum)                          ║
+║  ✓ Post-training canary tests before model promotion                      ║
+║  ✓ Artifact manifests with SHA256 checksums                               ║
+║  ✓ Atomic file operations and rollback safety                             ║
+║  ✓ Structured logging with unique run IDs                                 ║
+║  ✓ Alert notifications for all training events                            ║
+║  ✓ Graceful shutdown with checkpoint saving                               ║
+║  ✓ Metrics collection and export                                          ║
+║                                                                            ║
+║  ⚠️  NO LIVE TRADING in Lab mode - Training pipeline only                 ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+");
+                Environment.SetEnvironmentVariable("LAB_MODE", "1");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
+                Console.WriteLine("🧪 Lab scheduler will activate and wait for Sunday training window");
+                break;
+
+            case "3":
+                // Backtest Mode (Strategy Testing)
+                Console.WriteLine("\n✅ Backtest Mode (Strategy Testing) selected");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
+                Environment.SetEnvironmentVariable("LAB_MODE", "0");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1");
+                Console.WriteLine("📊 Bot will replay historical data for strategy validation");
+                Console.WriteLine("📈 Performance metrics will be calculated");
                 break;
                 
             default:
-                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, 3, or 4");
+                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, or 3");
                 await PromptForTradingModeAsync().ConfigureAwait(false); // Recursive retry
                 return;
         }
@@ -615,14 +633,21 @@ Please check the configuration and ensure all required services are registered.
             }
         }
 
-        // Priority 2: HISTORICAL_MODE environment variable (legacy support)
+        // Priority 2: LAB_MODE environment variable
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
+        {
+            return BotMode.Lab;
+        }
+
+        // Priority 3: HISTORICAL_MODE environment variable (legacy support)
         var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
         if (historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true")
         {
             return BotMode.Lab;
         }
 
-        // Priority 3: Check if Sunday (Lab runs on Sunday)
+        // Priority 4: Check if Sunday (Lab runs on Sunday)
         var now = DateTime.Now;
         if (now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 12 && now.Hour < 18)
         {
@@ -631,7 +656,7 @@ Please check the configuration and ensure all required services are registered.
             return BotMode.Lab;
         }
 
-        // Priority 4: Check RL_RUNTIME_MODE
+        // Priority 5: Check RL_RUNTIME_MODE
         var rlModeStr = Environment.GetEnvironmentVariable("RL_RUNTIME_MODE");
         if (!string.IsNullOrEmpty(rlModeStr))
         {
@@ -2384,6 +2409,25 @@ Please check the configuration and ensure all required services are registered.
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
         Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
+        
+        // Production-ready training infrastructure services
+        Console.WriteLine("   ✓ Registering TrainingManifestService (artifact manifests with checksums)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingManifestService>();
+        
+        Console.WriteLine("   ✓ Registering DataIntegrityService (data completeness verification)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DataIntegrityService>();
+        
+        Console.WriteLine("   ✓ Registering TrainingMetricsCollector (observability and metrics)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingMetricsCollector>();
+        
+        Console.WriteLine("   ✓ Registering TrainingAlertService (notifications and structured alerts)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
+        
+        Console.WriteLine("   ✓ Registering TrainingRetryService (exponential backoff retry logic)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRetryService>();
+        
+        Console.WriteLine("   ✓ Registering ResourcePreCheckService (pre-training resource validation)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
         
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");

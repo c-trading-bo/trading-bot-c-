@@ -392,13 +392,13 @@ internal class EnhancedBacktestLearningService : BackgroundService
                     strategy, symbol, lookbackDays);
                 
                 // Get bars from seed cache (already loaded at startup - no API call!)
-                if (!_seedBars.ContainsKey(symbol))
+                if (_seedBars == null || !_seedBars.TryGetValue(symbol, out var symbolBars) || symbolBars == null)
                 {
                     _logger.LogWarning("[UNIFIED-HISTORICAL-REPLAY] No seed data for {Symbol}, skipping {Strategy}", symbol, strategy);
                     continue;
                 }
                 
-                var historicalBars = _seedBars[symbol];
+                var historicalBars = symbolBars;
                 
                 _logger.LogInformation("✅ [UNIFIED-HISTORICAL-REPLAY] Using {Count} cached bars for {Symbol}, running FULL 17-component pipeline...", 
                     historicalBars.Count, symbol);
@@ -1605,7 +1605,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
     /// Load historical bars using TopstepX adapter service for real market data
     /// CRITICAL: Uses seed cache data (loaded at startup from disk) - NO API CALLS
     /// </summary>
-    private async Task<List<Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    private Task<List<Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
         try
         {
@@ -1638,7 +1638,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
                 if (bars.Count > 0)
                 {
                     _logger.LogInformation("[UNIFIED-BACKTEST] ✅ Loaded {Count} bars from seed cache for {Symbol}", bars.Count, config.Symbol);
-                    return bars;
+                    return Task.FromResult(bars);
                 }
                 else
                 {
@@ -1652,7 +1652,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
                 
             // No fallback - if seed data not available, return empty
             _logger.LogWarning("[UNIFIED-BACKTEST] No historical data available - returning empty bar list");
-            return new List<Bar>();
+            return Task.FromResult(new List<Bar>());
         }
         catch (Exception ex)
         {

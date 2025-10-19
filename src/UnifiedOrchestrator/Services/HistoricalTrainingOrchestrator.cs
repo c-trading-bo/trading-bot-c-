@@ -33,6 +33,11 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
     private readonly TradingBot.RLAgent.CVaRPPOTrainer _cvarPpoTrainer;
     private readonly global::BotCore.Bandits.NeuralUcbBanditTrainer _neuralUcbTrainer;
+    private readonly TrainingManifestService _manifestService;
+    private readonly DataIntegrityService _dataIntegrityService;
+    private readonly TrainingMetricsCollector _metricsCollector;
+    private readonly TrainingAlertService _alertService;
+    private readonly TrainingRetryService _retryService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -49,7 +54,12 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
         TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService,
         TradingBot.RLAgent.CVaRPPOTrainer cvarPpoTrainer,
-        global::BotCore.Bandits.NeuralUcbBanditTrainer neuralUcbTrainer)
+        global::BotCore.Bandits.NeuralUcbBanditTrainer neuralUcbTrainer,
+        TrainingManifestService manifestService,
+        DataIntegrityService dataIntegrityService,
+        TrainingMetricsCollector metricsCollector,
+        TrainingAlertService alertService,
+        TrainingRetryService retryService)
     {
         _logger = logger;
         _historicalDataBridge = historicalDataBridge;
@@ -58,8 +68,13 @@ internal sealed class HistoricalTrainingOrchestrator
         _promotionService = promotionService;
         _cvarPpoTrainer = cvarPpoTrainer;
         _neuralUcbTrainer = neuralUcbTrainer;
+        _manifestService = manifestService;
+        _dataIntegrityService = dataIntegrityService;
+        _metricsCollector = metricsCollector;
+        _alertService = alertService;
+        _retryService = retryService;
         
-        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - using real trainers and existing TopstepX SDK");
+        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Production-ready with manifests, integrity checks, metrics, alerts");
     }
 
     /// <summary>
@@ -75,10 +90,14 @@ internal sealed class HistoricalTrainingOrchestrator
             var startTime = DateTime.UtcNow;
             var easternTime = GetEasternTime(startTime);
             
-            _logger.LogInformation("[LAB] Training session started - {Day} {Date}, {Time}", 
+            _logger.LogInformation("[LAB] Training session started - RunID: {RunId}, {Day} {Date}, {Time}", 
+                sessionId,
                 easternTime.ToString("dddd"), 
                 easternTime.ToString("MMM dd"), 
                 easternTime.ToString("h:mm tt") + " ET");
+
+            // Start metrics collection
+            _metricsCollector.StartRun(sessionId);
 
             var result = new TrainingSessionResult
             {
@@ -88,56 +107,143 @@ internal sealed class HistoricalTrainingOrchestrator
 
             try
             {
-                // Step 1: Load historical data (90 days)
+                // Step 1: Load historical data (90 days) with retry
                 _logger.LogInformation("[LAB] Loading historical data - started");
-                var stepStart = DateTime.UtcNow;
-                var historicalData = await LoadHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
+                _metricsCollector.StartTimer("DataLoading");
+                
+                var historicalData = await _retryService.ExecuteWithRetryAsync(
+                    async ct => await LoadHistoricalDataAsync(ct).ConfigureAwait(false),
+                    "Load historical data",
+                    TrainingRetryService.IsTransientError,
+                    cancellationToken).ConfigureAwait(false);
+                
                 result.HistoricalBarsLoaded = historicalData.Sum(kvp => kvp.Value);
-                var stepDuration = (DateTime.UtcNow - stepStart).TotalMinutes;
-                _logger.LogInformation("[LAB] Loading historical data - complete in {Duration:F1} minutes", stepDuration);
+                _metricsCollector.StopTimer("DataLoading");
+                _metricsCollector.RecordMetric("HistoricalBarsLoaded", result.HistoricalBarsLoaded);
 
                 // Step 2: Load recent experiences (last 7 days)
                 _logger.LogInformation("[LAB] Loading experiences - started");
-                stepStart = DateTime.UtcNow;
+                _metricsCollector.StartTimer("ExperienceLoading");
+                
                 var experiences = await LoadRecentExperiencesAsync(cancellationToken).ConfigureAwait(false);
                 result.ExperiencesLoaded = experiences.Count;
-                stepDuration = (DateTime.UtcNow - stepStart).TotalMinutes;
-                _logger.LogInformation("[LAB] Loading experiences - complete in {Duration:F1} minutes", stepDuration);
+                
+                _metricsCollector.StopTimer("ExperienceLoading");
+                _metricsCollector.RecordMetric("ExperiencesLoaded", result.ExperiencesLoaded);
 
-                // Step 3: Run training pipeline sequentially
+                // Step 3: Data integrity verification
+                _logger.LogInformation("[LAB] Verifying data integrity - started");
+                var dataVerification = await _dataIntegrityService.VerifyTrainingDataAsync(
+                    historicalData,
+                    experiences.Count,
+                    90, // Expected 90 days
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!dataVerification.IsValid)
+                {
+                    _logger.LogError("[LAB] Data integrity check FAILED - aborting training");
+                    await _alertService.AlertDataIntegrityIssueAsync(
+                        "Data verification failed",
+                        string.Join("; ", dataVerification.Issues),
+                        cancellationToken).ConfigureAwait(false);
+                    
+                    result.Success = false;
+                    result.ErrorMessage = "Data integrity verification failed";
+                    result.EndTime = DateTime.UtcNow;
+                    result.TotalDuration = result.EndTime - result.StartTime;
+                    return result;
+                }
+
+                // Step 4: Run training pipeline sequentially
                 _logger.LogInformation("[LAB] Running training pipeline - started");
+                _metricsCollector.StartTimer("TrainingPipeline");
+                
                 await RunTrainingPipelineAsync(historicalData, experiences, result, cancellationToken).ConfigureAwait(false);
+                
+                _metricsCollector.StopTimer("TrainingPipeline");
 
-                // Step 4: Save all challengers to registry
+                // Step 5: Save all challengers to registry
                 _logger.LogInformation("[LAB] Saving challengers to model registry - started");
-                stepStart = DateTime.UtcNow;
+                _metricsCollector.StartTimer("SaveModels");
+                
                 await SaveChallengersAsync(result, cancellationToken).ConfigureAwait(false);
-                stepDuration = (DateTime.UtcNow - stepStart).TotalMinutes;
-                _logger.LogInformation("[LAB] Saving challengers - complete in {Duration:F1} minutes", stepDuration);
+                
+                _metricsCollector.StopTimer("SaveModels");
+                _metricsCollector.RecordMetric("ChallengersSaved", result.ChallengersSaved);
 
-                // Step 5: Run promotion evaluations
+                // Step 6: Run promotion evaluations with canary tests
                 _logger.LogInformation("[LAB] Running promotion evaluations - started");
-                stepStart = DateTime.UtcNow;
+                _metricsCollector.StartTimer("PromotionEvaluation");
+                
                 await RunPromotionEvaluationsAsync(result, cancellationToken).ConfigureAwait(false);
-                stepDuration = (DateTime.UtcNow - stepStart).TotalMinutes;
-                _logger.LogInformation("[LAB] Promotion evaluations - complete in {Duration:F1} minutes", stepDuration);
+                
+                _metricsCollector.StopTimer("PromotionEvaluation");
+                _metricsCollector.RecordMetric("ModelsPromoted", result.ModelsPromoted);
+                _metricsCollector.RecordMetric("ModelsDiscarded", result.ModelsDiscarded);
 
-                // Step 6: Generate session summary
+                // Step 7: Generate artifact manifest
+                _logger.LogInformation("[LAB] Generating artifact manifest - started");
+                var manifest = await _manifestService.CreateManifestAsync(
+                    sessionId,
+                    startTime,
+                    DateTime.UtcNow,
+                    historicalData,
+                    experiences.Count,
+                    new Dictionary<string, object>
+                    {
+                        ["CVaRPPO_Enabled"] = true,
+                        ["NeuralUCB_Enabled"] = true,
+                        ["DataHash"] = dataVerification.DataHash
+                    },
+                    cancellationToken).ConfigureAwait(false);
+                
+                await _manifestService.SaveManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
+
+                // Step 8: Capture final metrics and export
+                _metricsCollector.CaptureResourceMetrics();
+                _metricsCollector.EndRun(true);
+                await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+
+                // Step 9: Generate session summary
                 result.EndTime = DateTime.UtcNow;
                 result.TotalDuration = result.EndTime - result.StartTime;
                 result.Success = true;
 
                 LogSessionSummary(result);
                 
+                // Alert success
+                await _alertService.AlertTrainingSuccessAsync(
+                    sessionId,
+                    result.TotalDuration.TotalMinutes,
+                    result.ModelsPromoted,
+                    result.ModelsDiscarded,
+                    new Dictionary<string, object>
+                    {
+                        ["HistoricalBars"] = result.HistoricalBarsLoaded,
+                        ["Experiences"] = result.ExperiencesLoaded
+                    },
+                    cancellationToken).ConfigureAwait(false);
+                
                 return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[LAB] ERROR: Training session - {Error}", ex.Message);
+                
+                _metricsCollector.EndRun(false, ex.Message);
+                await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+                
                 result.Success = false;
                 result.ErrorMessage = ex.Message;
                 result.EndTime = DateTime.UtcNow;
                 result.TotalDuration = result.EndTime - result.StartTime;
+                
+                await _alertService.AlertTrainingFailureAsync(
+                    sessionId,
+                    ex.Message,
+                    result.FailedComponents,
+                    cancellationToken).ConfigureAwait(false);
+                
                 return result;
             }
         }
@@ -292,7 +398,7 @@ internal sealed class HistoricalTrainingOrchestrator
         }
     }
 
-    private async Task TrainNeuralUCBAsync(
+    private Task TrainNeuralUCBAsync(
         TrainingSessionResult result,
         List<Experience> experiences,
         CancellationToken cancellationToken)
@@ -324,6 +430,7 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbSuccess = true;
             
             _logger.LogInformation("[LAB] Neural UCB acknowledged - Online learning active in Terminal mode");
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -332,6 +439,7 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = false;
             result.FailedComponents.Add("Neural UCB");
+            return Task.CompletedTask;
         }
     }
 
