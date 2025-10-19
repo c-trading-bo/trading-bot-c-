@@ -15,15 +15,16 @@ namespace TradingBot.Tests.Unit
     public class S7ServiceTests
     {
         private readonly S7Configuration _config;
+        private readonly BreadthConfiguration _breadthConfig;
         private readonly ILogger<S7.S7Service> _logger;
         private readonly IOptions<S7Configuration> _options;
+        private readonly IOptions<BreadthConfiguration> _breadthOptions;
 
         public S7ServiceTests()
         {
             _config = new S7Configuration
             {
                 Enabled = true,
-                Symbols = new List<string> { "ES", "NQ" },
                 BarTimeframeMinutes = 5,
                 LookbackShortBars = 10,
                 LookbackMediumBars = 30,
@@ -71,16 +72,30 @@ namespace TradingBot.Tests.Unit
                 FailOnMissingData = true,
                 TelemetryPrefix = "s7"
             };
+            
+            // Initialize Symbols separately since it's read-only
+            _config.Symbols.Add("ES");
+            _config.Symbols.Add("NQ");
+            
+            _breadthConfig = new BreadthConfiguration
+            {
+                Enabled = true,
+                AdvanceDeclineThreshold = 0.75m,
+                NewHighsLowsRatio = 2.0m,
+                SectorRotationWeight = 0.25m,
+                BreadthLookbackBars = 20
+            };
 
             _logger = new TestLogger<S7.S7Service>();
             _options = Options.Create(_config);
+            _breadthOptions = Options.Create(_breadthConfig);
         }
 
         [Fact]
         public void S7Service_Constructor_InitializesCorrectly()
         {
             // Arrange & Act
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Assert
             Assert.NotNull(service);
@@ -91,11 +106,11 @@ namespace TradingBot.Tests.Unit
         public async Task S7Service_UpdateAsync_AcceptsValidBarData()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
             var barData = CreateTestBarData("ES", 4500.0m, 4501.0m, 4499.0m, 4500.5m, 1000);
 
             // Act & Assert - Should not throw
-            await service.UpdateAsync("ES", barData.Timestamp, barData.Close, barData.Volume);
+            await service.UpdateAsync("ES", barData.Close, barData.Timestamp);
         }
 
         [Fact]
@@ -137,8 +152,8 @@ namespace TradingBot.Tests.Unit
             // Add sufficient bars to trigger signal
             for (int i = 0; i < 65; i++) // More than max lookback
             {
-                await service.UpdateAsync("ES", DateTime.UtcNow.AddMinutes(-i), 4500.0m + i, 1000);
-                await service.UpdateAsync("NQ", DateTime.UtcNow.AddMinutes(-i), 18000.0m + i * 4, 1000);
+                await service.UpdateAsync("ES", 4500.0m + i, DateTime.UtcNow.AddMinutes(-i));
+                await service.UpdateAsync("NQ", 18000.0m + i * 4, DateTime.UtcNow.AddMinutes(-i));
             }
 
             // Act - Get initial state
@@ -147,7 +162,7 @@ namespace TradingBot.Tests.Unit
             // Simulate bars during cooldown period
             for (int i = 0; i < _config.CooldownBars; i++)
             {
-                await service.UpdateAsync("ES", DateTime.UtcNow.AddMinutes(i + 1), 4500.0m, 1000);
+                await service.UpdateAsync("ES", 4500.0m, DateTime.UtcNow.AddMinutes(i + 1));
             }
 
             var cooldownFeatures = service.GetFeatureTuple("ES");
@@ -181,8 +196,8 @@ namespace TradingBot.Tests.Unit
             for (int i = 0; i < 65; i++)
             {
                 // Simulate strong upward trend in both ES and NQ (risk-on)
-                await service.UpdateAsync("ES", DateTime.UtcNow.AddMinutes(-i), 4500.0m + i * 2, 1000);
-                await service.UpdateAsync("NQ", DateTime.UtcNow.AddMinutes(-i), 18000.0m + i * 8, 1000);
+                await service.UpdateAsync("ES", 4500.0m + i * 2, DateTime.UtcNow.AddMinutes(-i));
+                await service.UpdateAsync("NQ", 18000.0m + i * 8, DateTime.UtcNow.AddMinutes(-i));
             }
 
             var riskOnSnapshot = service.GetCurrentSnapshot();
@@ -191,8 +206,8 @@ namespace TradingBot.Tests.Unit
             for (int i = 0; i < 20; i++)
             {
                 // Simulate divergent movements (ES up, NQ down - risk-off)
-                await service.UpdateAsync("ES", DateTime.UtcNow.AddMinutes(i + 1), 4500.0m + i, 1000);
-                await service.UpdateAsync("NQ", DateTime.UtcNow.AddMinutes(i + 1), 18000.0m - i * 2, 1000);
+                await service.UpdateAsync("ES", 4500.0m + i, DateTime.UtcNow.AddMinutes(i + 1));
+                await service.UpdateAsync("NQ", 18000.0m - i * 2, DateTime.UtcNow.AddMinutes(i + 1));
             }
 
             var riskOffSnapshot = service.GetCurrentSnapshot();

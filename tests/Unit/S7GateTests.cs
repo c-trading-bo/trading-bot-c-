@@ -16,15 +16,16 @@ namespace TradingBot.Tests.Unit
     public class S7GateTests
     {
         private readonly S7Configuration _config;
+        private readonly BreadthConfiguration _breadthConfig;
         private readonly ILogger<S7.S7Service> _logger;
         private readonly IOptions<S7Configuration> _options;
+        private readonly IOptions<BreadthConfiguration> _breadthOptions;
 
         public S7GateTests()
         {
             _config = new S7Configuration
             {
                 Enabled = true,
-                Symbols = new List<string> { "ES", "NQ" },
                 BarTimeframeMinutes = 5,
                 LookbackShortBars = 10,
                 LookbackMediumBars = 30,
@@ -53,9 +54,23 @@ namespace TradingBot.Tests.Unit
                 FailOnMissingData = true,
                 TelemetryPrefix = "s7"
             };
+            
+            // Initialize Symbols separately since it's read-only
+            _config.Symbols.Add("ES");
+            _config.Symbols.Add("NQ");
+            
+            _breadthConfig = new BreadthConfiguration
+            {
+                Enabled = true,
+                AdvanceDeclineThreshold = 0.75m,
+                NewHighsLowsRatio = 2.0m,
+                SectorRotationWeight = 0.25m,
+                BreadthLookbackBars = 20
+            };
 
             _logger = new TestLogger<S7.S7Service>();
             _options = Options.Create(_config);
+            _breadthOptions = Options.Create(_breadthConfig);
         }
 
         [Theory]
@@ -68,7 +83,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_ShouldGateSpecificStrategies(string strategyId, bool shouldBeGated)
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
             var snapshot = service.GetCurrentSnapshot();
 
             // Act
@@ -91,7 +106,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_LowCoherence_BlocksRiskyStrategies()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
             var snapshot = service.GetCurrentSnapshot();
 
             // Simulate low coherence scenario
@@ -117,7 +132,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_HighCoherence_AllowsStrategies()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Simulate high coherence scenario
             var highCoherenceSnapshot = new S7Snapshot
@@ -142,7 +157,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_MomentumContra_BlocksCounterTrendStrategies()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Simulate strong momentum scenario where counter-trend strategies should be blocked
             var strongMomentumSnapshot = new S7Snapshot
@@ -164,7 +179,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_LeaderDivergence_TiltsPositionSizing()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Simulate divergent leadership scenario
             var divergentSnapshot = new S7Snapshot
@@ -186,7 +201,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_ESLeadership_FavorsESStrategies()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Simulate ES leadership scenario
             var esLeadershipSnapshot = new S7Snapshot
@@ -261,7 +276,7 @@ namespace TradingBot.Tests.Unit
         public void S7Gate_CooldownPeriod_MaintainsLastDecision()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Simulate a scenario where S7 is in cooldown
             var cooldownSnapshot = new S7Snapshot
