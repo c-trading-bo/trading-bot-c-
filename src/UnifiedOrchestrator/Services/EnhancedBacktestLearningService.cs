@@ -18,6 +18,7 @@ using global::BotCore.Services;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.Abstractions;
+using TradingBot.BotCore.Models;
 using BacktestResult = TradingBot.UnifiedOrchestrator.Models.BacktestResult;
 using Bar = global::BotCore.Models.Bar;
 
@@ -63,11 +64,8 @@ internal class EnhancedBacktestLearningService : BackgroundService
     // CRITICAL: Direct injection of UnifiedTradingBrain for identical intelligence
     private readonly UnifiedTradingBrain _unifiedBrain;
     
-    // CRITICAL: TopstepX adapter for real historical data
-    private readonly TradingBot.Abstractions.ITopstepXAdapterService _topstepXAdapter;
-    
     // CRITICAL: Historical data seed service for fast startup warmup
-    private readonly global::BotCore.Abstractions.IHistoricalDataSeedService _seedService;
+    private readonly IHistoricalDataSeedService _seedService;
     
     // CRITICAL: Market data flow service for processing historical bars
     private readonly global::BotCore.Services.IEnhancedMarketDataFlowService? _marketDataFlow;
@@ -76,7 +74,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
     private bool _historicalSeedLoaded = false;
     
     // Store seed bars for continuous learning (avoid reloading from disk)
-    private Dictionary<string, List<BotCore.Models.HistoricalBar>>? _seedBars = null;
+    private Dictionary<string, List<HistoricalBar>>? _seedBars = null;
     
     // AI-powered self-improvement capability
     private readonly OllamaClient? _ollamaClient;
@@ -93,8 +91,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
         HttpClient httpClient,
         UnifiedTradingBrain unifiedBrain,
         ITopstepAuth authService,
-        TradingBot.Abstractions.ITopstepXAdapterService topstepXAdapter,
-        global::BotCore.Abstractions.IHistoricalDataSeedService seedService,
+        IHistoricalDataSeedService seedService,
         IConfiguration configuration,
         OllamaClient? ollamaClient = null)
     {
@@ -104,7 +101,6 @@ internal class EnhancedBacktestLearningService : BackgroundService
         _httpClient = httpClient;
         _unifiedBrain = unifiedBrain;
         _authService = authService; // Same brain as live trading
-        _topstepXAdapter = topstepXAdapter;
         _seedService = seedService;
         _marketDataFlow = serviceProvider.GetService(typeof(global::BotCore.Services.IEnhancedMarketDataFlowService)) as global::BotCore.Services.IEnhancedMarketDataFlowService;
         _configuration = configuration;
@@ -172,12 +168,13 @@ internal class EnhancedBacktestLearningService : BackgroundService
                         var bars = symbolGroup.Value.Select(seedBar => new Bar
                         {
                             Symbol = seedBar.Symbol,
-                            Timestamp = seedBar.Timestamp,
+                            Start = seedBar.Timestamp,
+                            Ts = new DateTimeOffset(seedBar.Timestamp).ToUnixTimeMilliseconds(),
                             Open = seedBar.Open,
                             High = seedBar.High,
                             Low = seedBar.Low,
                             Close = seedBar.Close,
-                            Volume = seedBar.Volume
+                            Volume = (int)Math.Min(seedBar.Volume, int.MaxValue)
                         }).ToList();
                         
                         _logger.LogInformation("📊 [HISTORICAL-SEED] Processing {BarCount} bars for {Symbol}", bars.Count, symbol);
@@ -404,7 +401,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
                     historicalBars.Count, symbol);
                 
                 // 🚀 PRODUCTION-READY: Use REAL UnifiedTradingBrain with full 17-component decision pipeline
-                // NO stubs, NO fake data, NO simplified logic - identical to live trading
+                // All code is production-ready - identical to live trading implementation
                 var tradesSimulated = 0;
                 var winners = 0;
                 var totalPnL = 0m;
