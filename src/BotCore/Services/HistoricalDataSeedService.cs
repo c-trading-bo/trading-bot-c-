@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using TradingBot.BotCore.Models;
 
 namespace TradingBot.BotCore.Services
 {
@@ -82,7 +83,7 @@ namespace TradingBot.BotCore.Services
                     validationResult.OldestBar,
                     validationResult.NewestBar);
 
-                return SeedApplyResult.Success(seedData.Bars, validationResult);
+                return SeedApplyResult.CreateSuccess(seedData.Bars, validationResult);
             }
             catch (Exception ex)
             {
@@ -380,7 +381,7 @@ namespace TradingBot.BotCore.Services
                 bar = new HistoricalBar
                 {
                     Symbol = symbol,
-                    Timestamp = timestamp,
+                    Timestamp = timestamp.DateTime,
                     Open = barDto.Open,
                     High = barDto.High,
                     Low = barDto.Low,
@@ -395,73 +396,6 @@ namespace TradingBot.BotCore.Services
                 return false;
             }
         }
-    }
-
-    /// <summary>
-    /// Result of seed apply operation.
-    /// </summary>
-    public class SeedApplyResult
-    {
-        public bool Success { get; set; }
-        public string ErrorMessage { get; set; } = string.Empty;
-        public List<HistoricalBar> Bars { get; set; } = new();
-        public SeedValidationResult? ValidationResult { get; set; }
-
-        public static SeedApplyResult Success(List<HistoricalBar> bars, SeedValidationResult validation)
-        {
-            return new SeedApplyResult
-            {
-                Success = true,
-                Bars = bars,
-                ValidationResult = validation
-            };
-        }
-
-        public static SeedApplyResult Failed(string errorMessage)
-        {
-            return new SeedApplyResult
-            {
-                Success = false,
-                ErrorMessage = errorMessage
-            };
-        }
-    }
-
-    /// <summary>
-    /// Seed data container.
-    /// </summary>
-    public class SeedData
-    {
-        public List<HistoricalBar> Bars { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Seed validation result.
-    /// </summary>
-    public class SeedValidationResult
-    {
-        public bool Passed { get; set; }
-        public List<string> Errors { get; set; } = new();
-        public int BarCount { get; set; }
-        public DateTimeOffset OldestBar { get; set; }
-        public DateTimeOffset NewestBar { get; set; }
-        public bool HasGaps { get; set; }
-        public bool HasDuplicates { get; set; }
-        public bool VolumeValid { get; set; }
-    }
-
-    /// <summary>
-    /// Historical bar data.
-    /// </summary>
-    public class HistoricalBar
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public DateTimeOffset Timestamp { get; set; }
-        public decimal Open { get; set; }
-        public decimal High { get; set; }
-        public decimal Low { get; set; }
-        public decimal Close { get; set; }
-        public long Volume { get; set; }
     }
 
     /// <summary>

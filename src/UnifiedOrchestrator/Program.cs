@@ -749,7 +749,7 @@ Please check the configuration and ensure all required services are registered.
         // ================================================================================
         
         // Register HistoricalDataSeedService for fast historical data loading at startup
-        services.AddSingleton<global::BotCore.Abstractions.IHistoricalDataSeedService, global::BotCore.Services.HistoricalDataSeedService>();
+        services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
         
         Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered");
         Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
