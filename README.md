@@ -6,6 +6,19 @@
 
 ---
 
+## 🏗️ **Architecture Split Analysis: Live Bot + Trainer/Gym Separation**
+
+**Want to simplify your bot by separating live trading from learning?** We've analyzed your entire codebase (612 C# files, ~150k LOC) and created a comprehensive roadmap:
+
+📋 **[Quick Reference](ARCHITECTURE_SPLIT_QUICK_REFERENCE.md)** ← Start here for navigation
+📊 **[Executive Summary](ARCHITECTURE_SPLIT_EXECUTIVE_SUMMARY.md)** ← 10 min read for decision makers
+📐 **[Visual Diagrams](ARCHITECTURE_SPLIT_DIAGRAMS.md)** ← 20 min read for architects
+📖 **[Full Analysis](ARCHITECTURE_SPLIT_ANALYSIS.md)** ← 60 min read for developers
+
+**TL;DR**: Your codebase is 60-70% ready for a clean split. Effort: 150 hours (3-4 weeks). Risk: Medium. Logic preserved: 100%.
+
+---
+
 ## 🤖 **NEW: Launch Bot with GitHub Actions (No Local Setup Required!)**
 
 **Want to run the bot without any local installation? Use GitHub-hosted workflows!**
