@@ -2393,6 +2393,10 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
         
+        // Optional: Daily Maintenance Scheduler (Phase 5, Task 5.3) - DISABLED by default
+        Console.WriteLine("   ✓ Registering MaintenanceScheduler (optional Mon-Thu 5:00-5:15 PM ET, DISABLED by default)");
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
+        
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
         services.AddHostedService<EnhancedBacktestLearningService>();
