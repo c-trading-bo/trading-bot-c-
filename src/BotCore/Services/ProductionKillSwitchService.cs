@@ -287,6 +287,26 @@ public sealed class ProductionKillSwitchService : IHostedService, IKillSwitchWat
         return !(dryRun == "0" || dryRun.Equals("false", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Get whether the bot is running in historical replay mode
+    /// HISTORICAL_MODE=1: Historical data replay mode (no API calls, local files only)
+    /// HISTORICAL_MODE=0: Live or DRY-RUN mode (uses TopstepX API)
+    /// </summary>
+    public static bool IsHistoricalMode()
+    {
+        // Check HISTORICAL_MODE environment variable (defaults to false)
+        var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
+        
+        // Default to false if not set
+        if (string.IsNullOrEmpty(historicalMode))
+        {
+            return false;
+        }
+        
+        // HISTORICAL_MODE=1 or HISTORICAL_MODE=true means historical replay mode
+        return historicalMode == "1" || historicalMode.Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
+
     // IKillSwitchWatcher interface implementation
     public Task<bool> IsKillSwitchActiveAsync()
     {

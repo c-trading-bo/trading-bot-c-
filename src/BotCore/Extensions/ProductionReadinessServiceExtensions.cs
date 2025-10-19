@@ -26,6 +26,7 @@ namespace BotCore.Extensions
         /// <summary>
         /// Register all production readiness services
         /// Adds configuration, historical data bridge, and enhanced market data flow services
+        /// Only registers HistoricalDataBridgeService when in HISTORICAL_MODE
         /// </summary>
         public static IServiceCollection AddProductionReadinessServices(
             this IServiceCollection services, 
@@ -40,13 +41,18 @@ namespace BotCore.Extensions
             // Register trading readiness tracker
             services.AddSingleton<ITradingReadinessTracker, TradingReadinessTracker>();
 
-            // Register historical data bridge service - Singleton for consumption by singleton services
-            services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
+            // Only register HistoricalDataBridgeService in HISTORICAL_MODE
+            // In LIVE/DRY-RUN modes, we don't need historical data seeding
+            if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+            {
+                // Register historical data bridge service - Singleton for consumption by singleton services
+                services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
 
-            // Register bar consumer for historical data integration
-            services.AddSingleton<IHistoricalBarConsumer, TradingSystemBarConsumer>();
+                // Register bar consumer for historical data integration
+                services.AddSingleton<IHistoricalBarConsumer, TradingSystemBarConsumer>();
+            }
 
-            // Register enhanced market data flow service
+            // Register enhanced market data flow service (needed in all modes)
             services.AddSingleton<IEnhancedMarketDataFlowService, EnhancedMarketDataFlowService>();
 
             return services;

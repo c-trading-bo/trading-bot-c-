@@ -851,15 +851,22 @@ Please check the configuration and ensure all required services are registered.
         // HISTORICAL DATA SEED SERVICE - SMART AUTO-REFRESH FOR LEARNING WARMUP
         // ================================================================================
         
-        // Register HistoricalDataSeedService for fast historical data loading at startup
-        services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
-        
-        Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered");
-        Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
-        Console.WriteLine("   🔄 Auto-refreshes daily at 5 PM ET during futures maintenance window");
-        Console.WriteLine("   📅 Skips weekends (Saturday/Sunday)");
-        Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
-        Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+        // Only register HistoricalDataSeedService when in HISTORICAL_MODE
+        // In LIVE/DRY-RUN modes, we don't need to load historical seed files
+        if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+        {
+            services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
+            
+            Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL MODE ONLY)");
+            Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
+            Console.WriteLine("   📅 Only active in HISTORICAL_MODE=1");
+            Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
+            Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+        }
+        else
+        {
+            Console.WriteLine("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL_MODE)");
+        }
         
         // ================================================================================
         // ZONE AWARENESS SERVICES - PRODUCTION-READY SUPPLY/DEMAND INTEGRATION
@@ -1100,9 +1107,19 @@ Please check the configuration and ensure all required services are registered.
         // services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         
         // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
-        services.AddSingleton<UnifiedOrchestratorService>();
-        services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
-        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        // ONLY in LIVE/DRY-RUN modes - Not needed in HISTORICAL_MODE
+        if (!global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+        {
+            services.AddSingleton<UnifiedOrchestratorService>();
+            services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+            services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+            
+            Console.WriteLine("✅ [ORCHESTRATOR] UnifiedOrchestratorService registered (LIVE/DRY-RUN mode)");
+        }
+        else
+        {
+            Console.WriteLine("⏭️ [ORCHESTRATOR] UnifiedOrchestratorService skipped (HISTORICAL_MODE - using HistoricalReplayOrchestrator instead)");
+        }
 
         // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
 
