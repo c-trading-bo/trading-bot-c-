@@ -2243,20 +2243,20 @@ Please check the configuration and ensure all required services are registered.
         var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
         var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
         
-        // Register HistoricalReplayOrchestrator if HISTORICAL_MODE is enabled
-        if (isHistoricalMode)
-        {
-            services.AddHostedService<HistoricalReplayOrchestrator>();
-            Console.WriteLine("✅ [HISTORICAL-MODE] Historical replay orchestrator ENABLED");
-            Console.WriteLine("   📊 Bot will replay 90 days of historical data at high speed");
-            Console.WriteLine("   🎓 Models will be trained on simulated trading");
-            Console.WriteLine("   📝 Complete audit trail will be logged to terminal");
-        }
-        else if (historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
+        // In HISTORICAL_MODE, force enable the existing EnhancedBacktestLearningService
+        // This service already integrates properly with UnifiedTradingBrain for learning
+        if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
             services.AddHostedService<EnhancedBacktestLearningService>();
             
-            if (historicalLearningEnabled)
+            if (isHistoricalMode)
+            {
+                Console.WriteLine("✅ [HISTORICAL-MODE] Historical training mode ENABLED");
+                Console.WriteLine("   📊 Using EnhancedBacktestLearningService for proper brain integration");
+                Console.WriteLine("   🎓 Models will learn from historical backtesting");
+                Console.WriteLine("   📝 Comprehensive learning updates logged");
+            }
+            else if (historicalLearningEnabled)
             {
                 Console.WriteLine("✅ [HISTORICAL-LEARNING] Historical backtest learning ENABLED");
                 Console.WriteLine("   📊 Market OPEN: Learning every 60 minutes (light mode)");
