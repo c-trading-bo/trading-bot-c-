@@ -6,25 +6,30 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Pre-training resource checks - verify system has sufficient resources
 /// Prevents training from starting if resources are insufficient
+/// 
+/// Thresholds are now configurable via appsettings.json:
+/// - MinDiskSpaceGB: Lowered from 50GB to 20GB (configurable)
+/// - MinRamGB: Lowered from 8GB to 4GB (configurable)
+/// - WarningOnly: Can emit warnings instead of hard failures
 /// </summary>
 internal sealed class ResourcePreCheckService
 {
     private readonly ILogger<ResourcePreCheckService> _logger;
-    
-    // Resource requirements
-    private const long MinDiskSpaceGB = 50;
-    private const long MinRamGB = 8;
-    private const double MaxCpuThreshold = 90.0; // Don't start if CPU > 90%
+    private readonly ResourcePreCheckOptions _options;
 
-    public ResourcePreCheckService(ILogger<ResourcePreCheckService> logger)
+    public ResourcePreCheckService(
+        ILogger<ResourcePreCheckService> logger,
+        IOptions<ResourcePreCheckOptions> options)
     {
         _logger = logger;
+        _options = options?.Value ?? new ResourcePreCheckOptions();
     }
 
     /// <summary>
@@ -57,7 +62,10 @@ internal sealed class ResourcePreCheckService
         }
 
         // Check 4: GPU availability (optional, don't fail if not available)
-        await CheckGpuAvailabilityAsync(cancellationToken).ConfigureAwait(false);
+        if (_options.EnableGpuCheck)
+        {
+            await CheckGpuAvailabilityAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         if (failedChecks.Any())
         {
@@ -83,12 +91,19 @@ internal sealed class ResourcePreCheckService
             var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
 
             _logger.LogInformation("[RESOURCE-CHECK] Disk space: {Free:F1} GB free (required: {Required} GB)",
-                freeSpaceGB, MinDiskSpaceGB);
+                freeSpaceGB, _options.MinDiskSpaceGB);
 
-            if (freeSpaceGB < MinDiskSpaceGB)
+            if (freeSpaceGB < _options.MinDiskSpaceGB)
             {
+                if (_options.WarningOnly)
+                {
+                    _logger.LogWarning("[RESOURCE-CHECK] ⚠️ Low disk space: {Free:F1} GB < {Required} GB (warning only)",
+                        freeSpaceGB, _options.MinDiskSpaceGB);
+                    return Task.FromResult(true); // Pass check but log warning
+                }
+                
                 _logger.LogError("[RESOURCE-CHECK] ❌ Insufficient disk space: {Free:F1} GB < {Required} GB",
-                    freeSpaceGB, MinDiskSpaceGB);
+                    freeSpaceGB, _options.MinDiskSpaceGB);
                 return Task.FromResult(false);
             }
 
@@ -112,12 +127,19 @@ internal sealed class ResourcePreCheckService
             var totalMemoryGB = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024.0);
             
             _logger.LogInformation("[RESOURCE-CHECK] Available memory: {Memory:F1} GB (required: {Required} GB)",
-                totalMemoryGB, MinRamGB);
+                totalMemoryGB, _options.MinRamGB);
 
-            if (totalMemoryGB < MinRamGB)
+            if (totalMemoryGB < _options.MinRamGB)
             {
+                if (_options.WarningOnly)
+                {
+                    _logger.LogWarning("[RESOURCE-CHECK] ⚠️ Low memory: {Memory:F1} GB < {Required} GB (warning only)",
+                        totalMemoryGB, _options.MinRamGB);
+                    return true; // Pass check but log warning
+                }
+                
                 _logger.LogError("[RESOURCE-CHECK] ❌ Insufficient memory: {Memory:F1} GB < {Required} GB",
-                    totalMemoryGB, MinRamGB);
+                    totalMemoryGB, _options.MinRamGB);
                 return false;
             }
 
@@ -155,12 +177,19 @@ internal sealed class ResourcePreCheckService
             var cpuPercent = cpuUsageTotal * 100;
 
             _logger.LogInformation("[RESOURCE-CHECK] Current CPU usage: {Cpu:F1}% (threshold: {Threshold}%)",
-                cpuPercent, MaxCpuThreshold);
+                cpuPercent, _options.MaxCpuThreshold);
 
-            if (cpuPercent > MaxCpuThreshold)
+            if (cpuPercent > _options.MaxCpuThreshold)
             {
+                if (_options.WarningOnly)
+                {
+                    _logger.LogWarning("[RESOURCE-CHECK] ⚠️ High CPU usage: {Cpu:F1}% > {Threshold}% (warning only)",
+                        cpuPercent, _options.MaxCpuThreshold);
+                    return true; // Pass check but log warning
+                }
+                
                 _logger.LogWarning("[RESOURCE-CHECK] ⚠️ High CPU usage detected: {Cpu:F1}% > {Threshold}%",
-                    cpuPercent, MaxCpuThreshold);
+                    cpuPercent, _options.MaxCpuThreshold);
                 return false;
             }
 
@@ -267,4 +296,37 @@ internal sealed class ResourcePreCheckService
 
         return intensiveProcesses;
     }
+}
+
+/// <summary>
+/// Configuration options for resource pre-check service
+/// </summary>
+public sealed class ResourcePreCheckOptions
+{
+    /// <summary>
+    /// Minimum disk space required in GB (default: 20GB, previously 50GB)
+    /// </summary>
+    public long MinDiskSpaceGB { get; set; } = 20;
+    
+    /// <summary>
+    /// Minimum RAM required in GB (default: 4GB, previously 8GB)
+    /// </summary>
+    public long MinRamGB { get; set; } = 4;
+    
+    /// <summary>
+    /// Maximum CPU threshold percentage (default: 90%)
+    /// </summary>
+    public double MaxCpuThreshold { get; set; } = 90.0;
+    
+    /// <summary>
+    /// If true, emit warnings instead of hard failures for marginal resources
+    /// Allows training to proceed but logs concerns (default: false)
+    /// </summary>
+    public bool WarningOnly { get; set; } = false;
+    
+    /// <summary>
+    /// Enable GPU availability check (default: true)
+    /// GPU is optional - check is informational only
+    /// </summary>
+    public bool EnableGpuCheck { get; set; } = true;
 }

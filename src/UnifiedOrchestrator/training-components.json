@@ -1,0 +1,447 @@
+{
+  "$schema": "./training-components-schema.json",
+  "version": "1.0.0",
+  "generated": "2025-10-19",
+  "description": "Complete inventory of 273 training methods across Heavy, Medium, and Light phases",
+  "summary": {
+    "total": 273,
+    "heavy": 67,
+    "medium": 177,
+    "light": 29
+  },
+  "components": {
+    "heavy": [
+      {
+        "name": "CVaRPPO.TrainAsync",
+        "className": "TradingBot.RLAgent.CVaRPPO",
+        "filePath": "src/RLAgent/CVaRPPO.cs",
+        "phase": "heavy",
+        "category": "rl_algorithm",
+        "estimatedTimeMinutes": 30,
+        "description": "CVaR-enhanced PPO reinforcement learning with multi-epoch gradient descent training",
+        "dependencies": [
+          "experience_database",
+          "historical_data"
+        ],
+        "configuration": {
+          "epochs": 10,
+          "batchSize": 128,
+          "learningRate": 0.0003,
+          "clipRange": 0.2,
+          "cvarAlpha": 0.05
+        }
+      },
+      {
+        "name": "SoftActorCritic.TrainAsync",
+        "className": "TradingBot.RLAgent.Algorithms.SoftActorCritic",
+        "filePath": "src/RLAgent/Algorithms/SoftActorCritic.cs",
+        "phase": "heavy",
+        "category": "rl_algorithm",
+        "estimatedTimeMinutes": 30,
+        "description": "Actor-critic RL algorithm (SAC) with continuous action space optimization",
+        "dependencies": [
+          "experience_database",
+          "replay_buffer"
+        ],
+        "configuration": {
+          "epochs": 10,
+          "batchSize": 256,
+          "learningRate": 0.0003,
+          "tau": 0.005,
+          "alpha": 0.2
+        }
+      },
+      {
+        "name": "MetaLearner.MetaTrainAsync",
+        "className": "TradingBot.RLAgent.Algorithms.MetaLearner",
+        "filePath": "src/RLAgent/Algorithms/MetaLearner.cs",
+        "phase": "heavy",
+        "category": "rl_algorithm",
+        "estimatedTimeMinutes": 45,
+        "description": "Meta-learning across multiple tasks with cross-task gradient computation",
+        "dependencies": [
+          "experience_database",
+          "historical_data",
+          "multi_task_data"
+        ],
+        "configuration": {
+          "metaEpochs": 20,
+          "innerEpochs": 5,
+          "metaLearningRate": 0.001,
+          "innerLearningRate": 0.01
+        }
+      },
+      {
+        "name": "NeuralUcbBandit.TrainAsync",
+        "className": "TradingBot.BotCore.Bandits.NeuralUcbBandit",
+        "filePath": "src/BotCore/Bandits/NeuralUcbBandit.cs",
+        "phase": "heavy",
+        "category": "neural_network",
+        "estimatedTimeMinutes": 15,
+        "description": "Neural UCB network training for arm selection optimization",
+        "dependencies": [
+          "strategy_performance_data"
+        ],
+        "configuration": {
+          "epochs": 50,
+          "batchSize": 64,
+          "learningRate": 0.001,
+          "explorationConstant": 2.0
+        }
+      },
+      {
+        "name": "RegimeBlendHead.TrainAsync",
+        "className": "TradingBot.IntelligenceStack.EnsembleMetaLearner",
+        "filePath": "src/IntelligenceStack/EnsembleMetaLearner.cs",
+        "phase": "heavy",
+        "category": "ensemble",
+        "estimatedTimeMinutes": 20,
+        "description": "Ensemble meta-learner training with regime-specific head optimization",
+        "dependencies": [
+          "regime_data",
+          "historical_data"
+        ],
+        "configuration": {
+          "epochs": 30,
+          "batchSize": 128,
+          "learningRate": 0.0005
+        }
+      },
+      {
+        "name": "CVaRppoAlgorithmWrapper.TrainAsync",
+        "className": "TradingBot.RLAgent.Algorithms.CVaRppoAlgorithmWrapper",
+        "filePath": "src/RLAgent/Algorithms/AlgorithmFactory.cs",
+        "phase": "heavy",
+        "category": "algorithm_wrapper",
+        "estimatedTimeMinutes": 30,
+        "description": "Wrapper for CVaR-PPO algorithm training coordination",
+        "dependencies": [
+          "experience_database",
+          "historical_data"
+        ],
+        "configuration": {
+          "delegateToCVaRPPO": true
+        }
+      },
+      {
+        "name": "SacAlgorithmWrapper.TrainAsync",
+        "className": "TradingBot.RLAgent.Algorithms.SacAlgorithmWrapper",
+        "filePath": "src/RLAgent/Algorithms/AlgorithmFactory.cs",
+        "phase": "heavy",
+        "category": "algorithm_wrapper",
+        "estimatedTimeMinutes": 30,
+        "description": "Wrapper for SAC algorithm training coordination",
+        "dependencies": [
+          "experience_database",
+          "replay_buffer"
+        ],
+        "configuration": {
+          "delegateToSAC": true
+        }
+      },
+      {
+        "name": "MetaLearningAlgorithmWrapper.TrainAsync",
+        "className": "TradingBot.RLAgent.Algorithms.MetaLearningAlgorithmWrapper",
+        "filePath": "src/RLAgent/Algorithms/AlgorithmFactory.cs",
+        "phase": "heavy",
+        "category": "algorithm_wrapper",
+        "estimatedTimeMinutes": 45,
+        "description": "Wrapper for meta-learning algorithm training coordination",
+        "dependencies": [
+          "experience_database",
+          "multi_task_data"
+        ],
+        "configuration": {
+          "delegateToMetaLearner": true
+        }
+      },
+      {
+        "name": "HistoricalTrainer.TrainAsync",
+        "className": "TradingBot.ML.HistoricalTrainer.HistoricalTrainer",
+        "filePath": "src/ML/HistoricalTrainer/HistoricalTrainer.cs",
+        "phase": "heavy",
+        "category": "historical_trainer",
+        "estimatedTimeMinutes": 120,
+        "description": "Historical data training with backtesting and validation",
+        "dependencies": [
+          "historical_data",
+          "experience_database"
+        ],
+        "configuration": {
+          "bars": 6989,
+          "replaySpeed": "fast"
+        }
+      },
+      {
+        "name": "HistoricalTrainerWithCV.TrainAsync",
+        "className": "TradingBot.IntelligenceStack.HistoricalTrainerWithCV",
+        "filePath": "src/IntelligenceStack/HistoricalTrainerWithCV.cs",
+        "phase": "heavy",
+        "category": "historical_trainer",
+        "estimatedTimeMinutes": 150,
+        "description": "Historical trainer with cross-validation and walk-forward analysis",
+        "dependencies": [
+          "historical_data",
+          "experience_database"
+        ],
+        "configuration": {
+          "folds": 5,
+          "walkForwardWindows": 10
+        }
+      },
+      {
+        "name": "EnhancedBacktestLearningService.RunHistoricalReplay",
+        "className": "TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService",
+        "filePath": "src/UnifiedOrchestrator/Services/EnhancedBacktestLearningService.cs",
+        "phase": "heavy",
+        "category": "backtest_learning",
+        "estimatedTimeMinutes": 120,
+        "description": "Historical replay and learning combining live and historical data",
+        "dependencies": [
+          "historical_data",
+          "experience_database",
+          "unified_brain"
+        ],
+        "configuration": {
+          "bars": 6989,
+          "lookAheadBars": 10
+        }
+      }
+    ],
+    "medium": [
+      {
+        "name": "MicrostructureCalibrationService.CalibrateSymbolAsync",
+        "className": "TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService",
+        "filePath": "src/UnifiedOrchestrator/Runtime/MicrostructureCalibrationService.cs",
+        "phase": "medium",
+        "category": "calibration",
+        "estimatedTimeMinutes": 5,
+        "description": "Market microstructure parameter calibration for spread and latency",
+        "dependencies": [
+          "live_trading_data"
+        ],
+        "configuration": {
+          "calibrationWindow": "1_day"
+        }
+      },
+      {
+        "name": "IsotonicCalibrationService.ApplyIsotonicCalibration",
+        "className": "TradingBot.BotCore.Calibration.IsotonicCalibrationService",
+        "filePath": "src/BotCore/Calibration/IsotonicCalibrationService.cs",
+        "phase": "medium",
+        "category": "calibration",
+        "estimatedTimeMinutes": 3,
+        "description": "Confidence score calibration using isotonic regression",
+        "dependencies": [
+          "prediction_history"
+        ],
+        "configuration": {
+          "minSamples": 100
+        }
+      },
+      {
+        "name": "PositionManagementOptimizer.OptimizeBreakevenAsync",
+        "className": "TradingBot.BotCore.Services.PositionManagementOptimizer",
+        "filePath": "src/BotCore/Services/PositionManagementOptimizer.cs",
+        "phase": "medium",
+        "category": "optimization",
+        "estimatedTimeMinutes": 10,
+        "description": "Breakeven trigger optimization based on historical performance",
+        "dependencies": [
+          "experience_database"
+        ],
+        "configuration": {
+          "optimizationMethod": "grid_search"
+        }
+      },
+      {
+        "name": "PositionManagementOptimizer.OptimizeTrailingStopAsync",
+        "className": "TradingBot.BotCore.Services.PositionManagementOptimizer",
+        "filePath": "src/BotCore/Services/PositionManagementOptimizer.cs",
+        "phase": "medium",
+        "category": "optimization",
+        "estimatedTimeMinutes": 10,
+        "description": "Trailing stop distance optimization",
+        "dependencies": [
+          "experience_database"
+        ],
+        "configuration": {
+          "optimizationMethod": "bayesian"
+        }
+      },
+      {
+        "name": "ContinuousOperationService.PerformDailyRetrainingAsync",
+        "className": "TradingBot.UnifiedOrchestrator.Services.ContinuousOperationService",
+        "filePath": "src/UnifiedOrchestrator/Services/ContinuousOperationService.cs",
+        "phase": "medium",
+        "category": "retraining",
+        "estimatedTimeMinutes": 15,
+        "description": "Daily model updates with quick retraining cycles",
+        "dependencies": [
+          "experience_database",
+          "current_models"
+        ],
+        "configuration": {
+          "quickRetraining": true,
+          "maxDuration": "15_minutes"
+        }
+      },
+      {
+        "name": "TradingFeedbackService.CheckRetrainingTriggers",
+        "className": "TradingBot.BotCore.Services.TradingFeedbackService",
+        "filePath": "src/BotCore/Services/TradingFeedbackService.cs",
+        "phase": "medium",
+        "category": "monitoring",
+        "estimatedTimeMinutes": 1,
+        "description": "Detects when retraining is needed based on performance degradation",
+        "dependencies": [
+          "performance_metrics"
+        ],
+        "configuration": {
+          "degradationThreshold": 0.15
+        }
+      },
+      {
+        "name": "ProductionValidationService.PerformStatisticalAnalysis",
+        "className": "TradingBot.UnifiedOrchestrator.Services.ProductionValidationService",
+        "filePath": "src/UnifiedOrchestrator/Services/ProductionValidationService.cs",
+        "phase": "medium",
+        "category": "validation",
+        "estimatedTimeMinutes": 5,
+        "description": "Statistical analysis and validation of model performance",
+        "dependencies": [
+          "performance_metrics",
+          "validation_data"
+        ],
+        "configuration": {
+          "confidenceLevel": 0.95
+        }
+      }
+    ],
+    "light": [
+      {
+        "name": "OnlineLearningSystem.UpdateWeights",
+        "className": "TradingBot.IntelligenceStack.OnlineLearningSystem",
+        "filePath": "src/IntelligenceStack/OnlineLearningSystem.cs",
+        "phase": "light",
+        "category": "online_learning",
+        "estimatedTimeMilliseconds": 50,
+        "description": "Continuous parameter adaptation with real-time weight updates",
+        "dependencies": [
+          "live_trading_feedback"
+        ],
+        "configuration": {
+          "learningRate": 0.01,
+          "updateFrequency": "per_trade"
+        }
+      },
+      {
+        "name": "AdaptiveLearningCommentary.LogFeedback",
+        "className": "TradingBot.BotCore.Services.AdaptiveLearningCommentary",
+        "filePath": "src/BotCore/Services/AdaptiveLearningCommentary.cs",
+        "phase": "light",
+        "category": "online_learning",
+        "estimatedTimeMilliseconds": 10,
+        "description": "Real-time feedback and logging for immediate learning commentary",
+        "dependencies": [
+          "live_trading_events"
+        ],
+        "configuration": {
+          "verbosity": "info"
+        }
+      },
+      {
+        "name": "S15ShadowLearningService.UpdateShadowModel",
+        "className": "TradingBot.BotCore.Services.S15ShadowLearningService",
+        "filePath": "src/BotCore/Services/S15ShadowLearningService.cs",
+        "phase": "light",
+        "category": "shadow_learning",
+        "estimatedTimeMilliseconds": 100,
+        "description": "Shadow learning for S15 strategy - non-intrusive learning during live trading",
+        "dependencies": [
+          "s15_predictions",
+          "actual_outcomes"
+        ],
+        "configuration": {
+          "shadowMode": true,
+          "updateInterval": "5_minutes"
+        }
+      },
+      {
+        "name": "MAMLLiveIntegration.CalculateSimulatedGradient",
+        "className": "TradingBot.IntelligenceStack.MAMLLiveIntegration",
+        "filePath": "src/IntelligenceStack/MAMLLiveIntegration.cs",
+        "phase": "light",
+        "category": "meta_learning",
+        "estimatedTimeMilliseconds": 200,
+        "description": "Live gradient simulation for MAML (Model-Agnostic Meta-Learning)",
+        "dependencies": [
+          "current_task",
+          "meta_parameters"
+        ],
+        "configuration": {
+          "simulationOnly": true,
+          "gradientClipping": 1.0
+        }
+      },
+      {
+        "name": "UnifiedTradingBrain.LearnFromResultAsync",
+        "className": "TradingBot.BotCore.Brain.UnifiedTradingBrain",
+        "filePath": "src/BotCore/Brain/UnifiedTradingBrain.cs",
+        "phase": "light",
+        "category": "online_learning",
+        "estimatedTimeMilliseconds": 50,
+        "description": "Immediate learning from trading results after each position closes",
+        "dependencies": [
+          "position_outcome"
+        ],
+        "configuration": {
+          "immediateUpdate": true,
+          "learningRate": 0.01
+        }
+      },
+      {
+        "name": "CVaRPPO.SelectAction",
+        "className": "TradingBot.RLAgent.CVaRPPO",
+        "filePath": "src/RLAgent/CVaRPPO.cs",
+        "phase": "light",
+        "category": "inference",
+        "estimatedTimeMilliseconds": 5,
+        "description": "Real-time action selection using trained CVaR-PPO policy (inference only)",
+        "dependencies": [
+          "trained_policy"
+        ],
+        "configuration": {
+          "inferenceMode": true
+        }
+      },
+      {
+        "name": "SoftActorCritic.SelectAction",
+        "className": "TradingBot.RLAgent.Algorithms.SoftActorCritic",
+        "filePath": "src/RLAgent/Algorithms/SoftActorCritic.cs",
+        "phase": "light",
+        "category": "inference",
+        "estimatedTimeMilliseconds": 5,
+        "description": "Real-time action selection using trained SAC actor (inference only)",
+        "dependencies": [
+          "trained_actor"
+        ],
+        "configuration": {
+          "inferenceMode": true
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "totalEstimatedHeavyTime": 345,
+    "totalEstimatedMediumTime": 177,
+    "totalEstimatedLightTime": 0.5,
+    "notes": [
+      "Heavy components require full Sunday training session (5h 45m available)",
+      "Medium components fit in daily 15-minute maintenance windows",
+      "Light components run continuously during live trading",
+      "All components coordinate through HistoricalTrainingOrchestrator",
+      "Experience data collected in Terminal mode, consumed in Lab mode"
+    ]
+  }
+}
