@@ -745,6 +745,20 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   🛑 Level 5 (T+300s): System Shutdown via kill.txt");
         
         // ================================================================================
+        // HISTORICAL DATA SEED SERVICE - SMART AUTO-REFRESH FOR LEARNING WARMUP
+        // ================================================================================
+        
+        // Register HistoricalDataSeedService for fast historical data loading at startup
+        services.AddSingleton<global::BotCore.Abstractions.IHistoricalDataSeedService, global::BotCore.Services.HistoricalDataSeedService>();
+        
+        Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered");
+        Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
+        Console.WriteLine("   🔄 Auto-refreshes daily at 5 PM ET during futures maintenance window");
+        Console.WriteLine("   📅 Skips weekends (Saturday/Sunday)");
+        Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
+        Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+        
+        // ================================================================================
         // ZONE AWARENESS SERVICES - PRODUCTION-READY SUPPLY/DEMAND INTEGRATION
         // ================================================================================
         

@@ -66,6 +66,18 @@ internal class EnhancedBacktestLearningService : BackgroundService
     // CRITICAL: TopstepX adapter for real historical data
     private readonly TradingBot.Abstractions.ITopstepXAdapterService _topstepXAdapter;
     
+    // CRITICAL: Historical data seed service for fast startup warmup
+    private readonly global::BotCore.Abstractions.IHistoricalDataSeedService _seedService;
+    
+    // CRITICAL: Market data flow service for processing historical bars
+    private readonly global::BotCore.Services.IEnhancedMarketDataFlowService? _marketDataFlow;
+    
+    // Track if seed data was successfully loaded (to avoid duplicate API fetches)
+    private bool _historicalSeedLoaded = false;
+    
+    // Store seed bars for continuous learning (avoid reloading from disk)
+    private Dictionary<string, List<BotCore.Models.HistoricalBar>>? _seedBars = null;
+    
     // AI-powered self-improvement capability
     private readonly OllamaClient? _ollamaClient;
     private readonly IConfiguration _configuration;
@@ -82,6 +94,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
         UnifiedTradingBrain unifiedBrain,
         ITopstepAuth authService,
         TradingBot.Abstractions.ITopstepXAdapterService topstepXAdapter,
+        global::BotCore.Abstractions.IHistoricalDataSeedService seedService,
         IConfiguration configuration,
         OllamaClient? ollamaClient = null)
     {
@@ -92,6 +105,8 @@ internal class EnhancedBacktestLearningService : BackgroundService
         _unifiedBrain = unifiedBrain;
         _authService = authService; // Same brain as live trading
         _topstepXAdapter = topstepXAdapter;
+        _seedService = seedService;
+        _marketDataFlow = serviceProvider.GetService(typeof(global::BotCore.Services.IEnhancedMarketDataFlowService)) as global::BotCore.Services.IEnhancedMarketDataFlowService;
         _configuration = configuration;
         _ollamaClient = ollamaClient;
         
@@ -109,6 +124,103 @@ internal class EnhancedBacktestLearningService : BackgroundService
         
         // Wait for system initialization
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
+        
+        // ================================================================================
+        // HISTORICAL SEED LOADING - FAST WARMUP WITH 90-DAY DATA
+        // ================================================================================
+        _logger.LogInformation("📊 [HISTORICAL-SEED] Attempting to load historical seed data for fast warmup...");
+        
+        try
+        {
+            var seedResult = await _seedService.TryApplySeedAsync(new[] { "ES", "NQ" }, stoppingToken).ConfigureAwait(false);
+            
+            if (seedResult.Success && seedResult.Bars != null && seedResult.Bars.Count > 0)
+            {
+                _logger.LogInformation(
+                    "✅ [HISTORICAL-SEED] Successfully loaded {BarCount} historical bars (ES: {ES}, NQ: {NQ})",
+                    seedResult.Bars.Count,
+                    seedResult.Bars.Count(b => b.Symbol == "ES"),
+                    seedResult.Bars.Count(b => b.Symbol == "NQ"));
+                
+                if (seedResult.ValidationResult != null)
+                {
+                    _logger.LogInformation(
+                        "📅 [HISTORICAL-SEED] Date range: {OldestBar:yyyy-MM-dd HH:mm} to {NewestBar:yyyy-MM-dd HH:mm}",
+                        seedResult.ValidationResult.OldestBar,
+                        seedResult.ValidationResult.NewestBar);
+                    
+                    _logger.LogInformation(
+                        "✅ [HISTORICAL-SEED] Validation: Duplicates={Duplicates}, InvalidVolumes={InvalidVolumes}, TimeGaps={TimeGaps}",
+                        seedResult.ValidationResult.DuplicateTimestamps,
+                        seedResult.ValidationResult.InvalidVolumes,
+                        seedResult.ValidationResult.TimeGaps);
+                }
+                
+                // Process seed bars through market data flow service for proper pipeline integration
+                if (_marketDataFlow != null)
+                {
+                    _logger.LogInformation("🔥 [HISTORICAL-SEED] Processing {BarCount} bars through market data pipeline...", seedResult.Bars.Count);
+                    
+                    // Group bars by symbol for proper processing
+                    var barsBySymbol = seedResult.Bars
+                        .GroupBy(b => b.Symbol)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Timestamp).ToList());
+                    
+                    foreach (var symbolGroup in barsBySymbol)
+                    {
+                        var symbol = symbolGroup.Key;
+                        var bars = symbolGroup.Value.Select(seedBar => new Bar
+                        {
+                            Symbol = seedBar.Symbol,
+                            Timestamp = seedBar.Timestamp,
+                            Open = seedBar.Open,
+                            High = seedBar.High,
+                            Low = seedBar.Low,
+                            Close = seedBar.Close,
+                            Volume = seedBar.Volume
+                        }).ToList();
+                        
+                        _logger.LogInformation("📊 [HISTORICAL-SEED] Processing {BarCount} bars for {Symbol}", bars.Count, symbol);
+                        await _marketDataFlow.ProcessHistoricalBarsAsync(symbol, bars, stoppingToken).ConfigureAwait(false);
+                    }
+                    
+                    _logger.LogInformation("✅ [HISTORICAL-SEED] All seed bars processed through market data pipeline!");
+                    _logger.LogInformation("🎯 [HISTORICAL-SEED] Indicators warmed up, ML/RL models ready with {BarCount} bars of context", seedResult.Bars.Count);
+                    
+                    // Mark seed as successfully loaded AND store bars for continuous learning
+                    _historicalSeedLoaded = true;
+                    _seedBars = seedResult.Bars
+                        .GroupBy(b => b.Symbol)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Timestamp).ToList());
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ [HISTORICAL-SEED] Market data flow service not available - seed loaded but not processed");
+                    _logger.LogInformation("🎯 [HISTORICAL-SEED] Seed bars will be used in backtest learning cycles");
+                    
+                    // Mark seed as loaded even if not processed (data exists for learning)
+                    _historicalSeedLoaded = true;
+                    _seedBars = seedResult.Bars
+                        .GroupBy(b => b.Symbol)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Timestamp).ToList());
+                }
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ [HISTORICAL-SEED] Seed loading failed or returned no bars: {ErrorMessage}", 
+                    seedResult.ErrorMessage ?? "Unknown error");
+                _logger.LogInformation("🔄 [HISTORICAL-SEED] Will continue with live-only learning (slower warmup)");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [HISTORICAL-SEED] Exception during seed loading - continuing with live-only learning");
+        }
+        
+        // ================================================================================
+        // CONTINUOUS LEARNING LOOP - CONCURRENT WITH LIVE TRADING
+        // ================================================================================
+        _logger.LogInformation("🔄 [ENHANCED-BACKTEST] Starting continuous learning loop...");
         
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -261,6 +373,17 @@ internal class EnhancedBacktestLearningService : BackgroundService
             
             var allStrategies = new[] { "S2", "S3", "S6", "S11" };
             
+            // CRITICAL: Historical data MUST be loaded via seed service at startup
+            // No API fetch fallback - if seed fails, bot should fix the seed data, not slow down with API calls
+            if (!_historicalSeedLoaded)
+            {
+                _logger.LogWarning("⚠️ [UNIFIED-HISTORICAL-REPLAY] Historical seed not loaded - skipping replay cycle");
+                _logger.LogInformation("� [UNIFIED-HISTORICAL-REPLAY] Run 'refresh-historical-data.bat' to populate seed files");
+                return; // Exit early, seed service will retry on next cycle
+            }
+            
+            _logger.LogInformation("🎯 [UNIFIED-HISTORICAL-REPLAY] Starting continuous practice on {Days}-day historical data from seed cache", lookbackDays);
+            
             foreach (var strategy in allStrategies)
             {
                 var symbol = strategySymbols[strategy];
@@ -268,16 +391,16 @@ internal class EnhancedBacktestLearningService : BackgroundService
                 _logger.LogInformation("🔍 [UNIFIED-HISTORICAL-REPLAY] Replaying {Strategy} strategy on {Symbol} using {Days}-day historical data", 
                     strategy, symbol, lookbackDays);
                 
-                // Get historical bars from Python adapter (uses existing JWT token, no 401 errors!)
-                var historicalBars = await _topstepXAdapter.GetHistoricalBarsAsync(symbol, lookbackDays, intervalMinutes: 5, cancellationToken).ConfigureAwait(false);
-                
-                if (historicalBars == null || historicalBars.Count == 0)
+                // Get bars from seed cache (already loaded at startup - no API call!)
+                if (!_seedBars.ContainsKey(symbol))
                 {
-                    _logger.LogWarning("[UNIFIED-HISTORICAL-REPLAY] No historical bars returned for {Symbol}, skipping {Strategy}", symbol, strategy);
+                    _logger.LogWarning("[UNIFIED-HISTORICAL-REPLAY] No seed data for {Symbol}, skipping {Strategy}", symbol, strategy);
                     continue;
                 }
                 
-                _logger.LogInformation("✅ [UNIFIED-HISTORICAL-REPLAY] Loaded {Count} historical bars for {Symbol}, running FULL 17-component pipeline...", 
+                var historicalBars = _seedBars[symbol];
+                
+                _logger.LogInformation("✅ [UNIFIED-HISTORICAL-REPLAY] Using {Count} cached bars for {Symbol}, running FULL 17-component pipeline...", 
                     historicalBars.Count, symbol);
                 
                 // 🚀 PRODUCTION-READY: Use REAL UnifiedTradingBrain with full 17-component decision pipeline
@@ -479,7 +602,7 @@ internal class EnhancedBacktestLearningService : BackgroundService
             
             _replayContexts[backtestId] = replayContext;
 
-            // Load historical data with identical formatting as live trading
+            // Load historical data from seed cache if available, otherwise return empty
             var historicalBars = await LoadHistoricalBarsAsync(config, cancellationToken).ConfigureAwait(false);
             if (!historicalBars.Any())
             {
@@ -1480,30 +1603,25 @@ internal class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     /// <summary>
     /// Load historical bars using TopstepX adapter service for real market data
-    /// CRITICAL: Uses same TopstepX API as live trading for consistent data
+    /// CRITICAL: Uses seed cache data (loaded at startup from disk) - NO API CALLS
     /// </summary>
     private async Task<List<Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
         try
         {
             var daysDiff = (config.EndDate - config.StartDate).Days;
-            _logger.LogInformation("[UNIFIED-BACKTEST] 🔍 Loading historical bars from TopstepX for {Symbol} from {StartDate:yyyy-MM-dd} to {EndDate:yyyy-MM-dd} ({Days} days)", 
+            _logger.LogInformation("[UNIFIED-BACKTEST] 🔍 Loading historical bars for {Symbol} from {StartDate:yyyy-MM-dd} to {EndDate:yyyy-MM-dd} ({Days} days)", 
                 config.Symbol, config.StartDate, config.EndDate, daysDiff);
             
-            // PRIORITY 1: Use TopstepXAdapterService for real TopstepX data
-            try
+            // PRIORITY: Use seed cache (already loaded at startup)
+            if (_seedBars != null && _seedBars.ContainsKey(config.Symbol))
             {
-                _logger.LogInformation("[UNIFIED-BACKTEST] Fetching real TopstepX historical bars via adapter service...");
-                var historicalBars = await _topstepXAdapter.GetHistoricalBarsAsync(
-                    config.Symbol, 
-                    days: daysDiff > 0 ? daysDiff : 90,  // Use calculated days or default to 90
-                    intervalMinutes: 5,  // 5-minute bars for backtesting
-                    cancellationToken).ConfigureAwait(false);
+                var seedData = _seedBars[config.Symbol];
                 
-                if (historicalBars != null && historicalBars.Count > 0)
-                {
-                    // Convert HistoricalBar to Bar format
-                    var bars = historicalBars.Select(hb => new Bar
+                // Convert HistoricalBar to Bar format and filter to date range
+                var bars = seedData
+                    .Where(hb => hb.Timestamp >= config.StartDate && hb.Timestamp <= config.EndDate)
+                    .Select(hb => new Bar
                     {
                         Start = hb.Timestamp,
                         Ts = new DateTimeOffset(hb.Timestamp).ToUnixTimeMilliseconds(),
@@ -1512,90 +1630,28 @@ internal class EnhancedBacktestLearningService : BackgroundService
                         High = hb.High,
                         Low = hb.Low,
                         Close = hb.Close,
-                        Volume = (int)hb.Volume
-                    }).ToList();
-                    
-                    _logger.LogInformation("[UNIFIED-BACKTEST] ✅ SUCCESS! Loaded {Count} historical bars from TopstepX adapter service", bars.Count);
+                        Volume = (int)Math.Min(hb.Volume, int.MaxValue)
+                    })
+                    .OrderBy(b => b.Start)
+                    .ToList();
+                
+                if (bars.Count > 0)
+                {
+                    _logger.LogInformation("[UNIFIED-BACKTEST] ✅ Loaded {Count} bars from seed cache for {Symbol}", bars.Count, config.Symbol);
                     return bars;
                 }
                 else
                 {
-                    _logger.LogWarning("[UNIFIED-BACKTEST] ⚠️ TopstepX adapter returned no bars");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[UNIFIED-BACKTEST] Failed to fetch from TopstepX adapter, trying fallback methods");
-            }
-                
-            // FALLBACK: Use bridge service to get real TopstepX data
-            var bridgeService = _serviceProvider.GetService<IHistoricalDataBridgeService>();
-            if (bridgeService != null)
-            {
-                var contractId = config.Symbol == "ES" ? 
-                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_ES_ID") ?? "default-es" :
-                    Environment.GetEnvironmentVariable("TOPSTEPX_EVAL_NQ_ID") ?? "default-nq";
-                
-                _logger.LogInformation("[UNIFIED-BACKTEST] Attempting to fetch 2000 bars from TopstepX bridge for contract {Contract}...", contractId);
-                var bars = await bridgeService.GetRecentHistoricalBarsAsync(contractId, 2000).ConfigureAwait(false);
-                
-                if (bars.Any())
-                {
-                    // Filter bars to the requested date range
-                    var filteredBars = bars.Where(bar => 
-                        bar.Start.Date >= config.StartDate.Date && 
-                        bar.Start.Date <= config.EndDate.Date).ToList();
-                    
-                    _logger.LogInformation("[UNIFIED-BACKTEST] ✅ SUCCESS! Loaded {Count} historical bars from TopstepX (filtered from {Total} total bars)", 
-                        filteredBars.Count, bars.Count);
-                    return filteredBars;
-                }
-                else
-                {
-                    _logger.LogWarning("[UNIFIED-BACKTEST] ⚠️ TopstepX bridge returned 0 bars - connection issue or no data available");
+                    _logger.LogWarning("[UNIFIED-BACKTEST] ⚠️ Seed cache has no bars in requested date range for {Symbol}", config.Symbol);
                 }
             }
             else
             {
-                _logger.LogWarning("[UNIFIED-BACKTEST] ⚠️ HistoricalDataBridgeService not available in service provider");
+                _logger.LogWarning("[UNIFIED-BACKTEST] ⚠️ No seed data available for {Symbol} - run 'refresh-historical-data.bat' to populate cache", config.Symbol);
             }
-            
-            // Fallback: Try TopstepXHistoricalDataProvider
-            var historicalDataProvider = _serviceProvider.GetService<TradingBot.Backtest.Adapters.TopstepXHistoricalDataProvider>();
-            if (historicalDataProvider != null)
-            {
-                _logger.LogInformation("[UNIFIED-BACKTEST] Using TopstepXHistoricalDataProvider as fallback for {Symbol}", config.Symbol);
                 
-                var quotes = await historicalDataProvider.GetHistoricalQuotesAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken).ConfigureAwait(false);
-                var bars = new List<Bar>();
-                
-                await foreach (var quote in quotes)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-                    
-                    // Convert quotes to bars (simplified - group by minute)
-                    bars.Add(new Bar
-                    {
-                        Start = quote.Time,
-                        Ts = new DateTimeOffset(quote.Time).ToUnixTimeMilliseconds(),
-                        Symbol = quote.Symbol,
-                        Open = quote.Open,
-                        High = quote.High,
-                        Low = quote.Low,
-                        Close = quote.Close,
-                        Volume = quote.Volume
-                    });
-                }
-                
-                if (bars.Any())
-                {
-                    _logger.LogInformation("[UNIFIED-BACKTEST] Converted {Count} quotes to bars from TopstepX API", bars.Count);
-                    return bars;
-                }
-            }
-            
-            // Log that no real bars data was available
-            _logger.LogWarning("[UNIFIED-BACKTEST] No TopstepX historical bars available for {Symbol}", config.Symbol);
+            // No fallback - if seed data not available, return empty
+            _logger.LogWarning("[UNIFIED-BACKTEST] No historical data available - returning empty bar list");
             return new List<Bar>();
         }
         catch (Exception ex)
