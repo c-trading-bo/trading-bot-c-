@@ -1352,6 +1352,10 @@ Please check the configuration and ensure all required services are registered.
         // Register Model Registry for versioned, immutable artifacts
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry, TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>();
         
+        // TASK 4.1: Register Experience Repository for Terminal experience collection
+        // Both Terminal and Lab use this: Terminal writes, Lab reads
+        services.AddSingleton<global::BotCore.Data.ExperienceRepository>();
+        
         // Register Auto-Bootstrap Service for automatic model registration on first startup
         services.AddHostedService<ModelRegistryBootstrapService>();
         

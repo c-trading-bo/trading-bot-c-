@@ -26,6 +26,7 @@ internal sealed class HistoricalTrainingOrchestrator
 {
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
     private readonly HistoricalDataProvider _historicalDataProvider;
+    private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
     private readonly IModelRegistry _modelRegistry;
     private readonly IPromotionService _promotionService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
@@ -40,11 +41,13 @@ internal sealed class HistoricalTrainingOrchestrator
     public HistoricalTrainingOrchestrator(
         ILogger<HistoricalTrainingOrchestrator> logger,
         HistoricalDataProvider historicalDataProvider,
+        global::BotCore.Data.ExperienceRepository? experienceRepository,
         IModelRegistry modelRegistry,
         IPromotionService promotionService)
     {
         _logger = logger;
         _historicalDataProvider = historicalDataProvider;
+        _experienceRepository = experienceRepository;
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
         
@@ -155,12 +158,37 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task<List<Experience>> LoadRecentExperiencesAsync(CancellationToken cancellationToken)
     {
-        // TODO: Integration with ExperienceRepository
-        // For now, return empty list to avoid breaking build
-        await Task.CompletedTask.ConfigureAwait(false);
-        
-        _logger.LogDebug("ExperienceRepository integration pending - returning empty experiences");
-        return new List<Experience>();
+        if (_experienceRepository == null)
+        {
+            _logger.LogWarning("ExperienceRepository not available - returning empty experiences");
+            return new List<Experience>();
+        }
+
+        try
+        {
+            // Load experiences from last 7 days
+            var tradingExperiences = await _experienceRepository.LoadRecentExperiencesAsync(7).ConfigureAwait(false);
+            
+            // Convert TradingExperience to internal Experience format
+            var experiences = tradingExperiences.Select(te => new Experience
+            {
+                Timestamp = te.Timestamp,
+                Symbol = te.Symbol,
+                State = $"{te.EntryRegimeConfidence},{te.EntryConfidence},{te.EntryHour},{te.EntryDayOfWeek},{te.VolatilityAtEntry}",
+                Action = te.Strategy,
+                Reward = te.RMultiple,
+                NextState = $"{te.ExitRegimeConfidence},{te.VolatilityAtExit}",
+                Done = true // Position closed
+            }).ToList();
+            
+            _logger.LogInformation("✅ Loaded and converted {Count} trading experiences", experiences.Count);
+            return experiences;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to load recent experiences");
+            return new List<Experience>();
+        }
     }
 
     #endregion
