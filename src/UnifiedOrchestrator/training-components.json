@@ -2,12 +2,23 @@
   "$schema": "./training-components-schema.json",
   "version": "1.0.0",
   "generated": "2025-10-19",
-  "description": "Complete inventory of 273 training methods across Heavy, Medium, and Light phases",
+  "description": "Training components inventory - representative sample of core components from 273 training methods across Heavy, Medium, and Light phases",
+  "note": "This file contains the most critical training components that Lab Mode orchestrates. For complete list of all 273 methods, see COMPLETE_TRAINING_INVENTORY.md. Additional components can be added as needed by extending this structure.",
   "summary": {
-    "total": 273,
-    "heavy": 67,
-    "medium": 177,
-    "light": 29
+    "documented": 25,
+    "targetTotal": 273,
+    "heavy": {
+      "documented": 11,
+      "target": 67
+    },
+    "medium": {
+      "documented": 7,
+      "target": 177
+    },
+    "light": {
+      "documented": 7,
+      "target": 29
+    }
   },
   "components": {
     "heavy": [
