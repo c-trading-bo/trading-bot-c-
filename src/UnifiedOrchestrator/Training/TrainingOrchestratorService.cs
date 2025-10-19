@@ -21,6 +21,8 @@ internal sealed class TrainingOrchestratorService
     private readonly ResourcePreCheckService _resourceChecker;
     private readonly TrainingComponentLoader _componentLoader;
     private readonly TrainingAlertService _alertService;
+    private readonly ProgressTracker _progressTracker;
+    private readonly ConsoleProgressRenderer _progressRenderer;
     private readonly string _lockFilePath;
     private readonly string _checkpointDirectory;
 
@@ -29,13 +31,17 @@ internal sealed class TrainingOrchestratorService
         HistoricalTrainingOrchestrator historicalOrchestrator,
         ResourcePreCheckService resourceChecker,
         TrainingComponentLoader componentLoader,
-        TrainingAlertService alertService)
+        TrainingAlertService alertService,
+        ProgressTracker progressTracker,
+        ConsoleProgressRenderer progressRenderer)
     {
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
         _resourceChecker = resourceChecker;
         _componentLoader = componentLoader;
         _alertService = alertService;
+        _progressTracker = progressTracker;
+        _progressRenderer = progressRenderer;
         
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
@@ -81,6 +87,11 @@ internal sealed class TrainingOrchestratorService
 
             session.ComponentsTotal = _componentLoader.GetTotalComponentCount();
             _logger.LogInformation("[LAB] Loaded {Count} total components", session.ComponentsTotal);
+
+            // Initialize progress tracking
+            _progressTracker.TotalComponents = session.ComponentsTotal;
+            _progressTracker.StartTime = session.StartTime;
+            _progressTracker.SetPhase("NotStarted");
 
             return session;
         }
@@ -198,9 +209,9 @@ internal sealed class TrainingOrchestratorService
             _ => new List<TrainingComponent>()
         };
 
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] PHASE {Phase} TRAINING ({Count} components)", phase, components.Count);
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        // Update progress tracker and render phase start
+        _progressTracker.SetPhase(phase.ToString());
+        _progressRenderer.RenderPhaseStart(phase.ToString(), components.Count);
 
         var phaseResult = new PhaseResult
         {
@@ -212,32 +223,59 @@ internal sealed class TrainingOrchestratorService
         var componentNumber = 1;
         foreach (var component in components)
         {
+            var componentStartTime = DateTimeOffset.UtcNow;
+            
             try
             {
                 session.CurrentComponent = component.Name;
-                _logger.LogInformation(
-                    "[LAB] [{Current}/{Total}] Training {ComponentName}...",
-                    componentNumber,
-                    components.Count,
-                    component.Name);
-
-                // Log component details
-                _logger.LogInformation("[LAB]   Component: {ClassName}", component.ClassName);
-                _logger.LogInformation("[LAB]   Estimated time: {Minutes} minutes", component.EstimatedTimeMinutes);
                 
+                // Render component start
+                _progressRenderer.RenderComponentStart(component.Name, componentNumber, components.Count);
+
+                // Update progress tracker
+                _progressTracker.UpdateComponentProgress(
+                    component.Name,
+                    progress: 0.0,
+                    currentEpoch: 0,
+                    totalEpochs: 10);
+
                 // Brief delay to simulate training (actual training integration in next phase)
                 await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+
+                // Simulate progress updates during training
+                for (int i = 1; i <= 10; i++)
+                {
+                    _progressTracker.UpdateComponentProgress(
+                        component.Name,
+                        progress: i / 10.0,
+                        currentEpoch: i,
+                        totalEpochs: 10,
+                        currentLoss: 1.0 / i); // Simulate decreasing loss
+                    
+                    await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+                }
                 
+                // Record success
+                var componentDuration = DateTimeOffset.UtcNow - componentStartTime;
+                _progressTracker.CompleteComponent(component.Name, componentDuration);
                 session.RecordComponentSuccess(component.Name);
                 phaseResult.SuccessfulComponents++;
                 
-                _logger.LogInformation("[LAB]   ✓ Completed successfully");
+                // Render component completion
+                _progressRenderer.RenderComponentComplete(component.Name, true, componentDuration);
+                
+                // Render compact progress every few components
+                if (componentNumber % 3 == 0)
+                {
+                    _progressRenderer.RenderCompactProgress();
+                }
                 
                 componentNumber++;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB]   ❌ Failed: {Error}", ex.Message);
+                var componentDuration = DateTimeOffset.UtcNow - componentStartTime;
+                _progressRenderer.RenderComponentComplete(component.Name, false, componentDuration, ex.Message);
                 session.RecordComponentFailure(component.Name, ex.Message);
                 phaseResult.FailedComponents++;
                 
@@ -248,14 +286,12 @@ internal sealed class TrainingOrchestratorService
         phaseResult.EndTime = DateTimeOffset.UtcNow;
         phaseResult.Duration = phaseResult.EndTime.Value - phaseResult.StartTime;
 
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation(
-            "[LAB] PHASE {Phase} COMPLETE - Success: {Success}/{Total}, Failed: {Failed}",
-            phase,
+        // Render phase completion
+        _progressRenderer.RenderPhaseComplete(
+            phase.ToString(),
             phaseResult.SuccessfulComponents,
-            phaseResult.TotalComponents,
-            phaseResult.FailedComponents);
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            phaseResult.FailedComponents,
+            phaseResult.Duration);
 
         return phaseResult;
     }
@@ -330,18 +366,8 @@ internal sealed class TrainingOrchestratorService
         });
         await File.WriteAllTextAsync(summaryPath, json, cancellationToken).ConfigureAwait(false);
 
-        // Log formatted summary
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] TRAINING SESSION SUMMARY");
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] Session ID: {SessionId}", summary.SessionId);
-        _logger.LogInformation("[LAB] Duration: {Duration}", summary.Duration);
-        _logger.LogInformation("[LAB] Components Total: {Total}", summary.ComponentsTotal);
-        _logger.LogInformation("[LAB] Components Completed: {Completed}", summary.ComponentsCompleted);
-        _logger.LogInformation("[LAB] Components Failed: {Failed}", summary.ComponentsFailed);
-        _logger.LogInformation("[LAB] Success Rate: {Rate:P1}", summary.SuccessRate);
-        _logger.LogInformation("[LAB] Promotion: {Promotion}", summary.PromotionSuccess ? "Success" : "Failed");
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        // Render formatted summary using progress renderer
+        _progressRenderer.RenderSessionSummary(summary);
 
         return summary;
     }
