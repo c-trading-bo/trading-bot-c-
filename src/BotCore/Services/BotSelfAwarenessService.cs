@@ -97,9 +97,32 @@ public sealed class BotSelfAwarenessService : BackgroundService
             _logger.LogInformation("✅ [SELF-AWARENESS] Discovered {Count} components to monitor", _discoveredComponents.Count);
             
             // Initialize health history
-            foreach (var component in _discoveredComponents)
+            try
             {
-                _healthHistory[component.Name] = HealthCheckResult.Healthy("Initial state");
+                foreach (var component in _discoveredComponents)
+                {
+                    if (component == null || string.IsNullOrWhiteSpace(component.Name))
+                    {
+                        _logger.LogWarning("⚠️ [SELF-AWARENESS] Skipping component with null or empty name");
+                        continue;
+                    }
+                    
+                    // Avoid duplicate keys
+                    if (!_healthHistory.ContainsKey(component.Name))
+                    {
+                        _healthHistory[component.Name] = HealthCheckResult.Healthy("Initial state");
+                    }
+                    else
+                    {
+                        _logger.LogDebug("⚠️ [SELF-AWARENESS] Component {Name} already exists in health history", component.Name);
+                    }
+                }
+                _logger.LogInformation("✅ [SELF-AWARENESS] Initialized health history for {Count} components", _healthHistory.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [SELF-AWARENESS] Error initializing health history");
+                throw;
             }
             
             // Start monitoring loop

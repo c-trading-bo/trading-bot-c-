@@ -78,7 +78,19 @@ public sealed class ComponentDiscoveryService
             
             foreach (var service in hostedServices)
             {
+                if (service == null)
+                {
+                    _logger.LogWarning("⚠️ [COMPONENT-DISCOVERY] Encountered null service in IHostedService collection");
+                    continue;
+                }
+                
                 var serviceName = service.GetType().Name;
+                if (string.IsNullOrWhiteSpace(serviceName))
+                {
+                    _logger.LogWarning("⚠️ [COMPONENT-DISCOVERY] Service has null or empty name: {ServiceType}", service.GetType().FullName);
+                    continue;
+                }
+                
                 components.Add(new DiscoveredComponent
                 {
                     Name = serviceName,

@@ -24,7 +24,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:11.9276005Z",
+    "timestamp": "2025-10-19T09:37:40.7737961Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -52,7 +52,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:11.9867655Z",
+    "timestamp": "2025-10-19T09:37:40.9388099Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -80,7 +80,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:11.9876262Z",
+    "timestamp": "2025-10-19T09:37:40.9709073Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -109,7 +109,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0006409Z",
+    "timestamp": "2025-10-19T09:37:40.9780071Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -136,7 +136,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0013313Z",
+    "timestamp": "2025-10-19T09:37:40.9825451Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -164,7 +164,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0023855Z",
+    "timestamp": "2025-10-19T09:37:40.9855822Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -193,7 +193,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0028193Z",
+    "timestamp": "2025-10-19T09:37:40.9876757Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -220,7 +220,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0032954Z",
+    "timestamp": "2025-10-19T09:37:40.9954207Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -248,7 +248,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0037436Z",
+    "timestamp": "2025-10-19T09:37:40.9998031Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -275,7 +275,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0041973Z",
+    "timestamp": "2025-10-19T09:37:41.0016311Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -302,7 +302,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0046525Z",
+    "timestamp": "2025-10-19T09:37:41.0029344Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -329,7 +329,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.005098Z",
+    "timestamp": "2025-10-19T09:37:41.0042128Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -357,7 +357,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0055489Z",
+    "timestamp": "2025-10-19T09:37:41.0058861Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -384,7 +384,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0059881Z",
+    "timestamp": "2025-10-19T09:37:41.0071508Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -412,7 +412,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0064212Z",
+    "timestamp": "2025-10-19T09:37:41.0087253Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -441,7 +441,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0069347Z",
+    "timestamp": "2025-10-19T09:37:41.0125607Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -469,7 +469,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0073285Z",
+    "timestamp": "2025-10-19T09:37:41.0139413Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -498,7 +498,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0077454Z",
+    "timestamp": "2025-10-19T09:37:41.014891Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -527,7 +527,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.008198Z",
+    "timestamp": "2025-10-19T09:37:41.0171909Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -557,7 +557,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0125022Z",
+    "timestamp": "2025-10-19T09:37:41.0271252Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -585,7 +585,7 @@
       "low_volatility",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0129284Z",
+    "timestamp": "2025-10-19T09:37:41.0290299Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -614,7 +614,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.013291Z",
+    "timestamp": "2025-10-19T09:37:41.0303558Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -643,7 +643,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0136821Z",
+    "timestamp": "2025-10-19T09:37:41.0316122Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -673,7 +673,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0140848Z",
+    "timestamp": "2025-10-19T09:37:41.0328408Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -702,7 +702,7 @@
       "trending",
       "overbought"
     ],
-    "timestamp": "2025-10-19T03:37:12.0144558Z",
+    "timestamp": "2025-10-19T09:37:41.0342493Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -729,7 +729,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0148454Z",
+    "timestamp": "2025-10-19T09:37:41.0357248Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -758,7 +758,7 @@
       "high_volume",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0152514Z",
+    "timestamp": "2025-10-19T09:37:41.0374126Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -786,7 +786,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0156204Z",
+    "timestamp": "2025-10-19T09:37:41.0390311Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -814,7 +814,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0160268Z",
+    "timestamp": "2025-10-19T09:37:41.0414237Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -841,7 +841,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0163906Z",
+    "timestamp": "2025-10-19T09:37:41.0441571Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -869,7 +869,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0167618Z",
+    "timestamp": "2025-10-19T09:37:41.0463927Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -897,7 +897,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0171719Z",
+    "timestamp": "2025-10-19T09:37:41.0480311Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -925,7 +925,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0175279Z",
+    "timestamp": "2025-10-19T09:37:41.0491444Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -953,7 +953,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0178825Z",
+    "timestamp": "2025-10-19T09:37:41.0501811Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -981,7 +981,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0182934Z",
+    "timestamp": "2025-10-19T09:37:41.0532793Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1009,7 +1009,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0188083Z",
+    "timestamp": "2025-10-19T09:37:41.0554243Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1037,7 +1037,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0192778Z",
+    "timestamp": "2025-10-19T09:37:41.0584626Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1065,7 +1065,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0197333Z",
+    "timestamp": "2025-10-19T09:37:41.0637118Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1093,7 +1093,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0201527Z",
+    "timestamp": "2025-10-19T09:37:41.0651075Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1121,7 +1121,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0205631Z",
+    "timestamp": "2025-10-19T09:37:41.0676327Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1149,7 +1149,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0209722Z",
+    "timestamp": "2025-10-19T09:37:41.0707172Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1178,7 +1178,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0216633Z",
+    "timestamp": "2025-10-19T09:37:41.0733057Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1206,7 +1206,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0221033Z",
+    "timestamp": "2025-10-19T09:37:41.0836275Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1234,7 +1234,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0225495Z",
+    "timestamp": "2025-10-19T09:37:41.0863151Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1263,7 +1263,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0231244Z",
+    "timestamp": "2025-10-19T09:37:41.0890824Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1291,7 +1291,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0235175Z",
+    "timestamp": "2025-10-19T09:37:41.0912051Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1319,7 +1319,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0239563Z",
+    "timestamp": "2025-10-19T09:37:41.094766Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1348,7 +1348,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0243398Z",
+    "timestamp": "2025-10-19T09:37:41.0969776Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1376,7 +1376,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0245938Z",
+    "timestamp": "2025-10-19T09:37:41.098232Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1404,7 +1404,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0250311Z",
+    "timestamp": "2025-10-19T09:37:41.0992133Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1433,7 +1433,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0253989Z",
+    "timestamp": "2025-10-19T09:37:41.101612Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1461,7 +1461,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0257628Z",
+    "timestamp": "2025-10-19T09:37:41.1054867Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1490,7 +1490,7 @@
       "high_volume",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0261873Z",
+    "timestamp": "2025-10-19T09:37:41.1069164Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1518,7 +1518,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0273951Z",
+    "timestamp": "2025-10-19T09:37:41.1085224Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1546,7 +1546,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.02787Z",
+    "timestamp": "2025-10-19T09:37:41.1134207Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1575,7 +1575,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0283219Z",
+    "timestamp": "2025-10-19T09:37:41.1165242Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1605,7 +1605,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0287449Z",
+    "timestamp": "2025-10-19T09:37:41.1176697Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1634,7 +1634,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.029156Z",
+    "timestamp": "2025-10-19T09:37:41.121365Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1663,7 +1663,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0295405Z",
+    "timestamp": "2025-10-19T09:37:41.123021Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1692,7 +1692,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0316752Z",
+    "timestamp": "2025-10-19T09:37:41.1287647Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1721,7 +1721,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0321404Z",
+    "timestamp": "2025-10-19T09:37:41.1299002Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1751,7 +1751,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0325611Z",
+    "timestamp": "2025-10-19T09:37:41.1308974Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1780,7 +1780,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0329821Z",
+    "timestamp": "2025-10-19T09:37:41.1320222Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1810,7 +1810,7 @@
       "trending",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0336195Z",
+    "timestamp": "2025-10-19T09:37:41.1342153Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -1839,7 +1839,7 @@
       "trending",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.034367Z",
+    "timestamp": "2025-10-19T09:37:41.1359146Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1869,7 +1869,7 @@
       "overbought",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.034872Z",
+    "timestamp": "2025-10-19T09:37:41.1377967Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1899,7 +1899,7 @@
       "overbought",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.0353953Z",
+    "timestamp": "2025-10-19T09:37:41.1398341Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -1927,7 +1927,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0358216Z",
+    "timestamp": "2025-10-19T09:37:41.140777Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1954,7 +1954,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0362427Z",
+    "timestamp": "2025-10-19T09:37:41.1440832Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -1982,7 +1982,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0365302Z",
+    "timestamp": "2025-10-19T09:37:41.1446596Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2011,7 +2011,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0369489Z",
+    "timestamp": "2025-10-19T09:37:41.1454699Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2039,7 +2039,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0373409Z",
+    "timestamp": "2025-10-19T09:37:41.1461364Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2067,7 +2067,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0377347Z",
+    "timestamp": "2025-10-19T09:37:41.1467674Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2095,7 +2095,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0381495Z",
+    "timestamp": "2025-10-19T09:37:41.1478867Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2123,7 +2123,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0385384Z",
+    "timestamp": "2025-10-19T09:37:41.1495253Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2152,7 +2152,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0389603Z",
+    "timestamp": "2025-10-19T09:37:41.1505397Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2181,7 +2181,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0393676Z",
+    "timestamp": "2025-10-19T09:37:41.1523714Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2210,7 +2210,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0400245Z",
+    "timestamp": "2025-10-19T09:37:41.1535582Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2239,7 +2239,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0404865Z",
+    "timestamp": "2025-10-19T09:37:41.1546751Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2267,7 +2267,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0411982Z",
+    "timestamp": "2025-10-19T09:37:41.1557746Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2296,7 +2296,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0415311Z",
+    "timestamp": "2025-10-19T09:37:41.1563869Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2323,7 +2323,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0422601Z",
+    "timestamp": "2025-10-19T09:37:41.1574747Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2352,7 +2352,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0427045Z",
+    "timestamp": "2025-10-19T09:37:41.1586319Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2380,7 +2380,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0434392Z",
+    "timestamp": "2025-10-19T09:37:41.1610026Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2408,7 +2408,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0439631Z",
+    "timestamp": "2025-10-19T09:37:41.1629441Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2436,7 +2436,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0444685Z",
+    "timestamp": "2025-10-19T09:37:41.1641449Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2464,7 +2464,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0449306Z",
+    "timestamp": "2025-10-19T09:37:41.1655101Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2492,7 +2492,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0453238Z",
+    "timestamp": "2025-10-19T09:37:41.1665174Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2520,7 +2520,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0458778Z",
+    "timestamp": "2025-10-19T09:37:41.1681778Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2549,7 +2549,7 @@
       "high_volume",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0463106Z",
+    "timestamp": "2025-10-19T09:37:41.1694782Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2577,7 +2577,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0467187Z",
+    "timestamp": "2025-10-19T09:37:41.1705809Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2605,7 +2605,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0471529Z",
+    "timestamp": "2025-10-19T09:37:41.1798256Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2633,7 +2633,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0475489Z",
+    "timestamp": "2025-10-19T09:37:41.1812952Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2661,7 +2661,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0480027Z",
+    "timestamp": "2025-10-19T09:37:41.1825792Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2689,7 +2689,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0484061Z",
+    "timestamp": "2025-10-19T09:37:41.1839685Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2717,7 +2717,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0488076Z",
+    "timestamp": "2025-10-19T09:37:41.1860274Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2745,7 +2745,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.049244Z",
+    "timestamp": "2025-10-19T09:37:41.2675751Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2773,7 +2773,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0496283Z",
+    "timestamp": "2025-10-19T09:37:41.2959275Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2801,7 +2801,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0500162Z",
+    "timestamp": "2025-10-19T09:37:41.2992147Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2829,7 +2829,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0504305Z",
+    "timestamp": "2025-10-19T09:37:41.3018621Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2857,7 +2857,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0508191Z",
+    "timestamp": "2025-10-19T09:37:41.3051603Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2886,7 +2886,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.051215Z",
+    "timestamp": "2025-10-19T09:37:41.3081528Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2914,7 +2914,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0517489Z",
+    "timestamp": "2025-10-19T09:37:41.3136503Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2942,7 +2942,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0521905Z",
+    "timestamp": "2025-10-19T09:37:41.3172601Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2969,7 +2969,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0526016Z",
+    "timestamp": "2025-10-19T09:37:41.3193726Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -2996,7 +2996,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0530419Z",
+    "timestamp": "2025-10-19T09:37:41.3246145Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3024,7 +3024,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0534488Z",
+    "timestamp": "2025-10-19T09:37:41.3344728Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3051,7 +3051,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0538486Z",
+    "timestamp": "2025-10-19T09:37:41.3376469Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3078,7 +3078,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.054467Z",
+    "timestamp": "2025-10-19T09:37:41.3401389Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3105,7 +3105,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0548934Z",
+    "timestamp": "2025-10-19T09:37:41.3481594Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3133,7 +3133,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0553564Z",
+    "timestamp": "2025-10-19T09:37:41.3528049Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3162,7 +3162,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0557645Z",
+    "timestamp": "2025-10-19T09:37:41.3607974Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3190,7 +3190,7 @@
       "low_volatility",
       "high_volume"
     ],
-    "timestamp": "2025-10-19T03:37:12.0561612Z",
+    "timestamp": "2025-10-19T09:37:41.3679271Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3218,7 +3218,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0565503Z",
+    "timestamp": "2025-10-19T09:37:41.3723319Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3245,7 +3245,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0569628Z",
+    "timestamp": "2025-10-19T09:37:41.3783289Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3272,7 +3272,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0573545Z",
+    "timestamp": "2025-10-19T09:37:41.3820452Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3300,7 +3300,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0576371Z",
+    "timestamp": "2025-10-19T09:37:41.3862513Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3328,7 +3328,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.058036Z",
+    "timestamp": "2025-10-19T09:37:41.3910684Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3358,7 +3358,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0584186Z",
+    "timestamp": "2025-10-19T09:37:41.3965963Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3388,7 +3388,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0588172Z",
+    "timestamp": "2025-10-19T09:37:41.4008522Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3417,7 +3417,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0592251Z",
+    "timestamp": "2025-10-19T09:37:41.4028995Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -3445,7 +3445,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0596031Z",
+    "timestamp": "2025-10-19T09:37:41.4050081Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3473,7 +3473,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0600034Z",
+    "timestamp": "2025-10-19T09:37:41.4075415Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3502,7 +3502,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0604358Z",
+    "timestamp": "2025-10-19T09:37:41.4117034Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3530,7 +3530,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0608619Z",
+    "timestamp": "2025-10-19T09:37:41.4142315Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3557,7 +3557,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0613164Z",
+    "timestamp": "2025-10-19T09:37:41.4164476Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3585,7 +3585,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0617882Z",
+    "timestamp": "2025-10-19T09:37:41.4184585Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3613,7 +3613,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0622463Z",
+    "timestamp": "2025-10-19T09:37:41.4205401Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3640,7 +3640,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0626659Z",
+    "timestamp": "2025-10-19T09:37:41.4228364Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3667,7 +3667,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0631082Z",
+    "timestamp": "2025-10-19T09:37:41.4254568Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3695,7 +3695,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.063533Z",
+    "timestamp": "2025-10-19T09:37:41.4283741Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3722,7 +3722,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0640256Z",
+    "timestamp": "2025-10-19T09:37:41.4305719Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3749,7 +3749,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0643487Z",
+    "timestamp": "2025-10-19T09:37:41.4321865Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3777,7 +3777,7 @@
       "low_volatility",
       "high_volume"
     ],
-    "timestamp": "2025-10-19T03:37:12.0647803Z",
+    "timestamp": "2025-10-19T09:37:41.4337703Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3804,7 +3804,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0652415Z",
+    "timestamp": "2025-10-19T09:37:41.4353218Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3833,7 +3833,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0656715Z",
+    "timestamp": "2025-10-19T09:37:41.4371316Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3861,7 +3861,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0661437Z",
+    "timestamp": "2025-10-19T09:37:41.438543Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3889,7 +3889,7 @@
       "low_volatility",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0665788Z",
+    "timestamp": "2025-10-19T09:37:41.4401274Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3916,7 +3916,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.067066Z",
+    "timestamp": "2025-10-19T09:37:41.4416198Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3943,7 +3943,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0675192Z",
+    "timestamp": "2025-10-19T09:37:41.4457028Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -3972,7 +3972,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0679839Z",
+    "timestamp": "2025-10-19T09:37:41.4476536Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4001,7 +4001,7 @@
       "high_volume",
       "trending"
     ],
-    "timestamp": "2025-10-19T03:37:12.0684041Z",
+    "timestamp": "2025-10-19T09:37:41.4494782Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4030,7 +4030,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0688153Z",
+    "timestamp": "2025-10-19T09:37:41.451398Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4059,7 +4059,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0692521Z",
+    "timestamp": "2025-10-19T09:37:41.4530569Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4089,7 +4089,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0696675Z",
+    "timestamp": "2025-10-19T09:37:41.4547197Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4119,7 +4119,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0701139Z",
+    "timestamp": "2025-10-19T09:37:41.4562819Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4147,7 +4147,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0705552Z",
+    "timestamp": "2025-10-19T09:37:41.4580533Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4176,7 +4176,7 @@
       "trending",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0710078Z",
+    "timestamp": "2025-10-19T09:37:41.4613491Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -4204,7 +4204,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0714503Z",
+    "timestamp": "2025-10-19T09:37:41.4631155Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4232,7 +4232,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0719021Z",
+    "timestamp": "2025-10-19T09:37:41.4659175Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4261,7 +4261,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0723782Z",
+    "timestamp": "2025-10-19T09:37:41.4673827Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4290,7 +4290,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0728363Z",
+    "timestamp": "2025-10-19T09:37:41.4697145Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4318,7 +4318,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0733007Z",
+    "timestamp": "2025-10-19T09:37:41.4726684Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4347,7 +4347,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0736343Z",
+    "timestamp": "2025-10-19T09:37:41.4747341Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4375,7 +4375,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0741186Z",
+    "timestamp": "2025-10-19T09:37:41.5131755Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4402,7 +4402,7 @@
     "market_conditions": [
       "low_volatility"
     ],
-    "timestamp": "2025-10-19T03:37:12.0746373Z",
+    "timestamp": "2025-10-19T09:37:41.5146906Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4430,7 +4430,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0752091Z",
+    "timestamp": "2025-10-19T09:37:41.5168313Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4459,7 +4459,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0755802Z",
+    "timestamp": "2025-10-19T09:37:41.5190091Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4488,7 +4488,7 @@
       "high_volume",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0761505Z",
+    "timestamp": "2025-10-19T09:37:41.5217341Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4517,7 +4517,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0764418Z",
+    "timestamp": "2025-10-19T09:37:41.5230941Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4545,7 +4545,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0768649Z",
+    "timestamp": "2025-10-19T09:37:41.5244131Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4573,7 +4573,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0772931Z",
+    "timestamp": "2025-10-19T09:37:41.5261567Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4601,7 +4601,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0777207Z",
+    "timestamp": "2025-10-19T09:37:41.5296779Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4630,7 +4630,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0781638Z",
+    "timestamp": "2025-10-19T09:37:41.5325031Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4658,7 +4658,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0785863Z",
+    "timestamp": "2025-10-19T09:37:41.5349107Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4686,7 +4686,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0790646Z",
+    "timestamp": "2025-10-19T09:37:41.5378954Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4715,7 +4715,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0794878Z",
+    "timestamp": "2025-10-19T09:37:41.539552Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4743,7 +4743,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0799266Z",
+    "timestamp": "2025-10-19T09:37:41.5410212Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4771,7 +4771,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0803513Z",
+    "timestamp": "2025-10-19T09:37:41.5437776Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4800,7 +4800,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0807706Z",
+    "timestamp": "2025-10-19T09:37:41.5466431Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4829,7 +4829,7 @@
       "high_volume",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0812534Z",
+    "timestamp": "2025-10-19T09:37:41.5478995Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4857,7 +4857,7 @@
       "low_volatility",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0816729Z",
+    "timestamp": "2025-10-19T09:37:41.5490588Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4886,7 +4886,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0821221Z",
+    "timestamp": "2025-10-19T09:37:41.5505681Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4915,7 +4915,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0825444Z",
+    "timestamp": "2025-10-19T09:37:41.5532501Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4943,7 +4943,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0891989Z",
+    "timestamp": "2025-10-19T09:37:41.5566007Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -4971,7 +4971,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0897211Z",
+    "timestamp": "2025-10-19T09:37:41.558694Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5000,7 +5000,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0901274Z",
+    "timestamp": "2025-10-19T09:37:41.5626448Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5030,7 +5030,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.090571Z",
+    "timestamp": "2025-10-19T09:37:41.5648481Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5059,7 +5059,7 @@
       "ranging",
       "oversold"
     ],
-    "timestamp": "2025-10-19T03:37:12.0910227Z",
+    "timestamp": "2025-10-19T09:37:41.5660718Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5087,7 +5087,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0914507Z",
+    "timestamp": "2025-10-19T09:37:41.5680127Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5115,7 +5115,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0919312Z",
+    "timestamp": "2025-10-19T09:37:41.5698926Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5144,7 +5144,7 @@
       "high_volume",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.092387Z",
+    "timestamp": "2025-10-19T09:37:41.5713106Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5172,7 +5172,7 @@
       "low_volatility",
       "ranging"
     ],
-    "timestamp": "2025-10-19T03:37:12.0928458Z",
+    "timestamp": "2025-10-19T09:37:41.5723587Z",
     "strategy_specialization": "VWAP Mean Reversion"
   },
   {
@@ -5202,7 +5202,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.093314Z",
+    "timestamp": "2025-10-19T09:37:41.5742612Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5231,7 +5231,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.093768Z",
+    "timestamp": "2025-10-19T09:37:41.5755889Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5260,7 +5260,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0942722Z",
+    "timestamp": "2025-10-19T09:37:41.5786711Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5289,7 +5289,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0947433Z",
+    "timestamp": "2025-10-19T09:37:41.5809635Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5318,7 +5318,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0951357Z",
+    "timestamp": "2025-10-19T09:37:41.582773Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5347,7 +5347,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.095604Z",
+    "timestamp": "2025-10-19T09:37:41.584475Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5376,7 +5376,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0960643Z",
+    "timestamp": "2025-10-19T09:37:41.5856086Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5405,7 +5405,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0964909Z",
+    "timestamp": "2025-10-19T09:37:41.5872343Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5434,7 +5434,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0969469Z",
+    "timestamp": "2025-10-19T09:37:41.5884324Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5463,7 +5463,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0973873Z",
+    "timestamp": "2025-10-19T09:37:41.5894522Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5492,7 +5492,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0978385Z",
+    "timestamp": "2025-10-19T09:37:41.5914775Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5521,7 +5521,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0983169Z",
+    "timestamp": "2025-10-19T09:37:41.5960405Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5551,7 +5551,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0987593Z",
+    "timestamp": "2025-10-19T09:37:41.5993769Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5581,7 +5581,7 @@
       "ranging",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0992579Z",
+    "timestamp": "2025-10-19T09:37:41.6012638Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5610,7 +5610,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.0997433Z",
+    "timestamp": "2025-10-19T09:37:41.6024326Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5641,7 +5641,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1002573Z",
+    "timestamp": "2025-10-19T09:37:41.6047472Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5670,7 +5670,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.100755Z",
+    "timestamp": "2025-10-19T09:37:41.6063744Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5699,7 +5699,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1012623Z",
+    "timestamp": "2025-10-19T09:37:41.6077793Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5727,7 +5727,7 @@
       "low_volatility",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1017402Z",
+    "timestamp": "2025-10-19T09:37:41.6132471Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5756,7 +5756,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1021908Z",
+    "timestamp": "2025-10-19T09:37:41.6159354Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5785,7 +5785,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1026453Z",
+    "timestamp": "2025-10-19T09:37:41.6176752Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5814,7 +5814,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1031045Z",
+    "timestamp": "2025-10-19T09:37:41.6197116Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5844,7 +5844,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1035343Z",
+    "timestamp": "2025-10-19T09:37:41.6219867Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5873,7 +5873,7 @@
       "oversold",
       "opening_drive"
     ],
-    "timestamp": "2025-10-19T03:37:12.1040093Z",
+    "timestamp": "2025-10-19T09:37:41.6240073Z",
     "strategy_specialization": "Momentum Strategy"
   },
   {
@@ -5902,7 +5902,7 @@
       "oversold",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1044396Z",
+    "timestamp": "2025-10-19T09:37:41.626604Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5931,7 +5931,7 @@
       "oversold",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1048964Z",
+    "timestamp": "2025-10-19T09:37:41.6298067Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5960,7 +5960,7 @@
       "oversold",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.105343Z",
+    "timestamp": "2025-10-19T09:37:41.6315506Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -5989,7 +5989,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1057673Z",
+    "timestamp": "2025-10-19T09:37:41.6336108Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6018,7 +6018,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1062304Z",
+    "timestamp": "2025-10-19T09:37:41.6356907Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6047,7 +6047,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1066646Z",
+    "timestamp": "2025-10-19T09:37:41.6385084Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6076,7 +6076,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1071533Z",
+    "timestamp": "2025-10-19T09:37:41.6398999Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6105,7 +6105,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1075806Z",
+    "timestamp": "2025-10-19T09:37:41.6419972Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6134,7 +6134,7 @@
       "high_volume",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1080289Z",
+    "timestamp": "2025-10-19T09:37:41.6465335Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6163,7 +6163,7 @@
       "ranging",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1084714Z",
+    "timestamp": "2025-10-19T09:37:41.6483997Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6192,7 +6192,7 @@
       "high_volume",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1088989Z",
+    "timestamp": "2025-10-19T09:37:41.6504419Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6220,7 +6220,7 @@
       "low_volatility",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1093829Z",
+    "timestamp": "2025-10-19T09:37:41.651806Z",
     "strategy_specialization": "Bollinger Compression"
   },
   {
@@ -6249,2119 +6249,7 @@
       "overbought",
       "lunch"
     ],
-    "timestamp": "2025-10-19T03:37:12.1098115Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6448.0,
-      "volume": 27,
-      "volatility": 0.0003877171215880893300248139,
-      "atr": 4.3101001523170827941202924941,
-      "rsi": 77.142857142857142857142857143,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 2.109375,
-      "price_change": 0.0,
-      "trend_strength": 0.5,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.4,
-      "momentum": 0.0019812750087409191562099375,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1102584Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6444.5,
-      "volume": 40,
-      "volatility": 0.0006206843044456513305919777,
-      "atr": 4.2932885037556836940003763801,
-      "rsi": 71.523178807947019867549668874,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 2.51572327044025,
-      "price_change": -3.5,
-      "trend_strength": 0.4095238095238095238095238095,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.65,
-      "momentum": 0.000504560450223170968367941,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1106927Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6447.5,
-      "volume": 2,
-      "volatility": 0.0000775494377665761923226057,
-      "atr": 4.2477784033312049619233745312,
-      "rsi": 73.125,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.128205128205128,
-      "price_change": 3.0,
-      "trend_strength": 0.5,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0.0002327024511324852621780949,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1111386Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6451.5,
-      "volume": 5,
-      "volatility": 0.0005037588157792761373324033,
-      "atr": 4.2657325800053832768537312257,
-      "rsi": 72.955974842767295597484276729,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.316455696202532,
-      "price_change": 4.0,
-      "trend_strength": 0.5272727272727272727272727273,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.65,
-      "momentum": 0.0005428039702233250620347395,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.111615Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6456.5,
-      "volume": 106,
-      "volatility": 0.0006195307054905908774103617,
-      "atr": 4.3506870662652104009847660039,
-      "rsi": 74.705882352941176470588235294,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 4.10852713178295,
-      "price_change": 5.0,
-      "trend_strength": 0.5739130434782608695652173913,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.65,
-      "momentum": 0.0013182382133995037220843672,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1120567Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6461.75,
-      "volume": 34,
-      "volatility": 0.0010446086586451038805277208,
-      "atr": 4.5382723042842441181530089594,
-      "rsi": 77.127659574468085106382978723,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 1.25925925925926,
-      "price_change": 5.25,
-      "trend_strength": 0.7681159420289855072463768116,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.95,
-      "momentum": 0.0026767010629218713631779036,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1124874Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6465.75,
-      "volume": 59,
-      "volatility": 0.0007346402196187603912925801,
-      "atr": 4.5243207020655530909703356081,
-      "rsi": 82.98969072164948453608247423,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 1.82098765432099,
-      "price_change": 4.00,
-      "trend_strength": 0.6712328767123287671232876712,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.75,
-      "momentum": 0.0028305544784800310197751066,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1129333Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6466.0,
-      "volume": 9,
-      "volatility": 0.000270646458397772966285184,
-      "atr": 4.3211978869080776655860306681,
-      "rsi": 82.72251308900523560209424084,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.298013245033113,
-      "price_change": 0.25,
-      "trend_strength": 0.6106870229007633587786259542,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.35,
-      "momentum": 0.0022475393319383089204061071,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.113366Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6467.0,
-      "volume": 27,
-      "volatility": 0.0004252358125869800525746096,
-      "atr": 4.2130685660519806663540987285,
-      "rsi": 82.25806451612903225806451613,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.851735015772871,
-      "price_change": 1.0,
-      "trend_strength": 0.608,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.45,
-      "momentum": 0.0016262681019128010532021993,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1138631Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6463.5,
-      "volume": 7,
-      "volatility": 0.0005415022820453314767540806,
-      "atr": 4.1485032075566582703911404426,
-      "rsi": 75,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.221518987341772,
-      "price_change": -3.5,
-      "trend_strength": 0.4592592592592592592592592593,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.65,
-      "momentum": 0.0002708244670561380430997795,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1143132Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6463.0,
-      "volume": 7,
-      "volatility": 0.0003481355407705399969054619,
-      "atr": 3.9916377142132981483804886769,
-      "rsi": 82.45614035087719298245614035,
-      "hour": 12,
-      "day_of_week": 2,
-      "volume_ratio": 0.236486486486486,
-      "price_change": -0.5,
-      "trend_strength": 0.5522388059701492537313432836,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.35,
-      "momentum": -0.0004253180218845454896957043,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1147386Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6464.75,
-      "volume": 35,
-      "volatility": 0.0006574113461464093739123709,
-      "atr": 4.0191483135596213192639478476,
-      "rsi": 80.51948051948051948051948052,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 1.20274914089347,
-      "price_change": 1.75,
-      "trend_strength": 0.5111111111111111111111111111,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.75,
-      "momentum": -0.0001933188988555521187751315,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1151918Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6461.5,
-      "volume": 5,
-      "volatility": 0.0004255977714153060434883541,
-      "atr": 4.0261665815389687556210442864,
-      "rsi": 70.945945945945945945945945946,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.170068027210884,
-      "price_change": -3.25,
-      "trend_strength": 0.2777777777777777777777777778,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.35,
-      "momentum": -0.0008504716251739601051492191,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "overbought",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1156235Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6461.5,
-      "volume": 67,
-      "volatility": 0.0005803605973845082411204829,
-      "atr": 4.0115881036646352108213768537,
-      "rsi": 69.285714285714285714285714286,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 1.88202247191011,
-      "price_change": 0.0,
-      "trend_strength": 0.136986301369863013698630137,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": -0.0003094298754544751295737603,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.116116Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6456.25,
-      "volume": 7,
-      "volatility": 0.0004646660212971926427879961,
-      "atr": 4.098425521984792106895991597,
-      "rsi": 60.248447204968944099378881988,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.272373540856031,
-      "price_change": -5.25,
-      "trend_strength": 0.1549295774647887323943661972,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.45,
-      "momentum": -0.0010444066223116199907163856,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1165559Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6459.25,
-      "volume": 7,
-      "volatility": 0.0005418585749119479815768085,
-      "atr": 4.0647369922045799950283434164,
-      "rsi": 68.553459119496855345911949686,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.304347826086957,
-      "price_change": 3.00,
-      "trend_strength": 0.2015503875968992248062015504,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.5,
-      "momentum": -0.0008507676244247650721218918,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1170086Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6458.5,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 3.8059493196265979601105295309,
-      "rsi": 64.666666666666666666666666667,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.0581395348837209,
-      "price_change": -0.75,
-      "trend_strength": 0.2727272727272727272727272727,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0004642884779076065928963863,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1174429Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6458.5,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 3.5082619362910485505214642441,
-      "rsi": 60.447761194029850746268656717,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.0609756097560976,
-      "price_change": 0.0,
-      "trend_strength": 0.3300970873786407766990291262,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0004642884779076065928963863,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1178754Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6455.0,
-      "volume": 10,
-      "volatility": 0.0001549186676994577846630519,
-      "atr": 3.5802443041956291957766882304,
-      "rsi": 47.65625,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.680272108843537,
-      "price_change": -3.5,
-      "trend_strength": 0.3541666666666666666666666667,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.15,
-      "momentum": -0.0001936108422071636011616651,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1183708Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6452.0,
-      "volume": 3,
-      "volatility": 0.0000387476751394916305021699,
-      "atr": 3.5526516535857184286261319155,
-      "rsi": 33.613445378151260504201680674,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.20979020979021,
-      "price_change": -3.0,
-      "trend_strength": 0.5301204819277108433734939759,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.1,
-      "momentum": -0.0011224213337461779618376747,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1188049Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6459.0,
-      "volume": 9,
-      "volatility": 0.0009289363678588016720854621,
-      "atr": 3.7668606472763833726779223909,
-      "rsi": 39.694656488549618320610687024,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.620689655172414,
-      "price_change": 7.0,
-      "trend_strength": 0.2346938775510204081632653061,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.9,
-      "momentum": 0.0000774173569714329952775412,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1192471Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6464.0,
-      "volume": 22,
-      "volatility": 0.0010829207920792079207920792,
-      "atr": 4.0469210156405014967834492921,
-      "rsi": 47.333333333333333333333333334,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 1.66666666666667,
-      "price_change": 5.0,
-      "trend_strength": 0.091743119266055045871559633,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.95,
-      "momentum": 0.0008515909266857629480529535,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1195317Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6461.0,
-      "volume": 5,
-      "volatility": 0.0003482433059897848630242996,
-      "atr": 4.0126216237361732898985005483,
-      "rsi": 42.405063291139240506329113925,
-      "hour": 13,
-      "day_of_week": 2,
-      "volume_ratio": 0.378787878787879,
-      "price_change": -3.0,
-      "trend_strength": 0.0186915887850467289719626168,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.25,
-      "momentum": 0.0009295120061967467079783114,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "lunch"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1199348Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6463.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 3.8851640069772523815734684181,
-      "rsi": 49.342105263157894736842105262,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 0.151515151515152,
-      "price_change": 2.0,
-      "trend_strength": 0.2934782608695652173913043478,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0.0017048977061376317420954743,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1203554Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6465.0,
-      "volume": 10,
-      "volatility": 0.000309358081979891724671307,
-      "atr": 3.7368775455586962916662694403,
-      "rsi": 52.531645569620253164556962026,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 1.44927536231884,
-      "price_change": 2.0,
-      "trend_strength": 0.2613636363636363636363636364,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.3,
-      "momentum": 0.0009289363678588016720854621,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1213752Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6469.25,
-      "volume": 23,
-      "volatility": 0.0005023766278934961548865788,
-      "atr": 3.7791534954613815414376156884,
-      "rsi": 55.357142857142857142857142857,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 2.70588235294118,
-      "price_change": 4.25,
-      "trend_strength": 0.4942528735632183908045977011,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": 0.0008121905940594059405940594,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.121794Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6468.25,
-      "volume": 13,
-      "volatility": 0.0005024542959842306651721872,
-      "atr": 3.7428820635908235822010812394,
-      "rsi": 58.490566037735849056603773585,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 1.34020618556701,
-      "price_change": -1.00,
-      "trend_strength": 0.39,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": 0.0011221173193004178919671877,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1222143Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6468.75,
-      "volume": 4,
-      "volatility": 0.0001545893719806763285024155,
-      "atr": 3.5236065810485117304773313149,
-      "rsi": 59.00621118012422360248447205,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 0.4,
-      "price_change": 0.50,
-      "trend_strength": 0.5288461538461538461538461538,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.2,
-      "momentum": 0.000889679715302491103202847,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.122663Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6472.75,
-      "volume": 12,
-      "volatility": 0.0001931172994476845235796223,
-      "atr": 3.5600178798657575568858850378,
-      "rsi": 71.153846153846153846153846154,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 1.17647058823529,
-      "price_change": 4.00,
-      "trend_strength": 0.7904761904761904761904761905,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.3,
-      "momentum": 0.0011987625676720804331013148,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1231235Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6474.0,
-      "volume": 12,
-      "volatility": 0.000617856039542786530738338,
-      "atr": 3.5921124694508596545408349181,
-      "rsi": 69.798657718120805369127516778,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 1.08108108108108,
-      "price_change": 1.25,
-      "trend_strength": 0.5,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.8,
-      "momentum": 0.0007342427638443405340649998,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1235857Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6473.25,
-      "volume": 22,
-      "volatility": 0.0004634457189201714749160005,
-      "atr": 3.5490560984445993180691276596,
-      "rsi": 69.798657718120805369127516778,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 1.7741935483871,
-      "price_change": -0.75,
-      "trend_strength": 0.3425925925925925925925925926,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.5,
-      "momentum": 0.0007730066092065087156495188,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1240881Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6472.75,
-      "volume": 7,
-      "volatility": 0.0001544938395581476188636978,
-      "atr": 3.3802928923981592937890053746,
-      "rsi": 68.874172185430463576158940397,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 0.642201834862385,
-      "price_change": -0.50,
-      "trend_strength": 0.5595238095238095238095238095,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.2,
-      "momentum": 0.0006183574879227053140096618,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1245469Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6479.25,
-      "volume": 42,
-      "volatility": 0.0008874483929467145117104603,
-      "atr": 3.6804680155079396431247026286,
-      "rsi": 79.75460122699386503067484663,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 2.87671232876712,
-      "price_change": 6.50,
-      "trend_strength": 0.6632653061224489795918367347,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.85,
-      "momentum": 0.0010042099571279595226140358,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1250366Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6482.0,
-      "volume": 70,
-      "volatility": 0.0007713668620796050601666152,
-      "atr": 3.781107269316877871796379842,
-      "rsi": 87.03703703703703703703703704,
-      "hour": 14,
-      "day_of_week": 2,
-      "volume_ratio": 3.25581395348837,
-      "price_change": 2.75,
-      "trend_strength": 0.5762711864406779661016949153,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.8,
-      "momentum": 0.0012357120790855730614766759,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1254978Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6480.75,
-      "volume": 23,
-      "volatility": 0.0004629093854877907649577595,
-      "atr": 3.7192129074303665632034574531,
-      "rsi": 81.29496402877697841726618705,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 1.00877192982456,
-      "price_change": -1.25,
-      "trend_strength": 0.3770491803278688524590163934,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.5,
-      "momentum": 0.0011586142973004286872900012,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1259898Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6496.75,
-      "volume": 42,
-      "volatility": 0.002501250625312656328164082,
-      "atr": 4.6193215069509618798616259844,
-      "rsi": 85.79234972677595628415300546,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 1.7004048582996,
-      "price_change": 16.00,
-      "trend_strength": 0.655172413793103448275862069,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.95,
-      "momentum": 0.0037078521493955428527287474,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1264748Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6491.75,
-      "volume": 18,
-      "volatility": 0.001001270843763237955867062,
-      "atr": 4.743932239374535355242645526,
-      "rsi": 82.19895287958115183246073298,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.714285714285714,
-      "price_change": -5.00,
-      "trend_strength": 0.4919786096256684491978609626,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.85,
-      "momentum": 0.0019292356368406837211096963,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1269966Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6498.0,
-      "volume": 20,
-      "volatility": 0.0005386272699292089873807325,
-      "atr": 4.8532244101644089995925922794,
-      "rsi": 83.65384615384615384615384615,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.746268656716418,
-      "price_change": 6.25,
-      "trend_strength": 0.512690355329949238578680203,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": 0.0024683739586547361925331688,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1274985Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6499.0,
-      "volume": 17,
-      "volatility": 0.0005385443914448376673334359,
-      "atr": 4.7490346197392188975772082833,
-      "rsi": 83.33333333333333333333333333,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.622710622710623,
-      "price_change": 1.0,
-      "trend_strength": 0.485436893203883495145631068,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.55,
-      "momentum": 0.0028160320950507271534930371,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1280004Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6498.0,
-      "volume": 21,
-      "volatility": 0.0004232071406586642043705756,
-      "atr": 4.609010941672727964052308891,
-      "rsi": 80.10471204188481675392670157,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.74468085106383,
-      "price_change": -1.0,
-      "trend_strength": 0.4925373134328358208955223881,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.3,
-      "momentum": 0.0001924038942548197175510832,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1285123Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6497.5,
-      "volume": 3,
-      "volatility": 0.0000769526741054251635244325,
-      "atr": 4.3614245309830331183945380501,
-      "rsi": 80.95238095238095238095238095,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.114068441064639,
-      "price_change": -0.5,
-      "trend_strength": 0.5183246073298429319371727749,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.05,
-      "momentum": 0.0008857395925597874224977857,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1290208Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6497.25,
-      "volume": 2,
-      "volatility": 0,
-      "atr": 4.0758542215746622685570770245,
-      "rsi": 80.31914893617021276595744681,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.0775193798449612,
-      "price_change": -0.25,
-      "trend_strength": 0.3850267379679144385026737968,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.000115420129270544783010157,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1294909Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6499.0,
-      "volume": 4,
-      "volatility": 0,
-      "atr": 3.920017190219086267720957270,
-      "rsi": 79.32960893854748603351955307,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.181818181818182,
-      "price_change": 1.75,
-      "trend_strength": 0.4146341463414634146341463415,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1299552Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6501.0,
-      "volume": 8,
-      "volatility": 0.0001153668666359021688970928,
-      "atr": 3.787639500130573434340472242,
-      "rsi": 79.67032967032967032967032967,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.506329113924051,
-      "price_change": 2.0,
-      "trend_strength": 0.5510204081632653061224489796,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.15,
-      "momentum": 0.0004616805170821791320406279,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1303201Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6503.25,
-      "volume": 4,
-      "volatility": 0.0001922115865144350901472341,
-      "atr": 3.6837184369737527736367790056,
-      "rsi": 81.91489361702127659574468085,
-      "hour": 15,
-      "day_of_week": 2,
-      "volume_ratio": 0.287769784172662,
-      "price_change": 2.25,
-      "trend_strength": 0.1857142857142857142857142857,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.3,
-      "momentum": 0.0008849557522123893805309735,
-      "regime": 0
-    },
-    "strategy": "S11",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "overbought",
-      "afternoon_fade"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1307652Z",
-    "strategy_specialization": "ADR Exhaustion Fade"
-  },
-  {
-    "features": {
-      "price": 6499.0,
-      "volume": 5,
-      "volatility": 0.0007693491306354823819049084,
-      "atr": 3.7731628094884339800642662049,
-      "rsi": 75.862068965517241379310344828,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.490196078431373,
-      "price_change": -4.25,
-      "trend_strength": 0.3052631578947368421052631579,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.75,
-      "momentum": 0.0002693447227673246373465697,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "overbought"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1312277Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6497.5,
-      "volume": 2,
-      "volatility": 0.0000384763370527125817622162,
-      "atr": 3.6123501095884543691062435669,
-      "rsi": 69.945355191256830601092896175,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.232558139534884,
-      "price_change": -1.5,
-      "trend_strength": 0.0285714285714285714285714286,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.1,
-      "momentum": -0.0002308047391906447145714725,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1316897Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6498.5,
-      "volume": 2,
-      "volatility": 0.0000769408324998076479187505,
-      "atr": 3.4204153108708865289956928189,
-      "rsi": 68.75,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.294117647058824,
-      "price_change": 1.0,
-      "trend_strength": 0.0344827586206896551724137931,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.15,
-      "momentum": -0.0003845562221196738963236425,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1321462Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6499.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 3.2171525795556443049561052537,
-      "rsi": 71.098265895953757225433526012,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.192307692307692,
-      "price_change": 0.5,
-      "trend_strength": 0.0909090909090909090909090909,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0006535193941490793065005959,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "overbought"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1325988Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6497.75,
-      "volume": 2,
-      "volatility": 0.0001923742834057943134161825,
-      "atr": 3.0836959455081169809294810912,
-      "rsi": 51.754385964912280701754385964,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.606060606060606,
-      "price_change": -1.25,
-      "trend_strength": 0.0263157894736842105263157895,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.4,
-      "momentum": -0.0001923372826588705954762271,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1330536Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6497.25,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.8992415630132227774350812518,
-      "rsi": 61.458333333333333333333333333,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.32258064516129,
-      "price_change": -0.50,
-      "trend_strength": 0,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0000384763370527125817622162,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1335233Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6497.25,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.6947267332015032622049218847,
-      "rsi": 47.887323943661971830985915492,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.333333333333333,
-      "price_change": 0.00,
-      "trend_strength": 0.1944444444444444444444444444,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0001923520812495191197968762,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1338756Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6499.25,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.643959460333168916040670318,
-      "rsi": 50.666666666666666666666666666,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.37037037037037,
-      "price_change": 2.00,
-      "trend_strength": 0.1944444444444444444444444444,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0.0000384674565317741190952454,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging"
-    ],
-    "timestamp": "2025-10-19T03:37:12.134336Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6496.5,
-      "volume": 2,
-      "volatility": 0.0002693758177480181636265682,
-      "atr": 2.6435262411174966299904652699,
-      "rsi": 46.341463414634146341463414633,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 0.952380952380952,
-      "price_change": -2.75,
-      "trend_strength": 0.675,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": -0.0001923742834057943134161825,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1346676Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6496.0,
-      "volume": 4,
-      "volatility": 0.0000384852216748768472906404,
-      "atr": 2.4728768905629571357446795995,
-      "rsi": 46.341463414634146341463414633,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 1.9047619047619,
-      "price_change": -0.5,
-      "trend_strength": 0.3333333333333333333333333333,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.3,
-      "momentum": -0.0001923890876909461695332641,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1351517Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6491.75,
-      "volume": 4,
-      "volatility": 0.0001925520853390842222821273,
-      "atr": 2.6630446276766431008573476973,
-      "rsi": 38.775510204081632653061224489,
-      "hour": 17,
-      "day_of_week": 2,
-      "volume_ratio": 2,
-      "price_change": -4.25,
-      "trend_strength": 1.0952380952380952380952380952,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.55,
-      "momentum": -0.0008465119858401631459463619,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "trending"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1355878Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6492.0,
-      "volume": 2,
-      "volatility": 0,
-      "atr": 2.4993591358956993088473502702,
-      "rsi": 34.782608695652173913043478259,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 1,
-      "price_change": 0.25,
-      "trend_strength": 1.3,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0011155133284609762664922876,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1360589Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6492.75,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.3801245858157127811063252692,
-      "rsi": 31.034482758620689655172413793,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 0.526315789473684,
-      "price_change": 0.75,
-      "trend_strength": 1.3888888888888888888888888889,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.000577233895174324636342646,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1365009Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6490.5,
-      "volume": 2,
-      "volatility": 0.0000385178337570295046606579,
-      "atr": 2.3728318584125590661819841849,
-      "rsi": 20.68965517241379310344827586,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 1,
-      "price_change": -2.25,
-      "trend_strength": 1.5263157894736842105263157895,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.4,
-      "momentum": -0.0008466748768472906403940887,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1369823Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.3185895970449363629311341499,
-      "rsi": 23.684210526315789473684210525,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 0.526315789473684,
-      "price_change": -1.5,
-      "trend_strength": 2.3571428571428571428571428571,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0004236145877459852890206801,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1374372Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6490.0,
-      "volume": 11,
-      "volatility": 0,
-      "atr": 2.221735444668244644420286464,
-      "rsi": 29.729729729729729729729729731,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 3.79310344827586,
-      "price_change": 1.0,
-      "trend_strength": 2.0714285714285714285714285714,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0003080714725816389402341343,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1378753Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6490.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 2.0577016934449774989301612233,
-      "rsi": 25.714285714285714285714285717,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 0.344827586206897,
-      "price_change": 0.0,
-      "trend_strength": 2.6428571428571428571428571429,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0004235493434985175772977552,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.138369Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6490.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 1.9101510336647941924317711341,
-      "rsi": 23.529411764705882352941176471,
-      "hour": 18,
-      "day_of_week": 2,
-      "volume_ratio": 0.344827586206897,
-      "price_change": 0.0,
-      "trend_strength": 1.8571428571428571428571428571,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0000770356675140590093213158,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1388182Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.75,
-      "volume": 2,
-      "volatility": 0.0001926114257097731037405139,
-      "atr": 1.8712264135073509406297719749,
-      "rsi": 24.999999999999999999999999998,
-      "hour": 19,
-      "day_of_week": 2,
-      "volume_ratio": 0.689655172413793,
-      "price_change": -0.25,
-      "trend_strength": 2.0833333333333333333333333333,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.7,
-      "momentum": 0.0001155802126675913083680074,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1394181Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.0,
-      "volume": 6,
-      "volatility": 0.0001155802126675913083680074,
-      "atr": 1.7903761893541983694374263552,
-      "rsi": 24.615384615384615384615384616,
-      "hour": 19,
-      "day_of_week": 2,
-      "volume_ratio": 1.93548387096774,
-      "price_change": -0.75,
-      "trend_strength": 0.7857142857142857142857142857,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.7,
-      "momentum": -0.0001540832049306625577812018,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1402039Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.0,
-      "volume": 2,
-      "volatility": 0.0001155802126675913083680074,
-      "atr": 1.7301721333846501671323768986,
-      "rsi": 24.615384615384615384615384616,
-      "hour": 19,
-      "day_of_week": 2,
-      "volume_ratio": 0.689655172413793,
-      "price_change": 0.0,
-      "trend_strength": 1,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.7,
-      "momentum": -0.0001540832049306625577812018,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1408376Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.75,
-      "volume": 5,
-      "volatility": 0.0000770445702839092414962056,
-      "atr": 1.7148443756671771744492631329,
-      "rsi": 18.33333333333333333333333333,
-      "hour": 19,
-      "day_of_week": 2,
-      "volume_ratio": 1.5625,
-      "price_change": 0.75,
-      "trend_strength": 0.8571428571428571428571428571,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.6,
-      "momentum": -0.0000385208012326656394453005,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1414652Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.75,
-      "volume": 2,
-      "volatility": 0,
-      "atr": 1.5878750804594422188192788471,
-      "rsi": 22.44897959183673469387755102,
-      "hour": 19,
-      "day_of_week": 2,
-      "volume_ratio": 0.606060606060606,
-      "price_change": 0.00,
-      "trend_strength": 0.2142857142857142857142857143,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1418872Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6489.25,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 1.5135061940184773903518958449,
-      "rsi": 22.44897959183673469387755102,
-      "hour": 20,
-      "day_of_week": 2,
-      "volume_ratio": 0.3125,
-      "price_change": -0.50,
-      "trend_strength": 0.0769230769230769230769230769,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": 0.0000385267375558637694560025,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "ranging",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1423976Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6488.75,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 1.4250978074905514212321603765,
-      "rsi": 32.352941176470588235294117648,
-      "hour": 20,
-      "day_of_week": 2,
-      "volume_ratio": 0.3125,
-      "price_change": -0.50,
-      "trend_strength": 0.3846153846153846153846153846,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0000385267375558637694560025,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1433049Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6488.25,
-      "volume": 2,
-      "volatility": 0.0000770623819982275652140408,
-      "atr": 1.371854982733829771009005991,
-      "rsi": 28.571428571428571428571428571,
-      "hour": 20,
-      "day_of_week": 2,
-      "volume_ratio": 0.869565217391304,
-      "price_change": -0.50,
-      "trend_strength": 0.4666666666666666666666666667,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.65,
-      "momentum": -0.0002311337108517277244886167,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1439482Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6486.0,
-      "volume": 1,
-      "volatility": 0,
-      "atr": 1.4388693822586930688194162911,
-      "rsi": 17.07317073170731707317073171,
-      "hour": 20,
-      "day_of_week": 2,
-      "volume_ratio": 0.434782608695652,
-      "price_change": -2.25,
-      "trend_strength": 1.0666666666666666666666666667,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0,
-      "momentum": -0.0005778342771293193112215417,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1445589Z",
-    "strategy_specialization": "VWAP Mean Reversion"
-  },
-  {
-    "features": {
-      "price": 6485.5,
-      "volume": 5,
-      "volatility": 0.0001156425873101534191658315,
-      "atr": 1.4031056600775961791259973129,
-      "rsi": 20.58823529411764705882352941,
-      "hour": 20,
-      "day_of_week": 2,
-      "volume_ratio": 1.85185185185185,
-      "price_change": -0.5,
-      "trend_strength": 0.9444444444444444444444444444,
-      "support_distance": 0,
-      "resistance_distance": 0,
-      "volatility_rank": 0.7,
-      "momentum": -0.0005778787995531070616789305,
-      "regime": 0
-    },
-    "strategy": "S2",
-    "reward": 0,
-    "pnl": 0,
-    "market_conditions": [
-      "low_volatility",
-      "high_volume",
-      "trending",
-      "oversold"
-    ],
-    "timestamp": "2025-10-19T03:37:12.1452247Z",
+    "timestamp": "2025-10-19T09:37:41.6528347Z",
     "strategy_specialization": "VWAP Mean Reversion"
   }
 ]

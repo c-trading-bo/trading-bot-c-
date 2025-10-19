@@ -1,22 +1,22 @@
 {
   "S2": {
-    "win_rate": 0.3,
-    "total_trades": 13,
-    "total_pnl": -76.5,
+    "win_rate": 0.5555555555555555555555555556,
+    "total_trades": 39,
+    "total_pnl": 56.75,
     "avg_hold_time": 10,
     "optimal_conditions": []
   },
   "S3": {
-    "win_rate": 0,
-    "total_trades": 1,
-    "total_pnl": -3.5,
+    "win_rate": 0.75,
+    "total_trades": 16,
+    "total_pnl": 107.25,
     "avg_hold_time": 10,
     "optimal_conditions": []
   },
   "S6": {
-    "win_rate": 0,
-    "total_trades": 2,
-    "total_pnl": -21.5,
+    "win_rate": 0.6,
+    "total_trades": 8,
+    "total_pnl": -33.75,
     "avg_hold_time": 10,
     "optimal_conditions": []
   }
