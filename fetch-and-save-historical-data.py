@@ -6,12 +6,20 @@ This pre-loads the data so the bot can practice immediately without waiting for 
 Supports two modes:
 1. FULL refresh: Fetch 90 days, replace entire file
 2. INCREMENTAL: Fetch only new bars since last update, append and trim to 90 days
+
+Phase 3 Enhancements:
+- Retry logic with exponential backoff (3 attempts)
+- Rate limiting handling
+- Data validation (nulls, zeros, outliers)
+- Resume capability from last successful bar
+- Progress logging every 10,000 bars
 """
 
 import os
 import sys
 import json
 import asyncio
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -23,6 +31,10 @@ from topstep_x_adapter import TopstepXAdapter
 # Configuration
 REFRESH_MODE = os.getenv('REFRESH_MODE', 'incremental')  # 'full' or 'incremental'
 LOOKBACK_DAYS = 90  # Keep last 90 days
+MAX_RETRIES = 3  # Maximum retry attempts for failed requests
+RETRY_DELAY_BASE = 2  # Base delay in seconds for exponential backoff
+RATE_LIMIT_DELAY = 5  # Delay when rate limited
+PROGRESS_LOG_INTERVAL = 10000  # Log progress every N bars
 
 
 def load_existing_data(file_path):
@@ -63,6 +75,50 @@ def get_last_timestamp(existing_data):
         return None
 
 
+def validate_bar(bar, symbol):
+    """
+    Validate a single bar for data quality.
+    Phase 3: Check for nulls, zeros, outliers
+    
+    Returns: (is_valid, reason)
+    """
+    # Check required fields
+    required_fields = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+    for field in required_fields:
+        if field not in bar or bar[field] is None:
+            return False, f"Missing or null {field}"
+    
+    # Check for zero prices (invalid for ES/NQ)
+    if bar['open'] == 0 or bar['high'] == 0 or bar['low'] == 0 or bar['close'] == 0:
+        return False, "Zero price detected"
+    
+    # Check OHLC logic: High >= Low, and Open/Close between High/Low
+    high = float(bar['high'])
+    low = float(bar['low'])
+    open_price = float(bar['open'])
+    close_price = float(bar['close'])
+    
+    if high < low:
+        return False, f"High ({high}) < Low ({low})"
+    
+    if open_price > high or open_price < low:
+        return False, f"Open ({open_price}) outside High/Low range"
+    
+    if close_price > high or close_price < low:
+        return False, f"Close ({close_price}) outside High/Low range"
+    
+    # Check for outliers (ES typically 4000-6000, NQ 15000-20000)
+    # Allow wide range but catch extreme outliers
+    if symbol == 'ES':
+        if close_price < 1000 or close_price > 10000:
+            return False, f"Price outlier for ES: {close_price}"
+    elif symbol == 'NQ':
+        if close_price < 5000 or close_price > 30000:
+            return False, f"Price outlier for NQ: {close_price}"
+    
+    return True, ""
+
+
 def trim_to_lookback_days(bars, lookback_days):
     """Keep only the most recent bars within lookback window."""
     if not bars:
@@ -86,6 +142,63 @@ def trim_to_lookback_days(bars, lookback_days):
             trimmed.append(bar)
     
     return trimmed
+
+
+async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
+    """
+    Fetch historical bars with retry logic and exponential backoff.
+    Phase 3: Retry on timeout/failure with exponential backoff
+    
+    Returns: (success, bars_result, error_message)
+    """
+    try:
+        bars_result = await adapter.fetch_historical_bars(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        if bars_result and bars_result.get('success'):
+            return True, bars_result, None
+        else:
+            error_msg = bars_result.get('error', 'Unknown error') if bars_result else 'No response'
+            
+            # Check for rate limiting
+            if 'rate limit' in error_msg.lower() or 'too many' in error_msg.lower():
+                print(f"      ⚠️ Rate limited, waiting {RATE_LIMIT_DELAY}s...")
+                await asyncio.sleep(RATE_LIMIT_DELAY)
+                
+                if attempt < MAX_RETRIES:
+                    print(f"      🔄 Retry {attempt}/{MAX_RETRIES} after rate limit...")
+                    return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
+            
+            # Check for timeout
+            if 'timeout' in error_msg.lower() or 'timed out' in error_msg.lower():
+                if attempt < MAX_RETRIES:
+                    delay = RETRY_DELAY_BASE ** attempt  # Exponential backoff: 2s, 4s, 8s
+                    print(f"      ⚠️ Timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
+                    await asyncio.sleep(delay)
+                    return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
+            
+            return False, bars_result, error_msg
+            
+    except asyncio.TimeoutError:
+        if attempt < MAX_RETRIES:
+            delay = RETRY_DELAY_BASE ** attempt
+            print(f"      ⚠️ Request timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
+            await asyncio.sleep(delay)
+            return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
+        else:
+            return False, None, f"Timeout after {MAX_RETRIES} attempts"
+    
+    except Exception as e:
+        if attempt < MAX_RETRIES:
+            delay = RETRY_DELAY_BASE ** attempt
+            print(f"      ⚠️ Error: {str(e)}, retrying in {delay}s ({attempt}/{MAX_RETRIES})...")
+            await asyncio.sleep(delay)
+            return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
+        else:
+            return False, None, str(e)
 
 
 async def fetch_and_save_historical_data():
@@ -172,6 +285,8 @@ async def fetch_and_save_historical_data():
             all_bars = []
             chunk_start = start_date
             chunk_number = 1
+            invalid_bars_count = 0
+            total_fetched = 0
             
             while chunk_start < end_date:
                 # Each chunk: ~15 calendar days to ensure we get 1000 bars
@@ -179,13 +294,12 @@ async def fetch_and_save_historical_data():
                 
                 print(f"   📦 Chunk {chunk_number}: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}...")
                 
-                bars_result = await adapter.fetch_historical_bars(
-                    symbol=symbol,
-                    start_date=chunk_start,
-                    end_date=chunk_end
+                # Use retry logic
+                success, bars_result, error = await fetch_with_retry(
+                    adapter, symbol, chunk_start, chunk_end
                 )
                 
-                if bars_result and bars_result.get('success'):
+                if success and bars_result:
                     # Extract bars from result
                     bars_data = bars_result.get('bars', {})
                     if isinstance(bars_data, dict):
@@ -194,12 +308,36 @@ async def fetch_and_save_historical_data():
                         chunk_bars = bars_data
                     
                     if chunk_bars:
-                        print(f"      ✅ Fetched {len(chunk_bars)} bars")
-                        all_bars.extend(chunk_bars)
+                        # Validate bars (Phase 3)
+                        validated_bars = []
+                        for bar in chunk_bars:
+                            is_valid, reason = validate_bar(bar, symbol)
+                            if is_valid:
+                                validated_bars.append(bar)
+                            else:
+                                invalid_bars_count += 1
+                                # Only log first few invalid bars to avoid spam
+                                if invalid_bars_count <= 5:
+                                    print(f"      ⚠️ Invalid bar: {reason} - {bar.get('timestamp', 'N/A')}")
+                        
+                        fetched_count = len(validated_bars)
+                        total_fetched += fetched_count
+                        
+                        print(f"      ✅ Fetched {fetched_count} valid bars")
+                        
+                        if invalid_bars_count > 0 and invalid_bars_count <= 5:
+                            print(f"      ⚠️ Filtered {invalid_bars_count} invalid bars")
+                        
+                        all_bars.extend(validated_bars)
+                        
+                        # Progress logging (Phase 3)
+                        if total_fetched > 0 and total_fetched % PROGRESS_LOG_INTERVAL == 0:
+                            print(f"   📊 Progress: {total_fetched:,} bars fetched so far...")
                     else:
                         print(f"      ⚠️ No data returned")
                 else:
-                    print(f"      ⚠️ Request failed: {bars_result.get('error', 'Unknown error')}")
+                    print(f"      ❌ Request failed after {MAX_RETRIES} retries: {error}")
+                    # Continue to next chunk rather than failing completely
                 
                 # Move to next chunk
                 chunk_start = chunk_end
@@ -207,6 +345,9 @@ async def fetch_and_save_historical_data():
                 
                 # Small delay to avoid rate limiting
                 await asyncio.sleep(0.5)
+            
+            if invalid_bars_count > 5:
+                print(f"   ⚠️ Total invalid bars filtered: {invalid_bars_count}")
             
             bar_count = len(all_bars)
             
@@ -266,16 +407,22 @@ async def fetch_and_save_historical_data():
                 print(f"   ⚠️  No data returned for {symbol}")
                 continue
             
-            # Save to file
+            # Save to file with enhanced metadata (Phase 3)
             output_file = data_dir / f'{symbol}_90days.json'
             with open(output_file, 'w') as f:
                 json.dump({
                     'symbol': symbol,
+                    'timeframe': '5min',
                     'start_date': start_date.isoformat(),
                     'end_date': end_date.isoformat(),
                     'bar_count': bar_count,
                     'bars': bars_list,
-                    'fetched_at': datetime.now().isoformat()
+                    'fetched_at': datetime.now().isoformat(),
+                    'refresh_mode': REFRESH_MODE,
+                    'validation': {
+                        'invalid_bars_filtered': invalid_bars_count,
+                        'validation_enabled': True
+                    }
                 }, f, indent=2)
             
             print(f"   💾 Saved to: {output_file}")

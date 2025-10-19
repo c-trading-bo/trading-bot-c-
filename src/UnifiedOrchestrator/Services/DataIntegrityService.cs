@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -160,6 +161,131 @@ internal sealed class DataIntegrityService
     }
 
     /// <summary>
+    /// Phase 3: Validate historical data files exist and are complete
+    /// </summary>
+    public async Task<HistoricalDataValidationResult> ValidateHistoricalDataFilesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[DATA-INTEGRITY] Validating historical data files...");
+
+        var result = new HistoricalDataValidationResult
+        {
+            ValidationTime = DateTime.UtcNow
+        };
+
+        var symbols = new[] { "ES", "NQ" };
+        var dataDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "data", "historical");
+
+        foreach (var symbol in symbols)
+        {
+            var filePath = System.IO.Path.Combine(dataDir, $"{symbol}_90days.json");
+            
+            if (!File.Exists(filePath))
+            {
+                result.Issues.Add($"Missing historical data file: {filePath}");
+                result.IsValid = false;
+                continue;
+            }
+
+            try
+            {
+                var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
+                var data = System.Text.Json.JsonDocument.Parse(fileContent);
+                
+                var root = data.RootElement;
+                
+                // Check metadata
+                if (!root.TryGetProperty("bar_count", out var barCountElement))
+                {
+                    result.Issues.Add($"{symbol}: Missing bar_count metadata");
+                    result.IsValid = false;
+                    continue;
+                }
+
+                var barCount = barCountElement.GetInt32();
+                result.SymbolBarCounts[symbol] = barCount;
+
+                // Check if bars array exists
+                if (!root.TryGetProperty("bars", out var barsElement))
+                {
+                    result.Issues.Add($"{symbol}: Missing bars array");
+                    result.IsValid = false;
+                    continue;
+                }
+
+                // Validate minimum bar count (90 days * 390 bars/day ≈ 35,100 bars minimum)
+                const int MinBarsFor90Days = 30000; // Allow some tolerance
+                if (barCount < MinBarsFor90Days)
+                {
+                    result.Warnings.Add($"{symbol}: Low bar count {barCount} (expected > {MinBarsFor90Days})");
+                }
+
+                // Check freshness (data should be < 7 days old)
+                if (root.TryGetProperty("fetched_at", out var fetchedAtElement))
+                {
+                    var fetchedAtStr = fetchedAtElement.GetString();
+                    if (DateTime.TryParse(fetchedAtStr, out var fetchedAt))
+                    {
+                        var age = DateTime.UtcNow - fetchedAt.ToUniversalTime();
+                        if (age.TotalDays > 7)
+                        {
+                            result.Warnings.Add($"{symbol}: Data is {age.TotalDays:F1} days old (>7 days)");
+                        }
+                    }
+                }
+
+                _logger.LogInformation("[DATA-INTEGRITY] ✓ {Symbol}: {Bars:N0} bars validated",
+                    symbol, barCount);
+            }
+            catch (Exception ex)
+            {
+                result.Issues.Add($"{symbol}: Error reading file - {ex.Message}");
+                result.IsValid = false;
+            }
+        }
+
+        if (result.IsValid)
+        {
+            _logger.LogInformation("[DATA-INTEGRITY] ✅ Historical data files validation PASSED");
+        }
+        else
+        {
+            _logger.LogError("[DATA-INTEGRITY] ❌ Historical data files validation FAILED");
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Phase 3: Detect gaps in bar timestamps (requires actual bar data)
+    /// </summary>
+    public List<(DateTime Start, DateTime End)> DetectTimeGaps(
+        List<DateTime> timestamps,
+        TimeSpan expectedInterval,
+        TimeSpan maxGapTolerance)
+    {
+        var gaps = new List<(DateTime Start, DateTime End)>();
+
+        if (timestamps.Count < 2)
+            return gaps;
+
+        for (int i = 1; i < timestamps.Count; i++)
+        {
+            var gap = timestamps[i] - timestamps[i - 1];
+            
+            // If gap is significantly larger than expected interval
+            if (gap > expectedInterval + maxGapTolerance)
+            {
+                gaps.Add((timestamps[i - 1], timestamps[i]));
+                _logger.LogWarning("[DATA-INTEGRITY] ⚠️ Gap detected: {Gap} between {Start} and {End}",
+                    gap, timestamps[i - 1], timestamps[i]);
+            }
+        }
+
+        return gaps;
+    }
+
+    /// <summary>
     /// Detect missing trading days (would require actual timestamp data)
     /// Currently estimates based on bar counts; can be enhanced with timestamp data
     /// </summary>
@@ -247,4 +373,16 @@ public sealed class DataVerificationResult
             ? (totalActual / (double)totalExpected) * 100.0
             : 0;
     }
+}
+
+/// <summary>
+/// Phase 3: Result of historical data file validation
+/// </summary>
+public sealed class HistoricalDataValidationResult
+{
+    public DateTime ValidationTime { get; set; }
+    public bool IsValid { get; set; } = true;
+    public Dictionary<string, int> SymbolBarCounts { get; set; } = new();
+    public List<string> Issues { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
 }

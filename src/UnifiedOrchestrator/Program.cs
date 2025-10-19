@@ -2427,11 +2427,26 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRetryService>();
         
         Console.WriteLine("   ✓ Registering ResourcePreCheckService (pre-training resource validation)");
+        services.Configure<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckOptions>(
+            hostContext.Configuration.GetSection("ResourcePreCheck"));
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
         
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
+        
+        // Phase 1 & 2: Enhanced Training Orchestrator with Progress Tracking
+        Console.WriteLine("   ✓ Registering TrainingComponentLoader (component registry from JSON)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingComponentLoader>();
+        
+        Console.WriteLine("   ✓ Registering ProgressTracker (progress state and ETA calculation)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ProgressTracker>();
+        
+        Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
+        
+        Console.WriteLine("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
         
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
         Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
