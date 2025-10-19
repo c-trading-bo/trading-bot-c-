@@ -44,9 +44,7 @@ refresh-historical-data.bat
 ### **The Smart Schedule**
 ```
 Bot starts at 9:30 AM ET:
-├─ Check DISABLE_SEED_AUTO_REFRESH environment variable
-├─ If disabled (true): Skip refresh, use cached bars ✅ (no API calls)
-├─ If enabled (false): Check seed file age
+├─ Check seed file age
 ├─ Seed is 8 hours old → still fresh, skip refresh
 ├─ Load seed from disk (instant)
 └─ Start trading with 3,500+ bars of context
@@ -54,8 +52,6 @@ Bot starts at 9:30 AM ET:
 Bot runs through the day...
 
 At 5:00 PM ET (futures maintenance window):
-├─ If DISABLE_SEED_AUTO_REFRESH=true → skip refresh ✅ (offline mode)
-├─ If DISABLE_SEED_AUTO_REFRESH=false → check if refresh needed
 ├─ Seed is now 32 hours old → stale!
 ├─ Current hour is 5 PM ET → maintenance window ✅
 ├─ Day is Monday-Friday → weekday ✅
@@ -70,23 +66,6 @@ At 5:00 PM ET (futures maintenance window):
 Next day at 9:30 AM:
 ├─ Load fresh seed from disk
 └─ Bot has today's data immediately
-```
-
-### **Offline/Cached Mode (Default)**
-When `DISABLE_SEED_AUTO_REFRESH=true` (default):
-```
-Bot starts at any time:
-├─ Check DISABLE_SEED_AUTO_REFRESH → true ✅
-├─ Skip all refresh logic (no API calls)
-├─ Load seed from disk (90-day cached bars)
-├─ Start trading immediately with cached historical context
-└─ Never attempts to connect to TopstepX API for refresh
-
-This mode is ideal for:
-✅ Offline development and testing
-✅ Avoiding TopstepX API rate limits
-✅ Using pre-loaded historical data without network dependency
-✅ Fast bot startup without API overhead
 ```
 
 ### **Weekend Behavior**
@@ -209,36 +188,12 @@ python fetch-and-save-historical-data.py
 
 ### **Environment Variables**
 ```bash
-# Disable auto-refresh to use only cached bars (no TopstepX API calls)
-# Default: true (offline mode, uses cached bars only)
-# Set to false to enable auto-refresh during maintenance window
-export DISABLE_SEED_AUTO_REFRESH=true  # Use cached bars only (default)
-export DISABLE_SEED_AUTO_REFRESH=false # Enable auto-refresh at 5 PM ET
-
-# Refresh mode (only used if auto-refresh is enabled)
-$env:REFRESH_MODE = "incremental"  # Fetch only new bars (default)
+# Refresh mode (default: incremental)
+$env:REFRESH_MODE = "incremental"  # Fetch only new bars
 $env:REFRESH_MODE = "full"         # Fetch entire 90 days
 
 # Lookback window (days to keep)
 $env:LOOKBACK_DAYS = "90"          # Keep last 90 days (default)
-```
-
-### **Typical Usage Patterns**
-
-**Development/Testing (Offline Mode - Default)**:
-```bash
-# Use cached historical bars without API calls
-export DISABLE_SEED_AUTO_REFRESH=true
-dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
-# Result: Bot loads 90-day bars from disk, no TopstepX API connection
-```
-
-**Production (Auto-Refresh Enabled)**:
-```bash
-# Enable auto-refresh during maintenance window
-export DISABLE_SEED_AUTO_REFRESH=false
-dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
-# Result: Bot loads bars from disk, refreshes daily at 5 PM ET via API
 ```
 
 ### **Maintenance Window Timing**
