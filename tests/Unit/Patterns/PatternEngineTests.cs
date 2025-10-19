@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using Zones;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests.Unit.Patterns;
 
@@ -15,6 +16,7 @@ public class PatternEngineTests
     {
         // Arrange
         var mockFeatureBus = new Mock<IFeatureBus>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
         var detectors = new List<IPatternDetector>
         {
             new CandlestickPatternDetector(CandlestickType.Doji),
@@ -22,7 +24,7 @@ public class PatternEngineTests
             new ContinuationPatternDetector(ContinuationType.BullFlag)
         };
         
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors);
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors, mockServiceProvider.Object);
         
         var bars = CreateTestBars(new[]
         {
@@ -60,12 +62,13 @@ public class PatternEngineTests
     {
         // Arrange
         var mockFeatureBus = new Mock<IFeatureBus>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
         var detectors = new List<IPatternDetector>
         {
             new CandlestickPatternDetector(CandlestickType.Doji)
         };
         
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors);
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors, mockServiceProvider.Object);
         
         var bars = CreateTestBars(new[]
         {
@@ -88,7 +91,8 @@ public class PatternEngineTests
     {
         // Arrange
         var mockFeatureBus = new Mock<IFeatureBus>();
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, new List<IPatternDetector>());
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, new List<IPatternDetector>(), mockServiceProvider.Object);
         
         var bars = CreateTestBars(new[]
         {
@@ -110,12 +114,13 @@ public class PatternEngineTests
     {
         // Arrange
         var mockFeatureBus = new Mock<IFeatureBus>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
         var detectors = new List<IPatternDetector>
         {
             new CandlestickPatternDetector(CandlestickType.Doji)
         };
         
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors);
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors, mockServiceProvider.Object);
         
         // Act
         var scores = engine.GetScores("ES", new List<Bar>());
@@ -147,8 +152,9 @@ public class PatternEngineTests
                     .Returns(new PatternResult { Score = 0.8, Direction = 1, Confidence = 0.8 });
         
         var mockFeatureBus = new Mock<IFeatureBus>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
         var detectors = new List<IPatternDetector> { mockDetector1.Object, mockDetector2.Object };
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors);
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors, mockServiceProvider.Object);
         
         var bars = CreateTestBars(new[]
         {
@@ -184,8 +190,9 @@ public class PatternEngineTests
                           .Returns(new PatternResult { Score = 0.4, Direction = -1, Confidence = 0.4 });
         
         var mockFeatureBus = new Mock<IFeatureBus>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
         var detectors = new List<IPatternDetector> { mockBullishDetector.Object, mockBearishDetector.Object };
-        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors);
+        var engine = new PatternEngine(NullLogger<PatternEngine>.Instance, mockFeatureBus.Object, detectors, mockServiceProvider.Object);
         
         var bars = CreateTestBars(new[]
         {
@@ -215,7 +222,7 @@ public class PatternEngineTests
                 High = high,
                 Low = low,
                 Close = close,
-                Timestamp = timestamp,
+                Start = timestamp,
                 Volume = 1000
             });
             timestamp = timestamp.AddMinutes(5);

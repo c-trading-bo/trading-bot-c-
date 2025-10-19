@@ -242,7 +242,7 @@ public class PatternDetectorTests
                 High = high,
                 Low = low,
                 Close = close,
-                Timestamp = timestamp,
+                Start = timestamp,
                 Volume = 1000 // Default volume
             });
             timestamp = timestamp.AddMinutes(5); // 5-minute bars
