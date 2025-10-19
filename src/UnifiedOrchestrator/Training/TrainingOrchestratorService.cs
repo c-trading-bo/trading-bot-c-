@@ -19,6 +19,7 @@ internal sealed class TrainingOrchestratorService
     private readonly ILogger<TrainingOrchestratorService> _logger;
     private readonly HistoricalTrainingOrchestrator _historicalOrchestrator;
     private readonly ResourcePreCheckService _resourceChecker;
+    private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingComponentLoader _componentLoader;
     private readonly TrainingAlertService _alertService;
     private readonly ProgressTracker _progressTracker;
@@ -30,6 +31,7 @@ internal sealed class TrainingOrchestratorService
         ILogger<TrainingOrchestratorService> logger,
         HistoricalTrainingOrchestrator historicalOrchestrator,
         ResourcePreCheckService resourceChecker,
+        DataIntegrityService dataIntegrityService,
         TrainingComponentLoader componentLoader,
         TrainingAlertService alertService,
         ProgressTracker progressTracker,
@@ -38,6 +40,7 @@ internal sealed class TrainingOrchestratorService
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
         _resourceChecker = resourceChecker;
+        _dataIntegrityService = dataIntegrityService;
         _componentLoader = componentLoader;
         _alertService = alertService;
         _progressTracker = progressTracker;
@@ -130,19 +133,32 @@ internal sealed class TrainingOrchestratorService
             allChecksPassed = false;
         }
 
-        // Check 2: Historical data availability
+        // Check 2: Historical data availability (Phase 3 enhanced)
         _logger.LogInformation("[LAB] [2/5] Checking historical data...");
-        var histDataPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "historical");
-        var esFile = Path.Combine(histDataPath, "ES_90days.json");
-        var nqFile = Path.Combine(histDataPath, "NQ_90days.json");
+        var histDataValidation = await _dataIntegrityService.ValidateHistoricalDataFilesAsync(cancellationToken).ConfigureAwait(false);
         
-        if (File.Exists(esFile) && File.Exists(nqFile))
+        if (histDataValidation.IsValid)
         {
-            _logger.LogInformation("[LAB]   ✓ Historical data files exist");
+            _logger.LogInformation("[LAB]   ✓ Historical data files validated");
+            foreach (var kvp in histDataValidation.SymbolBarCounts)
+            {
+                _logger.LogInformation("[LAB]     - {Symbol}: {Bars:N0} bars", kvp.Key, kvp.Value);
+            }
         }
         else
         {
-            _logger.LogWarning("[LAB]   ⚠️ Historical data files missing (will attempt to load via API)");
+            _logger.LogError("[LAB]   ❌ Historical data validation failed:");
+            foreach (var issue in histDataValidation.Issues)
+            {
+                _logger.LogError("[LAB]     - {Issue}", issue);
+            }
+            allChecksPassed = false;
+        }
+        
+        // Log warnings if any
+        foreach (var warning in histDataValidation.Warnings)
+        {
+            _logger.LogWarning("[LAB]   ⚠️ {Warning}", warning);
         }
 
         // Check 3: Experience database
