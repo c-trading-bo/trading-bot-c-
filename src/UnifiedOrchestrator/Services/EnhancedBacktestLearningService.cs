@@ -64,9 +64,6 @@ internal class EnhancedBacktestLearningService : BackgroundService
     // CRITICAL: Direct injection of UnifiedTradingBrain for identical intelligence
     private readonly UnifiedTradingBrain _unifiedBrain;
     
-    // CRITICAL: TopstepX adapter for real historical data
-    private readonly TradingBot.Abstractions.ITopstepXAdapterService _topstepXAdapter;
-    
     // CRITICAL: Historical data seed service for fast startup warmup
     private readonly IHistoricalDataSeedService _seedService;
     
@@ -94,7 +91,6 @@ internal class EnhancedBacktestLearningService : BackgroundService
         HttpClient httpClient,
         UnifiedTradingBrain unifiedBrain,
         ITopstepAuth authService,
-        TradingBot.Abstractions.ITopstepXAdapterService topstepXAdapter,
         IHistoricalDataSeedService seedService,
         IConfiguration configuration,
         OllamaClient? ollamaClient = null)
@@ -105,7 +101,6 @@ internal class EnhancedBacktestLearningService : BackgroundService
         _httpClient = httpClient;
         _unifiedBrain = unifiedBrain;
         _authService = authService; // Same brain as live trading
-        _topstepXAdapter = topstepXAdapter;
         _seedService = seedService;
         _marketDataFlow = serviceProvider.GetService(typeof(global::BotCore.Services.IEnhancedMarketDataFlowService)) as global::BotCore.Services.IEnhancedMarketDataFlowService;
         _configuration = configuration;
