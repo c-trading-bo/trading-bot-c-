@@ -337,7 +337,9 @@ public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 
     public async Task<ITrainingResult> TrainAsync()
     {
+#pragma warning disable CS0618 // Type or member is obsolete - kept for backward compatibility, use CVaRPPOTrainer for new code
         var result = await _cvarPpo.TrainAsync().ConfigureAwait(false);
+#pragma warning restore CS0618
         return new CVaRppoTrainingResultWrapper(result);
     }
 

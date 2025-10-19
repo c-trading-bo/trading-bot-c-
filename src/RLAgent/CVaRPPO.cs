@@ -6,8 +6,14 @@ using System.Text.Json;
 namespace TradingBot.RLAgent;
 
 /// <summary>
-/// CVaR-PPO Implementation with training loop, experience buffer, and model versioning
-/// Implements requirement 2.1: Training loop (policy, value, CVaR head), experience buffer, advantage/CVaR estimation, model save/restore
+/// CVaR-PPO Implementation - SPLIT FOR LAB/TERMINAL SEPARATION
+/// 
+/// TERMINAL MODE (this class): Inference only - GetActionAsync, AddExperience, LoadModelAsync
+/// LAB MODE: Training logic moved to CVaRPPOTrainer.cs
+/// 
+/// This split ensures Terminal stays lean (&lt;10ms decisions) while Lab handles heavy training (30 min)
+/// 
+/// Implements requirement 2.1: Inference, experience collection, model loading (training → CVaRPPOTrainer.cs)
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S101:Types should be named in PascalCase", Justification = "CVaR (Conditional Value at Risk) and PPO (Proximal Policy Optimization) are standard financial/ML acronyms")]
 public class CVaRPPO : IDisposable
@@ -72,17 +78,28 @@ public class CVaRPPO : IDisposable
 
     /// <summary>
     /// Train the CVaR-PPO agent on collected experiences
+    /// 
+    /// Training logic moved to CVaRPPOTrainer.cs for Lab/Terminal separation
+    /// Terminal (this class): Inference only - use GetActionAsync()
+    /// Lab: Use CVaRPPOTrainer.TrainFromExperiencesAsync() for Sunday training
+    /// 
+    /// This method is kept for backward compatibility but should not be used in Terminal mode
     /// </summary>
+    [Obsolete("Training moved to CVaRPPOTrainer.cs. Terminal should use GetActionAsync() for inference. Lab should use CVaRPPOTrainer.TrainFromExperiencesAsync()")]
     public async Task<TrainingResult> TrainAsync(CancellationToken cancellationToken = default)
     {
-        // Training is blocked in InferenceOnly mode for production safety
+        // Training is now in CVaRPPOTrainer.cs (Lab only)
+        // Terminal should never call this method
+        _logger.LogWarning("TrainAsync called on CVaRPPO (Terminal class). Training should use CVaRPPOTrainer.cs (Lab)");
+        
+        // Block training in Terminal - always return blocked result
         if (_runtimeMode == TradingBot.Abstractions.RlRuntimeMode.InferenceOnly)
         {
             return new TrainingResult
             {
                 Episode = _currentEpisode,
                 Success = false,
-                ErrorMessage = "Training blocked: RlRuntimeMode is InferenceOnly",
+                ErrorMessage = "Training blocked: RlRuntimeMode is InferenceOnly. Use CVaRPPOTrainer.cs for Lab training",
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow
             };
