@@ -145,6 +145,15 @@ internal static class Program
         // Load .env files in priority order for auto TopstepX configuration
         EnvironmentLoader.LoadEnvironmentFiles();
         
+        // Check if mode prompt should be skipped (for automation/CI)
+        var skipModePrompt = Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT") == "1";
+        
+        // Interactive mode selection (unless disabled)
+        if (!skipModePrompt && !args.Contains("--smoke") && !args.Contains("--production-demo"))
+        {
+            await PromptForTradingModeAsync().ConfigureAwait(false);
+        }
+        
         // REMOVED: Production demonstration and smoke test commands - simulation not needed for live trading
         // All validation happens through production readiness checks
         
@@ -266,6 +275,103 @@ internal static class Program
             
             Environment.Exit(1);
         }
+    }
+
+    /// <summary>
+    /// Interactive prompt to select trading mode before bot starts
+    /// Allows user to choose between Historical Training, Dry-Run, or Live modes
+    /// </summary>
+    private static async Task PromptForTradingModeAsync()
+    {
+        Console.WriteLine(@"
+================================================================================
+                    🎯 TRADING MODE SELECTION 🎯
+================================================================================
+");
+        Console.WriteLine("Please select your trading mode:");
+        Console.WriteLine();
+        Console.WriteLine("  [1] 📊 HISTORICAL TRAINING MODE");
+        Console.WriteLine("      - Replay 90 days of historical data at high speed");
+        Console.WriteLine("      - Train models on simulated trading");
+        Console.WriteLine("      - No API calls, no real money");
+        Console.WriteLine("      - Comprehensive terminal audit logs");
+        Console.WriteLine();
+        Console.WriteLine("  [2] 📝 DRY-RUN MODE (Paper Trading)");
+        Console.WriteLine("      - Real live market data from TopstepX API");
+        Console.WriteLine("      - Simulated trades (no real money)");
+        Console.WriteLine("      - Safe for testing strategies");
+        Console.WriteLine("      - Models learn from paper trades");
+        Console.WriteLine();
+        Console.WriteLine("  [3] 🚀 LIVE MODE");
+        Console.WriteLine("      - Real trading with TopstepX API");
+        Console.WriteLine("      - ⚠️  REAL MONEY AT RISK ⚠️");
+        Console.WriteLine("      - Real orders sent to broker");
+        Console.WriteLine("      - Requires explicit YES confirmation");
+        Console.WriteLine();
+        Console.WriteLine("  [4] Exit");
+        Console.WriteLine();
+        Console.Write("Enter your choice [1-4]: ");
+        
+        var input = Console.ReadLine()?.Trim();
+        
+        switch (input)
+        {
+            case "1":
+                Console.WriteLine("\n✅ Historical Training Mode selected");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Force dry-run for historical
+                Console.WriteLine("📊 Bot will replay 90 days of historical data at high speed");
+                Console.WriteLine("🎓 Models will be trained on simulated trading");
+                break;
+                
+            case "2":
+                Console.WriteLine("\n✅ Dry-Run Mode (Paper Trading) selected");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1");
+                Console.WriteLine("📝 Bot will connect to TopstepX API for live data");
+                Console.WriteLine("💡 Trades will be simulated (paper trading)");
+                break;
+                
+            case "3":
+                Console.WriteLine("\n⚠️  WARNING: You are about to enable LIVE TRADING with REAL MONEY");
+                Console.WriteLine("⚠️  Real orders will be sent to TopstepX");
+                Console.WriteLine("⚠️  You can lose real money");
+                Console.WriteLine();
+                Console.Write("Type YES in all capitals to confirm live trading: ");
+                var confirm = Console.ReadLine()?.Trim();
+                if (confirm == "YES")
+                {
+                    Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                    Environment.SetEnvironmentVariable("DRY_RUN", "0");
+                    Console.WriteLine("\n🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
+                    Console.WriteLine("💰 Real orders will be placed");
+                }
+                else
+                {
+                    Console.WriteLine("\n❌ Live trading NOT enabled (you must type YES exactly)");
+                    Console.WriteLine("🔄 Returning to menu...");
+                    Console.WriteLine();
+                    await PromptForTradingModeAsync().ConfigureAwait(false); // Return to menu
+                    return;
+                }
+                break;
+                
+            case "4":
+                Console.WriteLine("\n👋 Exiting...");
+                Environment.Exit(0);
+                break;
+                
+            default:
+                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, 3, or 4");
+                await PromptForTradingModeAsync().ConfigureAwait(false); // Recursive retry
+                return;
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("Press Enter to continue...");
+        Console.ReadLine();
+        
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -748,15 +854,22 @@ Please check the configuration and ensure all required services are registered.
         // HISTORICAL DATA SEED SERVICE - SMART AUTO-REFRESH FOR LEARNING WARMUP
         // ================================================================================
         
-        // Register HistoricalDataSeedService for fast historical data loading at startup
-        services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
-        
-        Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered");
-        Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
-        Console.WriteLine("   🔄 Auto-refreshes daily at 5 PM ET during futures maintenance window");
-        Console.WriteLine("   📅 Skips weekends (Saturday/Sunday)");
-        Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
-        Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+        // Only register HistoricalDataSeedService when in HISTORICAL_MODE
+        // In LIVE/DRY-RUN modes, we don't need to load historical seed files
+        if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+        {
+            services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
+            
+            Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL MODE ONLY)");
+            Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
+            Console.WriteLine("   📅 Only active in HISTORICAL_MODE=1");
+            Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
+            Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+        }
+        else
+        {
+            Console.WriteLine("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL_MODE)");
+        }
         
         // ================================================================================
         // ZONE AWARENESS SERVICES - PRODUCTION-READY SUPPLY/DEMAND INTEGRATION
@@ -975,6 +1088,12 @@ Please check the configuration and ensure all required services are registered.
             serviceProvider.GetRequiredService<global::BotCore.Services.ProductionKillSwitchService>());
         services.AddSingleton<IRiskManager, Trading.Safety.RiskManager>();
         services.AddSingleton<IHealthMonitor, Trading.Safety.HealthMonitor>();
+        
+        // Register SlippageLatencyModel for execution simulation in DRY_RUN and historical modes
+        services.AddSingleton<Trading.Safety.Simulation.ISlippageLatencyModel, Trading.Safety.Simulation.SlippageLatencyModel>();
+        services.AddHostedService<Trading.Safety.Simulation.SlippageLatencyModel>(provider => 
+            provider.GetRequiredService<Trading.Safety.Simulation.ISlippageLatencyModel>() as Trading.Safety.Simulation.SlippageLatencyModel 
+            ?? throw new InvalidOperationException("SlippageLatencyModel not registered correctly"));
 
         // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
@@ -991,9 +1110,19 @@ Please check the configuration and ensure all required services are registered.
         // services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         
         // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
-        services.AddSingleton<UnifiedOrchestratorService>();
-        services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
-        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        // ONLY in LIVE/DRY-RUN modes - Not needed in HISTORICAL_MODE
+        if (!global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+        {
+            services.AddSingleton<UnifiedOrchestratorService>();
+            services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+            services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+            
+            Console.WriteLine("✅ [ORCHESTRATOR] UnifiedOrchestratorService registered (LIVE/DRY-RUN mode)");
+        }
+        else
+        {
+            Console.WriteLine("⏭️ [ORCHESTRATOR] UnifiedOrchestratorService skipped (HISTORICAL_MODE - using HistoricalReplayOrchestrator instead)");
+        }
 
         // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
 
@@ -2107,16 +2236,27 @@ Please check the configuration and ensure all required services are registered.
         // Cloud model integration service removed - CloudRlTrainerV2 infrastructure no longer exists
 
         // Hosted services (append-only) - Enhanced learning services
-        // Conditional registration based on ENABLE_HISTORICAL_LEARNING environment variable
-        // This allows historical learning to run independently of RlRuntimeMode
+        // Conditional registration based on ENABLE_HISTORICAL_LEARNING and HISTORICAL_MODE environment variables
         var enableHistoricalLearning = Environment.GetEnvironmentVariable("ENABLE_HISTORICAL_LEARNING");
         var historicalLearningEnabled = enableHistoricalLearning == "1" || enableHistoricalLearning?.ToLowerInvariant() == "true";
         
-        if (historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
+        var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
+        var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
+        
+        // In HISTORICAL_MODE, force enable the existing EnhancedBacktestLearningService
+        // This service already integrates properly with UnifiedTradingBrain for learning
+        if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
             services.AddHostedService<EnhancedBacktestLearningService>();
             
-            if (historicalLearningEnabled)
+            if (isHistoricalMode)
+            {
+                Console.WriteLine("✅ [HISTORICAL-MODE] Historical training mode ENABLED");
+                Console.WriteLine("   📊 Using EnhancedBacktestLearningService for proper brain integration");
+                Console.WriteLine("   🎓 Models will learn from historical backtesting");
+                Console.WriteLine("   📝 Comprehensive learning updates logged");
+            }
+            else if (historicalLearningEnabled)
             {
                 Console.WriteLine("✅ [HISTORICAL-LEARNING] Historical backtest learning ENABLED");
                 Console.WriteLine("   📊 Market OPEN: Learning every 60 minutes (light mode)");
