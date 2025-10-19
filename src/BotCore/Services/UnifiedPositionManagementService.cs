@@ -462,6 +462,10 @@ namespace BotCore.Services
                 
                 // PHASE 3: Report outcome to Position Management Optimizer for ML/RL learning
                 ReportOutcomeToOptimizer(state, exitReason, duration);
+                
+                // TASK 4.1: Collect experience for Lab training
+                // Fire-and-forget to avoid blocking position closure
+                _ = Task.Run(async () => await CollectExperienceAsync(state, exitReason, duration).ConfigureAwait(false));
             }
         }
         
@@ -545,6 +549,113 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "⚠️ [POSITION-MGMT] Error reporting outcome to optimizer for {PositionId}", state.PositionId);
+            }
+        }
+        
+        /// <summary>
+        /// TASK 4.1: Collect trading experience for Lab training
+        /// Creates state-action-reward-next_state tuple from closed position
+        /// </summary>
+        private async Task CollectExperienceAsync(PositionManagementState state, ExitReason exitReason, TimeSpan duration)
+        {
+            try
+            {
+                var experienceRepo = _serviceProvider.GetService<BotCore.Data.ExperienceRepository>();
+                if (experienceRepo == null)
+                {
+                    // ExperienceRepository not registered (Lab mode doesn't need it)
+                    return;
+                }
+
+                // Use MaxFavorablePrice as exit price (best price achieved)
+                // This is the most favorable price the position reached before exit
+                var exitPrice = state.MaxFavorablePrice;
+
+                // Calculate reward metrics
+                var isLong = state.Quantity > 0;
+                var tickSize = GetTickSize(state.Symbol);
+                
+                // Calculate P&L
+                var pnlPerContract = isLong
+                    ? (exitPrice - state.EntryPrice) * 50m // ES/NQ multiplier
+                    : (state.EntryPrice - exitPrice) * 50m;
+                var totalPnL = pnlPerContract * Math.Abs(state.Quantity);
+                
+                // Calculate risk (entry to stop distance)
+                var riskPerContract = Math.Abs(state.EntryPrice - state.CurrentStopPrice) * 50m;
+                var totalRisk = riskPerContract * Math.Abs(state.Quantity);
+                
+                // Calculate R-multiple
+                var rMultiple = totalRisk > 0 ? totalPnL / totalRisk : 0m;
+                
+                // Calculate Sharpe contribution (simplified)
+                var sharpeContribution = totalRisk > 0 ? rMultiple / (decimal)Math.Sqrt(duration.TotalDays + 0.001) : 0m;
+                
+                // Get volatility estimate
+                var volatilityAtEntry = EstimateCurrentVolatility(state);
+                var volatilityAtExit = volatilityAtEntry; // Simplified - could fetch current volatility
+                
+                // Create experience record
+                var experience = new TradingExperience
+                {
+                    ExperienceId = Guid.NewGuid().ToString(),
+                    Timestamp = DateTime.UtcNow,
+                    PositionId = state.PositionId,
+                    
+                    // STATE (at entry)
+                    EntryRegime = state.EntryRegime,
+                    EntryRegimeConfidence = state.EntryRegimeConfidence,
+                    EntryConfidence = state.EntryConfidence,
+                    Symbol = state.Symbol,
+                    EntryHour = state.EntryTime.Hour,
+                    EntryDayOfWeek = (int)state.EntryTime.DayOfWeek,
+                    VolatilityAtEntry = volatilityAtEntry,
+                    
+                    // ACTION
+                    Strategy = state.Strategy,
+                    PositionSize = state.Quantity,
+                    EntryPrice = state.EntryPrice,
+                    InitialStopPrice = state.CurrentStopPrice, // Assuming current stop was initial (simplified)
+                    InitialTargetPrice = state.TargetPrice,
+                    BreakevenAfterTicks = state.BreakevenAfterTicks,
+                    TrailTicks = state.TrailTicks,
+                    
+                    // REWARD
+                    RMultiple = rMultiple,
+                    PnL = totalPnL,
+                    SharpeContribution = sharpeContribution,
+                    ExitReason = exitReason.ToString(),
+                    DurationMinutes = duration.TotalMinutes,
+                    
+                    // NEXT STATE (at exit)
+                    ExitRegime = state.CurrentRegime,
+                    ExitRegimeConfidence = state.CurrentRegimeConfidence,
+                    ExitPrice = exitPrice,
+                    VolatilityAtExit = volatilityAtExit,
+                    
+                    // ADDITIONAL METRICS
+                    MaxFavorablePrice = state.MaxFavorablePrice,
+                    MaxAdversePrice = state.MaxAdversePrice,
+                    StopModificationCount = state.StopModificationCount,
+                    BreakevenActivated = state.BreakevenActivated,
+                    TrailingStopActive = state.TrailingStopActive,
+                    RegimeChangeCount = state.RegimeChanges.Count
+                };
+
+                // Save to repository
+                await experienceRepo.SaveExperienceAsync(experience).ConfigureAwait(false);
+                
+                _logger.LogInformation(
+                    "📊 [EXPERIENCE] Saved: {Strategy} - R: {RMultiple:F2}, PnL: ${PnL:F2}",
+                    experience.Strategy,
+                    experience.RMultiple,
+                    experience.PnL
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [EXPERIENCE] Failed to collect experience for {PositionId}", state.PositionId);
+                // Don't throw - experience collection failure shouldn't affect position management
             }
         }
         

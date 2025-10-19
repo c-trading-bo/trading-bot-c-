@@ -402,6 +402,230 @@ internal class FileModelRegistry : IModelRegistry
         }
     }
 
+    /// <summary>
+    /// Save challenger model to registry (Lab saves trained models)
+    /// </summary>
+    public async Task<string> SaveChallengerAsync(string modelName, string version, byte[] modelBytes, ModelVersion metadata, CancellationToken cancellationToken = default)
+    {
+        await _registryLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Create challenger artifact path
+            var challengerFileName = $"v{version}-challenger.onnx";
+            var challengerPath = Path.Combine(_artifactsPath, modelName, challengerFileName);
+            var tempChallengePath = challengerPath + ".tmp";
+            
+            // Ensure model directory exists
+            Directory.CreateDirectory(Path.Combine(_artifactsPath, modelName));
+            
+            // Write model bytes atomically
+            await File.WriteAllBytesAsync(tempChallengePath, modelBytes, cancellationToken).ConfigureAwait(false);
+            
+            if (File.Exists(challengerPath))
+            {
+                File.Delete(challengerPath);
+            }
+            File.Move(tempChallengePath, challengerPath);
+            
+            // Update metadata with challenger path
+            metadata.ArtifactPath = challengerPath;
+            metadata.VersionId = $"{modelName}_{version}_challenger";
+            metadata.Algorithm = modelName;
+            
+            // Register the challenger
+            await RegisterModelAsync(metadata, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("✅ Saved challenger for {ModelName} version {Version}", modelName, version);
+            return metadata.VersionId;
+        }
+        finally
+        {
+            _registryLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Load champion model at Terminal startup
+    /// </summary>
+    public async Task<(byte[]? ModelBytes, ModelVersion? Metadata)> LoadChampionAsync(string modelName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var champion = await GetChampionAsync(modelName, cancellationToken).ConfigureAwait(false);
+            
+            if (champion == null || string.IsNullOrEmpty(champion.ArtifactPath))
+            {
+                _logger.LogWarning("No champion found for {ModelName}", modelName);
+                return (null, null);
+            }
+            
+            if (!File.Exists(champion.ArtifactPath))
+            {
+                _logger.LogError("Champion artifact missing for {ModelName}: {Path}", modelName, champion.ArtifactPath);
+                return (null, null);
+            }
+            
+            var modelBytes = await File.ReadAllBytesAsync(champion.ArtifactPath, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("✅ Loaded champion for {ModelName} from {Path}", modelName, champion.ArtifactPath);
+            return (modelBytes, champion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load champion for {ModelName}", modelName);
+            return (null, null);
+        }
+    }
+
+    /// <summary>
+    /// Promote challenger to champion with atomic file swap
+    /// Uses temp file + rename pattern to prevent corruption
+    /// </summary>
+    public async Task<bool> PromoteChallengerToChampionAsync(string modelName, string version, CancellationToken cancellationToken = default)
+    {
+        await _registryLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var modelDir = Path.Combine(_artifactsPath, modelName);
+            var championPath = Path.Combine(modelDir, "champion.onnx");
+            var challengerPath = Path.Combine(modelDir, $"v{version}-challenger.onnx");
+            var backupPath = Path.Combine(modelDir, $"v{version}-backup.onnx");
+            var tempPath = Path.Combine(modelDir, "champion.tmp");
+            
+            // Verify challenger exists
+            if (!File.Exists(challengerPath))
+            {
+                _logger.LogError("Challenger not found for promotion: {Path}", challengerPath);
+                return false;
+            }
+            
+            // Atomic promotion sequence:
+            // 1. Copy challenger to temp file
+            File.Copy(challengerPath, tempPath, true);
+            
+            // 2. Rename current champion to backup (if exists)
+            if (File.Exists(championPath))
+            {
+                if (File.Exists(backupPath))
+                {
+                    File.Delete(backupPath);
+                }
+                File.Move(championPath, backupPath);
+            }
+            
+            // 3. Rename temp to champion (atomic operation)
+            File.Move(tempPath, championPath);
+            
+            // 4. Update champion pointer and metadata
+            var challengerVersionId = $"{modelName}_{version}_challenger";
+            var promotionRecord = new PromotionRecord
+            {
+                Algorithm = modelName,
+                ToVersionId = challengerVersionId,
+                Reason = "Atomic promotion from Lab training",
+                PromotedBy = "HistoricalTrainingOrchestrator"
+            };
+            
+            await PromoteToChampionAsync(modelName, challengerVersionId, promotionRecord, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("✅ Promoted challenger to champion for {ModelName} version {Version}", modelName, version);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to promote challenger to champion for {ModelName}", modelName);
+            return false;
+        }
+        finally
+        {
+            _registryLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Rollback to previous champion (emergency rollback)
+    /// </summary>
+    public async Task<bool> RollbackToPreviousChampionAsync(string modelName, CancellationToken cancellationToken = default)
+    {
+        await _registryLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var modelDir = Path.Combine(_artifactsPath, modelName);
+            var championPath = Path.Combine(modelDir, "champion.onnx");
+            var tempPath = Path.Combine(modelDir, "champion.tmp");
+            
+            // Find the most recent backup
+            var backupFiles = Directory.GetFiles(modelDir, "*-backup.onnx")
+                .OrderByDescending(f => File.GetLastWriteTimeUtc(f))
+                .ToList();
+            
+            if (backupFiles.Count == 0)
+            {
+                _logger.LogError("No backup found for rollback of {ModelName}", modelName);
+                return false;
+            }
+            
+            var backupPath = backupFiles[0];
+            
+            // Atomic rollback:
+            // 1. Copy backup to temp
+            File.Copy(backupPath, tempPath, true);
+            
+            // 2. Delete current champion
+            if (File.Exists(championPath))
+            {
+                File.Delete(championPath);
+            }
+            
+            // 3. Rename temp to champion
+            File.Move(tempPath, championPath);
+            
+            // 4. Update registry
+            await RollbackToPreviousAsync(modelName, "Emergency rollback", cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("✅ Rolled back {ModelName} to previous champion from {BackupFile}", 
+                modelName, Path.GetFileName(backupPath));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to rollback {ModelName} to previous champion", modelName);
+            return false;
+        }
+        finally
+        {
+            _registryLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Get champion metadata (version info and metrics)
+    /// </summary>
+    public async Task<ChampionMetadata?> GetChampionMetadataAsync(string modelName, CancellationToken cancellationToken = default)
+    {
+        var champion = await GetChampionAsync(modelName, cancellationToken).ConfigureAwait(false);
+        
+        if (champion == null)
+        {
+            return null;
+        }
+        
+        return new ChampionMetadata
+        {
+            ModelName = modelName,
+            VersionId = champion.VersionId,
+            CreatedAt = champion.CreatedAt,
+            PromotedAt = champion.PromotedAt ?? DateTime.MinValue,
+            Sharpe = champion.Sharpe,
+            Sortino = champion.Sortino,
+            CVaR = champion.CVaR,
+            MaxDrawdown = champion.MaxDrawdown,
+            WinRate = champion.WinRate,
+            TotalTrades = champion.TotalTrades,
+            ArtifactPath = champion.ArtifactPath
+        };
+    }
+
     #region Private Methods
 
     private async Task LoadChampionPointersAsync()
@@ -473,4 +697,22 @@ internal class FileModelRegistry : IModelRegistry
     }
 
     #endregion
+}
+
+/// <summary>
+/// Champion model metadata
+/// </summary>
+internal class ChampionMetadata
+{
+    public string ModelName { get; set; } = string.Empty;
+    public string VersionId { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime PromotedAt { get; set; }
+    public decimal Sharpe { get; set; }
+    public decimal Sortino { get; set; }
+    public decimal CVaR { get; set; }
+    public decimal MaxDrawdown { get; set; }
+    public decimal WinRate { get; set; }
+    public int TotalTrades { get; set; }
+    public string ArtifactPath { get; set; } = string.Empty;
 }

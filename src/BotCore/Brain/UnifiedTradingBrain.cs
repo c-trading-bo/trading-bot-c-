@@ -1809,11 +1809,14 @@ namespace BotCore.Brain
                                     _cvarPPO.ExperienceBufferSize, hoursSinceTraining);
                                 
                                 // Train in background to avoid blocking
+                                // Training moved to Lab (CVaRPPOTrainer) - this is backward compatibility
                                 _ = Task.Run(async () =>
                                 {
                                     try
                                     {
+#pragma warning disable CS0618 // Type or member is obsolete - kept for backward compatibility, Lab should use CVaRPPOTrainer
                                         var result = await _cvarPPO.TrainAsync(cancellationToken).ConfigureAwait(false);
+#pragma warning restore CS0618
                                         _logger.LogInformation("[CVAR-TRAIN] ✅ Training complete: Episode={Episode}, Loss={Loss:F4}, Reward={Reward:F2}", 
                                             result.Episode, result.TotalLoss, result.AverageReward);
                                         _lastCVaRTraining = DateTime.UtcNow;

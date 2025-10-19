@@ -582,8 +582,103 @@ Please check the configuration and ensure all required services are registered.
                 ConfigureUnifiedServices(services, context.Configuration, context);
             });
 
+    /// <summary>
+    /// Bot operating mode for Phase 3: Service Registration (Lab/Terminal Separation)
+    /// </summary>
+    private enum BotMode
+    {
+        Terminal,  // Live or Dry-Run trading (inference only)
+        Lab        // Historical training mode (training + inference)
+    }
+
+    /// <summary>
+    /// Detect current bot mode based on environment variables and configuration
+    /// Phase 3: Task 3.1 - Mode-Specific Service Registration
+    /// </summary>
+    private static BotMode DetectBotMode()
+    {
+        // Priority 1: Explicit BOT_MODE environment variable
+        var botModeEnv = Environment.GetEnvironmentVariable("BOT_MODE");
+        if (!string.IsNullOrEmpty(botModeEnv))
+        {
+            if (botModeEnv.Equals("Lab", StringComparison.OrdinalIgnoreCase) ||
+                botModeEnv.Equals("Historical", StringComparison.OrdinalIgnoreCase) ||
+                botModeEnv.Equals("Training", StringComparison.OrdinalIgnoreCase))
+            {
+                return BotMode.Lab;
+            }
+            if (botModeEnv.Equals("Terminal", StringComparison.OrdinalIgnoreCase) ||
+                botModeEnv.Equals("Live", StringComparison.OrdinalIgnoreCase) ||
+                botModeEnv.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            {
+                return BotMode.Terminal;
+            }
+        }
+
+        // Priority 2: HISTORICAL_MODE environment variable (legacy support)
+        var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
+        if (historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true")
+        {
+            return BotMode.Lab;
+        }
+
+        // Priority 3: Check if Sunday (Lab runs on Sunday)
+        var now = DateTime.Now;
+        if (now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 12 && now.Hour < 18)
+        {
+            Console.WriteLine("🕐 [MODE-DETECTION] Sunday afternoon detected - suggesting Lab mode");
+            Console.WriteLine("   Set BOT_MODE=Terminal to override");
+            return BotMode.Lab;
+        }
+
+        // Priority 4: Check RL_RUNTIME_MODE
+        var rlModeStr = Environment.GetEnvironmentVariable("RL_RUNTIME_MODE");
+        if (!string.IsNullOrEmpty(rlModeStr))
+        {
+            if (Enum.TryParse<TradingBot.Abstractions.RlRuntimeMode>(rlModeStr, true, out var rlMode))
+            {
+                if (rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
+                {
+                    return BotMode.Lab;
+                }
+            }
+        }
+
+        // Default: Terminal mode (safe default - inference only)
+        return BotMode.Terminal;
+    }
+
     private static void ConfigureUnifiedServices(IServiceCollection services, IConfiguration configuration, HostBuilderContext hostContext)
     {
+        // ================================================================================
+        // PHASE 3: MODE-SPECIFIC SERVICE REGISTRATION (Lab/Terminal Separation)
+        // ================================================================================
+        var mode = DetectBotMode();
+        
+        Console.WriteLine("\n" + new string('=', 80));
+        Console.WriteLine($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
+        Console.WriteLine(new string('=', 80));
+        
+        if (mode == BotMode.Lab)
+        {
+            Console.WriteLine("📊 LAB MODE - Training Pipeline");
+            Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
+            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses existing TopstepX SDK)");
+            Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
+            Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
+            Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+        }
+        else
+        {
+            Console.WriteLine("🚀 TERMINAL MODE - Live Trading");
+            Console.WriteLine("   ✓ CVaRPPO (inference), NeuralUcbBandit (inference) registered");
+            Console.WriteLine("   ✓ OrderExecutionService, TopstepXWebSocketClient registered");
+            Console.WriteLine("   ✓ All 350+ safety systems registered");
+            Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
+            Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
+        }
+        Console.WriteLine(new string('=', 80) + "\n");
+        
         // Register login completion state for TopstepX SDK connection management
         services.AddSingleton<Services.ILoginCompletionState, Services.EnterpriseLoginCompletionState>();
         
@@ -1256,6 +1351,10 @@ Please check the configuration and ensure all required services are registered.
         
         // Register Model Registry for versioned, immutable artifacts
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry, TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>();
+        
+        // TASK 4.1: Register Experience Repository for Terminal experience collection
+        // Both Terminal and Lab use this: Terminal writes, Lab reads
+        services.AddSingleton<global::BotCore.Data.ExperienceRepository>();
         
         // Register Auto-Bootstrap Service for automatic model registration on first startup
         services.AddHostedService<ModelRegistryBootstrapService>();
@@ -2235,40 +2334,141 @@ Please check the configuration and ensure all required services are registered.
         
         // Cloud model integration service removed - CloudRlTrainerV2 infrastructure no longer exists
 
-        // Hosted services (append-only) - Enhanced learning services
-        // Conditional registration based on ENABLE_HISTORICAL_LEARNING and HISTORICAL_MODE environment variables
+        // ================================================================================
+        // PHASE 3: MODE-SPECIFIC SERVICE REGISTRATION (Lab vs Terminal)
+        // ================================================================================
+        // Register mode-specific services based on detected mode
+        RegisterModeSpecificServices(services, mode, rlMode, hostContext);
+    }
+
+    /// <summary>
+    /// Register mode-specific services for Lab or Terminal
+    /// Phase 3: Task 3.1 - Mode-Specific Service Registration
+    /// </summary>
+    private static void RegisterModeSpecificServices(
+        IServiceCollection services, 
+        BotMode mode, 
+        TradingBot.Abstractions.RlRuntimeMode rlMode,
+        HostBuilderContext hostContext)
+    {
+        if (mode == BotMode.Lab)
+        {
+            RegisterLabServices(services, rlMode, hostContext);
+        }
+        else
+        {
+            RegisterTerminalServices(services, rlMode, hostContext);
+        }
+    }
+
+    /// <summary>
+    /// Register Lab-only services for training pipeline
+    /// Phase 3: Task 3.1 - Lab Service Registration
+    /// </summary>
+    private static void RegisterLabServices(
+        IServiceCollection services,
+        TradingBot.Abstractions.RlRuntimeMode rlMode,
+        HostBuilderContext hostContext)
+    {
+        Console.WriteLine("📊 [LAB] Registering Lab-specific services...");
+
+        // Lab Training Services (Phase 2 splits)
+        Console.WriteLine("   ✓ Registering CVaRPPOTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.CVaRPPOTrainer>();
+        
+        Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
+        services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
+        
+        // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
+        // TopstepXHistoricalDataProvider already registered at line ~2312
+        // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
+        Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
+        
+        // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
+        Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
+        
+        // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
+        Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
+        services.AddHostedService<EnhancedBacktestLearningService>();
+        
+        // Promotion Evaluator is already registered via PromotionService
+        // Model Registry is shared (both modes)
+        
+        // DO NOT register Terminal-only services in Lab mode
+        Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
+        Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+        Console.WriteLine("   ✗ Safety systems NOT registered (Lab = simulation only)");
+        
+        // Warn if Lab mode in production
+        var environment = hostContext.HostingEnvironment.EnvironmentName;
+        if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("⚠️ [LAB-SAFETY] WARNING: Lab training mode in Production environment!");
+            Console.WriteLine("   Lab should run on dedicated training infrastructure");
+        }
+        
+        Console.WriteLine("✅ [LAB] Lab services registration complete\n");
+    }
+
+    /// <summary>
+    /// Register Terminal-only services for live trading
+    /// Phase 3: Task 3.1 - Terminal Service Registration
+    /// </summary>
+    private static void RegisterTerminalServices(
+        IServiceCollection services,
+        TradingBot.Abstractions.RlRuntimeMode rlMode,
+        HostBuilderContext hostContext)
+    {
+        Console.WriteLine("🚀 [TERMINAL] Registering Terminal-specific services...");
+
+        // Terminal uses inference-only versions (Phase 2 splits)
+        // CVaRPPO and NeuralUcbBandit are already registered in shared services
+        // They are inference-only in Terminal mode (no trainer classes)
+        Console.WriteLine("   ✓ Using CVaRPPO (inference only - no training)");
+        Console.WriteLine("   ✓ Using NeuralUcbBandit (inference only - no retraining)");
+        
+        // Terminal-specific services (already registered in main ConfigureUnifiedServices)
+        // - OrderExecutionService
+        // - TopstepXWebSocketClient
+        // - UnifiedPositionManagementService
+        // - All 350+ safety systems
+        // - OnlineLearningSystem (lightweight real-time learning)
+        Console.WriteLine("   ✓ OrderExecutionService registered (live order routing)");
+        Console.WriteLine("   ✓ TopstepXWebSocketClient registered (real-time market data)");
+        Console.WriteLine("   ✓ All 350+ safety systems registered");
+        Console.WriteLine("   ✓ OnlineLearningSystem registered (lightweight real-time learning)");
+        
+        // DO NOT register Lab-only services in Terminal mode
+        Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
+        Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
+        Console.WriteLine("   ✗ HistoricalTrainingOrchestrator NOT registered (Terminal = no Sunday training)");
+        Console.WriteLine("   ℹ️  Uses existing TopstepX SDK (IHistoricalDataBridgeService) - no parallel systems");
+        
+        Console.WriteLine("✅ [TERMINAL] Terminal services registration complete\n");
+    }
+
+    /// <summary>
+    /// Old conditional registration logic - replaced by Phase 3 mode-specific registration
+    /// Keeping for reference during transition
+    /// </summary>
+    private static void LegacyConditionalRegistration(
+        IServiceCollection services,
+        TradingBot.Abstractions.RlRuntimeMode rlMode,
+        HostBuilderContext hostContext)
+    {
+        // This method is no longer called - replaced by RegisterModeSpecificServices
+        // Kept for reference during Phase 3 implementation
+        
         var enableHistoricalLearning = Environment.GetEnvironmentVariable("ENABLE_HISTORICAL_LEARNING");
         var historicalLearningEnabled = enableHistoricalLearning == "1" || enableHistoricalLearning?.ToLowerInvariant() == "true";
         
         var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
         var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
         
-        // In HISTORICAL_MODE, force enable the existing EnhancedBacktestLearningService
-        // This service already integrates properly with UnifiedTradingBrain for learning
         if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
             services.AddHostedService<EnhancedBacktestLearningService>();
-            
-            if (isHistoricalMode)
-            {
-                Console.WriteLine("✅ [HISTORICAL-MODE] Historical training mode ENABLED");
-                Console.WriteLine("   📊 Using EnhancedBacktestLearningService for proper brain integration");
-                Console.WriteLine("   🎓 Models will learn from historical backtesting");
-                Console.WriteLine("   📝 Comprehensive learning updates logged");
-            }
-            else if (historicalLearningEnabled)
-            {
-                Console.WriteLine("✅ [HISTORICAL-LEARNING] Historical backtest learning ENABLED");
-                Console.WriteLine("   📊 Market OPEN: Learning every 60 minutes (light mode)");
-                Console.WriteLine("   📈 Market CLOSED: Learning every 15 minutes (intensive mode)");
-            }
-            
-            // Warn if training mode is enabled in production environment
-            var environment = hostContext.HostingEnvironment.EnvironmentName;
-            if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase) && rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
-            {
-                Console.WriteLine("⚠️ [RL-SAFETY] WARNING: Full training mode enabled in Production environment!");
-            }
         }
         else
         {

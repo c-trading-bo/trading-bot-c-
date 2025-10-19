@@ -486,25 +486,42 @@ internal class PromotionService : IPromotionService
             _logger.LogInformation("Shadow test completed - Sharpe improvement: {SharpeImp:F4}, p-value: {PValue:F4}, significant: {Significant}",
                 decision.SharpeImprovement, decision.PValue, decision.StatisticallySignificant);
 
-            // Validate improvements meet thresholds
-            if (decision.SharpeImprovement <= 0)
+            // Apply objective promotion thresholds and decision matrix
+            var promotionDecisionResult = EvaluatePromotionThresholds(
+                decision.SharpeImprovement, 
+                decision.DrawdownImprovement,
+                champion.WinRate,
+                challenger.WinRate,
+                decision.StatisticallySignificant);
+            
+            _logger.LogInformation("Promotion decision: {Decision} - Sharpe improvement: {SharpeImp:P2}, Drawdown: {Drawdown:P2}",
+                promotionDecisionResult, decision.SharpeImprovement, decision.DrawdownImprovement);
+            
+            // Apply decision matrix rules
+            if (promotionDecisionResult == "CLEAR_WINNER")
             {
-                decision.ValidationErrors.Add($"Sharpe ratio not improved: {decision.SharpeImprovement:F4}");
+                _logger.LogInformation("✅ AUTO-PROMOTE: Clear winner (Sharpe +20%, all safety OK)");
+                decision.Reason = "Clear winner - auto-promote";
             }
-
-            if (decision.SortinoImprovement <= 0)
+            else if (promotionDecisionResult == "MARGINAL_WINNER")
             {
-                decision.ValidationErrors.Add($"Sortino ratio not improved: {decision.SortinoImprovement:F4}");
+                _logger.LogInformation("✅ AUTO-PROMOTE: Marginal winner (Sharpe +10-20%)");
+                decision.Reason = "Marginal winner - auto-promote with monitoring";
             }
-
-            if (decision.CVaRImprovement <= 0)
+            else if (promotionDecisionResult == "BORDERLINE")
             {
-                decision.ValidationErrors.Add($"CVaR not improved: {decision.CVaRImprovement:F4}");
+                decision.ValidationErrors.Add("Borderline improvement (Sharpe +5-10%, mixed signals) - keeping champion");
+                decision.Reason = "Borderline case - keep champion";
             }
-
-            if (!decision.StatisticallySignificant)
+            else if (promotionDecisionResult == "NO_IMPROVEMENT")
             {
-                decision.ValidationErrors.Add($"Performance improvement not statistically significant (p={decision.PValue:F4})");
+                decision.ValidationErrors.Add($"No significant improvement (Sharpe +{decision.SharpeImprovement:F4}) - discarding challenger");
+                decision.Reason = "No improvement - discard challenger";
+            }
+            else if (promotionDecisionResult == "REGRESSION")
+            {
+                decision.ValidationErrors.Add($"Performance regression (Sharpe {decision.SharpeImprovement:F4}) - discarding challenger");
+                decision.Reason = "Regression detected - discard challenger";
             }
 
             // Validate behavior alignment from shadow test
@@ -607,6 +624,69 @@ internal class PromotionService : IPromotionService
     {
         // Extract major version from version ID (simplified)
         return versionId.Split('_')[0];
+    }
+
+    /// <summary>
+    /// Evaluate promotion decision based on objective thresholds
+    /// Decision matrix:
+    /// - Clear winner (Sharpe +20%, all safety OK): AUTO-PROMOTE
+    /// - Marginal winner (Sharpe +10-20%): AUTO-PROMOTE with log
+    /// - Borderline (Sharpe +5-10%, mixed): KEEP CHAMPION, log analysis
+    /// - No improvement (Sharpe &lt;+5%): DISCARD CHALLENGER
+    /// - Regression (Sharpe worse): DISCARD CHALLENGER, log warning
+    /// </summary>
+    private string EvaluatePromotionThresholds(
+        decimal sharpeImprovement,
+        decimal drawdownChange,
+        decimal championWinRate,
+        decimal challengerWinRate,
+        bool statisticallySignificant)
+    {
+        // Convert to percentages for comparison
+        var sharpeImprovementPct = sharpeImprovement;
+        var winRateChange = challengerWinRate - championWinRate;
+        
+        // Thresholds per problem statement
+        const decimal ClearWinnerThreshold = 0.20m; // +20% Sharpe
+        const decimal MarginalWinnerThreshold = 0.10m; // +10% Sharpe
+        const decimal BorderlineThreshold = 0.05m; // +5% Sharpe
+        const decimal MaxDrawdownAllowance = 0.10m; // Allow 10% worse drawdown
+        const decimal MinWinRateChange = -0.03m; // Allow 3% drop in win rate
+        
+        // Check for regression
+        if (sharpeImprovementPct < 0)
+        {
+            return "REGRESSION";
+        }
+        
+        // Check for no improvement
+        if (sharpeImprovementPct < BorderlineThreshold || !statisticallySignificant)
+        {
+            return "NO_IMPROVEMENT";
+        }
+        
+        // Check safety constraints
+        var safetyOk = drawdownChange <= MaxDrawdownAllowance && winRateChange >= MinWinRateChange;
+        
+        // Clear winner: Sharpe +20%, all safety OK
+        if (sharpeImprovementPct >= ClearWinnerThreshold && safetyOk)
+        {
+            return "CLEAR_WINNER";
+        }
+        
+        // Marginal winner: Sharpe +10-20%
+        if (sharpeImprovementPct >= MarginalWinnerThreshold && sharpeImprovementPct < ClearWinnerThreshold)
+        {
+            return "MARGINAL_WINNER";
+        }
+        
+        // Borderline: Sharpe +5-10%, mixed signals
+        if (sharpeImprovementPct >= BorderlineThreshold && sharpeImprovementPct < MarginalWinnerThreshold)
+        {
+            return "BORDERLINE";
+        }
+        
+        return "NO_IMPROVEMENT";
     }
 
     #endregion
