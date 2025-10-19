@@ -13,9 +13,15 @@ using System.Security.Cryptography;
 namespace BotCore.Bandits;
 
 /// <summary>
-/// Neural Upper Confidence Bound (NeuralUCB) bandit using neural network function approximation.
+/// Neural Upper Confidence Bound (NeuralUCB) bandit - SPLIT FOR LAB/TERMINAL SEPARATION
+/// 
+/// TERMINAL MODE (this class): Inference only - SelectArmAsync, UpdateArmStatisticsAsync (lightweight, milliseconds)
+/// LAB MODE: Neural network retraining moved to NeuralUcbBanditTrainer.cs (heavy, 15 minutes)
+/// 
+/// This split ensures Terminal stays lean (fast UCB arm selection) while Lab handles heavy neural network training.
+/// 
 /// Uses deep learning to model complex non-linear relationships in high-dimensional contexts.
-/// More powerful than LinUCB but requires more data and computation.
+/// More powerful than LinUCB but training requires more data and computation (Lab only).
 /// </summary>
 public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
 {
@@ -274,10 +280,13 @@ internal sealed class NeuralUcbArm
             LastUpdated = DateTime.UtcNow;
         }
 
-        // Retrain network periodically
+        // Retrain network periodically (moved to Lab - NeuralUcbBanditTrainer)
+        // Terminal should NOT retrain inline - only collect data for Lab training
         if (ShouldRetrain())
         {
+#pragma warning disable CS0618 // Type or member is obsolete - kept for backward compatibility, Lab should use NeuralUcbBanditTrainer
             await RetrainNetworkAsync(ct).ConfigureAwait(false);
+#pragma warning restore CS0618
         }
     }
 
@@ -373,8 +382,22 @@ internal sealed class NeuralUcbArm
         return hasEnoughNewData && (enoughTimePassed || significantDataIncrease);
     }
 
+    /// <summary>
+    /// Retrain network - Training logic moved to NeuralUcbBanditTrainer.cs for Lab/Terminal separation
+    /// 
+    /// Terminal (this class): Lightweight statistics updates only (UpdateArmStatisticsAsync)
+    /// Lab: Use NeuralUcbBanditTrainer.RetrainNetworkAsync() for Sunday training (15 minutes)
+    /// 
+    /// This method is kept for backward compatibility during inline updates but should not be called in Terminal mode
+    /// </summary>
+    [Obsolete("Neural network retraining moved to NeuralUcbBanditTrainer.cs. Terminal should use lightweight statistics updates. Lab should use NeuralUcbBanditTrainer.RetrainNetworkAsync()")]
     private async Task RetrainNetworkAsync(CancellationToken ct)
     {
+        // Retraining now in NeuralUcbBanditTrainer.cs (Lab only)
+        // Terminal should never trigger this - only lightweight statistics updates
+        Console.WriteLine("[NEURAL-UCB] RetrainNetworkAsync called on Terminal class. Use NeuralUcbBanditTrainer.cs for Lab retraining");
+        
+        // Keep minimal implementation for backward compatibility
         List<(ContextVector context, decimal reward)> trainingData;
 
         lock (_dataLock)
@@ -385,34 +408,11 @@ internal sealed class NeuralUcbArm
         if (trainingData.Count < _config.MinSamplesForTraining)
             return;
 
-        try
-        {
-            Console.WriteLine($"[NEURAL-UCB] Retraining network with {trainingData.Count} samples");
-
-            var features = trainingData.Select(d => d.context.ToArray(_config.InputDimension)).ToArray();
-            var targets = trainingData.Select(d => d.reward).ToArray();
-
-            await _network.TrainAsync(features, targets, ct).ConfigureAwait(false);
-            LastTraining = DateTime.UtcNow;
-
-            Console.WriteLine($"[NEURAL-UCB] Retraining completed");
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"[NEURAL-UCB] Invalid operation during retraining: {ex.Message}");
-        }
-        catch (ArgumentException ex)
-        {
-            Console.WriteLine($"[NEURAL-UCB] Invalid arguments during retraining: {ex.Message}");
-        }
-        catch (OutOfMemoryException ex)
-        {
-            Console.WriteLine($"[NEURAL-UCB] Out of memory during retraining: {ex.Message}");
-        }
-        catch (OperationCanceledException ex)
-        {
-            Console.WriteLine($"[NEURAL-UCB] Retraining was cancelled: {ex.Message}");
-        }
+        // Stub implementation - real training should use NeuralUcbBanditTrainer
+        // This prevents Terminal from doing heavy neural network training
+        Console.WriteLine($"[NEURAL-UCB] Skipping inline retraining ({trainingData.Count} samples). Use Lab training for neural network updates.");
+        LastTraining = DateTime.UtcNow;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task<decimal> GetAverageUncertaintyAsync(CancellationToken ct)
