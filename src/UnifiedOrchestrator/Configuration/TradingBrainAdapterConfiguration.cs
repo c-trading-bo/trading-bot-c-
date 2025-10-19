@@ -4,7 +4,7 @@ namespace TradingBot.UnifiedOrchestrator.Configuration;
 /// Configuration for TradingBrainAdapter thresholds and behavioral parameters
 /// AUDIT-CLEAN: Configuration-driven approach eliminates hardcoded trading thresholds
 /// </summary>
-internal class TradingBrainAdapterConfiguration
+public class TradingBrainAdapterConfiguration
 {
     /// <summary>
     /// Position multiplier threshold for full buy/sell orders (default: 0.5)
