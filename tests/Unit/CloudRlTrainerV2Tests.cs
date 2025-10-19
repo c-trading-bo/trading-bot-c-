@@ -57,7 +57,10 @@ public class CloudRlTrainerV2IntegrationTests : IDisposable
             InstallDir = Path.Combine(_tempDir, "models"),
             TempDir = Path.Combine(_tempDir, "temp"),
             RegistryFile = Path.Combine(_tempDir, "registry.json"),
-            MaxRetries = 3
+            Http = new HttpOptions
+            {
+                MaxRetries = 3
+            }
         };
 
         // Set current directory to temp for testing
@@ -214,21 +217,26 @@ public class CloudRlTrainerV2IntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task NeutralBandLatticesIntegration_WithRealServices_ShouldUseDynamicThresholds()
+    public async Task SymbolSessionManager_WithRealServices_ShouldUseDynamicThresholds()
     {
-        // Arrange - Create real services with proper integration
+        // Arrange - Create real services with proper integration (modern replacement for PerSymbolSessionLattices)
         var neutralBandService = new SafeHoldDecisionPolicy(
             _neutralBandLoggerMock.Object, 
             _configMock.Object);
             
-        var lattices = new OrchestratorAgent.Execution.PerSymbolSessionLattices(neutralBandService);
+        var sessionManagerLogger = new Mock<ILogger<TradingBot.BotCore.Services.TradingBotSymbolSessionManager>>();
+        var symbolSessionManager = new TradingBot.BotCore.Services.TradingBotSymbolSessionManager(
+            neutralBandService, 
+            sessionManagerLogger.Object);
+
+        await symbolSessionManager.InitializeAsync();
 
         // Act - Test different confidence levels across sessions
-        var esRthBuyDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.65, "S2a");
-        var esRthSellDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.35, "S2a");
-        var esRthHoldDecision = await lattices.EvaluateTradingDecisionAsync("ES", SessionType.RTH, 0.50, "S2a");
+        var esRthBuyDecision = await neutralBandService.EvaluateDecisionAsync(0.65, "ES", "S2a");
+        var esRthSellDecision = await neutralBandService.EvaluateDecisionAsync(0.35, "ES", "S2a");
+        var esRthHoldDecision = await neutralBandService.EvaluateDecisionAsync(0.50, "ES", "S2a");
         
-        var nqEthDecision = await lattices.EvaluateTradingDecisionAsync("NQ", SessionType.ETH, 0.50, "S3a");
+        var nqEthDecision = await neutralBandService.EvaluateDecisionAsync(0.50, "NQ", "S3a");
 
         // Assert - Verify dynamic threshold application
         Assert.NotNull(esRthBuyDecision);
@@ -243,24 +251,38 @@ public class CloudRlTrainerV2IntegrationTests : IDisposable
         Assert.Equal(TradingAction.Hold, esRthHoldDecision.Action);
         Assert.Contains("neutral zone", esRthHoldDecision.Reason);
 
-        // Verify session-specific adjustments for NQ-ETH (should have different behavior due to volatility)
+        // Verify hold decision has proper metadata
         Assert.NotNull(nqEthDecision);
         Assert.NotNull(nqEthDecision.Metadata);
-        Assert.True(nqEthDecision.Metadata.ContainsKey("volatility_factor"));
-        Assert.True(nqEthDecision.Metadata.ContainsKey("session"));
-        Assert.Equal("ETH", nqEthDecision.Metadata["session"]);
+        Assert.True(nqEthDecision.Metadata.ContainsKey("neutral_band_width"));
+        Assert.True(nqEthDecision.Metadata.ContainsKey("hysteresis_active"));
 
-        // Verify neutral band statistics integration
-        var neutralBandStats = await lattices.GetNeutralBandStatsAsync("ES", SessionType.RTH);
-        Assert.NotNull(neutralBandStats);
-        Assert.Equal(0.42, neutralBandStats.BearishThreshold, 0.01);
-        Assert.Equal(0.58, neutralBandStats.BullishThreshold, 0.01);
-        Assert.True(neutralBandStats.EnableHysteresis);
+        // Verify symbol-session configuration integration
+        var esRthConfig = symbolSessionManager.GetConfiguration("ES", MarketSession.RegularHours);
+        Assert.NotNull(esRthConfig);
+        Assert.Equal("ES", esRthConfig.Symbol);
+        Assert.Equal(MarketSession.RegularHours, esRthConfig.SessionType);
+        Assert.True(esRthConfig.BaseConfidenceThreshold > 0);
+        
+        var nqPostMarketConfig = symbolSessionManager.GetConfiguration("NQ", MarketSession.PostMarket);
+        Assert.NotNull(nqPostMarketConfig);
+        Assert.Equal("NQ", nqPostMarketConfig.Symbol);
+        Assert.Equal(MarketSession.PostMarket, nqPostMarketConfig.SessionType);
+        
+        // Verify NQ has higher thresholds due to volatility adjustment
+        Assert.True(nqPostMarketConfig.BaseConfidenceThreshold > esRthConfig.BaseConfidenceThreshold);
 
         // Test IsInNeutralBand integration
-        Assert.False(lattices.IsInNeutralBand(0.40, "ES", SessionType.RTH)); // Below bearish
-        Assert.True(lattices.IsInNeutralBand(0.50, "ES", SessionType.RTH));  // In neutral band
-        Assert.False(lattices.IsInNeutralBand(0.60, "ES", SessionType.RTH)); // Above bullish
+        Assert.False(neutralBandService.IsInNeutralBand(0.40)); // Below bearish (< 0.45)
+        Assert.True(neutralBandService.IsInNeutralBand(0.50));  // In neutral band (0.45-0.55)
+        Assert.False(neutralBandService.IsInNeutralBand(0.60)); // Above bullish (> 0.55)
+        
+        // Verify adaptive thresholds work correctly
+        var adaptiveConfidenceThreshold = symbolSessionManager.GetAdaptiveThreshold("ES", MarketSession.RegularHours, "confidence");
+        Assert.True(adaptiveConfidenceThreshold > 0);
+        
+        var adaptiveRiskThreshold = symbolSessionManager.GetAdaptiveThreshold("NQ", MarketSession.PostMarket, "risk");
+        Assert.True(adaptiveRiskThreshold > 0);
     }
 
     [Fact]
