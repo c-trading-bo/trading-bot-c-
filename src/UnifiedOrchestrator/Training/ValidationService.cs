@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Services;
 
@@ -255,42 +257,133 @@ internal sealed class ValidationService
             ModelType = model.Type
         };
 
+        InferenceSession? session = null;
+
         try
         {
-            // Simulate loading model and running inference
-            // In production, this would use ONNX runtime
+            // Real ONNX model loading and inference
             var sw = Stopwatch.StartNew();
             
-            // Simulate model load time
-            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-            
-            // Simulate inference on validation dataset (1000 samples)
-            const int validationSamples = 1000;
-            var inferenceTimes = new List<double>();
-            
-            for (int i = 0; i < Math.Min(validationSamples, 100); i++) // Test subset
+            // Load ONNX model
+            var modelPath = Path.Combine(_stagingDirectory, Path.GetFileName(model.Path));
+            if (!File.Exists(modelPath))
             {
+                // Try using the path directly if it's an absolute path
+                modelPath = model.Path;
+                if (!File.Exists(modelPath))
+                {
+                    throw new FileNotFoundException($"Model file not found: {modelPath}");
+                }
+            }
+
+            session = new InferenceSession(modelPath);
+            
+            // Get model metadata
+            var inputMetadata = session.InputMetadata;
+            var outputMetadata = session.OutputMetadata;
+            
+            if (inputMetadata.Count == 0)
+            {
+                throw new InvalidOperationException($"Model {model.Name} has no inputs");
+            }
+            
+            if (outputMetadata.Count == 0)
+            {
+                throw new InvalidOperationException($"Model {model.Name} has no outputs");
+            }
+            
+            _logger.LogDebug("[POST-VALIDATION] Model {ModelName}: {InputCount} inputs, {OutputCount} outputs",
+                model.Name, inputMetadata.Count, outputMetadata.Count);
+            
+            // Run inference tests on validation dataset (1000 samples)
+            const int testSubset = 100; // Test subset for performance
+            var inferenceTimes = new List<double>();
+            int validOutputs = 0;
+            int totalOutputs = 0;
+            bool hasNaN = false;
+            bool hasInf = false;
+            
+            for (int i = 0; i < testSubset; i++)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+                    
                 var inferenceStart = Stopwatch.GetTimestamp();
-                // Simulate inference
-                await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-                var inferenceEnd = Stopwatch.GetTimestamp();
                 
+                // Create input tensors based on model's expected input shape
+                var inputs = new List<NamedOnnxValue>();
+                
+                foreach (var input in inputMetadata)
+                {
+                    var inputName = input.Key;
+                    var inputShape = input.Value.Dimensions;
+                    
+                    // Handle dynamic dimensions (-1)
+                    var actualShape = inputShape.Select(d => d == -1 ? 1 : d).ToArray();
+                    
+                    // Create sample input tensor with realistic values
+                    var elementCount = actualShape.Aggregate(1, (a, b) => a * b);
+                    var inputData = GenerateSampleInputData(elementCount, i);
+                    
+                    var tensor = new DenseTensor<float>(inputData, actualShape);
+                    inputs.Add(NamedOnnxValue.CreateFromTensor(inputName, tensor));
+                }
+                
+                // Run inference
+                using var outputs = session.Run(inputs);
+                
+                var inferenceEnd = Stopwatch.GetTimestamp();
                 var inferenceMs = (inferenceEnd - inferenceStart) * 1000.0 / Stopwatch.Frequency;
                 inferenceTimes.Add(inferenceMs);
+                
+                // Validate outputs
+                totalOutputs++;
+                bool outputValid = true;
+                
+                foreach (var output in outputs)
+                {
+                    if (output.AsTensor<float>() is DenseTensor<float> tensor)
+                    {
+                        var data = tensor.ToArray();
+                        foreach (var value in data)
+                        {
+                            if (float.IsNaN(value))
+                            {
+                                hasNaN = true;
+                                outputValid = false;
+                            }
+                            if (float.IsInfinity(value))
+                            {
+                                hasInf = true;
+                                outputValid = false;
+                            }
+                        }
+                    }
+                }
+                
+                if (outputValid)
+                    validOutputs++;
             }
             
             sw.Stop();
             
             result.Loaded = true;
             result.AverageLatencyMs = inferenceTimes.Any() ? inferenceTimes.Average() : 0;
-            result.ValidOutputs = validationSamples;
-            result.TotalOutputs = validationSamples;
-            result.HasNaN = false;
-            result.HasInf = false;
+            result.MaxLatencyMs = inferenceTimes.Any() ? inferenceTimes.Max() : 0;
+            result.ValidOutputs = validOutputs;
+            result.TotalOutputs = totalOutputs;
+            result.HasNaN = hasNaN;
+            result.HasInf = hasInf;
             
             _logger.LogInformation(
-                "[POST-VALIDATION] ✓ {ModelName}: avg latency {Latency:F1}ms, {Valid}/{Total} valid outputs",
-                model.Name, result.AverageLatencyMs, result.ValidOutputs, result.TotalOutputs);
+                "[POST-VALIDATION] ✓ {ModelName}: avg latency {Latency:F1}ms, max {MaxLatency:F1}ms, {Valid}/{Total} valid outputs",
+                model.Name, result.AverageLatencyMs, result.MaxLatencyMs, result.ValidOutputs, result.TotalOutputs);
+                
+            if (hasNaN || hasInf)
+            {
+                _logger.LogWarning("[POST-VALIDATION] ⚠ {ModelName}: outputs contain NaN={NaN} or Inf={Inf}",
+                    model.Name, hasNaN, hasInf);
+            }
         }
         catch (Exception ex)
         {
@@ -298,8 +391,35 @@ internal sealed class ValidationService
             result.Loaded = false;
             result.Errors.Add(ex.Message);
         }
+        finally
+        {
+            session?.Dispose();
+        }
 
+        await Task.CompletedTask.ConfigureAwait(false);
         return result;
+    }
+    
+    /// <summary>
+    /// Generate sample input data for model inference testing
+    /// Uses deterministic pattern based on seed for reproducibility
+    /// </summary>
+    private float[] GenerateSampleInputData(int count, int seed)
+    {
+        var data = new float[count];
+        
+        // Use deterministic pattern based on seed
+        // Simulates normalized market features in range [-3, 3]
+        for (int i = 0; i < count; i++)
+        {
+            // Deterministic pseudo-random using simple hash function
+            // This avoids System.Random while still providing varied test data
+            int hash = (seed * 1103515245 + i * 12345) & 0x7fffffff;
+            double normalized = (hash % 10000) / 10000.0; // 0.0 to 1.0
+            data[i] = (float)((normalized * 6.0) - 3.0); // -3.0 to 3.0
+        }
+        
+        return data;
     }
 
     /// <summary>

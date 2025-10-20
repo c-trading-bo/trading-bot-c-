@@ -96,6 +96,9 @@ public sealed class ModelInferenceResult
 
     [JsonPropertyName("hasInf")]
     public bool HasInf { get; set; }
+    
+    [JsonPropertyName("maxLatencyMs")]
+    public double MaxLatencyMs { get; set; }
 
     [JsonPropertyName("errors")]
     public List<string> Errors { get; set; } = new();
