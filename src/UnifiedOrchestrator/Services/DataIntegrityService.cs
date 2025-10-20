@@ -162,6 +162,7 @@ internal sealed class DataIntegrityService
 
     /// <summary>
     /// Phase 3: Validate historical data files exist and are complete
+    /// Enhanced with comprehensive validation checks
     /// </summary>
     public async Task<HistoricalDataValidationResult> ValidateHistoricalDataFilesAsync(
         CancellationToken cancellationToken = default)
@@ -176,10 +177,20 @@ internal sealed class DataIntegrityService
         var symbols = new[] { "ES", "NQ" };
         var dataDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "data", "historical");
 
+        // Check if directory exists
+        if (!Directory.Exists(dataDir))
+        {
+            result.Issues.Add($"Historical data directory does not exist: {dataDir}");
+            result.IsValid = false;
+            _logger.LogError("[DATA-INTEGRITY] ❌ Historical data directory not found");
+            return result;
+        }
+
         foreach (var symbol in symbols)
         {
             var filePath = System.IO.Path.Combine(dataDir, $"{symbol}_90days.json");
             
+            // File existence check
             if (!File.Exists(filePath))
             {
                 result.Issues.Add($"Missing historical data file: {filePath}");
@@ -187,10 +198,35 @@ internal sealed class DataIntegrityService
                 continue;
             }
 
+            // File size check (should be >10MB, <500MB for reasonable data)
+            var fileInfo = new FileInfo(filePath);
+            var fileSizeMB = fileInfo.Length / (1024.0 * 1024.0);
+            
+            if (fileSizeMB < 10)
+            {
+                result.Warnings.Add($"{symbol}: File size too small ({fileSizeMB:F1} MB < 10 MB)");
+            }
+            else if (fileSizeMB > 500)
+            {
+                result.Warnings.Add($"{symbol}: File size unexpectedly large ({fileSizeMB:F1} MB > 500 MB)");
+            }
+
             try
             {
                 var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
-                var data = System.Text.Json.JsonDocument.Parse(fileContent);
+                
+                // Check if file is readable and parseable JSON
+                System.Text.Json.JsonDocument data;
+                try
+                {
+                    data = System.Text.Json.JsonDocument.Parse(fileContent);
+                }
+                catch (System.Text.Json.JsonException jsonEx)
+                {
+                    result.Issues.Add($"{symbol}: Invalid JSON format - {jsonEx.Message}");
+                    result.IsValid = false;
+                    continue;
+                }
                 
                 var root = data.RootElement;
                 
@@ -213,11 +249,55 @@ internal sealed class DataIntegrityService
                     continue;
                 }
 
-                // Validate minimum bar count (90 days * 390 bars/day ≈ 35,100 bars minimum)
-                const int MinBarsFor90Days = 30000; // Allow some tolerance
-                if (barCount < MinBarsFor90Days)
+                // Validate bar count matches expected (90 days of 5-min bars)
+                // ES: ~7020 bars per day (23 hours trading) * 90 days = ~631,800 bars
+                // Allow variance for holidays and early closes
+                const int ExpectedBarsPerDay = 7020;
+                const int ExpectedDays = 90;
+                var expectedBars = ExpectedBarsPerDay * ExpectedDays;
+                var minBars = (int)(expectedBars * 0.7); // Allow 30% variance
+                var maxBars = (int)(expectedBars * 1.3);
+                
+                if (barCount < minBars)
                 {
-                    result.Warnings.Add($"{symbol}: Low bar count {barCount} (expected > {MinBarsFor90Days})");
+                    result.Warnings.Add($"{symbol}: Low bar count {barCount:N0} (expected ~{expectedBars:N0}, min {minBars:N0})");
+                }
+                else if (barCount > maxBars)
+                {
+                    result.Warnings.Add($"{symbol}: High bar count {barCount:N0} (expected ~{expectedBars:N0}, max {maxBars:N0})");
+                }
+
+                // Date range validation
+                if (root.TryGetProperty("start_date", out var startDateElement) &&
+                    root.TryGetProperty("end_date", out var endDateElement))
+                {
+                    var startDateStr = startDateElement.GetString();
+                    var endDateStr = endDateElement.GetString();
+                    
+                    if (DateTime.TryParse(startDateStr, out var startDate) &&
+                        DateTime.TryParse(endDateStr, out var endDate))
+                    {
+                        var daysDiff = (endDate - startDate).TotalDays;
+                        
+                        // Check if approximately 90 days
+                        if (daysDiff < 80)
+                        {
+                            result.Warnings.Add($"{symbol}: Date range too short ({daysDiff:F0} days < 80 days)");
+                        }
+                        else if (daysDiff > 100)
+                        {
+                            result.Warnings.Add($"{symbol}: Date range too long ({daysDiff:F0} days > 100 days)");
+                        }
+                        
+                        // Check if end date is recent (within last week)
+                        var age = DateTime.UtcNow - endDate.ToUniversalTime();
+                        if (age.TotalDays > 7)
+                        {
+                            result.Warnings.Add($"{symbol}: Data end date is {age.TotalDays:F1} days old (>7 days)");
+                        }
+                        
+                        result.DateRanges[symbol] = (startDate, endDate);
+                    }
                 }
 
                 // Check freshness (data should be < 7 days old)
@@ -229,9 +309,81 @@ internal sealed class DataIntegrityService
                         var age = DateTime.UtcNow - fetchedAt.ToUniversalTime();
                         if (age.TotalDays > 7)
                         {
-                            result.Warnings.Add($"{symbol}: Data is {age.TotalDays:F1} days old (>7 days)");
+                            result.Warnings.Add($"{symbol}: Data fetched {age.TotalDays:F1} days ago (>7 days)");
                         }
                     }
+                }
+
+                // Validate bar data quality (sample first 100 bars)
+                var barsArray = barsElement.EnumerateArray().Take(100).ToList();
+                var invalidBars = 0;
+                var nullTimestamps = 0;
+                
+                DateTime? prevTimestamp = null;
+                var outOfOrderCount = 0;
+                
+                foreach (var bar in barsArray)
+                {
+                    // Check for null or missing timestamp
+                    if (!bar.TryGetProperty("timestamp", out var tsElement) || tsElement.ValueKind == System.Text.Json.JsonValueKind.Null)
+                    {
+                        nullTimestamps++;
+                        continue;
+                    }
+                    
+                    var timestamp = tsElement.GetString();
+                    if (string.IsNullOrEmpty(timestamp))
+                    {
+                        nullTimestamps++;
+                        continue;
+                    }
+                    
+                    // Check timestamp ordering
+                    if (DateTime.TryParse(timestamp, out var currentTimestamp))
+                    {
+                        if (prevTimestamp.HasValue && currentTimestamp < prevTimestamp.Value)
+                        {
+                            outOfOrderCount++;
+                        }
+                        prevTimestamp = currentTimestamp;
+                    }
+                    
+                    // Check OHLC values
+                    if (bar.TryGetProperty("open", out var openEl) &&
+                        bar.TryGetProperty("high", out var highEl) &&
+                        bar.TryGetProperty("low", out var lowEl) &&
+                        bar.TryGetProperty("close", out var closeEl))
+                    {
+                        var open = openEl.GetDecimal();
+                        var high = highEl.GetDecimal();
+                        var low = lowEl.GetDecimal();
+                        var close = closeEl.GetDecimal();
+                        
+                        // Validate OHLC logic
+                        if (open == 0 || high == 0 || low == 0 || close == 0)
+                        {
+                            invalidBars++;
+                        }
+                        else if (high < low || open > high || open < low || close > high || close < low)
+                        {
+                            invalidBars++;
+                        }
+                    }
+                }
+                
+                if (nullTimestamps > 0)
+                {
+                    result.Warnings.Add($"{symbol}: Found {nullTimestamps} bars with null/missing timestamps (sampled 100 bars)");
+                }
+                
+                if (outOfOrderCount > 0)
+                {
+                    result.Warnings.Add($"{symbol}: Found {outOfOrderCount} bars with out-of-order timestamps (sampled 100 bars)");
+                }
+                
+                if (invalidBars > 0)
+                {
+                    result.Warnings.Add($"{symbol}: Found {invalidBars} bars with invalid OHLC values (sampled 100 bars)");
                 }
 
                 _logger.LogInformation("[DATA-INTEGRITY] ✓ {Symbol}: {Bars:N0} bars validated",
@@ -244,13 +396,36 @@ internal sealed class DataIntegrityService
             }
         }
 
+        // Generate summary
         if (result.IsValid)
         {
-            _logger.LogInformation("[DATA-INTEGRITY] ✅ Historical data files validation PASSED");
+            var summaryParts = new List<string>();
+            foreach (var symbol in symbols)
+            {
+                if (result.SymbolBarCounts.TryGetValue(symbol, out var barCount))
+                {
+                    string dateRange = "date range unknown";
+                    if (result.DateRanges.TryGetValue(symbol, out var range))
+                    {
+                        var days = (range.End - range.Start).TotalDays;
+                        dateRange = $"{days:F0} days";
+                    }
+                    summaryParts.Add($"{symbol}: {barCount:N0} bars, {dateRange}");
+                }
+            }
+            
+            _logger.LogInformation("[DATA-INTEGRITY] ✅ Historical data validation PASSED - {Summary}",
+                string.Join("; ", summaryParts));
         }
         else
         {
-            _logger.LogError("[DATA-INTEGRITY] ❌ Historical data files validation FAILED");
+            _logger.LogError("[DATA-INTEGRITY] ❌ Historical data validation FAILED - {Count} issues",
+                result.Issues.Count);
+        }
+
+        if (result.Warnings.Any())
+        {
+            _logger.LogWarning("[DATA-INTEGRITY] ⚠️ {Count} warnings found", result.Warnings.Count);
         }
 
         return result;
@@ -383,6 +558,7 @@ public sealed class HistoricalDataValidationResult
     public DateTime ValidationTime { get; set; }
     public bool IsValid { get; set; } = true;
     public Dictionary<string, int> SymbolBarCounts { get; set; } = new();
+    public Dictionary<string, (DateTime Start, DateTime End)> DateRanges { get; set; } = new();
     public List<string> Issues { get; set; } = new();
     public List<string> Warnings { get; set; } = new();
 }

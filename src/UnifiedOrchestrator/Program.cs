@@ -2448,6 +2448,14 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
         
+        // Phase 4: Post-Training Validation Service
+        Console.WriteLine("   ✓ Registering ValidationService (post-training model validation)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ValidationService>();
+        
+        // Phase 5: Atomic Promotion Service
+        Console.WriteLine("   ✓ Registering AtomicPromotionService (atomic model promotion with rollback)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService>();
+        
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
         Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();

@@ -24,6 +24,8 @@ internal sealed class TrainingOrchestratorService
     private readonly TrainingAlertService _alertService;
     private readonly ProgressTracker _progressTracker;
     private readonly ConsoleProgressRenderer _progressRenderer;
+    private readonly ValidationService _validationService;
+    private readonly TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService _atomicPromotionService;
     private readonly string _lockFilePath;
     private readonly string _checkpointDirectory;
 
@@ -35,7 +37,9 @@ internal sealed class TrainingOrchestratorService
         TrainingComponentLoader componentLoader,
         TrainingAlertService alertService,
         ProgressTracker progressTracker,
-        ConsoleProgressRenderer progressRenderer)
+        ConsoleProgressRenderer progressRenderer,
+        ValidationService validationService,
+        TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService atomicPromotionService)
     {
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
@@ -45,6 +49,8 @@ internal sealed class TrainingOrchestratorService
         _alertService = alertService;
         _progressTracker = progressTracker;
         _progressRenderer = progressRenderer;
+        _validationService = validationService;
+        _atomicPromotionService = atomicPromotionService;
         
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
@@ -320,35 +326,132 @@ internal sealed class TrainingOrchestratorService
         CancellationToken cancellationToken = default)
     {
         session.Status = TrainingSessionStatus.Validation;
-        _logger.LogInformation("[LAB] Running post-training validation...");
+        _logger.LogInformation("[LAB] Running Phase 4 post-training validation...");
 
-        // Validation logic: model loading, inference tests, performance comparison
-        // Implementation deferred to subsequent phase for full validation pipeline
-        
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-        
-        _logger.LogInformation("[LAB] ✓ Validation passed");
-        return true;
+        try
+        {
+            // Phase 4: Run comprehensive post-training validation
+            var validationResult = await _validationService.ValidateAllModelsAsync(
+                session.SessionId,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!validationResult.Passed)
+            {
+                _logger.LogError("[LAB] ❌ Validation FAILED:");
+                foreach (var issue in validationResult.Issues)
+                {
+                    _logger.LogError("[LAB]   - {Issue}", issue);
+                }
+                return false;
+            }
+
+            _logger.LogInformation("[LAB] ✓ Phase 4 validation passed - all checks successful");
+            _logger.LogInformation("[LAB]   Inference tests: {Status}", 
+                validationResult.InferenceTests.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Baseline comparison: {Status}", 
+                validationResult.BaselineComparison.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Catastrophic forgetting: {Status}", 
+                validationResult.CatastrophicForgetting.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Model integrity: {Status}", 
+                validationResult.ModelIntegrity.Passed ? "PASS" : "FAIL");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ Post-training validation threw exception");
+            return false;
+        }
     }
 
     /// <summary>
-    /// Evaluate and promote models
+    /// Evaluate and promote models (Phase 5)
     /// </summary>
     public async Task<bool> EvaluateAndPromoteModelsAsync(
         TrainingSession session,
         CancellationToken cancellationToken = default)
     {
         session.Status = TrainingSessionStatus.Promotion;
-        _logger.LogInformation("[LAB] Evaluating models for promotion...");
+        _logger.LogInformation("[LAB] Running Phase 5 model promotion evaluation...");
 
-        // Promotion logic: criteria check, atomic promotion, registry update
-        // Implementation deferred to subsequent phase for full promotion pipeline
-        
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-        
-        session.PromotionSuccess = true;
-        _logger.LogInformation("[LAB] ✓ Models promoted successfully");
-        return true;
+        try
+        {
+            // Get validation result from Phase 4 (re-run if needed)
+            var validationResult = await _validationService.ValidateAllModelsAsync(
+                session.SessionId,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!validationResult.Passed)
+            {
+                _logger.LogError("[LAB] ❌ Cannot promote - validation failed");
+                session.PromotionSuccess = false;
+                return false;
+            }
+
+            // Phase 5: Evaluate promotion criteria
+            var criteria = await _atomicPromotionService.EvaluatePromotionCriteriaAsync(
+                session.SessionId,
+                validationResult,
+                session.StartTime.DateTime,
+                DateTime.UtcNow,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!criteria.Passed)
+            {
+                _logger.LogError("[LAB] ❌ Promotion criteria not met:");
+                foreach (var failed in criteria.FailedCriteria)
+                {
+                    _logger.LogError("[LAB]   - {Criteria}", failed);
+                }
+                session.PromotionSuccess = false;
+                return false;
+            }
+
+            _logger.LogInformation("[LAB] ✓ Promotion criteria passed - all categories successful");
+            _logger.LogInformation("[LAB]   Training success: {Status}", criteria.TrainingSuccess.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Validation success: {Status}", criteria.ValidationSuccess.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Performance: {Status}", criteria.PerformanceCriteria.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Technical: {Status}", criteria.TechnicalCriteria.Passed ? "PASS" : "FAIL");
+            _logger.LogInformation("[LAB]   Operational: {Status}", criteria.OperationalCriteria.Passed ? "PASS" : "FAIL");
+
+            // Phase 5: Promote models atomically
+            var atomicResult = await _atomicPromotionService.PromoteModelsAtomicallyAsync(
+                session.SessionId,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!atomicResult.Success)
+            {
+                _logger.LogError("[LAB] ❌ Atomic promotion failed:");
+                foreach (var issue in atomicResult.Issues)
+                {
+                    _logger.LogError("[LAB]   - {Issue}", issue);
+                }
+                session.PromotionSuccess = false;
+                return false;
+            }
+
+            // Generate promotion report
+            var report = await _atomicPromotionService.GeneratePromotionReportAsync(
+                session.SessionId,
+                criteria,
+                atomicResult,
+                cancellationToken).ConfigureAwait(false);
+
+            session.PromotionSuccess = true;
+            _logger.LogInformation("[LAB] ✅ Phase 5 atomic promotion successful:");
+            _logger.LogInformation("[LAB]   Models promoted: {Count}", atomicResult.ModelsPromoted);
+            _logger.LogInformation("[LAB]   Duration: {Duration:F1}ms", atomicResult.PromotionDurationMs);
+            _logger.LogInformation("[LAB]   Backup created: {BackupLocation}", atomicResult.BackupLocation);
+            _logger.LogInformation("[LAB]   Rollback available: {Available}", atomicResult.RollbackCapable ? "YES" : "NO");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ Model promotion threw exception");
+            session.PromotionSuccess = false;
+            return false;
+        }
     }
 
     /// <summary>
