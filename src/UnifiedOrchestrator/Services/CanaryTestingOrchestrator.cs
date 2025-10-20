@@ -166,7 +166,7 @@ internal sealed class CanaryTestingOrchestrator
                 var sw = Stopwatch.StartNew();
                 
                 // Run actual ONNX model inference
-                var output = SimulateModelInference(modelName, scenario);
+                var output = RunModelInference(modelName, scenario);
                 
                 sw.Stop();
                 latencies.Add(sw.Elapsed.TotalMilliseconds);
@@ -209,7 +209,7 @@ internal sealed class CanaryTestingOrchestrator
     /// <summary>
     /// Run actual ONNX model inference on validation scenario
     /// </summary>
-    private float[] SimulateModelInference(string modelName, ValidationScenario scenario)
+    private float[] RunModelInference(string modelName, ValidationScenario scenario)
     {
         var modelPath = Path.Combine(_stagingDirectory, $"{modelName}.onnx");
         
