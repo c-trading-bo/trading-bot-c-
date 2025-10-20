@@ -26,6 +26,8 @@ internal sealed class TrainingOrchestratorService
     private readonly ConsoleProgressRenderer _progressRenderer;
     private readonly ValidationService _validationService;
     private readonly TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService _atomicPromotionService;
+    private readonly TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator? _atomicCoordinator;
+    private readonly TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? _baselineManager;
     private readonly string _lockFilePath;
     private readonly string _checkpointDirectory;
 
@@ -39,7 +41,9 @@ internal sealed class TrainingOrchestratorService
         ProgressTracker progressTracker,
         ConsoleProgressRenderer progressRenderer,
         ValidationService validationService,
-        TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService atomicPromotionService)
+        TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService atomicPromotionService,
+        TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator? atomicCoordinator = null,
+        TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? baselineManager = null)
     {
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
@@ -51,6 +55,8 @@ internal sealed class TrainingOrchestratorService
         _progressRenderer = progressRenderer;
         _validationService = validationService;
         _atomicPromotionService = atomicPromotionService;
+        _atomicCoordinator = atomicCoordinator;
+        _baselineManager = baselineManager;
         
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
@@ -414,7 +420,51 @@ internal sealed class TrainingOrchestratorService
             _logger.LogInformation("[LAB]   Technical: {Status}", criteria.TechnicalCriteria.Passed ? "PASS" : "FAIL");
             _logger.LogInformation("[LAB]   Operational: {Status}", criteria.OperationalCriteria.Passed ? "PASS" : "FAIL");
 
-            // Phase 5: Promote models atomically
+            // Phase 7: Use enhanced AtomicPromotionCoordinator if available
+            if (_atomicCoordinator != null)
+            {
+                _logger.LogInformation("[LAB] Using Phase 7 AtomicPromotionCoordinator for bulletproof deployment");
+                var coordinatorResult = await _atomicCoordinator.PromoteModelsAsync(
+                    session.SessionId,
+                    cancellationToken).ConfigureAwait(false);
+                
+                if (!coordinatorResult.Success)
+                {
+                    _logger.LogError("[LAB] ❌ Phase 7 atomic promotion failed:");
+                    foreach (var issue in coordinatorResult.Issues)
+                    {
+                        _logger.LogError("[LAB]   - {Issue}", issue);
+                    }
+                    session.PromotionSuccess = false;
+                    return false;
+                }
+                
+                // Capture baseline after successful promotion
+                if (_baselineManager != null)
+                {
+                    _logger.LogInformation("[LAB] Capturing baseline after successful promotion...");
+                    var performanceMetrics = new Dictionary<string, decimal>
+                    {
+                        ["modelsPromoted"] = coordinatorResult.ModelsPromoted,
+                        ["durationMs"] = (decimal)coordinatorResult.PromotionDurationMs
+                    };
+                    await _baselineManager.CaptureBaselineAsync(performanceMetrics, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                
+                session.PromotionSuccess = true;
+                _logger.LogInformation("[LAB] ✅ Phase 7 atomic promotion successful:");
+                _logger.LogInformation("[LAB]   Models promoted: {Count}", coordinatorResult.ModelsPromoted);
+                _logger.LogInformation("[LAB]   Duration: {Duration:F1}ms", coordinatorResult.PromotionDurationMs);
+                _logger.LogInformation("[LAB]   Version: {Version}", coordinatorResult.Version);
+                _logger.LogInformation("[LAB]   Backup created: {BackupLocation}", coordinatorResult.BackupLocation);
+                _logger.LogInformation("[LAB]   Rollback available: {Available}", coordinatorResult.RollbackCapable ? "YES" : "NO");
+                
+                return true;
+            }
+            
+            // Fall back to Phase 5 atomic promotion
+            _logger.LogInformation("[LAB] Using Phase 5 AtomicPromotionService (Phase 7 coordinator not available)");
             var atomicResult = await _atomicPromotionService.PromoteModelsAtomicallyAsync(
                 session.SessionId,
                 cancellationToken).ConfigureAwait(false);

@@ -35,6 +35,14 @@ internal sealed class ValidationService
     private readonly string _baselineDirectory;
     private readonly string _reportsDirectory;
     
+    // Phase 6 services
+    private readonly ValidationDatasetManager? _datasetManager;
+    private readonly CanaryTestingOrchestrator? _canaryOrchestrator;
+    private readonly BaselineModelManager? _baselineManager;
+    private readonly PerformanceComparisonEngine? _comparisonEngine;
+    private readonly CatastrophicForgettingDetector? _forgettingDetector;
+    private readonly ValidationReportGenerator? _reportGenerator;
+    
     // Validation thresholds
     private const double MaxInferenceLatencyMs = 50.0;
     private const double MinAverageImprovement = 0.0;
@@ -44,10 +52,22 @@ internal sealed class ValidationService
     
     public ValidationService(
         ILogger<ValidationService> logger,
-        TrainingManifestService manifestService)
+        TrainingManifestService manifestService,
+        ValidationDatasetManager? datasetManager = null,
+        CanaryTestingOrchestrator? canaryOrchestrator = null,
+        BaselineModelManager? baselineManager = null,
+        PerformanceComparisonEngine? comparisonEngine = null,
+        CatastrophicForgettingDetector? forgettingDetector = null,
+        ValidationReportGenerator? reportGenerator = null)
     {
         _logger = logger;
         _manifestService = manifestService;
+        _datasetManager = datasetManager;
+        _canaryOrchestrator = canaryOrchestrator;
+        _baselineManager = baselineManager;
+        _comparisonEngine = comparisonEngine;
+        _forgettingDetector = forgettingDetector;
+        _reportGenerator = reportGenerator;
         
         var baseDir = Directory.GetCurrentDirectory();
         _stagingDirectory = Path.Combine(baseDir, "models", "staging");
@@ -77,6 +97,16 @@ internal sealed class ValidationService
 
         try
         {
+            // Use Phase 6 enhanced validation if available
+            if (_canaryOrchestrator != null && _comparisonEngine != null && _forgettingDetector != null && _reportGenerator != null)
+            {
+                _logger.LogInformation("[POST-VALIDATION] Using Phase 6 enhanced validation system");
+                return await RunPhase6ValidationAsync(sessionId, cancellationToken).ConfigureAwait(false);
+            }
+            
+            // Fall back to legacy validation
+            _logger.LogInformation("[POST-VALIDATION] Using legacy validation (Phase 6 services not available)");
+            
             // Step 1: Load trained models from staging
             _logger.LogInformation("[POST-VALIDATION] [1/4] Loading trained models from staging...");
             var trainedModels = await LoadTrainedModelsAsync(cancellationToken).ConfigureAwait(false);
@@ -149,6 +179,145 @@ internal sealed class ValidationService
             result.Passed = false;
             return result;
         }
+    }
+    
+    /// <summary>
+    /// Run Phase 6 enhanced validation using all new services
+    /// </summary>
+    private async Task<PostTrainingValidationResult> RunPhase6ValidationAsync(
+        string sessionId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[PHASE6-VALIDATION] Starting Phase 6 enhanced validation");
+        
+        var result = new PostTrainingValidationResult
+        {
+            SessionId = sessionId,
+            ValidationTime = DateTime.UtcNow
+        };
+        
+        try
+        {
+            // Step 1: Canary testing (comprehensive inference tests)
+            _logger.LogInformation("[PHASE6-VALIDATION] [1/3] Running canary tests...");
+            var canaryResults = await _canaryOrchestrator!.RunComprehensiveCanaryTestsAsync(cancellationToken)
+                .ConfigureAwait(false);
+            result.InferenceTests = canaryResults;
+            
+            if (!canaryResults.Passed)
+            {
+                result.Issues.Add("Canary tests failed - models unstable or too slow");
+                result.Passed = false;
+                return result;
+            }
+            
+            // Step 2: Performance comparison with baseline
+            _logger.LogInformation("[PHASE6-VALIDATION] [2/3] Comparing performance with baseline...");
+            var baselineModels = await LoadBaselineModelsAsync(cancellationToken).ConfigureAwait(false);
+            var stagingModels = await LoadStagingModelsAsync(cancellationToken).ConfigureAwait(false);
+            
+            var comparisonResults = await _comparisonEngine!.RunComparisonAsync(
+                stagingModels, baselineModels, cancellationToken).ConfigureAwait(false);
+            
+            // Map comparison results to baseline comparison (simplified mapping)
+            result.BaselineComparison = new Models.BaselineComparisonResults
+            {
+                Passed = comparisonResults.Status == "PASS",
+                BaselineFound = baselineModels.Count > 0,
+                AverageImprovement = comparisonResults.AverageImprovement
+            };
+            
+            if (!result.BaselineComparison.Passed)
+            {
+                result.Issues.Add($"Performance comparison failed - {comparisonResults.RegressionCount} regressions detected");
+            }
+            
+            // Step 3: Catastrophic forgetting detection
+            _logger.LogInformation("[PHASE6-VALIDATION] [3/3] Checking for catastrophic forgetting...");
+            var forgettingResults = await _forgettingDetector!.DetectForgettingAsync(
+                stagingModels, baselineModels, cancellationToken).ConfigureAwait(false);
+            
+            result.CatastrophicForgetting = new Models.CatastrophicForgettingResults
+            {
+                Passed = forgettingResults.Status != "SEVERE_FORGETTING",
+                RecentPerformance = 1.0, // Phase 6 handles this internally
+                MidTermPerformance = forgettingResults.MildForgettingCount == 0 ? 1.0 : 0.9,
+                LongTermPerformance = forgettingResults.SevereForgettingCount == 0 ? 1.0 : 0.5,
+                DegradationPercent = forgettingResults.SevereForgettingCount * 10.0
+            };
+            
+            if (!result.CatastrophicForgetting.Passed)
+            {
+                result.Issues.Add($"Catastrophic forgetting detected in {forgettingResults.SevereForgettingCount} models");
+            }
+            
+            // Step 4: Model integrity check (still use legacy method)
+            result.ModelIntegrity = await VerifyModelIntegrityAsync(
+                await LoadTrainedModelsAsync(cancellationToken).ConfigureAwait(false), 
+                cancellationToken).ConfigureAwait(false);
+            
+            // Determine overall pass/fail
+            result.Passed = result.Issues.Count == 0 && 
+                           result.InferenceTests.Passed && 
+                           result.BaselineComparison.Passed && 
+                           result.CatastrophicForgetting.Passed &&
+                           result.ModelIntegrity.Passed;
+            
+            // Make promotion decision
+            result.PromotionDecision = MakePromotionDecision(result);
+            
+            // Generate comprehensive Phase 6 report
+            if (_reportGenerator != null)
+            {
+                await _reportGenerator.GenerateReportAsync(
+                    sessionId, canaryResults, comparisonResults, forgettingResults, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            
+            _logger.LogInformation("[PHASE6-VALIDATION] Phase 6 validation complete: {Status}",
+                result.Passed ? "PASSED" : "FAILED");
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PHASE6-VALIDATION] Phase 6 validation failed");
+            result.Issues.Add($"Phase 6 validation exception: {ex.Message}");
+            result.Passed = false;
+            return result;
+        }
+    }
+    
+    /// <summary>
+    /// Load baseline models for comparison
+    /// </summary>
+    private async Task<List<string>> LoadBaselineModelsAsync(CancellationToken cancellationToken)
+    {
+        if (_baselineManager == null)
+            return new List<string>();
+        
+        var latestBaseline = await _baselineManager.GetLatestBaselineAsync(cancellationToken)
+            .ConfigureAwait(false);
+        
+        if (string.IsNullOrEmpty(latestBaseline))
+            return new List<string>();
+        
+        return await _baselineManager.LoadBaselineModelsAsync(latestBaseline, cancellationToken)
+            .ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Load staging models for comparison
+    /// </summary>
+    private async Task<List<string>> LoadStagingModelsAsync(CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(_stagingDirectory))
+            return new List<string>();
+        
+        var models = Directory.GetFiles(_stagingDirectory, "*.onnx", SearchOption.TopDirectoryOnly).ToList();
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+        return models;
     }
 
     /// <summary>

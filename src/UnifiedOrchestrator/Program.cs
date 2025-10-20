@@ -2456,6 +2456,43 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering AtomicPromotionService (atomic model promotion with rollback)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService>();
         
+        // Phase 6: Post-Training Validation System
+        Console.WriteLine("   ✓ Registering Phase 6: Post-Training Validation System");
+        Console.WriteLine("      - ValidationDatasetManager (frozen 1000-scenario validation dataset)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationDatasetManager>();
+        
+        Console.WriteLine("      - CanaryTestingOrchestrator (comprehensive model inference testing)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CanaryTestingOrchestrator>();
+        
+        Console.WriteLine("      - BaselineModelManager (4-week baseline model storage)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.BaselineModelManager>();
+        
+        Console.WriteLine("      - PerformanceComparisonEngine (new vs baseline comparison)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.PerformanceComparisonEngine>();
+        
+        Console.WriteLine("      - CatastrophicForgettingDetector (temporal stability checking)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CatastrophicForgettingDetector>();
+        
+        Console.WriteLine("      - ValidationReportGenerator (comprehensive validation reporting)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationReportGenerator>();
+        
+        // Phase 7: Atomic Model Promotion System
+        Console.WriteLine("   ✓ Registering Phase 7: Atomic Model Promotion System");
+        Console.WriteLine("      - ProductionBackupManager (4-week rolling backups with compression)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.ProductionBackupManager>();
+        
+        Console.WriteLine("      - VersionManager (version.txt pointer + history tracking)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.VersionManager>();
+        
+        Console.WriteLine("      - PostPromotionValidator (deployment verification)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PostPromotionValidator>();
+        
+        Console.WriteLine("      - PromotionHistoryTracker (append-only audit log)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PromotionHistoryTracker>();
+        
+        Console.WriteLine("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
+        
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
         Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
