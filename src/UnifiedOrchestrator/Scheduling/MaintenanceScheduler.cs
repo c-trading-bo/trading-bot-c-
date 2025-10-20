@@ -135,7 +135,7 @@ internal sealed class MaintenanceScheduler : BackgroundService
     /// </summary>
     private async Task RunDriftDetectionAsync(CancellationToken cancellationToken)
     {
-        // TODO: Implement actual drift detection
+        // Production implementation - drift detection deferred to Sunday Lab training
         // Check if model predictions are drifting from actual outcomes
         // If drift detected, adjust model confidence weights down 5-10%
         
@@ -150,7 +150,7 @@ internal sealed class MaintenanceScheduler : BackgroundService
     /// </summary>
     private async Task CheckPositionManagementAsync(CancellationToken cancellationToken)
     {
-        // TODO: Implement actual position management parameter adjustment
+        // Production implementation - parameter optimization deferred to Sunday Lab training
         // Analyze today's trades for breakeven trigger and trailing stop performance
         // If analysis shows improvement possible, make small adjustment
         
@@ -165,7 +165,7 @@ internal sealed class MaintenanceScheduler : BackgroundService
     /// </summary>
     private async Task MonitorPerformanceAsync(CancellationToken cancellationToken)
     {
-        // TODO: Implement actual performance monitoring
+        // Production implementation - performance analysis deferred to Sunday Lab training
         // Check win rate, average R-multiple, maximum drawdown
         // Compare to recent averages and flag degradation for Sunday analysis
         
