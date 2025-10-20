@@ -292,24 +292,32 @@ internal sealed class HistoricalTrainingOrchestrator
                 // Step 8: GitHub Cloud Backup (Optional - Phase 11)
                 if (_githubBackupService != null)
                 {
-                    _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
-                    
-                    // Upload manifest
-                    await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    // Generate and upload training summary
-                    var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    // Archive models locally (NOT uploaded to GitHub - too large)
-                    var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
-                    await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+                    try
+                    {
+                        _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
+                        
+                        // Upload manifest
+                        await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        // Generate and upload training summary
+                        var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        // Archive models locally (NOT uploaded to GitHub - too large)
+                        var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+                        await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+                    }
+                    catch (Exception ex)
+                    {
+                        // GitHub backup is optional - log warning but don't fail the training session
+                        _logger.LogWarning(ex, "[LAB] GitHub backup failed but training session completed successfully: {Error}", ex.Message);
+                    }
                 }
 
                 // Step 9: Capture final metrics and export
