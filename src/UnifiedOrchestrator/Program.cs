@@ -286,25 +286,27 @@ internal static class Program
         Console.WriteLine(@"
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║                    TopstepX Trading Bot - Mode Selection                      ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║  [1] Terminal Mode (Live Trading)                                             ║
+║      • Real-time market execution                                             ║
+║      • Inference-only operations                                              ║
+║      • Safety systems active                                                  ║
+║      • Model loading from registry                                            ║
+║                                                                                ║
+║  [2] Lab Mode (Historical Training)                                           ║
+║      • Historical data replay                                                 ║
+║      • Model training & optimization                                          ║
+║      • Scheduled Sunday 12:00 PM - 5:45 PM ET                                 ║
+║      • No live trading                                                        ║
+║                                                                                ║
+║  [3] Backtest Mode (Strategy Testing)                                         ║
+║      • Historical strategy validation                                         ║
+║      • Performance metrics                                                    ║
+║      • No training or live execution                                          ║
+║                                                                                ║
 ╚════════════════════════════════════════════════════════════════════════════════╝
 ");
-        Console.WriteLine("  [1] Terminal Mode (Live Trading)");
-        Console.WriteLine("      • Real-time market execution");
-        Console.WriteLine("      • Inference-only operations");
-        Console.WriteLine("      • Safety systems active");
-        Console.WriteLine("      • Model loading from registry");
-        Console.WriteLine();
-        Console.WriteLine("  [2] Lab Mode (Historical Training)");
-        Console.WriteLine("      • Historical data replay");
-        Console.WriteLine("      • Model training & optimization");
-        Console.WriteLine("      • Scheduled Sunday 12:00 PM - 5:45 PM ET");
-        Console.WriteLine("      • No live trading");
-        Console.WriteLine();
-        Console.WriteLine("  [3] Backtest Mode (Strategy Testing)");
-        Console.WriteLine("      • Historical strategy validation");
-        Console.WriteLine("      • Performance metrics");
-        Console.WriteLine("      • No training or live execution");
-        Console.WriteLine();
         Console.Write("Select mode [1-3]: ");
         
         var input = Console.ReadLine()?.Trim();
@@ -2921,7 +2923,8 @@ internal static class EnvironmentLoader
             {
                 if (File.Exists(envFile))
                 {
-                    DotNetEnv.Env.Load(envFile);
+                    // Don't override existing environment variables (allow user overrides)
+                    DotNetEnv.Env.Load(envFile, new DotNetEnv.LoadOptions(setEnvVars: true, clobberExistingVars: false));
                     loadedFiles.Add(envFile);
                 }
             }

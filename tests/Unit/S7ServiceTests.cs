@@ -117,7 +117,7 @@ namespace TradingBot.Tests.Unit
         public void S7Service_GetCurrentSnapshot_ReturnsValidSnapshot()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Act
             var snapshot = service.GetCurrentSnapshot();
@@ -132,7 +132,7 @@ namespace TradingBot.Tests.Unit
         public void S7Service_GetFeatureTuple_ReturnsValidFeatures()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Act
             var features = service.GetFeatureTuple("ES");
@@ -147,7 +147,7 @@ namespace TradingBot.Tests.Unit
         public async Task S7Service_CooldownBehavior_PreventsSignalFlapping()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
             
             // Add sufficient bars to trigger signal
             for (int i = 0; i < 65; i++) // More than max lookback
@@ -176,7 +176,7 @@ namespace TradingBot.Tests.Unit
         public void S7Service_CoherenceCalculation_RequiresMinimumThreshold()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
 
             // Act
             var snapshot = service.GetCurrentSnapshot();
@@ -190,7 +190,7 @@ namespace TradingBot.Tests.Unit
         public async Task S7Service_RiskOnRiskOff_Transitions()
         {
             // Arrange
-            var service = new S7.S7Service(_logger, _options);
+            var service = new S7.S7Service(_logger, _options, _breadthOptions);
             
             // Act - Add bars to simulate risk-on conditions (strong coherent signals)
             for (int i = 0; i < 65; i++)
@@ -227,7 +227,6 @@ namespace TradingBot.Tests.Unit
             var failClosedConfig = new S7Configuration
             {
                 Enabled = true,
-                Symbols = new List<string> { "ES", "NQ" },
                 FailOnMissingData = true,
                 // Other required properties...
                 BarTimeframeMinutes = 5,
@@ -257,8 +256,12 @@ namespace TradingBot.Tests.Unit
                 FailOnUnknownKeys = true,
                 TelemetryPrefix = "s7"
             };
+            
+            // Initialize Symbols separately since it's read-only
+            failClosedConfig.Symbols.Add("ES");
+            failClosedConfig.Symbols.Add("NQ");
 
-            var service = new S7.S7Service(_logger, Options.Create(failClosedConfig));
+            var service = new S7.S7Service(_logger, Options.Create(failClosedConfig), _breadthOptions);
 
             // Act
             var snapshot = service.GetCurrentSnapshot();

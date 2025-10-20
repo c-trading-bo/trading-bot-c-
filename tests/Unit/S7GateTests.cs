@@ -227,7 +227,6 @@ namespace TradingBot.Tests.Unit
             var failClosedConfig = new S7Configuration
             {
                 Enabled = true,
-                Symbols = new List<string> { "ES", "NQ" },
                 FailOnMissingData = true,
                 // Include all required properties
                 BarTimeframeMinutes = 5,
@@ -257,8 +256,12 @@ namespace TradingBot.Tests.Unit
                 FailOnUnknownKeys = true,
                 TelemetryPrefix = "s7"
             };
+            
+            // Initialize Symbols separately since it's read-only
+            failClosedConfig.Symbols.Add("ES");
+            failClosedConfig.Symbols.Add("NQ");
 
-            var service = new S7.S7Service(_logger, Options.Create(failClosedConfig));
+            var service = new S7.S7Service(_logger, Options.Create(failClosedConfig), _breadthOptions);
 
             // Act - Try to gate strategies without sufficient S7 data
             var snapshot = service.GetCurrentSnapshot();

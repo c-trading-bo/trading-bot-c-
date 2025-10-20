@@ -26,7 +26,7 @@ namespace TradingBot.Tests.Unit
         {
             // Arrange
             var httpClient = new HttpClient();
-            // Use a fake endpoint that will return 401 to simulate auth failure
+            // Use a test endpoint that will return 401 to simulate auth failure
             httpClient.BaseAddress = new Uri("https://httpstat.us/");
             
             var authAgent = new TopstepAuthAgent(httpClient);

@@ -31,8 +31,9 @@ public sealed class SimpleDslLoaderTests
             Assert.Equal("MeanReversion", s2Strategy.Label);
             Assert.Equal("RangeFade", s2Strategy.Family);
             Assert.Equal("both", s2Strategy.Bias);
-            Assert.Contains("Range", s2Strategy.When.Regime);
-            Assert.Contains("LowVol", s2Strategy.When.Regime);
+            Assert.NotNull(s2Strategy.When);
+            Assert.Contains("Range", s2Strategy.When.Regime!);
+            Assert.Contains("LowVol", s2Strategy.When.Regime!);
             Assert.NotEmpty(s2Strategy.When.Micro);
             Assert.NotEmpty(s2Strategy.Confluence);
             Assert.Contains("S2", s2Strategy.TelemetryTags);

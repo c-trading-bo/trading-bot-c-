@@ -39,6 +39,7 @@ namespace TradingBot.Tests.Unit
             // Arrange & Act - Test production API alignment methods
             
             // Test that KillSwitchWatcher provides production API alignment
+#pragma warning disable CS0618 // Type or member is obsolete - Testing obsolete type is intentional
             var hasProductionKillSwitchMethod = typeof(Trading.Safety.KillSwitchWatcher)
                 .GetMethod("IsProductionKillSwitchActive") != null;
             var hasDryRunForceMethod = typeof(Trading.Safety.KillSwitchWatcher)
@@ -51,6 +52,7 @@ namespace TradingBot.Tests.Unit
             // Test that the class is marked as obsolete to guide users to production service
             var obsoleteAttribute = typeof(Trading.Safety.KillSwitchWatcher)
                 .GetCustomAttributes(typeof(ObsoleteAttribute), false);
+#pragma warning restore CS0618 // Type or member is obsolete
             Assert.True(obsoleteAttribute.Length > 0, "KillSwitchWatcher should be marked [Obsolete] to guide users to ProductionKillSwitchService");
         }
         

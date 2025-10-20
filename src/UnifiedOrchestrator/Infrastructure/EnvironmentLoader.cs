@@ -71,7 +71,11 @@ internal static class EnvironmentLoader
                 
                 if (!string.IsNullOrWhiteSpace(key))
                 {
-                    Environment.SetEnvironmentVariable(key, val);
+                    // Only set if not already set (don't override user-set environment variables)
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                    {
+                        Environment.SetEnvironmentVariable(key, val);
+                    }
                 }
             }
         }
