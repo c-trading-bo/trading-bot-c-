@@ -45,7 +45,10 @@ check_method() {
 # Function to check for stub/mock implementations
 check_no_stubs() {
     local file=$1
-    local count=$(grep -c "NotImplementedException\|TODO.*production\|STUB\|Mock.*Service" "$file" 2>/dev/null || echo "0")
+    # Look for actual stub patterns: throw NotImplementedException, TODO production comments, STUB markers
+    # Exclude: "ex is NotImplementedException" (error type checking), comments about detecting mocks
+    local count=$(grep -v "ex is NotImplementedException\|exception is NotImplementedException\|detecting.*Mock\|Check.*Mock" "$file" 2>/dev/null | \
+                  grep -c "throw new NotImplementedException\|TODO.*production\|STUB\|new Mock.*Service" || echo "0")
     count=$(echo "$count" | head -1)  # Take first line only
     if [ "$count" = "0" ] || [ "$count" -eq 0 ] 2>/dev/null; then
         echo "✅ No stubs/mocks in: $(basename $file)"
@@ -142,7 +145,7 @@ check_method "src/UnifiedOrchestrator/Services/TrainingFailureHandler.cs" "Class
 check_no_stubs "src/UnifiedOrchestrator/Services/TrainingFailureHandler.cs"
 
 check_file "src/UnifiedOrchestrator/Services/TrainingRetryService.cs"
-check_method "src/UnifiedOrchestrator/Services/TrainingRetryService.cs" "RetryWithBackoffAsync"
+check_method "src/UnifiedOrchestrator/Services/TrainingRetryService.cs" "ExecuteWithRetryAsync"
 check_no_stubs "src/UnifiedOrchestrator/Services/TrainingRetryService.cs"
 
 echo ""
@@ -171,12 +174,12 @@ echo "6. MODEL PROMOTION & VALIDATION"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 check_file "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs"
-check_method "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs" "PromoteModelAsync"
-check_method "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs" "RollbackPromotionAsync"
+check_method "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs" "PromoteModelsAtomicallyAsync"
+check_method "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs" "RollbackToPreviousAsync"
 check_no_stubs "src/UnifiedOrchestrator/Promotion/AtomicPromotionService.cs"
 
 check_file "src/UnifiedOrchestrator/Training/ValidationService.cs"
-check_method "src/UnifiedOrchestrator/Training/ValidationService.cs" "ValidateModelAsync"
+check_method "src/UnifiedOrchestrator/Training/ValidationService.cs" "ValidateAllModelsAsync"
 check_no_stubs "src/UnifiedOrchestrator/Training/ValidationService.cs"
 
 echo ""

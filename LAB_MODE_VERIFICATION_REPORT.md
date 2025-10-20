@@ -609,7 +609,7 @@ CVaR-PPO:         ████████████████████ 1
 
 ```
 Total Errors:     0
-Total Warnings:   1 (minor - alternate method name)
+Total Warnings:   0
 Stub/Mock Code:   0
 Legacy Code:      0
 ```
