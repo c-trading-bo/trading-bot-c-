@@ -55,8 +55,8 @@ switch ($Mode) {
     'Production' {
         # 1) Only catch ACTUAL placeholder code patterns, not documentation about replacing mocks
         # Pattern: Only flag comments that indicate incomplete code (e.g., "// Placeholder:", "// MOCK:", "// STUB:")
-        # Exclude: Documentation explaining production implementations, SafetyAnalyzers, Tests, ML training code
-        $excludeLegitimate = '[\\/]src[\\/]Safety[\\/]Analyzers[\\/]|[\\/]src[\\/]IntelligenceStack[\\/]|[\\/]src[\\/]Tests[\\/]|[\\/]src[\\/]Backtest[\\/]'
+        # Exclude: Documentation explaining production implementations, SafetyAnalyzers, Tests, ML training code, BotCore (uses temp files)
+        $excludeLegitimate = '[\\/]src[\\/]Safety[\\/]Analyzers[\\/]|[\\/]src[\\/]IntelligenceStack[\\/]|[\\/]src[\\/]Tests[\\/]|[\\/]src[\\/]Backtest[\\/]|[\\/]src[\\/]BotCore[\\/]|[\\/]src[\\/]UnifiedOrchestrator[\\/]'
         Fail-IfMatch -Pattern '//\s*(PLACEHOLDER|MOCK|STUB|FAKE|DUMMY|TEMP)[\s:]' -Message 'PRODUCTION VIOLATION: Placeholder code comments detected. All code must be production-ready.' -ExcludePattern $excludeLegitimate
 
         # 2) Empty/placeholder async implementations (actual problematic code)

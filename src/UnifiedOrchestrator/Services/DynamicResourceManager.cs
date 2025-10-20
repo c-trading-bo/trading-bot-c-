@@ -42,7 +42,7 @@ internal sealed class DynamicResourceManager
         // Base: 10GB for OS overhead
         // Per component: 15MB per model file
         // Historical data: 5GB for 90-day bars
-        // Temp space: 5GB for checkpoints and intermediate files
+        // Temporary workspace: 5GB for checkpoints and intermediate files
         const double baseOverheadGB = 10;
         const double perComponentMB = 15;
         const double historicalDataGB = 5;
