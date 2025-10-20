@@ -2921,7 +2921,8 @@ internal static class EnvironmentLoader
             {
                 if (File.Exists(envFile))
                 {
-                    DotNetEnv.Env.Load(envFile);
+                    // Don't override existing environment variables (allow user overrides)
+                    DotNetEnv.Env.Load(envFile, new DotNetEnv.LoadOptions(setEnvVars: true, clobberExistingVars: false));
                     loadedFiles.Add(envFile);
                 }
             }
