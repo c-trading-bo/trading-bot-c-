@@ -41,13 +41,15 @@ namespace BotCore.Extensions
             // Register trading readiness tracker
             services.AddSingleton<ITradingReadinessTracker, TradingReadinessTracker>();
 
-            // Only register HistoricalDataBridgeService in HISTORICAL_MODE
-            // In LIVE/DRY-RUN modes, we don't need historical data seeding
+            // Register historical data bridge service unconditionally
+            // The service has optional dependencies and will operate correctly in all modes
+            // In TERMINAL mode, it may not actively seed but allows TradingSystemIntegrationService to resolve
+            services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
+
+            // Only register bar consumer in HISTORICAL_MODE
+            // In LIVE/DRY-RUN modes, we don't actively consume historical data
             if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
             {
-                // Register historical data bridge service - Singleton for consumption by singleton services
-                services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
-
                 // Register bar consumer for historical data integration
                 services.AddSingleton<IHistoricalBarConsumer, TradingSystemBarConsumer>();
             }
