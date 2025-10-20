@@ -1,0 +1,19 @@
+{
+  "id": "e49cc9ff-b34d-4c99-9278-bd3ea6d6fd7f",
+  "algorithm": "",
+  "fromVersionId": "none",
+  "toVersionId": "v1.0.0-bootstrap",
+  "promotedAt": "2025-10-19T19:41:17.8309211Z",
+  "promotedBy": "",
+  "reason": "Bootstrap: Initial champion registration",
+  "validationReportPath": "",
+  "passedValidation": false,
+  "performanceImprovement": 0,
+  "riskReduction": 0,
+  "wasRolledBack": false,
+  "rolledBackAt": null,
+  "rollbackReason": "",
+  "wasFlat": false,
+  "marketSession": "",
+  "contextData": {}
+}
