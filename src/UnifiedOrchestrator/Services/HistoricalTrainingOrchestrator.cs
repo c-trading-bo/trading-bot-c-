@@ -618,6 +618,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] CVaR-PPO complete - Starting Neural UCB");
             _logger.LogInformation("[LAB] Neural UCB training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("Neural UCB");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("Neural UCB", "Main", 2, 5);
+            
             // NOTE: Neural UCB bandit retraining requires access to the live neural network instance
             // which is instantiated within the NeuralUcbBandit class during Terminal runtime.
             // Lab mode operates offline without live bandit instances.
@@ -638,6 +644,12 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = true;
             
+            // Phase 14: Record memory after component - run async but don't wait
+            _ = _memoryLeakDetector.RecordAfterComponentAsync("Neural UCB", cancellationToken);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Neural UCB", true, stopwatch.Elapsed);
+            
             _logger.LogInformation("[LAB] Neural UCB acknowledged - Online learning active in Terminal mode");
             return Task.CompletedTask;
         }
@@ -648,6 +660,10 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = false;
             result.FailedComponents.Add("Neural UCB");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Neural UCB", false, stopwatch.Elapsed);
+            
             return Task.CompletedTask;
         }
     }
@@ -662,6 +678,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] Neural UCB complete - Starting LSTM");
             _logger.LogInformation("[LAB] LSTM training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("LSTM");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("LSTM", "Main", 3, 5);
+            
             // LSTM is integrated into intelligence stack - training happens through existing components
             // Mark as success since LSTM training is handled by IntelligenceOrchestrator
             await Task.CompletedTask.ConfigureAwait(false);
@@ -669,6 +691,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("LSTM", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("LSTM", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] LSTM complete in {Duration:F0} min - Integrated into IntelligenceOrchestrator", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -680,6 +709,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = false;
             result.FailedComponents.Add("LSTM");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("LSTM", false, stopwatch.Elapsed);
         }
     }
 
@@ -693,6 +725,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] LSTM complete - Starting Position Management");
             _logger.LogInformation("[LAB] Position Management optimization - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("Position Management");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("Position Management", "Main", 4, 5);
+            
             // Position management optimization is handled by PositionManagementOptimizer service
             // This is integrated into the existing system and runs continuously
             await Task.CompletedTask.ConfigureAwait(false);
@@ -700,6 +738,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("Position Management", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Position Management", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] Position Management complete in {Duration:F0} min - Integrated into PositionManagementOptimizer", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -711,6 +756,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = false;
             result.FailedComponents.Add("Position Management");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Position Management", false, stopwatch.Elapsed);
         }
     }
 
@@ -724,6 +772,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] Position Management complete - Starting S15 Shadow Validation");
             _logger.LogInformation("[LAB] S15 Shadow Validation - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("S15 Shadow Validation");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("S15 Shadow Validation", "Main", 5, 5);
+            
             // S15 shadow validation is integrated into the strategy system
             // Validation happens through existing S15 strategy components
             await Task.CompletedTask.ConfigureAwait(false);
@@ -731,6 +785,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("S15 Shadow Validation", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("S15 Shadow Validation", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] S15 Shadow Validation complete in {Duration:F0} min - Integrated into S15 strategy", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -742,6 +803,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = false;
             result.FailedComponents.Add("S15 Shadow Validation");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("S15 Shadow Validation", false, stopwatch.Elapsed);
         }
     }
 
