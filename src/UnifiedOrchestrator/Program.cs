@@ -2431,6 +2431,30 @@ Please check the configuration and ensure all required services are registered.
             hostContext.Configuration.GetSection("ResourcePreCheck"));
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
         
+        // Phase 12: Resource Optimization & Dynamic Thresholds
+        Console.WriteLine("   ✓ Registering SystemCapabilityProfiler (adaptive resource profiling)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.SystemCapabilityProfiler>();
+        
+        Console.WriteLine("   ✓ Registering DynamicResourceManager (intelligent threshold calculation)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DynamicResourceManager>();
+        
+        Console.WriteLine("   ✓ Registering TrainingResourceMonitor (real-time resource tracking)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingResourceMonitor>();
+        
+        // Phase 13: Failure Handling & Recovery System
+        Console.WriteLine("   ✓ Registering TrainingCheckpointService (checkpoint save/load/resume)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingCheckpointService>();
+        
+        Console.WriteLine("   ✓ Registering TrainingFailureHandler (failure classification & retry)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingFailureHandler>();
+        
+        // Phase 14: Debugging & Diagnostics Tools
+        Console.WriteLine("   ✓ Registering TrainingPerformanceProfiler (performance profiling)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingPerformanceProfiler>();
+        
+        Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
+        
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
