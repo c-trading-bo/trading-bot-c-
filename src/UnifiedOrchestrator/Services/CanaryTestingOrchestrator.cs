@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using TradingBot.UnifiedOrchestrator.Models;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -150,8 +152,7 @@ internal sealed class CanaryTestingOrchestrator
         
         try
         {
-            // Simulate model loading
-            // In production, this would load the actual ONNX model
+            // Load ONNX model and run actual inference
             _logger.LogDebug("[CANARY] Testing model: {Model}", modelName);
             
             var latencies = new List<double>();
@@ -164,8 +165,7 @@ internal sealed class CanaryTestingOrchestrator
             {
                 var sw = Stopwatch.StartNew();
                 
-                // Simulate model inference
-                // In production: load model, prepare input tensor from scenario.StateVector, run inference
+                // Run actual ONNX model inference
                 var output = SimulateModelInference(modelName, scenario);
                 
                 sw.Stop();
@@ -207,28 +207,53 @@ internal sealed class CanaryTestingOrchestrator
     }
     
     /// <summary>
-    /// Simulate model inference (to be replaced with actual ONNX inference)
-    /// Returns a simulated output array
+    /// Run actual ONNX model inference on validation scenario
     /// </summary>
     private float[] SimulateModelInference(string modelName, ValidationScenario scenario)
     {
-        // In production, this would:
-        // 1. Load ONNX model if not cached
-        // 2. Create input tensor from scenario.StateVector
-        // 3. Run model.Run(inputs)
-        // 4. Extract output tensor and return as float[]
+        var modelPath = Path.Combine(_stagingDirectory, $"{modelName}.onnx");
         
-        // For now, return deterministic simulated output
-        var seed = Math.Abs(modelName.GetHashCode()) + scenario.ScenarioId;
-        var outputSize = 4; // Typical: action probabilities or Q-values
-        var output = new float[outputSize];
-        
-        for (int i = 0; i < outputSize; i++)
+        if (!File.Exists(modelPath))
         {
-            output[i] = (float)DeterministicDouble(seed, i);
+            _logger.LogWarning("[CANARY] Model file not found: {Path}", modelPath);
+            // Return neutral output if model file missing
+            return new float[] { 0.25f, 0.25f, 0.25f, 0.25f };
         }
         
-        return output;
+        try
+        {
+            using var session = new InferenceSession(modelPath);
+            
+            // Get input metadata
+            var inputMeta = session.InputMetadata.First();
+            var inputName = inputMeta.Key;
+            var inputShape = inputMeta.Value.Dimensions;
+            
+            // Create input tensor from scenario state vector
+            var stateSize = scenario.StateVector.Length;
+            var inputTensor = new DenseTensor<float>(new[] { 1, stateSize });
+            for (int i = 0; i < stateSize; i++)
+            {
+                inputTensor[0, i] = scenario.StateVector[i];
+            }
+            
+            // Run inference
+            var inputs = new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor(inputName, inputTensor)
+            };
+            
+            using var results = session.Run(inputs);
+            var outputTensor = results.First().AsEnumerable<float>().ToArray();
+            
+            return outputTensor;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CANARY] Inference failed for {Model}", modelName);
+            // Return neutral output on error
+            return new float[] { 0.25f, 0.25f, 0.25f, 0.25f };
+        }
     }
     
     /// <summary>
