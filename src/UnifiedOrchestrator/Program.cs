@@ -977,21 +977,26 @@ Please check the configuration and ensure all required services are registered.
         // HISTORICAL DATA SEED SERVICE - SMART AUTO-REFRESH FOR LEARNING WARMUP
         // ================================================================================
         
-        // Only register HistoricalDataSeedService when in HISTORICAL_MODE
-        // In LIVE/DRY-RUN modes, we don't need to load historical seed files
-        if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+        // Register HistoricalDataSeedService when in HISTORICAL_MODE or LAB_MODE
+        // Lab Mode needs historical data for training, Historical Mode needs it for backtesting
+        // In pure LIVE/DRY-RUN Terminal modes, we don't need to load historical seed files
+        var isHistoricalMode = global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode();
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" || 
+                       Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
+        
+        if (isHistoricalMode || isLabMode)
         {
             services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
             
-            Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL MODE ONLY)");
+            Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL or LAB MODE)");
             Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
-            Console.WriteLine("   📅 Only active in HISTORICAL_MODE=1");
+            Console.WriteLine("   📅 Active in HISTORICAL_MODE=1 or LAB_MODE=1");
             Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
             Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
         }
         else
         {
-            Console.WriteLine("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL_MODE)");
+            Console.WriteLine("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL or LAB MODE)");
         }
         
         // ================================================================================
@@ -1396,7 +1401,7 @@ Please check the configuration and ensure all required services are registered.
         // Register Write-Only Training Brain for isolated challenger creation
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITrainingBrain, TradingBot.UnifiedOrchestrator.Brains.TrainingBrain>();
         
-        // Register Artifact Builders for ONNX and UCB serialization
+        // Register Artifact Builders for ONNX and UCB serialization (production-ready implementations)
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.OnnxArtifactBuilder>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.UcbSerializer>();
         

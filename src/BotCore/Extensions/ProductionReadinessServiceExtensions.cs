@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using BotCore.Services;
@@ -41,9 +42,14 @@ namespace BotCore.Extensions
             // Register trading readiness tracker
             services.AddSingleton<ITradingReadinessTracker, TradingReadinessTracker>();
 
-            // Only register HistoricalDataBridgeService in HISTORICAL_MODE
-            // In LIVE/DRY-RUN modes, we don't need historical data seeding
-            if (global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode())
+            // Register HistoricalDataBridgeService in HISTORICAL_MODE or LAB_MODE
+            // Lab Mode needs historical data for training, Historical Mode needs it for backtesting
+            // In pure LIVE/DRY-RUN Terminal modes, we don't need historical data seeding
+            var isHistoricalMode = global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode();
+            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" || 
+                           Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
+            
+            if (isHistoricalMode || isLabMode)
             {
                 // Register historical data bridge service - Singleton for consumption by singleton services
                 services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
