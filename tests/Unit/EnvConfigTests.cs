@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using Xunit;
 using BotCore.Config;
+using ExecutionContext = BotCore.Config.ExecutionContext;
+using ExecutionMode = BotCore.Config.ExecutionMode;
 
 namespace TradingBot.Tests.Unit;
 
@@ -180,7 +182,7 @@ internal class EnvConfigTests : IDisposable
     {
         // Arrange
         File.WriteAllText("kill.txt", "test");
-        var context = new BotCore.Config.ExecutionContext
+        var context = new ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,
@@ -211,7 +213,7 @@ internal class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("EXECUTE", "false");
-        var context = new BotCore.Config.ExecutionContext
+        var context = new ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,
@@ -238,7 +240,7 @@ internal class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("EXECUTE", "true");
-        var context = new BotCore.Config.ExecutionContext
+        var context = new ExecutionContext
         {
             BarsSeen = 5, // Less than 10
             HubsConnected = true,
@@ -273,7 +275,7 @@ internal class EnvConfigTests : IDisposable
         Environment.SetEnvironmentVariable("EXECUTE", "true");
         EnvConfig.Reload(); // Force reload to pick up new environment variable
         
-        var context = new BotCore.Config.ExecutionContext
+        var context = new ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,

@@ -601,7 +601,7 @@ internal sealed class AtomicPromotionService
         }
     }
 
-    private async Task<bool> AtomicCopyModelsAsync(
+    private Task<bool> AtomicCopyModelsAsync(
         AtomicPromotionResult result,
         CancellationToken cancellationToken)
     {
@@ -641,7 +641,7 @@ internal sealed class AtomicPromotionService
                 _logger.LogInformation("[ATOMIC-COPY] ✓ {Count} models copied atomically",
                     stagingModels.Length);
 
-                return true;
+                return Task.FromResult(true);
             }
             finally
             {
@@ -655,7 +655,7 @@ internal sealed class AtomicPromotionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ATOMIC-COPY] ❌ Atomic copy failed");
-            return false;
+            return Task.FromResult(false);
         }
     }
 

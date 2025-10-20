@@ -4,6 +4,8 @@ using Xunit;
 using Moq;
 using TradingBot.Abstractions;
 using Trading.Safety;
+using BotCore.Models;
+using SafetyRiskBreach = Trading.Safety.RiskBreach;
 
 namespace TradingBot.Tests.Unit.Safety
 {
@@ -86,12 +88,12 @@ namespace TradingBot.Tests.Unit.Safety
         {
             // Arrange
             var breachTriggered = false;
-            RiskBreach? capturedBreach = null;
+            TradingBot.Abstractions.RiskBreach? capturedBreach = null;
             
-            _riskManager.OnRiskBreach += (breach) =>
+            _riskManager.OnRiskBreach += (sender, args) =>
             {
                 breachTriggered = true;
-                capturedBreach = breach;
+                capturedBreach = args.RiskBreach;
             };
 
             // Act
@@ -100,7 +102,7 @@ namespace TradingBot.Tests.Unit.Safety
             // Assert
             Assert.True(breachTriggered);
             Assert.NotNull(capturedBreach);
-            Assert.Equal(RiskBreachType.MaxDailyLoss, capturedBreach.Type);
+            Assert.Equal("MaxDailyLoss", capturedBreach.Type);
             Assert.True(_riskManager.IsRiskBreached);
         }
 
@@ -172,12 +174,12 @@ namespace TradingBot.Tests.Unit.Safety
         {
             // Arrange
             var breachTriggered = false;
-            RiskBreach? capturedBreach = null;
+            TradingBot.Abstractions.RiskBreach? capturedBreach = null;
             
-            _riskManager.OnRiskBreach += (breach) =>
+            _riskManager.OnRiskBreach += (sender, args) =>
             {
                 breachTriggered = true;
-                capturedBreach = breach;
+                capturedBreach = args.RiskBreach;
             };
 
             // Act - simulate large drawdown
@@ -187,7 +189,7 @@ namespace TradingBot.Tests.Unit.Safety
             // Assert
             Assert.True(breachTriggered);
             Assert.NotNull(capturedBreach);
-            Assert.Equal(RiskBreachType.DrawdownLimit, capturedBreach.Type);
+            Assert.Equal("DrawdownLimit", capturedBreach.Type);
         }
     }
 }
