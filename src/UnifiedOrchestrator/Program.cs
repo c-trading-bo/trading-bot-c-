@@ -1401,6 +1401,10 @@ Please check the configuration and ensure all required services are registered.
         // Register Write-Only Training Brain for isolated challenger creation
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITrainingBrain, TradingBot.UnifiedOrchestrator.Brains.TrainingBrain>();
         
+        // Register Artifact Builders for ONNX and UCB serialization (production-ready implementations)
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.OnnxArtifactBuilder>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.UcbSerializer>();
+        
         // Register Market Hours Service for timing gates
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IMarketHoursService, TradingBot.UnifiedOrchestrator.Scheduling.FuturesMarketHours>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.FuturesMarketHours>();
