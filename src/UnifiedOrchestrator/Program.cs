@@ -2455,6 +2455,14 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
         
+        // Phase 14: Memory Leak Detection & Profiling
+        Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.MemoryLeakDetector>();
+        
+        // Phase 11: GitHub Cloud Backup System (Optional)
+        Console.WriteLine("   ✓ Registering GitHubBackupService (cloud backup of training artifacts)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.GitHubBackupService>();
+        
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
         Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();

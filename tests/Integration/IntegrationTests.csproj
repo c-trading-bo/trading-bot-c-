@@ -32,6 +32,7 @@
     <ProjectReference Include="../../src/IntelligenceAgent/IntelligenceAgent.csproj" />
     <ProjectReference Include="../../src/IntelligenceStack/IntelligenceStack.csproj" />
     <ProjectReference Include="../../src/BotCore/BotCore.csproj" />
+    <ProjectReference Include="../../src/UnifiedOrchestrator/UnifiedOrchestrator.csproj" />
   </ItemGroup>
 
 </Project>

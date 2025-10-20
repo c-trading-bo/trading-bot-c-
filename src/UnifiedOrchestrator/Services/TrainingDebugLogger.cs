@@ -57,13 +57,8 @@ internal sealed class TrainingDebugLogger
         _logger.LogInformation("[DEBUG] Starting Component: {Component}", componentName);
         _logger.LogInformation("[DEBUG] Phase: {Phase}, Index: {Index}/{Total}", phase, componentIndex, totalComponents);
         
-        // Log current memory state
-        var gcInfo = GC.GetGCMemoryInfo();
-        var memoryUsedGB = gcInfo.MemoryLoadBytes / (1024.0 * 1024.0 * 1024.0);
-        var totalMemoryGB = gcInfo.TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024.0);
-        
-        _logger.LogInformation("[DEBUG] Memory: {Used:F2} GB / {Total:F2} GB ({Percent:F1}%)",
-            memoryUsedGB, totalMemoryGB, (memoryUsedGB / totalMemoryGB) * 100);
+        // Log current memory state with enhanced profiling
+        LogMemoryStatistics("Before " + componentName);
 
         // Log disk space
         var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
@@ -121,13 +116,8 @@ internal sealed class TrainingDebugLogger
             _logger.LogInformation("[DEBUG] Model Size: {Size:F2} MB", metrics.ModelSizeMB);
         }
 
-        // Log final memory state
-        var gcInfo = GC.GetGCMemoryInfo();
-        var memoryUsedGB = gcInfo.MemoryLoadBytes / (1024.0 * 1024.0 * 1024.0);
-        var totalMemoryGB = gcInfo.TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024.0);
-        
-        _logger.LogInformation("[DEBUG] Memory After: {Used:F2} GB / {Total:F2} GB ({Percent:F1}%)",
-            memoryUsedGB, totalMemoryGB, (memoryUsedGB / totalMemoryGB) * 100);
+        // Log final memory state with enhanced profiling
+        LogMemoryStatistics("After " + componentName);
 
         _logger.LogInformation("[DEBUG] ═══════════════════════════════════════════════════════");
     }
@@ -186,6 +176,78 @@ internal sealed class TrainingDebugLogger
     /// Check if data tracing is enabled
     /// </summary>
     public bool IsDataTraceEnabled => _traceDataMode;
+    
+    /// <summary>
+    /// Log detailed memory statistics for profiling
+    /// Phase 14: Memory Profiling Enhancement
+    /// </summary>
+    private void LogMemoryStatistics(string context)
+    {
+        if (!_debugMode) return;
+
+        try
+        {
+            var gcInfo = GC.GetGCMemoryInfo();
+            
+            // Managed memory
+            var managedMemoryGB = GC.GetTotalMemory(forceFullCollection: false) / (1024.0 * 1024.0 * 1024.0);
+            var heapSizeGB = gcInfo.HeapSizeBytes / (1024.0 * 1024.0 * 1024.0);
+            var fragmentedBytes = gcInfo.FragmentedBytes;
+            var fragmentedMB = fragmentedBytes / (1024.0 * 1024.0);
+            
+            // Total available memory
+            var memoryLoadGB = gcInfo.MemoryLoadBytes / (1024.0 * 1024.0 * 1024.0);
+            var totalMemoryGB = gcInfo.TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024.0);
+            var memoryPressure = (memoryLoadGB / totalMemoryGB) * 100;
+            
+            _logger.LogInformation(
+                "[DEBUG-MEMORY] {Context}: Managed={ManagedGB:F3}GB, Heap={HeapGB:F3}GB, " +
+                "Fragmented={FragmentedMB:F1}MB, Pressure={Pressure:F1}%",
+                context,
+                managedMemoryGB,
+                heapSizeGB,
+                fragmentedMB,
+                memoryPressure);
+            
+            // GC pressure indicators
+            var gen0Count = GC.CollectionCount(0);
+            var gen1Count = GC.CollectionCount(1);
+            var gen2Count = GC.CollectionCount(2);
+            
+            // Calculate GC pressure (high Gen2 collections indicate memory pressure)
+            if (gen2Count > 100)
+            {
+                _logger.LogWarning(
+                    "[DEBUG-MEMORY] High GC pressure detected: Gen2 collections = {Gen2Count}",
+                    gen2Count);
+            }
+            
+            // Check for memory fragmentation
+            if (fragmentedMB > 100)
+            {
+                _logger.LogWarning(
+                    "[DEBUG-MEMORY] Significant memory fragmentation: {FragmentedMB:F1} MB",
+                    fragmentedMB);
+            }
+            
+            // Process memory breakdown
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            var workingSetGB = process.WorkingSet64 / (1024.0 * 1024.0 * 1024.0);
+            var privateMemoryGB = process.PrivateMemorySize64 / (1024.0 * 1024.0 * 1024.0);
+            var unmanagedGB = privateMemoryGB - managedMemoryGB;
+            
+            _logger.LogInformation(
+                "[DEBUG-MEMORY] Process: WorkingSet={WorkingSetGB:F3}GB, " +
+                "Private={PrivateGB:F3}GB, Unmanaged~{UnmanagedGB:F3}GB",
+                workingSetGB,
+                privateMemoryGB,
+                Math.Max(0, unmanagedGB));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[DEBUG-MEMORY] Failed to log memory statistics: {Error}", ex.Message);
+        }
+    }
 }
 
 /// <summary>

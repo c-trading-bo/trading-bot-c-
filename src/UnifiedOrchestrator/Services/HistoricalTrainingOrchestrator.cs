@@ -48,6 +48,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingFailureHandler _failureHandler;
     private readonly TrainingPerformanceProfiler _performanceProfiler;
     private readonly TrainingDebugLogger _debugLogger;
+    private readonly MemoryLeakDetector _memoryLeakDetector;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -77,6 +78,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingFailureHandler failureHandler,
         TrainingPerformanceProfiler performanceProfiler,
         TrainingDebugLogger debugLogger,
+        MemoryLeakDetector memoryLeakDetector,
         GitHubBackupService? githubBackupService = null)
     {
         _logger = logger;
@@ -98,6 +100,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _failureHandler = failureHandler;
         _performanceProfiler = performanceProfiler;
         _debugLogger = debugLogger;
+        _memoryLeakDetector = memoryLeakDetector;
         _githubBackupService = githubBackupService;
         
         _logger.LogInformation("HistoricalTrainingOrchestrator initialized with Phase 10-14 enhancements");
@@ -115,6 +118,9 @@ internal sealed class HistoricalTrainingOrchestrator
             var sessionId = Guid.NewGuid().ToString("N")[..8];
             var startTime = DateTime.UtcNow;
             var easternTime = GetEasternTime(startTime);
+            
+            // Phase 14: Record baseline memory for leak detection
+            _memoryLeakDetector.RecordBaseline();
             
             // Phase 12: Profile system capabilities at session start
             _logger.LogInformation("[LAB] Profiling system capabilities...");
@@ -292,30 +298,42 @@ internal sealed class HistoricalTrainingOrchestrator
                 // Step 8: GitHub Cloud Backup (Optional - Phase 11)
                 if (_githubBackupService != null)
                 {
-                    _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
-                    
-                    // Upload manifest
-                    await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    // Generate and upload training summary
-                    var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    // Archive models locally (NOT uploaded to GitHub - too large)
-                    var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
-                    await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
-                        .ConfigureAwait(false);
-                    
-                    _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+                    try
+                    {
+                        _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
+                        
+                        // Upload manifest
+                        await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        // Generate and upload training summary
+                        var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        // Archive models locally (NOT uploaded to GitHub - too large)
+                        var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+                        await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        
+                        _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+                    }
+                    catch (Exception ex)
+                    {
+                        // GitHub backup is optional - log warning but don't fail the training session
+                        _logger.LogWarning(ex, "[LAB] GitHub backup failed but training session completed successfully: {Error}", ex.Message);
+                    }
                 }
 
                 // Step 9: Capture final metrics and export
                 _metricsCollector.CaptureResourceMetrics();
                 _metricsCollector.EndRun(true);
                 await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+                
+                // Phase 14: Generate memory profiling report
+                await _memoryLeakDetector.GenerateMemoryReportAsync(sessionId, cancellationToken)
+                    .ConfigureAwait(false);
 
                 // Step 9: Generate session summary
                 result.EndTime = DateTime.UtcNow;
@@ -527,6 +545,9 @@ internal sealed class HistoricalTrainingOrchestrator
         {
             _logger.LogInformation("[LAB] CVaR-PPO training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("CVaR-PPO");
+            
             // Phase 14: Debug logging before component
             _debugLogger.LogBeforeComponent("CVaR-PPO", "Main", 1, 2);
             
@@ -556,6 +577,10 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.CvarPpoTrainingDuration = stopwatch.Elapsed;
             result.CvarPpoSuccess = componentResult.Success;
+            
+            // Phase 14: Record memory after component and detect leaks
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("CVaR-PPO", cancellationToken)
+                .ConfigureAwait(false);
             
             // Phase 14: Debug logging after component
             _debugLogger.LogAfterComponent("CVaR-PPO", componentResult.Success, stopwatch.Elapsed);
@@ -593,6 +618,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] CVaR-PPO complete - Starting Neural UCB");
             _logger.LogInformation("[LAB] Neural UCB training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("Neural UCB");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("Neural UCB", "Main", 2, 5);
+            
             // NOTE: Neural UCB bandit retraining requires access to the live neural network instance
             // which is instantiated within the NeuralUcbBandit class during Terminal runtime.
             // Lab mode operates offline without live bandit instances.
@@ -613,6 +644,12 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = true;
             
+            // Phase 14: Record memory after component - run async but don't wait
+            _ = _memoryLeakDetector.RecordAfterComponentAsync("Neural UCB", cancellationToken);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Neural UCB", true, stopwatch.Elapsed);
+            
             _logger.LogInformation("[LAB] Neural UCB acknowledged - Online learning active in Terminal mode");
             return Task.CompletedTask;
         }
@@ -623,6 +660,10 @@ internal sealed class HistoricalTrainingOrchestrator
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = false;
             result.FailedComponents.Add("Neural UCB");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Neural UCB", false, stopwatch.Elapsed);
+            
             return Task.CompletedTask;
         }
     }
@@ -637,6 +678,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] Neural UCB complete - Starting LSTM");
             _logger.LogInformation("[LAB] LSTM training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("LSTM");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("LSTM", "Main", 3, 5);
+            
             // LSTM is integrated into intelligence stack - training happens through existing components
             // Mark as success since LSTM training is handled by IntelligenceOrchestrator
             await Task.CompletedTask.ConfigureAwait(false);
@@ -644,6 +691,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("LSTM", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("LSTM", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] LSTM complete in {Duration:F0} min - Integrated into IntelligenceOrchestrator", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -655,6 +709,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = false;
             result.FailedComponents.Add("LSTM");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("LSTM", false, stopwatch.Elapsed);
         }
     }
 
@@ -668,6 +725,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] LSTM complete - Starting Position Management");
             _logger.LogInformation("[LAB] Position Management optimization - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("Position Management");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("Position Management", "Main", 4, 5);
+            
             // Position management optimization is handled by PositionManagementOptimizer service
             // This is integrated into the existing system and runs continuously
             await Task.CompletedTask.ConfigureAwait(false);
@@ -675,6 +738,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("Position Management", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Position Management", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] Position Management complete in {Duration:F0} min - Integrated into PositionManagementOptimizer", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -686,6 +756,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = false;
             result.FailedComponents.Add("Position Management");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("Position Management", false, stopwatch.Elapsed);
         }
     }
 
@@ -699,6 +772,12 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] Position Management complete - Starting S15 Shadow Validation");
             _logger.LogInformation("[LAB] S15 Shadow Validation - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("S15 Shadow Validation");
+            
+            // Phase 14: Debug logging before component
+            _debugLogger.LogBeforeComponent("S15 Shadow Validation", "Main", 5, 5);
+            
             // S15 shadow validation is integrated into the strategy system
             // Validation happens through existing S15 strategy components
             await Task.CompletedTask.ConfigureAwait(false);
@@ -706,6 +785,13 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = true;
+            
+            // Phase 14: Record memory after component
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("S15 Shadow Validation", cancellationToken)
+                .ConfigureAwait(false);
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("S15 Shadow Validation", true, stopwatch.Elapsed);
             
             _logger.LogInformation("[LAB] S15 Shadow Validation complete in {Duration:F0} min - Integrated into S15 strategy", 
                 stopwatch.Elapsed.TotalMinutes);
@@ -717,6 +803,9 @@ internal sealed class HistoricalTrainingOrchestrator
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = false;
             result.FailedComponents.Add("S15 Shadow Validation");
+            
+            // Phase 14: Debug logging after component
+            _debugLogger.LogAfterComponent("S15 Shadow Validation", false, stopwatch.Elapsed);
         }
     }
 
