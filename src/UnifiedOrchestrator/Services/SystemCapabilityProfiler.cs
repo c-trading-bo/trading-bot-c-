@@ -200,7 +200,7 @@ internal sealed class SystemCapabilityProfiler
         {
             var testFile = Path.Combine(testPath, ".storage_speed_test");
             var testData = new byte[10 * 1024 * 1024]; // 10 MB test file
-            new Random().NextBytes(testData);
+            System.Security.Cryptography.RandomNumberGenerator.Fill(testData);
 
             var stopwatch = Stopwatch.StartNew();
             await File.WriteAllBytesAsync(testFile, testData, cancellationToken).ConfigureAwait(false);
