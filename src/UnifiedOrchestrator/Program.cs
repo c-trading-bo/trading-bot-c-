@@ -2398,154 +2398,84 @@ Please check the configuration and ensure all required services are registered.
         TradingBot.Abstractions.RlRuntimeMode rlMode,
         HostBuilderContext hostContext)
     {
-        Console.WriteLine("📊 [LAB] Registering Lab-specific services...");
+        // Check if quiet startup is enabled (suppresses verbose service registration logs)
+        var quietStartup = hostContext.Configuration.GetValue<bool>("LabMode:SuppressServiceRegistrations", true);
+        
+        if (!quietStartup)
+        {
+            Console.WriteLine("📊 [LAB] Registering Lab-specific services...");
+        }
 
         // Lab Training Services (Phase 2 splits)
-        Console.WriteLine("   ✓ Registering CVaRPPOTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.CVaRPPOTrainer>();
-        
-        Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
         services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
         
-        // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
-        // TopstepXHistoricalDataProvider already registered at line ~2312
-        // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
-        Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
-        
         // Production-ready training infrastructure services
-        Console.WriteLine("   ✓ Registering TrainingManifestService (artifact manifests with checksums)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingManifestService>();
-        
-        Console.WriteLine("   ✓ Registering DataIntegrityService (data completeness verification)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DataIntegrityService>();
-        
-        Console.WriteLine("   ✓ Registering TrainingMetricsCollector (observability and metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingMetricsCollector>();
-        
-        Console.WriteLine("   ✓ Registering TrainingAlertService (notifications and structured alerts)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
-        
-        Console.WriteLine("   ✓ Registering TrainingRetryService (exponential backoff retry logic)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRetryService>();
         
-        Console.WriteLine("   ✓ Registering ResourcePreCheckService (pre-training resource validation)");
         services.Configure<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckOptions>(
             hostContext.Configuration.GetSection("ResourcePreCheck"));
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
         
         // Phase 12: Resource Optimization & Dynamic Thresholds
-        Console.WriteLine("   ✓ Registering SystemCapabilityProfiler (adaptive resource profiling)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.SystemCapabilityProfiler>();
-        
-        Console.WriteLine("   ✓ Registering DynamicResourceManager (intelligent threshold calculation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DynamicResourceManager>();
-        
-        Console.WriteLine("   ✓ Registering TrainingResourceMonitor (real-time resource tracking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingResourceMonitor>();
         
         // Phase 13: Failure Handling & Recovery System
-        Console.WriteLine("   ✓ Registering TrainingCheckpointService (checkpoint save/load/resume)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingCheckpointService>();
-        
-        Console.WriteLine("   ✓ Registering TrainingFailureHandler (failure classification & retry)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingFailureHandler>();
         
         // Phase 14: Debugging & Diagnostics Tools
-        Console.WriteLine("   ✓ Registering TrainingPerformanceProfiler (performance profiling)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingPerformanceProfiler>();
-        
-        Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
-        
-        // Phase 14: Memory Leak Detection & Profiling
-        Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.MemoryLeakDetector>();
         
         // Phase 11: GitHub Cloud Backup System (Optional)
-        Console.WriteLine("   ✓ Registering GitHubBackupService (cloud backup of training artifacts)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.GitHubBackupService>();
         
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
-        Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
         
         // Phase 1 & 2: Enhanced Training Orchestrator with Progress Tracking
-        Console.WriteLine("   ✓ Registering TrainingComponentLoader (component registry from JSON)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingComponentLoader>();
-        
-        Console.WriteLine("   ✓ Registering ProgressTracker (progress state and ETA calculation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ProgressTracker>();
-        
-        Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
-        
-        Console.WriteLine("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
         
         // Phase 4: Post-Training Validation Service
-        Console.WriteLine("   ✓ Registering ValidationService (post-training model validation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ValidationService>();
         
         // Phase 5: Atomic Promotion Service
-        Console.WriteLine("   ✓ Registering AtomicPromotionService (atomic model promotion with rollback)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService>();
         
         // Phase 6: Post-Training Validation System
-        Console.WriteLine("   ✓ Registering Phase 6: Post-Training Validation System");
-        Console.WriteLine("      - ValidationDatasetManager (frozen 1000-scenario validation dataset)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationDatasetManager>();
-        
-        Console.WriteLine("      - CanaryTestingOrchestrator (comprehensive model inference testing)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CanaryTestingOrchestrator>();
-        
-        Console.WriteLine("      - BaselineModelManager (4-week baseline model storage)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.BaselineModelManager>();
-        
-        Console.WriteLine("      - PerformanceComparisonEngine (new vs baseline comparison)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.PerformanceComparisonEngine>();
-        
-        Console.WriteLine("      - CatastrophicForgettingDetector (temporal stability checking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CatastrophicForgettingDetector>();
-        
-        Console.WriteLine("      - ValidationReportGenerator (comprehensive validation reporting)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationReportGenerator>();
         
         // Phase 7: Atomic Model Promotion System
-        Console.WriteLine("   ✓ Registering Phase 7: Atomic Model Promotion System");
-        Console.WriteLine("      - ProductionBackupManager (4-week rolling backups with compression)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.ProductionBackupManager>();
-        
-        Console.WriteLine("      - VersionManager (version.txt pointer + history tracking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.VersionManager>();
-        
-        Console.WriteLine("      - PostPromotionValidator (deployment verification)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PostPromotionValidator>();
-        
-        Console.WriteLine("      - PromotionHistoryTracker (append-only audit log)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PromotionHistoryTracker>();
-        
-        Console.WriteLine("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
         
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
-        Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
         
         // Optional: Daily Maintenance Scheduler (Phase 5, Task 5.3) - DISABLED by default
-        Console.WriteLine("   ✓ Registering MaintenanceScheduler (optional Mon-Thu 5:00-5:15 PM ET, DISABLED by default)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
-        Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
         services.AddHostedService<EnhancedBacktestLearningService>();
-        
-        // Promotion Evaluator is already registered via PromotionService
-        // Model Registry is shared (both modes)
-        
-        // DO NOT register Terminal-only services in Lab mode
-        Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
-        Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
-        Console.WriteLine("   ✗ Safety systems NOT registered (Lab = simulation only)");
         
         // Warn if Lab mode in production
         var environment = hostContext.HostingEnvironment.EnvironmentName;
@@ -2555,7 +2485,10 @@ Please check the configuration and ensure all required services are registered.
             Console.WriteLine("   Lab should run on dedicated training infrastructure");
         }
         
-        Console.WriteLine("✅ [LAB] Lab services registration complete\n");
+        if (!quietStartup)
+        {
+            Console.WriteLine("✅ [LAB] Lab services registration complete\n");
+        }
     }
 
     /// <summary>
