@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -38,6 +40,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingMetricsCollector _metricsCollector;
     private readonly TrainingAlertService _alertService;
     private readonly TrainingRetryService _retryService;
+    private readonly GitHubBackupService? _githubBackupService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -59,7 +62,8 @@ internal sealed class HistoricalTrainingOrchestrator
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
         TrainingAlertService alertService,
-        TrainingRetryService retryService)
+        TrainingRetryService retryService,
+        GitHubBackupService? githubBackupService = null)
     {
         _logger = logger;
         _historicalDataBridge = historicalDataBridge;
@@ -73,8 +77,9 @@ internal sealed class HistoricalTrainingOrchestrator
         _metricsCollector = metricsCollector;
         _alertService = alertService;
         _retryService = retryService;
+        _githubBackupService = githubBackupService;
         
-        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Production-ready with manifests, integrity checks, metrics, alerts");
+        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Production-ready with manifests, integrity checks, metrics, alerts, GitHub backup");
     }
 
     /// <summary>
@@ -205,8 +210,35 @@ internal sealed class HistoricalTrainingOrchestrator
                     cancellationToken).ConfigureAwait(false);
                 
                 await _manifestService.SaveManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
+                var manifestPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "manifests",
+                    $"training_manifest_{sessionId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
 
-                // Step 8: Capture final metrics and export
+                // Step 8: GitHub Cloud Backup (Optional - Phase 11)
+                if (_githubBackupService != null)
+                {
+                    _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
+                    
+                    // Upload manifest
+                    await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
+                        .ConfigureAwait(false);
+                    
+                    // Generate and upload training summary
+                    var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
+                        .ConfigureAwait(false);
+                    await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
+                        .ConfigureAwait(false);
+                    
+                    // Archive models locally (NOT uploaded to GitHub - too large)
+                    var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+                    await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
+                        .ConfigureAwait(false);
+                    
+                    _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+                }
+
+                // Step 9: Capture final metrics and export
                 _metricsCollector.CaptureResourceMetrics();
                 _metricsCollector.EndRun(true);
                 await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
@@ -722,6 +754,98 @@ internal sealed class HistoricalTrainingOrchestrator
     #endregion
 
     #region Private Helper Methods
+
+    /// <summary>
+    /// Generate training summary JSON file
+    /// Phase 11: GitHub Backup Integration
+    /// </summary>
+    private async Task<string> GenerateTrainingSummaryAsync(
+        TrainingSessionResult result,
+        string sessionId,
+        CancellationToken cancellationToken)
+    {
+        var summary = new
+        {
+            SessionId = sessionId,
+            Timestamp = result.StartTime,
+            Status = result.Success ? "SUCCESS" : "FAILED",
+            Duration = new
+            {
+                TotalMinutes = result.TotalDuration.TotalMinutes,
+                StartTime = result.StartTime,
+                EndTime = result.EndTime
+            },
+            Components = new
+            {
+                Total = 5,
+                Success = new[]
+                {
+                    result.CvarPpoSuccess,
+                    result.NeuralUcbSuccess,
+                    result.LstmSuccess,
+                    result.PositionMgmtSuccess,
+                    result.ShadowValidationSuccess
+                }.Count(x => x),
+                Failed = result.FailedComponents
+            },
+            Training = new
+            {
+                CVaRPPO = new
+                {
+                    Success = result.CvarPpoSuccess,
+                    DurationMinutes = result.CvarPpoTrainingDuration.TotalMinutes
+                },
+                NeuralUCB = new
+                {
+                    Success = result.NeuralUcbSuccess,
+                    DurationMinutes = result.NeuralUcbTrainingDuration.TotalMinutes
+                },
+                LSTM = new
+                {
+                    Success = result.LstmSuccess,
+                    DurationMinutes = result.LstmTrainingDuration.TotalMinutes
+                },
+                PositionManagement = new
+                {
+                    Success = result.PositionMgmtSuccess,
+                    DurationMinutes = result.PositionMgmtTrainingDuration.TotalMinutes
+                },
+                ShadowValidation = new
+                {
+                    Success = result.ShadowValidationSuccess,
+                    DurationMinutes = result.ShadowValidationDuration.TotalMinutes
+                }
+            },
+            Data = new
+            {
+                HistoricalBarsLoaded = result.HistoricalBarsLoaded,
+                ExperiencesLoaded = result.ExperiencesLoaded
+            },
+            Models = new
+            {
+                ChallengersSaved = result.ChallengersSaved,
+                ModelsPromoted = result.ModelsPromoted,
+                ModelsDiscarded = result.ModelsDiscarded
+            },
+            ErrorMessage = result.ErrorMessage
+        };
+
+        var summaryPath = Path.Combine(
+            Directory.GetCurrentDirectory(), 
+            "artifacts", 
+            "summaries", 
+            $"summary-{sessionId}.json");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(summaryPath)!);
+
+        var json = JsonSerializer.Serialize(summary, new JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        await File.WriteAllTextAsync(summaryPath, json, cancellationToken).ConfigureAwait(false);
+
+        return summaryPath;
+    }
 
     /// <summary>
     /// Get Eastern Time from UTC
