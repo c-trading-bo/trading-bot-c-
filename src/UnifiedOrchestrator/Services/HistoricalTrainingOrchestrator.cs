@@ -48,6 +48,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingFailureHandler _failureHandler;
     private readonly TrainingPerformanceProfiler _performanceProfiler;
     private readonly TrainingDebugLogger _debugLogger;
+    private readonly MemoryLeakDetector _memoryLeakDetector;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -77,6 +78,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingFailureHandler failureHandler,
         TrainingPerformanceProfiler performanceProfiler,
         TrainingDebugLogger debugLogger,
+        MemoryLeakDetector memoryLeakDetector,
         GitHubBackupService? githubBackupService = null)
     {
         _logger = logger;
@@ -98,6 +100,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _failureHandler = failureHandler;
         _performanceProfiler = performanceProfiler;
         _debugLogger = debugLogger;
+        _memoryLeakDetector = memoryLeakDetector;
         _githubBackupService = githubBackupService;
         
         _logger.LogInformation("HistoricalTrainingOrchestrator initialized with Phase 10-14 enhancements");
@@ -115,6 +118,9 @@ internal sealed class HistoricalTrainingOrchestrator
             var sessionId = Guid.NewGuid().ToString("N")[..8];
             var startTime = DateTime.UtcNow;
             var easternTime = GetEasternTime(startTime);
+            
+            // Phase 14: Record baseline memory for leak detection
+            _memoryLeakDetector.RecordBaseline();
             
             // Phase 12: Profile system capabilities at session start
             _logger.LogInformation("[LAB] Profiling system capabilities...");
@@ -324,6 +330,10 @@ internal sealed class HistoricalTrainingOrchestrator
                 _metricsCollector.CaptureResourceMetrics();
                 _metricsCollector.EndRun(true);
                 await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+                
+                // Phase 14: Generate memory profiling report
+                await _memoryLeakDetector.GenerateMemoryReportAsync(sessionId, cancellationToken)
+                    .ConfigureAwait(false);
 
                 // Step 9: Generate session summary
                 result.EndTime = DateTime.UtcNow;
@@ -535,6 +545,9 @@ internal sealed class HistoricalTrainingOrchestrator
         {
             _logger.LogInformation("[LAB] CVaR-PPO training - started");
             
+            // Phase 14: Record memory before component
+            _memoryLeakDetector.RecordBeforeComponent("CVaR-PPO");
+            
             // Phase 14: Debug logging before component
             _debugLogger.LogBeforeComponent("CVaR-PPO", "Main", 1, 2);
             
@@ -564,6 +577,10 @@ internal sealed class HistoricalTrainingOrchestrator
             stopwatch.Stop();
             result.CvarPpoTrainingDuration = stopwatch.Elapsed;
             result.CvarPpoSuccess = componentResult.Success;
+            
+            // Phase 14: Record memory after component and detect leaks
+            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("CVaR-PPO", cancellationToken)
+                .ConfigureAwait(false);
             
             // Phase 14: Debug logging after component
             _debugLogger.LogAfterComponent("CVaR-PPO", componentResult.Success, stopwatch.Elapsed);
