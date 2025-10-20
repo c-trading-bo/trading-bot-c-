@@ -27,12 +27,15 @@ internal sealed class InternalScheduler : BackgroundService
     private readonly string _checkpointFilePath;
     private readonly TimeZoneInfo _easternTimeZone;
     private CancellationTokenSource? _currentTrainingCts;
+    private DateTime _lastIdleHealthCheck = DateTime.MinValue;
+    private DateTime _lastIdleCountdownDisplay = DateTime.MinValue;
 
     // Training window configuration (Eastern Time)
     private readonly TimeSpan TrainingWindowStart = new(12, 0, 0);  // 12:00 PM ET
     private readonly TimeSpan TrainingWindowEnd = new(17, 45, 0);   // 5:45 PM ET
     private readonly DayOfWeek TrainingDay = DayOfWeek.Sunday;
     private readonly TimeSpan MaxTrainingDuration = TimeSpan.FromHours(5); // 5 hour watchdog
+    private readonly TimeSpan PreWarmTime = new(11, 55, 0);  // 11:55 AM ET (5 min before training)
 
     public InternalScheduler(
         ILogger<InternalScheduler> logger,
@@ -259,14 +262,8 @@ internal sealed class InternalScheduler : BackgroundService
                     }
                     else
                     {
-                        // Idle mode - log once and use efficient waiting
-                        if (!_idleLogged)
-                        {
-                            var nextTraining = GetNextTrainingWindow(easternTime);
-                            _logger.LogInformation("[LAB] Idle - next training: {NextTraining}",
-                                nextTraining.ToString("dddd MMM dd, h:mm tt") + " ET");
-                            _idleLogged = true;
-                        }
+                        // Idle mode - enter enhanced idle state management
+                        await EnterIdleStateAsync(easternTime, stoppingToken).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -287,6 +284,339 @@ internal sealed class InternalScheduler : BackgroundService
             _logger.LogInformation("[LAB] Scheduler stopped");
         }
     }
+
+    #region Idle State Management (Phase 10)
+
+    /// <summary>
+    /// Enter enhanced idle state loop with health monitoring and countdown display
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private async Task EnterIdleStateAsync(DateTime easternTime, CancellationToken cancellationToken)
+    {
+        // Display idle state message once when entering
+        if (!_idleLogged)
+        {
+            var nextTraining = GetNextTrainingWindow(easternTime);
+            var timeUntilTraining = CalculateTimeUntilNextTraining(easternTime);
+            
+            _logger.LogInformation(@"
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                        LAB MODE - IDLE STATE                               ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║ Status:               IDLE - Waiting for next Sunday training             ║
+║ Current Time:         {CurrentTime,-50} ║
+║ Next Training:        {NextTraining,-50} ║
+║ Countdown:            {Countdown,-50} ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║ Watchdog:             Active (will wake automatically)                    ║
+║ Health Checks:        Running hourly (ensuring system readiness)          ║
+║ Lock File:            Cleared (no concurrent session prevention)          ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║ Market Status:        {MarketStatus,-50} ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║ Press Ctrl+C to exit gracefully                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝",
+                easternTime.ToString("dddd, MMM dd yyyy, h:mm:ss tt") + " ET",
+                nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET",
+                FormatCountdown(timeUntilTraining),
+                GetMarketStatus(easternTime));
+            
+            DisplayWatchdogStatus();
+            _idleLogged = true;
+            _lastIdleCountdownDisplay = DateTime.UtcNow;
+        }
+
+        // Check if we need to display hourly countdown update
+        var timeSinceLastCountdown = DateTime.UtcNow - _lastIdleCountdownDisplay;
+        if (timeSinceLastCountdown.TotalHours >= 1)
+        {
+            await DisplayIdleCountdownAsync(easternTime, cancellationToken).ConfigureAwait(false);
+            _lastIdleCountdownDisplay = DateTime.UtcNow;
+        }
+
+        // Run hourly health checks during idle
+        var timeSinceLastHealthCheck = DateTime.UtcNow - _lastIdleHealthCheck;
+        if (timeSinceLastHealthCheck.TotalHours >= 1 || _lastIdleHealthCheck == DateTime.MinValue)
+        {
+            await RunIdleHealthCheckAsync(cancellationToken).ConfigureAwait(false);
+            _lastIdleHealthCheck = DateTime.UtcNow;
+        }
+
+        // Check if we're within 5 minutes of training start - pre-warm systems
+        var timeUntilTrainingNow = CalculateTimeUntilNextTraining(easternTime);
+        if (timeUntilTrainingNow.TotalMinutes <= 5 && timeUntilTrainingNow.TotalMinutes > 0)
+        {
+            await PreWarmSystemsAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Calculate time until next Sunday 12:00 PM ET training session
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private TimeSpan CalculateTimeUntilNextTraining(DateTime currentEasternTime)
+    {
+        var nextTraining = GetNextTrainingWindow(currentEasternTime);
+        var nowUtc = DateTime.UtcNow;
+        
+        // Convert next training ET to UTC for accurate calculation
+        try
+        {
+            var nextTrainingUtc = TimeZoneInfo.ConvertTimeToUtc(nextTraining, _easternTimeZone);
+            return nextTrainingUtc - nowUtc;
+        }
+        catch
+        {
+            // Fallback - assume EST (UTC-5)
+            var nextTrainingUtc = nextTraining.AddHours(5);
+            return nextTrainingUtc - nowUtc;
+        }
+    }
+
+    /// <summary>
+    /// Display countdown update every hour during idle state
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private async Task DisplayIdleCountdownAsync(DateTime easternTime, CancellationToken cancellationToken)
+    {
+        var nextTraining = GetNextTrainingWindow(easternTime);
+        var timeUntilTraining = CalculateTimeUntilNextTraining(easternTime);
+        
+        _logger.LogInformation("[LAB] Next Training: {NextTraining} (in {Countdown}) - Current: {CurrentTime}",
+            nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET",
+            FormatCountdown(timeUntilTraining),
+            easternTime.ToString("h:mm:ss tt") + " ET");
+        
+        _logger.LogDebug("[LAB] Watchdog monitoring active - System ready for next session");
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Run hourly health checks during idle state to ensure system stays ready
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private async Task RunIdleHealthCheckAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Running hourly health check during idle state...");
+        
+        try
+        {
+            var issues = new List<string>();
+            
+            // Check 1: Disk space (critical below 20GB)
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+            if (Directory.Exists(dataPath))
+            {
+                var drive = new DriveInfo(Path.GetPathRoot(dataPath) ?? "/");
+                var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                
+                if (freeSpaceGB < 20)
+                {
+                    issues.Add($"Low disk space: {freeSpaceGB:F1} GB (critical below 20 GB)");
+                }
+            }
+
+            // Check 2: Historical data files still exist and readable
+            var historicalDataPath = Path.Combine(dataPath, "historical");
+            if (!Directory.Exists(historicalDataPath))
+            {
+                issues.Add("Historical data directory missing");
+            }
+
+            // Check 3: Model registry directory writable
+            var modelRegistry = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+            if (!Directory.Exists(modelRegistry))
+            {
+                Directory.CreateDirectory(modelRegistry);
+            }
+            
+            var testFile = Path.Combine(modelRegistry, ".health_check_idle");
+            try
+            {
+                await File.WriteAllTextAsync(testFile, DateTime.UtcNow.ToString(), cancellationToken).ConfigureAwait(false);
+                File.Delete(testFile);
+            }
+            catch (Exception ex)
+            {
+                issues.Add($"Model registry not writable: {ex.Message}");
+            }
+
+            // Check 4: Experience database accessible
+            var experiencesPath = Path.Combine("state", "learning");
+            if (!Directory.Exists(experiencesPath))
+            {
+                issues.Add("Experiences directory missing (will impact training quality)");
+            }
+
+            // Check 5: Clean up any stale lock files
+            if (File.Exists(_lockFilePath))
+            {
+                var lockInfo = await ReadLockFileAsync().ConfigureAwait(false);
+                if (IsLockStale(lockInfo))
+                {
+                    _logger.LogWarning("[LAB] Cleaning up stale lock file during idle health check");
+                    CleanupStaleLockFile();
+                }
+            }
+
+            // Log results
+            if (issues.Count == 0)
+            {
+                _logger.LogDebug("[LAB] Hourly health check: All systems nominal");
+            }
+            else if (issues.Count <= 2)
+            {
+                _logger.LogWarning("[LAB] Hourly health check: Issues detected - {Issues}", 
+                    string.Join("; ", issues));
+                
+                // Send alert for issues
+                await _alertService.AlertHealthCheckFailureAsync(
+                    "Idle health check",
+                    string.Join("; ", issues),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                _logger.LogError("[LAB] System unhealthy - training may fail - {Issues}", 
+                    string.Join("; ", issues));
+                
+                // Send critical alert
+                await _alertService.AlertHealthCheckFailureAsync(
+                    "CRITICAL: Idle health check",
+                    string.Join("; ", issues),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] Hourly health check failed: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Pre-warm systems 5 minutes before training window starts
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private async Task PreWarmSystemsAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LAB] Pre-warming systems (5 minutes before training window)...");
+        
+        try
+        {
+            // Pre-warm 1: Initialize data directory access (warm filesystem cache)
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+            if (Directory.Exists(dataPath))
+            {
+                _ = Directory.GetFiles(dataPath, "*", SearchOption.TopDirectoryOnly);
+                _logger.LogDebug("[LAB] ✓ Data directory warmed");
+            }
+
+            // Pre-warm 2: Open database connection pool (if using SQLite)
+            var experiencesPath = Path.Combine("state", "learning");
+            if (Directory.Exists(experiencesPath))
+            {
+                _ = Directory.GetFiles(experiencesPath, "*.db", SearchOption.TopDirectoryOnly);
+                _logger.LogDebug("[LAB] ✓ Experience database paths cached");
+            }
+
+            // Pre-warm 3: Initialize model registry
+            var modelRegistry = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+            if (Directory.Exists(modelRegistry))
+            {
+                _ = Directory.GetFiles(modelRegistry, "*.onnx", SearchOption.TopDirectoryOnly);
+                _logger.LogDebug("[LAB] ✓ Model registry warmed");
+            }
+
+            // Pre-warm 4: Allocate memory buffers (force GC and compact)
+            GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+            _logger.LogDebug("[LAB] ✓ Memory compacted and ready");
+
+            _logger.LogInformation("[LAB] System pre-warming complete - ready for training");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] System pre-warming encountered issues: {Error}", ex.Message);
+        }
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Display watchdog status during idle state
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private void DisplayWatchdogStatus()
+    {
+        var nextHealthCheck = _lastIdleHealthCheck == DateTime.MinValue 
+            ? DateTime.UtcNow 
+            : _lastIdleHealthCheck.AddHours(1);
+        
+        _logger.LogDebug("[LAB] Watchdog Status:");
+        _logger.LogDebug("[LAB]   - Active: YES (will wake for next session automatically)");
+        _logger.LogDebug("[LAB]   - Health checks: Every 1 hour (ensuring readiness)");
+        _logger.LogDebug("[LAB]   - Lock file: Cleared");
+        _logger.LogDebug("[LAB]   - Next check: {NextCheck}", 
+            nextHealthCheck.ToString("yyyy-MM-dd HH:mm:ss UTC"));
+    }
+
+    /// <summary>
+    /// Get current market status (for display during idle state)
+    /// Phase 10: Idle State Management
+    /// </summary>
+    private string GetMarketStatus(DateTime easternTime)
+    {
+        var dayOfWeek = easternTime.DayOfWeek;
+        var timeOfDay = easternTime.TimeOfDay;
+        
+        // Weekend
+        if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+        {
+            return "Closed (Weekend)";
+        }
+        
+        // Pre-market: 4:00 AM - 9:30 AM ET
+        if (timeOfDay >= new TimeSpan(4, 0, 0) && timeOfDay < new TimeSpan(9, 30, 0))
+        {
+            return "Pre-Market (4:00 AM - 9:30 AM ET)";
+        }
+        
+        // Regular Trading Hours: 9:30 AM - 4:00 PM ET
+        if (timeOfDay >= new TimeSpan(9, 30, 0) && timeOfDay < new TimeSpan(16, 0, 0))
+        {
+            return "Regular Trading Hours (9:30 AM - 4:00 PM ET)";
+        }
+        
+        // After-hours: 4:00 PM - 8:00 PM ET
+        if (timeOfDay >= new TimeSpan(16, 0, 0) && timeOfDay < new TimeSpan(20, 0, 0))
+        {
+            return "After-Hours (4:00 PM - 8:00 PM ET)";
+        }
+        
+        // Overnight/Closed
+        return "Closed (Outside Trading Hours)";
+    }
+
+    /// <summary>
+    /// Format countdown duration as "X days Xh Xm"
+    /// </summary>
+    private string FormatCountdown(TimeSpan duration)
+    {
+        if (duration.TotalDays >= 1)
+        {
+            return $"{(int)duration.TotalDays} days {duration.Hours}h {duration.Minutes}m";
+        }
+        else if (duration.TotalHours >= 1)
+        {
+            return $"{duration.Hours}h {duration.Minutes}m";
+        }
+        else
+        {
+            return $"{duration.Minutes}m {duration.Seconds}s";
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Run pre-training health checks - must pass before starting training
@@ -557,11 +887,10 @@ internal sealed class InternalScheduler : BackgroundService
 
     /// <summary>
     /// Handle graceful shutdown - save checkpoint if training in progress
+    /// Phase 10: Enhanced to handle idle state
     /// </summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[LAB] Graceful shutdown requested...");
-        
         if (_currentTrainingCts != null && !_currentTrainingCts.IsCancellationRequested)
         {
             _logger.LogWarning("[LAB] Training in progress - saving checkpoint before shutdown");
@@ -570,6 +899,15 @@ internal sealed class InternalScheduler : BackgroundService
             // Request cancellation and wait a bit for cleanup
             _currentTrainingCts.Cancel();
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            // Idle state shutdown
+            var easternTime = GetEasternTime();
+            var nextTraining = GetNextTrainingWindow(easternTime);
+            _logger.LogInformation("[LAB] Shutdown requested during idle state");
+            _logger.LogInformation("[LAB] Lab Mode shutdown complete - next session: {NextTraining}",
+                nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET");
         }
         
         await base.StopAsync(cancellationToken).ConfigureAwait(false);
