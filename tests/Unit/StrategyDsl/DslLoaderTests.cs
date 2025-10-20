@@ -5,10 +5,6 @@ using Xunit;
 
 namespace Tests.Unit.StrategyDsl;
 
-// NOTE: DslLoaderTests commented out because DslLoader and DslLoaderOptions classes do not exist
-// These tests reference non-existent types and would prevent compilation
-// If DslLoader is added in the future, uncomment and update these tests
-/*
 public class DslLoaderTests
 {
     private readonly string _tempDirectory;
@@ -305,4 +301,3 @@ description: ""Third strategy""
         }
     }
 }
-*/

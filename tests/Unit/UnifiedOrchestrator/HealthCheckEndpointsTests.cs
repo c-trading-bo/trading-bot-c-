@@ -143,13 +143,12 @@ namespace TradingBot.Tests.Unit.UnifiedOrchestrator
             // Would verify response indicates not ready due to risk breach
         }
 
-        /*
         [Fact]
         public async Task ReadyAsync_WhenTradingBrainMissing_ReturnsNotReady()
         {
             // Arrange
             _mockServiceProvider
-                .Setup(x => x.GetService(typeof(BotCore.Brain.UnifiedTradingBrain)))
+                .Setup(x => x.GetService(typeof(global::BotCore.Brain.UnifiedTradingBrain)))
                 .Returns((object?)null);
 
             SetupOtherMockServices();
@@ -161,15 +160,14 @@ namespace TradingBot.Tests.Unit.UnifiedOrchestrator
             Assert.NotNull(result);
             // Would verify response indicates not ready due to missing brain
         }
-        */
 
         private void SetupMockServices()
         {
-            // NOTE: UnifiedTradingBrain mock commented out - cannot mock concrete class with complex dependencies
-            // var mockBrain = new Mock<BotCore.Brain.UnifiedTradingBrain>();
-            // _mockServiceProvider
-            //     .Setup(x => x.GetService(typeof(BotCore.Brain.UnifiedTradingBrain)))
-            //     .Returns(mockBrain.Object);
+            // Setup UnifiedTradingBrain - Return null since we cannot mock concrete class with dependencies
+            // The health check should handle missing brain gracefully
+            _mockServiceProvider
+                .Setup(x => x.GetService(typeof(global::BotCore.Brain.UnifiedTradingBrain)))
+                .Returns((object?)null);
 
             SetupOtherMockServices();
         }
