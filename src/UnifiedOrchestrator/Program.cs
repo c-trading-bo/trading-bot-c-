@@ -2409,6 +2409,10 @@ Please check the configuration and ensure all required services are registered.
         
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
+        // Register IHistoricalDataBridgeService for TradingSystemIntegrationService dependency
+        services.AddSingleton<BotCore.Services.HistoricalDataBridgeService>();
+        services.AddSingleton<BotCore.Services.IHistoricalDataBridgeService>(provider => provider.GetRequiredService<BotCore.Services.HistoricalDataBridgeService>());
+        services.AddHostedService(provider => provider.GetRequiredService<BotCore.Services.HistoricalDataBridgeService>());
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
         Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
         
