@@ -51,6 +51,11 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
     private readonly TradingBot.RLAgent.CVaRPPOTrainer _cvarPpoTrainer;
+    private readonly TradingBot.RLAgent.LSTMTrainer _lstmTrainer;
+    private readonly TradingBot.RLAgent.PatternRecognitionTrainer _patternRecognitionTrainer;
+    private readonly TradingBot.RLAgent.RegimeDetectorTrainer _regimeDetectorTrainer;
+    private readonly TradingBot.RLAgent.SlippageLatencyTrainer _slippageLatencyTrainer;
+    private readonly TradingBot.RLAgent.ModelEnsembleTrainer _modelEnsembleTrainer;
     private readonly TrainingManifestService _manifestService;
     private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingMetricsCollector _metricsCollector;
@@ -80,6 +85,11 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
         TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService,
         TradingBot.RLAgent.CVaRPPOTrainer cvarPpoTrainer,
+        TradingBot.RLAgent.LSTMTrainer lstmTrainer,
+        TradingBot.RLAgent.PatternRecognitionTrainer patternRecognitionTrainer,
+        TradingBot.RLAgent.RegimeDetectorTrainer regimeDetectorTrainer,
+        TradingBot.RLAgent.SlippageLatencyTrainer slippageLatencyTrainer,
+        TradingBot.RLAgent.ModelEnsembleTrainer modelEnsembleTrainer,
         TrainingManifestService manifestService,
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
@@ -103,6 +113,11 @@ internal sealed class HistoricalTrainingOrchestrator
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
         _cvarPpoTrainer = cvarPpoTrainer;
+        _lstmTrainer = lstmTrainer;
+        _patternRecognitionTrainer = patternRecognitionTrainer;
+        _regimeDetectorTrainer = regimeDetectorTrainer;
+        _slippageLatencyTrainer = slippageLatencyTrainer;
+        _modelEnsembleTrainer = modelEnsembleTrainer;
         _manifestService = manifestService;
         _dataIntegrityService = dataIntegrityService;
         _metricsCollector = metricsCollector;
@@ -829,6 +844,66 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogError(ex, "[LAB] ERROR: Failed to invoke Python historical data fetch - {Error}", ex.Message);
         }
     }
+    
+    /// <summary>
+    /// Load historical bars from saved JSON files for trainer use
+    /// LAB MODE: NO API CALLS - Uses pre-fetched data from Python script
+    /// </summary>
+    private async Task<List<TradingBot.RLAgent.HistoricalBar>> LoadHistoricalBarsForTrainingAsync(
+        Dictionary<string, int> historicalData,
+        CancellationToken cancellationToken)
+    {
+        var allBars = new List<TradingBot.RLAgent.HistoricalBar>();
+        
+        foreach (var kvp in historicalData)
+        {
+            var symbol = kvp.Key;
+            var barCount = kvp.Value;
+            
+            if (barCount == 0)
+            {
+                _logger.LogWarning("[LAB] Skipping {Symbol} - no bars loaded", symbol);
+                continue;
+            }
+            
+            try
+            {
+                var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                
+                using var jsonDoc = JsonDocument.Parse(jsonContent);
+                var barsArray = jsonDoc.RootElement.GetProperty("bars");
+                
+                foreach (var barElement in barsArray.EnumerateArray())
+                {
+                    var bar = new TradingBot.RLAgent.HistoricalBar
+                    {
+                        Symbol = symbol,
+                        Timestamp = DateTimeOffset.Parse(barElement.GetProperty("timestamp").GetString()!),
+                        Open = barElement.GetProperty("open").GetDecimal(),
+                        High = barElement.GetProperty("high").GetDecimal(),
+                        Low = barElement.GetProperty("low").GetDecimal(),
+                        Close = barElement.GetProperty("close").GetDecimal(),
+                        Volume = barElement.GetProperty("volume").GetInt64()
+                    };
+                    allBars.Add(bar);
+                }
+                
+                _logger.LogInformation("[LAB] Loaded {Count} bars from {Symbol} for training", barCount, symbol);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[LAB] ERROR: Failed to load bars for training - {Symbol}: {Error}", 
+                    symbol, ex.Message);
+            }
+        }
+        
+        // Sort all bars chronologically
+        allBars = allBars.OrderBy(b => b.Timestamp).ToList();
+        _logger.LogInformation("[LAB] 📊 Total bars loaded for training: {Count} (sorted chronologically)", allBars.Count);
+        
+        return allBars;
+    }
 
     private async Task<List<Experience>> LoadRecentExperiencesAsync(CancellationToken cancellationToken)
     {
@@ -882,18 +957,14 @@ internal sealed class HistoricalTrainingOrchestrator
         CancellationToken cancellationToken)
     {
         // Sequential training pipeline - each step must complete before next starts
+        // LAB MODE: NO API CALLS - Training only using historical bar data and collected experiences
         
-        // STEP 0: Replay historical bars to generate new experiences across all 24 hours
-        _logger.LogInformation("[LAB] 🎬 Starting 24/7 historical bar replay - {TotalBars} bars loaded",
-            historicalData.Sum(kvp => kvp.Value));
+        _logger.LogInformation("[LAB] 🎓 Starting pure training pipeline (NO API calls, NO backtesting)");
+        _logger.LogInformation("[LAB] 📊 Training data: {TotalBars} historical bars, {ExpCount} experiences",
+            historicalData.Sum(kvp => kvp.Value), experiences.Count);
         
-        await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
-        
-        // Reload experiences after replay (now includes data from all time windows)
-        experiences = await LoadAndVerifyExperiencesAsync(result, historicalData, cancellationToken).ConfigureAwait(false);
-        
-        _logger.LogInformation("[LAB] ✅ Replay complete - {ExperienceCount} total experiences available for training",
-            experiences.Count);
+        // Load historical bars for trainer use
+        var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
         
         // 1. CVaR-PPO Training (30 min) - uses real trainer
         await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
@@ -901,14 +972,22 @@ internal sealed class HistoricalTrainingOrchestrator
         // 2. Neural UCB Retraining (15 min) - uses real trainer
         await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 3. LSTM Training (20 min) - integrated into other components
-        await TrainLSTMAsync(result, cancellationToken).ConfigureAwait(false);
+        // 3. LSTM Training (20 min) - NOW uses real trainer
+        await TrainLSTMAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 4. Position Management Optimization (30 min) - integrated into other components
-        await OptimizePositionManagementAsync(result, cancellationToken).ConfigureAwait(false);
+        // 4. Pattern Recognition Training (15 min) - NOW uses real trainer
+        await TrainPatternRecognitionAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 5. S15 Shadow Validation (30 min) - integrated validation
-        await RunS15ShadowValidationAsync(result, cancellationToken).ConfigureAwait(false);
+        // 5. Regime Detector Training (15 min) - NOW uses real trainer
+        await TrainRegimeDetectorAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+
+        // 6. Slippage/Latency Model Training (10 min) - NOW uses real trainer
+        await TrainSlippageLatencyAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+
+        // 7. Model Ensemble Training (15 min) - NOW uses real trainer
+        await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogInformation("[LAB] ✅ Pure training pipeline complete - All models trained on historical data only");
     }
 
     private async Task TrainCVarPPOAsync(
@@ -1145,6 +1224,8 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task TrainLSTMAsync(
         TrainingSessionResult result,
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
+        List<Experience> experiences,
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -1153,19 +1234,34 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogDebug("[LAB] {Component} training - started (after Neural UCB)", ComponentLSTM);
             
             _memoryLeakDetector.RecordBeforeComponent(ComponentLSTM);
-            _debugLogger.LogBeforeComponent(ComponentLSTM, PhaseMain, 3, 5);
+            _debugLogger.LogBeforeComponent(ComponentLSTM, PhaseMain, 3, 7);
             
-            await Task.CompletedTask.ConfigureAwait(false);
+            // Convert Experience to ExperienceData for trainer (lightweight, no BotCore dependency)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Call actual LSTM trainer with production implementation
+            var trainingResult = await _lstmTrainer.TrainFromHistoricalBarsAsync(
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             result.LstmTrainingDuration = stopwatch.Elapsed;
-            result.LstmSuccess = true;
+            result.LstmSuccess = trainingResult.Success;
+            
+            if (!trainingResult.Success)
+            {
+                result.FailedComponents.Add(ComponentLSTM);
+                _logger.LogWarning("[LAB] {Component} training failed: {Error}", ComponentLSTM, trainingResult.ErrorMessage);
+            }
             
             await _memoryLeakDetector.RecordAfterComponentAsync(ComponentLSTM, cancellationToken).ConfigureAwait(false);
-            _debugLogger.LogAfterComponent(ComponentLSTM, true, stopwatch.Elapsed);
+            _debugLogger.LogAfterComponent(ComponentLSTM, trainingResult.Success, stopwatch.Elapsed);
             
-            _logger.LogDebug("[LAB] {Component} complete in {Duration:F0} min - Integrated into IntelligenceOrchestrator", 
-                ComponentLSTM, stopwatch.Elapsed.TotalMinutes);
+            _logger.LogInformation("[LAB] {Component} complete in {Duration:F0} min - Trained on {BarCount} bars", 
+                ComponentLSTM, stopwatch.Elapsed.TotalMinutes, historicalBars.Count);
         }
         catch (Exception ex)
         {
@@ -1176,6 +1272,196 @@ internal sealed class HistoricalTrainingOrchestrator
             result.FailedComponents.Add(ComponentLSTM);
             
             _debugLogger.LogAfterComponent(ComponentLSTM, false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainPatternRecognitionAsync(
+        TrainingSessionResult result,
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogDebug("[LAB] Pattern Recognition training - started (after LSTM)");
+            
+            _memoryLeakDetector.RecordBeforeComponent("Pattern-Recognition");
+            _debugLogger.LogBeforeComponent("Pattern-Recognition", PhaseMain, 4, 7);
+            
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Call actual Pattern Recognition trainer
+            var trainingResult = await _patternRecognitionTrainer.TrainFromHistoricalBarsAsync(
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+            
+            stopwatch.Stop();
+            
+            if (!trainingResult.Success)
+            {
+                result.FailedComponents.Add("Pattern-Recognition");
+                _logger.LogWarning("[LAB] Pattern Recognition training failed: {Error}", trainingResult.ErrorMessage);
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("Pattern-Recognition", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("Pattern-Recognition", trainingResult.Success, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] Pattern Recognition complete in {Duration:F0} min - Trained on {BarCount} bars", 
+                stopwatch.Elapsed.TotalMinutes, historicalBars.Count);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: Pattern Recognition - {Error}", ex.Message);
+            result.FailedComponents.Add("Pattern-Recognition");
+            _debugLogger.LogAfterComponent("Pattern-Recognition", false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainRegimeDetectorAsync(
+        TrainingSessionResult result,
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogDebug("[LAB] Regime Detector training - started (after Pattern Recognition)");
+            
+            _memoryLeakDetector.RecordBeforeComponent("Regime-Detector");
+            _debugLogger.LogBeforeComponent("Regime-Detector", PhaseMain, 5, 7);
+            
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Call actual Regime Detector trainer
+            var trainingResult = await _regimeDetectorTrainer.TrainFromHistoricalBarsAsync(
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+            
+            stopwatch.Stop();
+            
+            if (!trainingResult.Success)
+            {
+                result.FailedComponents.Add("Regime-Detector");
+                _logger.LogWarning("[LAB] Regime Detector training failed: {Error}", trainingResult.ErrorMessage);
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("Regime-Detector", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("Regime-Detector", trainingResult.Success, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] Regime Detector complete in {Duration:F0} min - Trained on {BarCount} bars", 
+                stopwatch.Elapsed.TotalMinutes, historicalBars.Count);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: Regime Detector - {Error}", ex.Message);
+            result.FailedComponents.Add("Regime-Detector");
+            _debugLogger.LogAfterComponent("Regime-Detector", false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainSlippageLatencyAsync(
+        TrainingSessionResult result,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogDebug("[LAB] Slippage/Latency training - started (after Regime Detector)");
+            
+            _memoryLeakDetector.RecordBeforeComponent("Slippage-Latency");
+            _debugLogger.LogBeforeComponent("Slippage-Latency", PhaseMain, 6, 7);
+            
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Call actual Slippage/Latency trainer
+            var trainingResult = await _slippageLatencyTrainer.TrainFromExperiencesAsync(
+                experienceData, cancellationToken).ConfigureAwait(false);
+            
+            stopwatch.Stop();
+            
+            if (!trainingResult.Success)
+            {
+                result.FailedComponents.Add("Slippage-Latency");
+                _logger.LogWarning("[LAB] Slippage/Latency training failed: {Error}", trainingResult.ErrorMessage);
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("Slippage-Latency", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("Slippage-Latency", trainingResult.Success, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] Slippage/Latency complete in {Duration:F0} min - Trained on {ExpCount} experiences", 
+                stopwatch.Elapsed.TotalMinutes, experiences.Count);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: Slippage/Latency - {Error}", ex.Message);
+            result.FailedComponents.Add("Slippage-Latency");
+            _debugLogger.LogAfterComponent("Slippage-Latency", false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainModelEnsembleAsync(
+        TrainingSessionResult result,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogDebug("[LAB] Model Ensemble training - started (after Slippage/Latency)");
+            
+            _memoryLeakDetector.RecordBeforeComponent("Model-Ensemble");
+            _debugLogger.LogBeforeComponent("Model-Ensemble", PhaseMain, 7, 7);
+            
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Call actual Model Ensemble trainer
+            var trainingResult = await _modelEnsembleTrainer.TrainFromExperiencesAsync(
+                experienceData, cancellationToken).ConfigureAwait(false);
+            
+            stopwatch.Stop();
+            
+            if (!trainingResult.Success)
+            {
+                result.FailedComponents.Add("Model-Ensemble");
+                _logger.LogWarning("[LAB] Model Ensemble training failed: {Error}", trainingResult.ErrorMessage);
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("Model-Ensemble", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("Model-Ensemble", trainingResult.Success, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] Model Ensemble complete in {Duration:F0} min - Trained on {ExpCount} experiences", 
+                stopwatch.Elapsed.TotalMinutes, experiences.Count);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: Model Ensemble - {Error}", ex.Message);
+            result.FailedComponents.Add("Model-Ensemble");
+            _debugLogger.LogAfterComponent("Model-Ensemble", false, stopwatch.Elapsed);
         }
     }
 
