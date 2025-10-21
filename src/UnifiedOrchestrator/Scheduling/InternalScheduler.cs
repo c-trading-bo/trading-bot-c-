@@ -152,8 +152,8 @@ internal sealed class InternalScheduler : BackgroundService
 
                                 _logger.LogInformation("[LAB] Training window OPEN - Starting training with watchdog");
                                 
-                                // Create lock file
-                                await CreateLockFileAsync().ConfigureAwait(false);
+                                // NOTE: Lock file is created by TrainingOrchestratorService.StartTrainingSessionAsync()
+                                // Do NOT create it here or we'll conflict with ourselves
                                 _lastTrainingStart = DateTime.UtcNow;
 
                                 // Run training with watchdog timeout

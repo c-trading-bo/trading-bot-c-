@@ -95,7 +95,19 @@ namespace BotCore.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // Continuous background retry for historical data loading
+            // CRITICAL: Lab Mode uses pre-loaded JSON files, NOT live API connections
+            // Skip background seeding entirely when in Lab Mode to maintain complete segregation
+            var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+            var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+            
+            if (isLabMode)
+            {
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Lab Mode detected - skipping API-based historical data seeding");
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Lab Mode uses pre-loaded JSON files for complete API segregation");
+                return;
+            }
+            
+            // Continuous background retry for historical data loading (Terminal Mode only)
             _logger.LogInformation("[HISTORICAL-BRIDGE] Background retry service started");
             
             while (!stoppingToken.IsCancellationRequested)
@@ -140,6 +152,16 @@ namespace BotCore.Services
         public async Task<bool> SeedTradingSystemAsync(string[] contractIds)
         {
             ArgumentNullException.ThrowIfNull(contractIds);
+            
+            // CRITICAL: Lab Mode uses pre-loaded JSON files, NOT live API connections
+            var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+            var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+            
+            if (isLabMode)
+            {
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Lab Mode - skipping API seeding (uses pre-loaded JSON data)");
+                return false;
+            }
             
             // Store contracts for background retry if initial attempt fails
             if (_contractsToSeed == null)
@@ -227,6 +249,16 @@ namespace BotCore.Services
         /// </summary>
         public async Task<List<BotCore.Models.Bar>> GetRecentHistoricalBarsAsync(string contractId, int barCount = 20)
         {
+            // CRITICAL: Lab Mode uses pre-loaded JSON files, NOT live API connections
+            var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+            var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+            
+            if (isLabMode)
+            {
+                _logger.LogDebug("[HISTORICAL-BRIDGE] Lab Mode - returning empty bars (uses pre-loaded JSON data, not API)");
+                return new List<BotCore.Models.Bar>();
+            }
+            
             try
             {
                 // PRIMARY: Try TopstepX adapter service for historical data (uses stdin/stdout commands)
