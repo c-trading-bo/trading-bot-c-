@@ -1355,9 +1355,8 @@ internal sealed class HistoricalTrainingOrchestrator
     {
         try
         {
-            _logger.LogInformation("[LAB] Neural UCB: Reloading updated ONNX models...");
+            _logger.LogDebug("[LAB] {Component}: Reloading updated ONNX models...", ComponentNeuralUCB);
 
-            // Expected model files after Python training
             var modelDir = "models";
             var expectedModels = new[] { "S2", "S3", "S6", "S11" };
             var foundModels = 0;
@@ -1368,34 +1367,43 @@ internal sealed class HistoricalTrainingOrchestrator
                 if (File.Exists(modelPath))
                 {
                     var fileInfo = new FileInfo(modelPath);
-                    _logger.LogInformation("[LAB] Neural UCB: Found model {ArmId}: {Path} ({Size} bytes, modified {Modified})",
-                        armId, modelPath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+                    _logger.LogDebug("[LAB] {Component}: Found model {ArmId}: {Path} ({Size} bytes, modified {Modified})",
+                        ComponentNeuralUCB, armId, modelPath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
                     foundModels++;
                 }
                 else
                 {
-                    _logger.LogWarning("[LAB] Neural UCB: Model not found for {ArmId}: {Path}", armId, modelPath);
+                    _logger.LogWarning("[LAB] {Component}: Model not found for {ArmId}: {Path}", ComponentNeuralUCB, armId, modelPath);
                 }
             }
 
             if (foundModels == 0)
             {
-                _logger.LogError("[LAB] Neural UCB: No ONNX models found after training");
+                _logger.LogError("[LAB] {Component}: No ONNX models found after training", ComponentNeuralUCB);
                 return false;
             }
 
             _logger.LogDebug("[LAB] {Component}: Verified {Count}/{Total} models exist", ComponentNeuralUCB, foundModels, expectedModels.Length);
 
-            // FUTURE ENHANCEMENT: Add actual model hot-reload logic when OnnxNeuralNetwork fully supports hot-reload
-            // For now, models will be loaded on next bot restart
-            _logger.LogDebug("[LAB] {Component}: Models will be loaded on next bot startup", ComponentNeuralUCB);
+            // Hot-reload models into the bandit arms
+            _logger.LogDebug("[LAB] {Component}: Hot-reloading models into bandit arms...", ComponentNeuralUCB);
+            var reloadSuccess = await bandit.ReloadModelsAsync(modelDir, cancellationToken).ConfigureAwait(false);
             
-            await Task.CompletedTask.ConfigureAwait(false);
-            return true;
+            if (reloadSuccess)
+            {
+                _logger.LogInformation("[LAB] {Component}: Successfully hot-reloaded {Count} models without bot restart", 
+                    ComponentNeuralUCB, foundModels);
+            }
+            else
+            {
+                _logger.LogWarning("[LAB] {Component}: Some models failed to reload, check logs for details", ComponentNeuralUCB);
+            }
+            
+            return reloadSuccess;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LAB] Neural UCB: Error reloading models - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] {Component}: Error reloading models - {Error}", ComponentNeuralUCB, ex.Message);
             return false;
         }
     }
