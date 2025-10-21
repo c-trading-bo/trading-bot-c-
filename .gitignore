@@ -88,3 +88,8 @@ trading.db*
 build_output.txt
 build_full.txt
 .env.backup
+
+# Python training artifacts (generated during Lab Mode runs)
+*.pkl
+models/neural_ucb_training_data.json
+models/neural_ucb_model_*.onnx
