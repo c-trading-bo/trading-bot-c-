@@ -624,26 +624,21 @@ internal sealed class HistoricalTrainingOrchestrator
                     barsThisHour.TryGetValue(hour, out var count);
                     barsThisHour[hour] = count + 1;
                     
-                    // Feed bar to brain - This will trigger strategy selection based on time window
-                    // and generate training experiences via SaveTrainingDataImmediatelyAsync
-                    var features = new float[]
-                    {
-                        (float)bar.Close,
-                        (float)bar.High,
-                        (float)bar.Low,
-                        (float)bar.Open,
-                        (float)bar.Volume,
-                        hour, // Hour of day for time-gated strategy selection
-                        bar.Timestamp.DayOfWeek == DayOfWeek.Monday ? 1f : 0f,
-                        bar.Timestamp.DayOfWeek == DayOfWeek.Friday ? 1f : 0f
-                    };
+                    // Create mock objects required by MakeIntelligentDecisionAsync
+                    var env = CreateEnvFromBar(bar);
+                    var levels = CreateLevelsFromBar(bar);
+                    var bars = CreateBarsListFromBar(bar);
+                    using var risk = CreateRiskEngine();
                     
-                    // Call brain.MakeDecisionAsync which internally calls GetAvailableStrategies
+                    // Call brain.MakeIntelligentDecisionAsync with bar timestamp
                     // This respects time gates and will activate different strategies at correct times
-                    await brain.MakeDecisionAsync(
+                    await brain.MakeIntelligentDecisionAsync(
                         bar.Symbol,
-                        features,
-                        bar.Timestamp.DateTime,
+                        env,
+                        levels,
+                        bars,
+                        risk,
+                        null, // No intelligence data for historical replay
                         cancellationToken).ConfigureAwait(false);
                     
                     totalBarsProcessed++;
@@ -678,12 +673,83 @@ internal sealed class HistoricalTrainingOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LAB] ERROR: Historical bar replay failed: {Error}", ex.Message);
-            result.Errors.Add($"Bar replay failed: {ex.Message}");
+            result.FailedComponents.Add($"Bar replay failed: {ex.Message}");
         }
         finally
         {
             stopwatch.Stop();
         }
+    }
+    
+    /// <summary>
+    /// Create Env object from historical bar
+    /// </summary>
+    private static global::BotCore.Models.Env CreateEnvFromBar(HistoricalBar bar)
+    {
+        return new global::BotCore.Models.Env
+        {
+            Symbol = bar.Symbol,
+            atr = null, // Will be calculated by brain if needed
+            volz = null // Will be calculated by brain if needed
+        };
+    }
+    
+    /// <summary>
+    /// Create Levels object from historical bar
+    /// </summary>
+    private static global::BotCore.Models.Levels CreateLevelsFromBar(HistoricalBar bar)
+    {
+        // Create realistic support/resistance levels based on bar price
+        var basePrice = bar.Close;
+        var range = basePrice * 0.01m; // 1% range
+        
+        return new global::BotCore.Models.Levels
+        {
+            Support1 = basePrice - (range * 0.5m),
+            Support2 = basePrice - range,
+            Support3 = basePrice - (range * 1.5m),
+            Resistance1 = basePrice + (range * 0.5m),
+            Resistance2 = basePrice + range,
+            Resistance3 = basePrice + (range * 1.5m),
+            VWAP = bar.Close,
+            DailyPivot = bar.Close,
+            WeeklyPivot = bar.Close,
+            MonthlyPivot = bar.Close,
+            CalculatedAt = bar.Timestamp.UtcDateTime
+        };
+    }
+    
+    /// <summary>
+    /// Create Bars list from historical bar
+    /// </summary>
+    private static List<global::BotCore.Models.Bar> CreateBarsListFromBar(HistoricalBar bar)
+    {
+        return new List<global::BotCore.Models.Bar>
+        {
+            new global::BotCore.Models.Bar
+            {
+                Start = bar.Timestamp.UtcDateTime,
+                Ts = ((DateTimeOffset)bar.Timestamp).ToUnixTimeMilliseconds(),
+                Symbol = bar.Symbol,
+                Open = bar.Open,
+                High = bar.High,
+                Low = bar.Low,
+                Close = bar.Close,
+                Volume = (int)bar.Volume
+            }
+        };
+    }
+    
+    /// <summary>
+    /// Create RiskEngine for historical replay
+    /// </summary>
+    private static global::BotCore.Risk.RiskEngine CreateRiskEngine()
+    {
+        var riskEngine = new global::BotCore.Risk.RiskEngine();
+        riskEngine.cfg.RiskPerTrade = 500; // $500 risk per trade for TopStep
+        riskEngine.cfg.MaxDailyDrawdown = 1000; // TopStep safe daily loss limit
+        riskEngine.cfg.MaxOpenPositions = 1; // Conservative position limit
+        return riskEngine;
     }
     
     /// <summary>
