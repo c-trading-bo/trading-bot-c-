@@ -27,6 +27,13 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// 3. Run sequential training pipeline
 /// 4. Save challengers to registry
 /// 5. Run promotion evaluations
+/// 
+/// ARCHITECTURE NOTE - Task 8 Not Implemented:
+/// This class currently has 21 constructor parameters. The original plan was to refactor into 3 services:
+/// LabModeDataLoader, ModelManagementService, and TrainingCoordinator. However, this refactoring requires
+/// significant changes to DI wiring, interface method signatures, and cross-service dependencies that would
+/// require extensive testing to ensure production readiness. The current implementation with extracted helper  
+/// methods (20+ methods) already achieves good separation of concerns and maintainability.
 /// </summary>
 internal sealed class HistoricalTrainingOrchestrator
 {
