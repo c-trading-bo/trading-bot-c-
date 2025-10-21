@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BotCore.Models;
 
 namespace TradingBot.RLAgent;
 
@@ -41,7 +40,7 @@ public class LSTMTrainer
     /// </summary>
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
-        List<TradingExperience> experiences,
+        List<global::BotCore.Models.TradingExperience> experiences,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🔧 LSTMTrainer starting training from {BarCount} bars and {ExpCount} experiences",
@@ -115,7 +114,7 @@ public class LSTMTrainer
 
     private (List<double[]>, List<double>) PrepareTrainingData(
         List<List<HistoricalBar>> sequences,
-        List<TradingExperience> experiences)
+        List<global::BotCore.Models.TradingExperience> experiences)
     {
         var features = new List<double[]>();
         var targets = new List<double>();
@@ -178,16 +177,4 @@ public class HistoricalBar
     public required decimal Low { get; init; }
     public required decimal Close { get; init; }
     public required long Volume { get; init; }
-}
-
-/// <summary>
-/// Training result container
-/// </summary>
-public class TrainingResult
-{
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
-    public int SampleCount { get; set; }
 }
