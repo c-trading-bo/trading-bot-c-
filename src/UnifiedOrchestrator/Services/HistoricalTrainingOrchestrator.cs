@@ -18,12 +18,12 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Historical Training Orchestrator - Master controller for Lab training pipeline
 /// Runs complete training session on Sunday (segregated from Terminal)
 /// 
-/// Uses existing SDK infrastructure (IHistoricalDataBridgeService) to load historical data
-/// This ensures we're using the production TopstepX API, not creating parallel systems
+/// Lab Mode uses Python scripts to fetch historical data offline, NOT live API connections.
+/// This ensures complete segregation from live trading infrastructure.
 /// 
 /// This is the "shift supervisor" that coordinates the entire training factory:
 /// 1. Load experiences from last 7 days
-/// 2. Load 90-day historical bars via existing SDK
+/// 2. Load 90-day historical bars from saved JSON files (fetched via Python script)
 /// 3. Run sequential training pipeline
 /// 4. Save challengers to registry
 /// 5. Run promotion evaluations
@@ -40,7 +40,6 @@ internal sealed class HistoricalTrainingOrchestrator
     private const string PhaseMain = "Main";
     
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
-    private readonly IHistoricalDataBridgeService _historicalDataBridge;
     private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
@@ -70,7 +69,6 @@ internal sealed class HistoricalTrainingOrchestrator
 #pragma warning disable S107 // Methods should not have too many parameters - necessary for Lab training coordination
     public HistoricalTrainingOrchestrator(
         ILogger<HistoricalTrainingOrchestrator> logger,
-        IHistoricalDataBridgeService historicalDataBridge,
         global::BotCore.Data.ExperienceRepository? experienceRepository,
         TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
         TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService,
@@ -94,7 +92,6 @@ internal sealed class HistoricalTrainingOrchestrator
 #pragma warning restore S107
     {
         _logger = logger;
-        _historicalDataBridge = historicalDataBridge;
         _experienceRepository = experienceRepository;
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
@@ -116,7 +113,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _configuration = configuration;
         _githubBackupService = githubBackupService;
         
-        _logger.LogInformation("HistoricalTrainingOrchestrator initialized with Phase 10-14 enhancements");
+        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Lab Mode uses Python scripts for data (NO API connections)");
     }
 
     /// <summary>
@@ -490,35 +487,108 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task<Dictionary<string, int>> LoadHistoricalDataAsync(CancellationToken cancellationToken)
     {
-        // Load historical bars using existing TopstepX SDK (IHistoricalDataBridgeService)
-        // This ensures we're using production APIs, not creating parallel systems
+        // Lab Mode uses Python script to fetch historical data, NOT live API connections
+        // This ensures Lab Mode is completely segregated from live trading infrastructure
         var data = new Dictionary<string, int>();
         var symbols = new[] { "ES", "NQ" };
-        
-        // Request 90 days * 390 bars/day ≈ 35,100 bars per symbol
-        const int barsToLoad = 35100;
 
+        // Step 1: Invoke Python script to fetch and save historical data if needed
+        await InvokePythonHistoricalDataFetchAsync(cancellationToken).ConfigureAwait(false);
+
+        // Step 2: Load the historical data from saved JSON files
         foreach (var symbol in symbols)
         {
             try
             {
-                _logger.LogInformation("[LAB] Downloading historical data for {Symbol} (90 days)", symbol);
+                var dataFile = Path.Combine("data", $"historical_{symbol.ToLowerInvariant()}_90d.json");
                 
-                // Use existing SDK bridge service to get real historical data from TopstepX
-                var historicalBars = await _historicalDataBridge.GetRecentHistoricalBarsAsync(symbol, barsToLoad).ConfigureAwait(false);
-                data[symbol] = historicalBars?.Count ?? 0;
+                if (!File.Exists(dataFile))
+                {
+                    _logger.LogWarning("[LAB] Historical data file not found: {File}", dataFile);
+                    data[symbol] = 0;
+                    continue;
+                }
+
+                var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                var historicalBars = System.Text.Json.JsonSerializer.Deserialize<List<object>>(jsonContent);
+                var barCount = historicalBars?.Count ?? 0;
                 
-                _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol}", data[symbol], symbol);
+                data[symbol] = barCount;
+                _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol} from {File}", barCount, symbol, dataFile);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB] ERROR: Failed to download historical data - {Symbol}: {Error}", 
+                _logger.LogError(ex, "[LAB] ERROR: Failed to load historical data - {Symbol}: {Error}", 
                     symbol, ex.Message);
                 data[symbol] = 0;
             }
         }
 
         return data;
+    }
+
+    private async Task InvokePythonHistoricalDataFetchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var pythonPath = FindPythonExecutable();
+            if (string.IsNullOrEmpty(pythonPath))
+            {
+                _logger.LogWarning("[LAB] Python executable not found - historical data fetch skipped");
+                return;
+            }
+
+            var scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "fetch-and-save-historical-data.py");
+            if (!File.Exists(scriptPath))
+            {
+                _logger.LogWarning("[LAB] Historical data fetch script not found: {Path}", scriptPath);
+                return;
+            }
+
+            _logger.LogInformation("[LAB] Fetching historical data using Python script...");
+
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = pythonPath,
+                    Arguments = $"\"{scriptPath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                }
+            };
+
+            process.Start();
+
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            var errors = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode == 0)
+            {
+                _logger.LogInformation("[LAB] Historical data fetch completed successfully");
+                if (!string.IsNullOrEmpty(output))
+                {
+                    _logger.LogDebug("[LAB] Python output: {Output}", output);
+                }
+            }
+            else
+            {
+                _logger.LogError("[LAB] Historical data fetch failed with exit code {ExitCode}", process.ExitCode);
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    _logger.LogError("[LAB] Python errors: {Errors}", errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ERROR: Failed to invoke Python historical data fetch - {Error}", ex.Message);
+        }
     }
 
     private async Task<List<Experience>> LoadRecentExperiencesAsync(CancellationToken cancellationToken)
