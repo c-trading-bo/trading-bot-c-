@@ -690,7 +690,7 @@ Please check the configuration and ensure all required services are registered.
         {
             Console.WriteLine("📊 LAB MODE - Training Pipeline");
             Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
-            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses existing TopstepX SDK)");
+            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses Python scripts - NO API connections)");
             Console.WriteLine("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
             Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
             Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");

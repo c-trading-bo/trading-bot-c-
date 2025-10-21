@@ -180,6 +180,55 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
     }
 
     /// <summary>
+    /// Reloads ONNX models for each arm from the specified directory.
+    /// This enables hot-reloading of models after training without bot restart.
+    /// </summary>
+    public async Task<bool> ReloadModelsAsync(string modelDirectory, CancellationToken cancellationToken = default)
+    {
+        var successCount = 0;
+        var failCount = 0;
+
+        lock (_lock)
+        {
+            foreach (var kvp in _arms)
+            {
+                var armId = kvp.Key;
+                var arm = kvp.Value;
+                var modelPath = Path.Combine(modelDirectory, $"neural_ucb_model_{armId}.onnx");
+
+                if (File.Exists(modelPath))
+                {
+                    try
+                    {
+                        // NeuralUcbArm uses INeuralNetwork which may be OnnxNeuralNetwork
+                        // Call ReloadModel if the network supports it
+                        var network = arm.GetNetwork();
+                        if (network is OnnxNeuralNetwork onnxNetwork)
+                        {
+                            onnxNetwork.ReloadModelAsync(modelPath, cancellationToken).GetAwaiter().GetResult();
+                            successCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[NEURAL-UCB] Failed to reload model for arm {armId}: {ex.Message}");
+                        failCount++;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[NEURAL-UCB] Model file not found for arm {armId}: {modelPath}");
+                    failCount++;
+                }
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false);
+        Console.WriteLine($"[NEURAL-UCB] Model reload complete: {successCount} succeeded, {failCount} failed");
+        return failCount == 0;
+    }
+
+    /// <summary>
     /// Analyzes feature importance using neural network gradients.
     /// </summary>
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
@@ -276,6 +325,15 @@ internal sealed class NeuralUcbArm
     {
         _network = network;
         _config = config;
+    }
+
+    /// <summary>
+    /// Gets the underlying neural network for this arm.
+    /// Used for model hot-reloading after training.
+    /// </summary>
+    public INeuralNetwork GetNetwork()
+    {
+        return _network;
     }
 
     public async Task<(decimal prediction, decimal uncertainty)> PredictWithUncertaintyAsync(
@@ -538,8 +596,8 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private readonly TradingBot.Abstractions.RlRuntimeMode _runtimeMode;
     private InferenceSession? _session;
     private readonly string _modelPath;
-    // Removed _random field - using System.Security.Cryptography.RandomNumberGenerator for secure randomness
     private bool _isInitialized;
+    private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
     public OnnxNeuralNetwork(OnnxModelLoader onnxLoader, ILogger<OnnxNeuralNetwork> logger, TradingBot.Abstractions.RlRuntimeMode runtimeMode, string modelPath = "models/neural_ucb_model.onnx")
     {
@@ -547,6 +605,60 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         _logger = logger;
         _runtimeMode = runtimeMode;
         _modelPath = modelPath;
+    }
+
+    /// <summary>
+    /// Reloads the ONNX model from the specified file path.
+    /// This enables hot-reloading of models without restarting the bot.
+    /// Thread-safe: concurrent predictions will wait during reload.
+    /// </summary>
+    public async Task ReloadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        await _reloadLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _logger.LogInformation("[NEURAL_UCB] Reloading ONNX model from: {ModelPath}", modelPath);
+            
+            // Dispose existing session if it exists
+            if (_session != null)
+            {
+                _session.Dispose();
+                _session = null;
+                _isInitialized = false;
+            }
+            
+            // Load new model
+            _session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
+            
+            if (_session != null)
+            {
+                _isInitialized = true;
+                _logger.LogInformation("[NEURAL_UCB] Successfully reloaded ONNX model: {ModelPath}", modelPath);
+            }
+            else
+            {
+                _logger.LogWarning("[NEURAL_UCB] Failed to reload ONNX model, will use fallback implementation");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "[NEURAL_UCB] Invalid operation reloading ONNX model: {ModelPath}", modelPath);
+            _isInitialized = false;
+        }
+        catch (FileNotFoundException ex)
+        {
+            _logger.LogError(ex, "[NEURAL_UCB] ONNX model file not found during reload: {ModelPath}", modelPath);
+            _isInitialized = false;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "[NEURAL_UCB] Invalid argument reloading ONNX model: {ModelPath}", modelPath);
+            _isInitialized = false;
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
     }
 
     private async Task EnsureInitializedAsync()
@@ -584,39 +696,48 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     {
         ArgumentNullException.ThrowIfNull(features);
 
-        await EnsureInitializedAsync().ConfigureAwait(false);
-
-        if (_session != null)
+        // Acquire lock to ensure no reload happens during prediction
+        await _reloadLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            try
-            {
-                // Use real ONNX inference
-                var inputTensor = new DenseTensor<float>(features.Select(f => (float)f).ToArray(), new[] { 1, features.Length });
-                var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputTensor) };
+            await EnsureInitializedAsync().ConfigureAwait(false);
 
-                using var results = _session.Run(inputs);
-                var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0f;
+            if (_session != null)
+            {
+                try
+                {
+                    // Use real ONNX inference
+                    var inputTensor = new DenseTensor<float>(features.Select(f => (float)f).ToArray(), new[] { 1, features.Length });
+                    var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputTensor) };
 
-                return (decimal)output;
+                    using var results = _session.Run(inputs);
+                    var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0f;
+
+                    return (decimal)output;
+                }
+                catch (Microsoft.ML.OnnxRuntime.OnnxRuntimeException ex)
+                {
+                    _logger.LogError(ex, "[NEURAL_UCB] ONNX runtime error during prediction, using fallback");
+                    return PredictFallback(features);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError(ex, "[NEURAL_UCB] Invalid operation during ONNX prediction, using fallback");
+                    return PredictFallback(features);
+                }
+                catch (ArgumentException ex)
+                {
+                    _logger.LogError(ex, "[NEURAL_UCB] Invalid arguments for ONNX prediction, using fallback");
+                    return PredictFallback(features);
+                }
             }
-            catch (Microsoft.ML.OnnxRuntime.OnnxRuntimeException ex)
-            {
-                _logger.LogError(ex, "[NEURAL_UCB] ONNX runtime error during prediction, using fallback");
-                return PredictFallback(features);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError(ex, "[NEURAL_UCB] Invalid operation during ONNX prediction, using fallback");
-                return PredictFallback(features);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogError(ex, "[NEURAL_UCB] Invalid arguments for ONNX prediction, using fallback");
-                return PredictFallback(features);
-            }
+
+            return PredictFallback(features);
         }
-
-        return PredictFallback(features);
+        finally
+        {
+            _reloadLock.Release();
+        }
     }
 
     public Task<decimal> PredictWithDropoutAsync(decimal[] features, CancellationToken ct = default)
@@ -764,6 +885,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                     _session.Dispose();
                     _session = null;
                 }
+                _reloadLock.Dispose();
                 _isInitialized = false;
             }
             _disposed = true;

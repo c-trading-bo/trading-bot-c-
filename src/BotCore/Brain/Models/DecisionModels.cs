@@ -106,6 +106,35 @@ namespace BotCore.Brain.Models
     }
 
     /// <summary>
+    /// Decision history entry for Lab Mode persistence
+    /// Captures strategy selection, market conditions, and outcomes for offline analysis
+    /// </summary>
+    public class DecisionHistoryEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public string Symbol { get; set; } = string.Empty;
+        public string StrategyChosen { get; set; } = string.Empty;
+        public decimal Confidence { get; set; }
+        
+        // Market conditions at decision time
+        public decimal VIX { get; set; }
+        public string PriceDirection { get; set; } = string.Empty;
+        public decimal Volatility { get; set; }
+        public decimal Volume { get; set; }
+        public decimal RSI { get; set; }
+        public decimal TrendStrength { get; set; }
+        public string TimeOfDay { get; set; } = string.Empty;
+        public string DayOfWeek { get; set; } = string.Empty;
+        
+        // Outcome
+        public decimal PnL { get; set; }
+        public bool WasCorrect { get; set; }
+        
+        // Selection reason
+        public string MarketRegime { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Price direction enumeration
     /// </summary>
     public enum PriceDirection

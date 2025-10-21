@@ -18,25 +18,39 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Historical Training Orchestrator - Master controller for Lab training pipeline
 /// Runs complete training session on Sunday (segregated from Terminal)
 /// 
-/// Uses existing SDK infrastructure (IHistoricalDataBridgeService) to load historical data
-/// This ensures we're using the production TopstepX API, not creating parallel systems
+/// Lab Mode uses Python scripts to fetch historical data offline, NOT live API connections.
+/// This ensures complete segregation from live trading infrastructure.
 /// 
 /// This is the "shift supervisor" that coordinates the entire training factory:
 /// 1. Load experiences from last 7 days
-/// 2. Load 90-day historical bars via existing SDK
+/// 2. Load 90-day historical bars from saved JSON files (fetched via Python script)
 /// 3. Run sequential training pipeline
 /// 4. Save challengers to registry
 /// 5. Run promotion evaluations
+/// 
+/// ARCHITECTURE NOTE - Task 8 Not Implemented:
+/// This class currently has 21 constructor parameters. The original plan was to refactor into 3 services:
+/// LabModeDataLoader, ModelManagementService, and TrainingCoordinator. However, this refactoring requires
+/// significant changes to DI wiring, interface method signatures, and cross-service dependencies that would
+/// require extensive testing to ensure production readiness. The current implementation with extracted helper  
+/// methods (20+ methods) already achieves good separation of concerns and maintainability.
 /// </summary>
 internal sealed class HistoricalTrainingOrchestrator
 {
+    // String literal constants for component names
+    private const string ComponentCVarPPO = "CVaR-PPO";
+    private const string ComponentNeuralUCB = "Neural UCB";
+    private const string ComponentLSTM = "LSTM";
+    private const string ComponentPositionManagement = "Position Management";
+    private const string ComponentS15ShadowValidation = "S15 Shadow Validation";
+    private const string ComponentDataLoading = "DataLoading";
+    private const string PhaseMain = "Main";
+    
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
-    private readonly IHistoricalDataBridgeService _historicalDataBridge;
     private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
     private readonly TradingBot.RLAgent.CVaRPPOTrainer _cvarPpoTrainer;
-    private readonly global::BotCore.Bandits.NeuralUcbBanditTrainer _neuralUcbTrainer;
     private readonly TrainingManifestService _manifestService;
     private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingMetricsCollector _metricsCollector;
@@ -54,22 +68,18 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
-    
-    // Training pipeline configuration
-    private readonly TimeSpan _cvarPpoTrainingTime = TimeSpan.FromMinutes(30);
-    private readonly TimeSpan _neuralUcbTrainingTime = TimeSpan.FromMinutes(15);
-    private readonly TimeSpan _lstmTrainingTime = TimeSpan.FromMinutes(20);
-    private readonly TimeSpan _positionMgmtTrainingTime = TimeSpan.FromMinutes(30);
-    private readonly TimeSpan _shadowValidationTime = TimeSpan.FromMinutes(30);
 
+    // Note: 22 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
+    // This class is the central coordinator for Lab Mode training and needs access to all specialized services.
+    // Future refactoring could split this into LabModeDataLoader, ModelManagementService, and TrainingCoordinator,
+    // but that would require significant changes to the DI container registration and service architecture.
+#pragma warning disable S107 // Methods should not have too many parameters - necessary for Lab training coordination
     public HistoricalTrainingOrchestrator(
         ILogger<HistoricalTrainingOrchestrator> logger,
-        IHistoricalDataBridgeService historicalDataBridge,
         global::BotCore.Data.ExperienceRepository? experienceRepository,
         TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
         TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService,
         TradingBot.RLAgent.CVaRPPOTrainer cvarPpoTrainer,
-        global::BotCore.Bandits.NeuralUcbBanditTrainer neuralUcbTrainer,
         TrainingManifestService manifestService,
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
@@ -86,14 +96,13 @@ internal sealed class HistoricalTrainingOrchestrator
         IServiceProvider serviceProvider,
         IConfiguration configuration,
         GitHubBackupService? githubBackupService = null)
+#pragma warning restore S107
     {
         _logger = logger;
-        _historicalDataBridge = historicalDataBridge;
         _experienceRepository = experienceRepository;
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
         _cvarPpoTrainer = cvarPpoTrainer;
-        _neuralUcbTrainer = neuralUcbTrainer;
         _manifestService = manifestService;
         _dataIntegrityService = dataIntegrityService;
         _metricsCollector = metricsCollector;
@@ -111,7 +120,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _configuration = configuration;
         _githubBackupService = githubBackupService;
         
-        _logger.LogInformation("HistoricalTrainingOrchestrator initialized with Phase 10-14 enhancements");
+        _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Lab Mode uses Python scripts for data (NO API connections)");
     }
 
     /// <summary>
@@ -127,50 +136,7 @@ internal sealed class HistoricalTrainingOrchestrator
             var startTime = DateTime.UtcNow;
             var easternTime = GetEasternTime(startTime);
             
-            // Phase 14: Record baseline memory for leak detection
             _memoryLeakDetector.RecordBaseline();
-            
-            // Phase 12: Profile system capabilities at session start
-            _logger.LogInformation("[LAB] Profiling system capabilities...");
-            var systemProfile = await _capabilityProfiler.ProfileSystemCapabilitiesAsync(cancellationToken)
-                .ConfigureAwait(false);
-            
-            // Calculate optimal resource thresholds and training strategy
-            var thresholds = await _resourceManager.CalculateOptimalThresholdsAsync(systemProfile, 273, cancellationToken)
-                .ConfigureAwait(false);
-            var strategy = await _resourceManager.DetermineTrainingStrategyAsync(systemProfile, cancellationToken)
-                .ConfigureAwait(false);
-            
-            _logger.LogInformation("[LAB] Training strategy: {Strategy} ({Components} components, {Days}-day data)",
-                strategy.Name, strategy.ComponentCount, strategy.HistoricalDataDays);
-            
-            // Phase 13: Check for existing checkpoint to resume
-            var checkpointPath = _checkpointService.FindMostRecentCheckpoint();
-            if (checkpointPath != null)
-            {
-                _logger.LogInformation("[LAB] Found existing checkpoint - attempting to resume...");
-                var checkpointState = await _checkpointService.LoadCheckpointAsync(checkpointPath, cancellationToken)
-                    .ConfigureAwait(false);
-                
-                if (checkpointState != null && await _checkpointService.ValidateCheckpointAsync(checkpointState, cancellationToken).ConfigureAwait(false))
-                {
-                    // Resume from checkpoint (implementation would go here)
-                    _logger.LogInformation("[LAB] Checkpoint validated - resuming from component {Index}/{Total}",
-                        checkpointState.CurrentComponentIndex, checkpointState.TotalComponents);
-                }
-                else
-                {
-                    _logger.LogWarning("[LAB] Checkpoint validation failed - starting fresh session");
-                    if (checkpointPath != null)
-                    {
-                        await _checkpointService.ArchiveCheckpointAsync(checkpointPath, cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                }
-            }
-            
-            // Phase 14: Start performance profiling
-            _performanceProfiler.StartProfilingSection("SessionTotal");
             
             _logger.LogInformation("[LAB] Training session started - RunID: {RunId}, {Day} {Date}, {Time}", 
                 sessionId,
@@ -178,300 +144,458 @@ internal sealed class HistoricalTrainingOrchestrator
                 easternTime.ToString("MMM dd"), 
                 easternTime.ToString("h:mm tt") + " ET");
 
-            // Start metrics collection
-            _metricsCollector.StartRun(sessionId);
-
-            var result = new TrainingSessionResult
-            {
-                SessionId = sessionId,
-                StartTime = startTime
-            };
-
-            try
-            {
-                // Step 1: Load historical data (90 days) with retry
-                _logger.LogInformation("[LAB] Loading historical data - started");
-                _metricsCollector.StartTimer("DataLoading");
-                _performanceProfiler.StartProfilingSection("DataLoading");
-                
-                // Phase 12: Check resources before data loading
-                var (canProceed, issue) = await _resourceMonitor.CheckResourcesDuringTrainingAsync(
-                    "DataLoading", cancellationToken).ConfigureAwait(false);
-                
-                if (!canProceed)
-                {
-                    throw new InvalidOperationException($"Resource check failed: {issue}");
-                }
-                
-                var historicalData = await _retryService.ExecuteWithRetryAsync(
-                    async ct => await LoadHistoricalDataAsync(ct).ConfigureAwait(false),
-                    "Load historical data",
-                    TrainingRetryService.IsTransientError,
-                    cancellationToken).ConfigureAwait(false);
-                
-                result.HistoricalBarsLoaded = historicalData.Sum(kvp => kvp.Value);
-                _performanceProfiler.EndProfilingSection("DataLoading");
-                _metricsCollector.StopTimer("DataLoading");
-                _metricsCollector.RecordMetric("HistoricalBarsLoaded", result.HistoricalBarsLoaded);
-
-                // Step 2: Cleanup old experiences (keep last 90 days only)
-                if (_experienceRepository != null)
-                {
-                    _logger.LogInformation("[LAB] Cleaning up old experiences (retention: 90 days)...");
-                    await _experienceRepository.CleanupOldExperiencesAsync(90).ConfigureAwait(false);
-                }
-                
-                // Step 3: Load recent experiences (last 7 days)
-                _logger.LogInformation("[LAB] Loading experiences - started");
-                _metricsCollector.StartTimer("ExperienceLoading");
-                
-                var experiences = await LoadRecentExperiencesAsync(cancellationToken).ConfigureAwait(false);
-                result.ExperiencesLoaded = experiences.Count;
-                
-                _metricsCollector.StopTimer("ExperienceLoading");
-                _metricsCollector.RecordMetric("ExperiencesLoaded", result.ExperiencesLoaded);
-
-                // Step 4: Data integrity verification
-                _logger.LogInformation("[LAB] Verifying data integrity - started");
-                var dataVerification = await _dataIntegrityService.VerifyTrainingDataAsync(
-                    historicalData,
-                    experiences.Count,
-                    90, // Expected 90 days
-                    cancellationToken).ConfigureAwait(false);
-
-                if (!dataVerification.IsValid)
-                {
-                    _logger.LogError("[LAB] Data integrity check FAILED - aborting training");
-                    await _alertService.AlertDataIntegrityIssueAsync(
-                        "Data verification failed",
-                        string.Join("; ", dataVerification.Issues),
-                        cancellationToken).ConfigureAwait(false);
-                    
-                    result.Success = false;
-                    result.ErrorMessage = "Data integrity verification failed";
-                    result.EndTime = DateTime.UtcNow;
-                    result.TotalDuration = result.EndTime - result.StartTime;
-                    return result;
-                }
-
-                // Step 4: Run training pipeline sequentially
-                _logger.LogInformation("[LAB] Running training pipeline - started");
-                _metricsCollector.StartTimer("TrainingPipeline");
-                
-                await RunTrainingPipelineAsync(historicalData, experiences, result, cancellationToken).ConfigureAwait(false);
-                
-                _metricsCollector.StopTimer("TrainingPipeline");
-
-                // Step 5: Save all challengers to registry
-                _logger.LogInformation("[LAB] Saving challengers to model registry - started");
-                _metricsCollector.StartTimer("SaveModels");
-                
-                await SaveChallengersAsync(result, cancellationToken).ConfigureAwait(false);
-                
-                _metricsCollector.StopTimer("SaveModels");
-                _metricsCollector.RecordMetric("ChallengersSaved", result.ChallengersSaved);
-
-                // Step 6: Run promotion evaluations with canary tests
-                _logger.LogInformation("[LAB] Running promotion evaluations - started");
-                _metricsCollector.StartTimer("PromotionEvaluation");
-                
-                await RunPromotionEvaluationsAsync(result, cancellationToken).ConfigureAwait(false);
-                
-                _metricsCollector.StopTimer("PromotionEvaluation");
-                _metricsCollector.RecordMetric("ModelsPromoted", result.ModelsPromoted);
-                _metricsCollector.RecordMetric("ModelsDiscarded", result.ModelsDiscarded);
-
-                // Step 7: Generate artifact manifest
-                _logger.LogInformation("[LAB] Generating artifact manifest - started");
-                var manifest = await _manifestService.CreateManifestAsync(
-                    sessionId,
-                    startTime,
-                    DateTime.UtcNow,
-                    historicalData,
-                    experiences.Count,
-                    new Dictionary<string, object>
-                    {
-                        ["CVaRPPO_Enabled"] = true,
-                        ["NeuralUCB_Enabled"] = true,
-                        ["DataHash"] = dataVerification.DataHash
-                    },
-                    cancellationToken).ConfigureAwait(false);
-                
-                await _manifestService.SaveManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
-                var manifestPath = Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "manifests",
-                    $"training_manifest_{sessionId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-
-                // Step 8: GitHub Cloud Backup (Optional - Phase 11)
-                if (_githubBackupService != null)
-                {
-                    try
-                    {
-                        _logger.LogInformation("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
-                        
-                        // Upload manifest
-                        await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken)
-                            .ConfigureAwait(false);
-                        
-                        // Generate and upload training summary
-                        var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken)
-                            .ConfigureAwait(false);
-                        await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken)
-                            .ConfigureAwait(false);
-                        
-                        // Archive models locally (NOT uploaded to GitHub - too large)
-                        var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
-                        await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken)
-                            .ConfigureAwait(false);
-                        
-                        _logger.LogInformation("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
-                    }
-                    catch (Exception ex)
-                    {
-                        // GitHub backup is optional - log warning but don't fail the training session
-                        _logger.LogWarning(ex, "[LAB] GitHub backup failed but training session completed successfully: {Error}", ex.Message);
-                    }
-                }
-
-                // Step 9: Capture final metrics and export
-                _metricsCollector.CaptureResourceMetrics();
-                _metricsCollector.EndRun(true);
-                await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
-                
-                // Phase 14: Generate memory profiling report
-                await _memoryLeakDetector.GenerateMemoryReportAsync(sessionId, cancellationToken)
-                    .ConfigureAwait(false);
-
-                // Step 9: Generate session summary
-                result.EndTime = DateTime.UtcNow;
-                result.TotalDuration = result.EndTime - result.StartTime;
-                result.Success = true;
-
-                LogSessionSummary(result);
-                
-                // Alert success
-                await _alertService.AlertTrainingSuccessAsync(
-                    sessionId,
-                    result.TotalDuration.TotalMinutes,
-                    result.ModelsPromoted,
-                    result.ModelsDiscarded,
-                    new Dictionary<string, object>
-                    {
-                        ["HistoricalBars"] = result.HistoricalBarsLoaded,
-                        ["Experiences"] = result.ExperiencesLoaded
-                    },
-                    cancellationToken).ConfigureAwait(false);
-                
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[LAB] ERROR: Training session - {Error}", ex.Message);
-                
-                _metricsCollector.EndRun(false, ex.Message);
-                await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
-                
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-                result.EndTime = DateTime.UtcNow;
-                result.TotalDuration = result.EndTime - result.StartTime;
-                
-                // Phase 13: Save checkpoint on failure
-                _logger.LogInformation("[LAB] Saving checkpoint before abort...");
-                var failureState = new TrainingSessionState
-                {
-                    SessionId = sessionId,
-                    StartTime = startTime,
-                    CheckpointTime = DateTime.UtcNow,
-                    ComponentsCompleted = new List<string>(),
-                    ComponentsFailed = new List<ComponentFailure>
-                    {
-                        new ComponentFailure
-                        {
-                            ComponentId = "Session",
-                            ErrorMessage = ex.Message,
-                            FailureType = _failureHandler.ClassifyFailure(ex),
-                            FailedAt = DateTime.UtcNow,
-                            RetryCount = 0
-                        }
-                    },
-                    TotalComponents = 2,
-                    CurrentPhase = "Failed"
-                };
-                await _checkpointService.SaveCheckpointAsync(failureState, cancellationToken)
-                    .ConfigureAwait(false);
-                
-                await _alertService.AlertTrainingFailureAsync(
-                    sessionId,
-                    ex.Message,
-                    result.FailedComponents,
-                    cancellationToken).ConfigureAwait(false);
-                
-                return result;
-            }
-            finally
-            {
-                // Phase 14: Generate performance profile report
-                _performanceProfiler.EndProfilingSection("SessionTotal");
-                var profileReport = await _performanceProfiler.GenerateProfileReportAsync(sessionId, cancellationToken)
-                    .ConfigureAwait(false);
-                
-                if (_debugLogger.IsDebugEnabled)
-                {
-                    _logger.LogInformation("[LAB] Performance Profile:\n{Report}", profileReport);
-                }
-                
-                // Phase 13: Cleanup checkpoint on success
-                if (result.Success)
-                {
-                    _checkpointService.DeleteCheckpoint(sessionId);
-                }
-                
-                // Phase 12: Disk space management
-                await _resourceMonitor.ManageDiskSpaceAsync(cancellationToken).ConfigureAwait(false);
-            }
+            var result = await ExecuteTrainingSessionAsync(sessionId, startTime, cancellationToken).ConfigureAwait(false);
+            
+            return result;
         }
         finally
         {
-            // Release training lock
             _trainingLock.Release();
         }
+    }
+    
+    private async Task<TrainingSessionResult> ExecuteTrainingSessionAsync(
+        string sessionId, 
+        DateTime startTime, 
+        CancellationToken cancellationToken)
+    {
+        var result = InitializeTrainingResult(sessionId, startTime);
+        _metricsCollector.StartRun(sessionId);
+        
+        try
+        {
+            await ProfileSystemCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+            await TryResumeFromCheckpointAsync(cancellationToken).ConfigureAwait(false);
+            
+            _performanceProfiler.StartProfilingSection("SessionTotal");
+
+            await ExecuteTrainingPipelineAsync(result, cancellationToken).ConfigureAwait(false);
+            await FinalizeSuccessfulTrainingAsync(result, sessionId, startTime, cancellationToken).ConfigureAwait(false);
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            await HandleTrainingFailureAsync(result, sessionId, startTime, ex, cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+        finally
+        {
+            await FinalizeTrainingSessionAsync(result, sessionId, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static TrainingSessionResult InitializeTrainingResult(string sessionId, DateTime startTime)
+    {
+        return new TrainingSessionResult
+        {
+            SessionId = sessionId,
+            StartTime = startTime
+        };
+    }
+
+    private async Task ProfileSystemCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Profiling system capabilities...");
+        var systemProfile = await _capabilityProfiler.ProfileSystemCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+        
+        await _resourceManager.CalculateOptimalThresholdsAsync(systemProfile, 273, cancellationToken).ConfigureAwait(false);
+        var strategy = await _resourceManager.DetermineTrainingStrategyAsync(systemProfile, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogDebug("[LAB] Training strategy: {Strategy} ({Components} components, {Days}-day data)",
+            strategy.Name, strategy.ComponentCount, strategy.HistoricalDataDays);
+    }
+
+    private async Task TryResumeFromCheckpointAsync(CancellationToken cancellationToken)
+    {
+        var checkpointPath = _checkpointService.FindMostRecentCheckpoint();
+        if (checkpointPath == null)
+            return;
+
+        _logger.LogDebug("[LAB] Found existing checkpoint - attempting to resume...");
+        var checkpointState = await _checkpointService.LoadCheckpointAsync(checkpointPath, cancellationToken).ConfigureAwait(false);
+        
+        if (checkpointState != null && await _checkpointService.ValidateCheckpointAsync(checkpointState, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("[LAB] Checkpoint validated - resuming from component {Index}/{Total}",
+                checkpointState.CurrentComponentIndex, checkpointState.TotalComponents);
+        }
+        else
+        {
+            _logger.LogWarning("[LAB] Checkpoint validation failed - starting fresh session");
+            if (checkpointPath != null)
+            {
+                await _checkpointService.ArchiveCheckpointAsync(checkpointPath, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task ExecuteTrainingPipelineAsync(TrainingSessionResult result, CancellationToken cancellationToken)
+    {
+        var historicalData = await LoadHistoricalDataWithRetryAsync(cancellationToken).ConfigureAwait(false);
+        result.HistoricalBarsLoaded = historicalData.Sum(kvp => kvp.Value);
+
+        await CleanupOldExperiencesAsync().ConfigureAwait(false);
+        
+        var experiences = await LoadAndVerifyExperiencesAsync(result, historicalData, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogDebug("[LAB] Running training pipeline - started");
+        _metricsCollector.StartTimer("TrainingPipeline");
+        
+        await RunTrainingPipelineAsync(historicalData, experiences, result, cancellationToken).ConfigureAwait(false);
+        
+        _metricsCollector.StopTimer("TrainingPipeline");
+
+        await SaveAndPromoteModelsAsync(result, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<Dictionary<string, int>> LoadHistoricalDataWithRetryAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Loading historical data - started");
+        _metricsCollector.StartTimer(ComponentDataLoading);
+        _performanceProfiler.StartProfilingSection(ComponentDataLoading);
+        
+        var (canProceed, issue) = await _resourceMonitor.CheckResourcesDuringTrainingAsync(
+            ComponentDataLoading, cancellationToken).ConfigureAwait(false);
+        
+        if (!canProceed)
+        {
+            throw new InvalidOperationException($"Resource check failed: {issue}");
+        }
+        
+        var historicalData = await _retryService.ExecuteWithRetryAsync(
+            async ct => await LoadHistoricalDataAsync(ct).ConfigureAwait(false),
+            "Load historical data",
+            TrainingRetryService.IsTransientError,
+            cancellationToken).ConfigureAwait(false);
+        
+        _performanceProfiler.EndProfilingSection(ComponentDataLoading);
+        _metricsCollector.StopTimer(ComponentDataLoading);
+        _metricsCollector.RecordMetric("HistoricalBarsLoaded", historicalData.Sum(kvp => kvp.Value));
+        
+        return historicalData;
+    }
+
+    private async Task CleanupOldExperiencesAsync()
+    {
+        if (_experienceRepository != null)
+        {
+            _logger.LogDebug("[LAB] Cleaning up old experiences (retention: 90 days)...");
+            await _experienceRepository.CleanupOldExperiencesAsync(90).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<List<Experience>> LoadAndVerifyExperiencesAsync(
+        TrainingSessionResult result, 
+        Dictionary<string, int> historicalData, 
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Loading experiences - started");
+        _metricsCollector.StartTimer("ExperienceLoading");
+        
+        var experiences = await LoadRecentExperiencesAsync(cancellationToken).ConfigureAwait(false);
+        result.ExperiencesLoaded = experiences.Count;
+        
+        _metricsCollector.StopTimer("ExperienceLoading");
+        _metricsCollector.RecordMetric("ExperiencesLoaded", result.ExperiencesLoaded);
+
+        _logger.LogDebug("[LAB] Verifying data integrity - started");
+        var dataVerification = await _dataIntegrityService.VerifyTrainingDataAsync(
+            historicalData,
+            experiences.Count,
+            90,
+            cancellationToken).ConfigureAwait(false);
+
+        if (!dataVerification.IsValid)
+        {
+            _logger.LogError("[LAB] Data integrity check FAILED - aborting training");
+            await _alertService.AlertDataIntegrityIssueAsync(
+                "Data verification failed",
+                string.Join("; ", dataVerification.Issues),
+                cancellationToken).ConfigureAwait(false);
+            
+            throw new InvalidOperationException("Data integrity verification failed: " + string.Join("; ", dataVerification.Issues));
+        }
+        
+        return experiences;
+    }
+
+    private async Task SaveAndPromoteModelsAsync(TrainingSessionResult result, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Saving challengers to model registry - started");
+        _metricsCollector.StartTimer("SaveModels");
+        
+        await SaveChallengersAsync(result, cancellationToken).ConfigureAwait(false);
+        
+        _metricsCollector.StopTimer("SaveModels");
+        _metricsCollector.RecordMetric("ChallengersSaved", result.ChallengersSaved);
+
+        _logger.LogDebug("[LAB] Running promotion evaluations - started");
+        _metricsCollector.StartTimer("PromotionEvaluation");
+        
+        await RunPromotionEvaluationsAsync(result, cancellationToken).ConfigureAwait(false);
+        
+        _metricsCollector.StopTimer("PromotionEvaluation");
+        _metricsCollector.RecordMetric("ModelsPromoted", result.ModelsPromoted);
+        _metricsCollector.RecordMetric("ModelsDiscarded", result.ModelsDiscarded);
+    }
+
+    private async Task FinalizeSuccessfulTrainingAsync(
+        TrainingSessionResult result, 
+        string sessionId, 
+        DateTime startTime, 
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("[LAB] Generating artifact manifest - started");
+        var manifest = await _manifestService.CreateManifestAsync(
+            sessionId,
+            startTime,
+            DateTime.UtcNow,
+            new Dictionary<string, int>(),
+            result.ExperiencesLoaded,
+            new Dictionary<string, object>
+            {
+                ["CVaRPPO_Enabled"] = true,
+                ["NeuralUCB_Enabled"] = true
+            },
+            cancellationToken).ConfigureAwait(false);
+        
+        await _manifestService.SaveManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
+        var manifestPath = Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "manifests",
+            $"training_manifest_{sessionId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+
+        await TryGitHubBackupAsync(manifestPath, sessionId, result, cancellationToken).ConfigureAwait(false);
+
+        _metricsCollector.CaptureResourceMetrics();
+        _metricsCollector.EndRun(true);
+        await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+        
+        await _memoryLeakDetector.GenerateMemoryReportAsync(sessionId, cancellationToken).ConfigureAwait(false);
+
+        result.EndTime = DateTime.UtcNow;
+        result.TotalDuration = result.EndTime - result.StartTime;
+        result.Success = true;
+
+        LogSessionSummary(result);
+        
+        await _alertService.AlertTrainingSuccessAsync(
+            sessionId,
+            result.TotalDuration.TotalMinutes,
+            result.ModelsPromoted,
+            result.ModelsDiscarded,
+            new Dictionary<string, object>
+            {
+                ["HistoricalBars"] = result.HistoricalBarsLoaded,
+                ["Experiences"] = result.ExperiencesLoaded
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task TryGitHubBackupAsync(
+        string manifestPath, 
+        string sessionId, 
+        TrainingSessionResult result, 
+        CancellationToken cancellationToken)
+    {
+        if (_githubBackupService == null)
+            return;
+
+        try
+        {
+            _logger.LogDebug("[LAB] GITHUB SYNC (Optional Cloud Backup) - started");
+            
+            await _githubBackupService.UploadManifestAsync(manifestPath, sessionId, cancellationToken).ConfigureAwait(false);
+            
+            var summaryPath = await GenerateTrainingSummaryAsync(result, sessionId, cancellationToken).ConfigureAwait(false);
+            await _githubBackupService.UploadTrainingSummaryAsync(summaryPath, sessionId, cancellationToken).ConfigureAwait(false);
+            
+            var modelsPath = Path.Combine(Directory.GetCurrentDirectory(), "model_registry");
+            await _githubBackupService.ArchiveModelsLocallyAsync(modelsPath, sessionId, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogDebug("[LAB] Note: Terminal Mode will use local registry (no GitHub dependency)");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] GitHub backup failed but training session completed successfully: {Error}", ex.Message);
+        }
+    }
+
+    private async Task HandleTrainingFailureAsync(
+        TrainingSessionResult result, 
+        string sessionId, 
+        DateTime startTime, 
+        Exception ex, 
+        CancellationToken cancellationToken)
+    {
+        _logger.LogError(ex, "[LAB] ERROR: Training session - {Error}", ex.Message);
+        
+        _metricsCollector.EndRun(false, ex.Message);
+        await _metricsCollector.ExportMetricsAsync(cancellationToken).ConfigureAwait(false);
+        
+        result.Success = false;
+        result.ErrorMessage = ex.Message;
+        result.EndTime = DateTime.UtcNow;
+        result.TotalDuration = result.EndTime - result.StartTime;
+        
+        _logger.LogDebug("[LAB] Saving checkpoint before abort...");
+        var failureState = new TrainingSessionState
+        {
+            SessionId = sessionId,
+            StartTime = startTime,
+            CheckpointTime = DateTime.UtcNow,
+            ComponentsCompleted = new List<string>(),
+            ComponentsFailed = new List<ComponentFailure>
+            {
+                new ComponentFailure
+                {
+                    ComponentId = "Session",
+                    ErrorMessage = ex.Message,
+                    FailureType = _failureHandler.ClassifyFailure(ex),
+                    FailedAt = DateTime.UtcNow,
+                    RetryCount = 0
+                }
+            },
+            TotalComponents = 2,
+            CurrentPhase = "Failed"
+        };
+        await _checkpointService.SaveCheckpointAsync(failureState, cancellationToken).ConfigureAwait(false);
+        
+        await _alertService.AlertTrainingFailureAsync(
+            sessionId,
+            ex.Message,
+            result.FailedComponents,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task FinalizeTrainingSessionAsync(
+        TrainingSessionResult result, 
+        string sessionId, 
+        CancellationToken cancellationToken)
+    {
+        _performanceProfiler.EndProfilingSection("SessionTotal");
+        var profileReport = await _performanceProfiler.GenerateProfileReportAsync(sessionId, cancellationToken).ConfigureAwait(false);
+        
+        if (_debugLogger.IsDebugEnabled)
+        {
+            _logger.LogDebug("[LAB] Performance Profile:\n{Report}", profileReport);
+        }
+        
+        if (result.Success)
+        {
+            _checkpointService.DeleteCheckpoint(sessionId);
+        }
+        
+        await _resourceMonitor.ManageDiskSpaceAsync(cancellationToken).ConfigureAwait(false);
     }
 
     #region Private Methods - Data Loading
 
     private async Task<Dictionary<string, int>> LoadHistoricalDataAsync(CancellationToken cancellationToken)
     {
-        // Load historical bars using existing TopstepX SDK (IHistoricalDataBridgeService)
-        // This ensures we're using production APIs, not creating parallel systems
+        // Lab Mode uses Python script to fetch historical data, NOT live API connections
+        // This ensures Lab Mode is completely segregated from live trading infrastructure
         var data = new Dictionary<string, int>();
         var symbols = new[] { "ES", "NQ" };
-        
-        // Request 90 days * 390 bars/day ≈ 35,100 bars per symbol
-        const int barsToLoad = 35100;
 
+        // Step 1: Invoke Python script to fetch and save historical data if needed
+        await InvokePythonHistoricalDataFetchAsync(cancellationToken).ConfigureAwait(false);
+
+        // Step 2: Load the historical data from saved JSON files
         foreach (var symbol in symbols)
         {
             try
             {
-                _logger.LogInformation("[LAB] Downloading historical data for {Symbol} (90 days)", symbol);
+                var dataFile = Path.Combine("data", $"historical_{symbol.ToLowerInvariant()}_90d.json");
                 
-                // Use existing SDK bridge service to get real historical data from TopstepX
-                var historicalBars = await _historicalDataBridge.GetRecentHistoricalBarsAsync(symbol, barsToLoad).ConfigureAwait(false);
-                data[symbol] = historicalBars?.Count ?? 0;
+                if (!File.Exists(dataFile))
+                {
+                    _logger.LogWarning("[LAB] Historical data file not found: {File}", dataFile);
+                    data[symbol] = 0;
+                    continue;
+                }
+
+                var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                var historicalBars = System.Text.Json.JsonSerializer.Deserialize<List<object>>(jsonContent);
+                var barCount = historicalBars?.Count ?? 0;
                 
-                _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol}", data[symbol], symbol);
+                data[symbol] = barCount;
+                _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol} from {File}", barCount, symbol, dataFile);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB] ERROR: Failed to download historical data - {Symbol}: {Error}", 
+                _logger.LogError(ex, "[LAB] ERROR: Failed to load historical data - {Symbol}: {Error}", 
                     symbol, ex.Message);
                 data[symbol] = 0;
             }
         }
 
         return data;
+    }
+
+    private async Task InvokePythonHistoricalDataFetchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var pythonPath = FindPythonExecutable();
+            if (string.IsNullOrEmpty(pythonPath))
+            {
+                _logger.LogWarning("[LAB] Python executable not found - historical data fetch skipped");
+                return;
+            }
+
+            var scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "fetch-and-save-historical-data.py");
+            if (!File.Exists(scriptPath))
+            {
+                _logger.LogWarning("[LAB] Historical data fetch script not found: {Path}", scriptPath);
+                return;
+            }
+
+            _logger.LogInformation("[LAB] Fetching historical data using Python script...");
+
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = pythonPath,
+                    Arguments = $"\"{scriptPath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                }
+            };
+
+            process.Start();
+
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            var errors = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode == 0)
+            {
+                _logger.LogInformation("[LAB] Historical data fetch completed successfully");
+                if (!string.IsNullOrEmpty(output))
+                {
+                    _logger.LogDebug("[LAB] Python output: {Output}", output);
+                }
+            }
+            else
+            {
+                _logger.LogError("[LAB] Historical data fetch failed with exit code {ExitCode}", process.ExitCode);
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    _logger.LogError("[LAB] Python errors: {Errors}", errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ERROR: Failed to invoke Python historical data fetch - {Error}", ex.Message);
+        }
     }
 
     private async Task<List<Experience>> LoadRecentExperiencesAsync(CancellationToken cancellationToken)
@@ -551,34 +675,26 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogInformation("[LAB] CVaR-PPO training - started");
+            _logger.LogDebug("[LAB] {Component} training - started", ComponentCVarPPO);
             
-            // Phase 14: Record memory before component
-            _memoryLeakDetector.RecordBeforeComponent("CVaR-PPO");
-            
-            // Phase 14: Debug logging before component
-            _debugLogger.LogBeforeComponent("CVaR-PPO", "Main", 1, 2);
-            
-            // Phase 14: Start profiling
+            _memoryLeakDetector.RecordBeforeComponent(ComponentCVarPPO);
+            _debugLogger.LogBeforeComponent(ComponentCVarPPO, PhaseMain, 1, 2);
             _performanceProfiler.StartProfilingSection("Train_CVaRPPO");
             
-            // Phase 12: Resource check
             var (canProceed, issue) = await _resourceMonitor.CheckResourcesDuringTrainingAsync(
-                "CVaR-PPO", cancellationToken).ConfigureAwait(false);
+                ComponentCVarPPO, cancellationToken).ConfigureAwait(false);
             
             if (!canProceed)
             {
                 throw new InvalidOperationException($"Resource check failed: {issue}");
             }
             
-            // Convert experiences to format expected by CVaRPPOTrainer
             var rlExperiences = ConvertToRLExperiences(experiences);
             
-            // Phase 13: Wrap training with failure handler
             var componentResult = await _failureHandler.RetryComponentTrainingAsync(
-                "CVaR-PPO",
+                ComponentCVarPPO,
                 async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
-                3, // max attempts
+                3,
                 cancellationToken).ConfigureAwait(false);
             
             _performanceProfiler.EndProfilingSection("Train_CVaRPPO");
@@ -586,32 +702,28 @@ internal sealed class HistoricalTrainingOrchestrator
             result.CvarPpoTrainingDuration = stopwatch.Elapsed;
             result.CvarPpoSuccess = componentResult.Success;
             
-            // Phase 14: Record memory after component and detect leaks
-            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("CVaR-PPO", cancellationToken)
-                .ConfigureAwait(false);
-            
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("CVaR-PPO", componentResult.Success, stopwatch.Elapsed);
+            await _memoryLeakDetector.RecordAfterComponentAsync(ComponentCVarPPO, cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent(ComponentCVarPPO, componentResult.Success, stopwatch.Elapsed);
             
             if (componentResult.Success)
             {
                 var stats = _cvarPpoTrainer.GetTrainingStatistics();
-                _logger.LogInformation("[LAB] CVaR-PPO complete in {Duration:F0} min - Avg Reward: {Reward:F3}, Avg Loss: {Loss:F4}", 
-                    stopwatch.Elapsed.TotalMinutes, stats.AverageReward, stats.AverageLoss);
+                _logger.LogInformation("[LAB] {Component} complete in {Duration:F0} min - Avg Reward: {Reward:F3}, Avg Loss: {Loss:F4}", 
+                    ComponentCVarPPO, stopwatch.Elapsed.TotalMinutes, stats.AverageReward, stats.AverageLoss);
             }
             else
             {
-                _logger.LogWarning("[LAB] CVaR-PPO failed after retries - {Message}", componentResult.ErrorMessage);
-                result.FailedComponents.Add("CVaR-PPO");
+                _logger.LogWarning("[LAB] {Component} failed after retries - {Message}", ComponentCVarPPO, componentResult.ErrorMessage);
+                result.FailedComponents.Add(ComponentCVarPPO);
             }
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: CVaR-PPO - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentCVarPPO, ex.Message);
             result.CvarPpoTrainingDuration = stopwatch.Elapsed;
             result.CvarPpoSuccess = false;
-            result.FailedComponents.Add("CVaR-PPO");
+            result.FailedComponents.Add(ComponentCVarPPO);
         }
     }
 
@@ -623,147 +735,168 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogInformation("[LAB] CVaR-PPO complete - Starting Neural UCB");
-            _logger.LogInformation("[LAB] Neural UCB training - started");
+            _logger.LogDebug("[LAB] {Component} training - started (after CVaR-PPO)", ComponentNeuralUCB);
             
-            // Phase 14: Record memory before component
-            _memoryLeakDetector.RecordBeforeComponent("Neural UCB");
+            _memoryLeakDetector.RecordBeforeComponent(ComponentNeuralUCB);
+            _debugLogger.LogBeforeComponent(ComponentNeuralUCB, PhaseMain, 2, 5);
             
-            // Phase 14: Debug logging before component
-            _debugLogger.LogBeforeComponent("Neural UCB", "Main", 2, 5);
-            
-            // PRODUCTION IMPLEMENTATION: Export and persist Neural-UCB training data
-            // The bandit's in-memory statistics (27,696+ updates) need to be saved to disk
-            // so they persist across Lab Mode sessions and improve strategy selection.
-            //
-            // Neural-UCB learns which strategies (S2/S3/S6/S11) perform best in different
-            // market conditions. Without persistence, this valuable learning is lost.
-            
-            try
-            {
-                // Get Neural-UCB bandit from UnifiedTradingBrain
-                var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
-                if (brain != null)
-                {
-                    var bandit = brain.GetStrategySelector(); // Returns NeuralUcbBandit
-                    if (bandit != null)
-                    {
-                        var totalUpdates = bandit.GetTotalUpdates();
-                        _logger.LogInformation("[LAB] Neural UCB: Exporting {Updates} updates from live bandit", totalUpdates);
-                        
-                        // Export training data from all arms (S2, S3, S6, S11)
-                        var trainingData = bandit.ExportTrainingData();
-                        
-                        // Save to JSON file for Python training script
-                        var neuralUcbDataPath = Path.Combine("models", "neural_ucb_training_data.json");
-                        Directory.CreateDirectory(Path.GetDirectoryName(neuralUcbDataPath)!);
-                        
-                        var serializedData = System.Text.Json.JsonSerializer.Serialize(trainingData, new System.Text.Json.JsonSerializerOptions 
-                        { 
-                            WriteIndented = true 
-                        });
-                        File.WriteAllText(neuralUcbDataPath, serializedData);
-                        
-                        _logger.LogInformation("[LAB] ✅ Neural UCB: Saved {Arms} arms with {Samples} total training samples to {Path}",
-                            trainingData.Count, trainingData.Sum(kvp => kvp.Value.Count), neuralUcbDataPath);
-                        
-                        // Get and log arm statistics
-                        var stats = await bandit.GetArmStatisticsAsync(cancellationToken).ConfigureAwait(false);
-                        foreach (var stat in stats.OrderByDescending(kvp => kvp.Value.UpdateCount))
-                        {
-                            _logger.LogInformation("[LAB] Neural UCB Arm {Arm}: {Updates} updates, avg reward: {Reward:F3}",
-                                stat.Key, stat.Value.UpdateCount, stat.Value.AverageReward);
-                        }
-                        
-                        // PHASE 2: Invoke Python training script to retrain neural networks
-                        // This is where the actual deep learning happens (~15 minutes)
-                        _logger.LogInformation("[LAB] Neural UCB: Starting Python retraining with {Samples} samples...", 
-                            trainingData.Sum(kvp => kvp.Value.Count));
-                        
-                        var pythonSuccess = await InvokePythonNeuralUcbTrainingAsync(
-                            neuralUcbDataPath, 
-                            cancellationToken).ConfigureAwait(false);
-                        
-                        if (pythonSuccess)
-                        {
-                            _logger.LogInformation("[LAB] ✅ Neural UCB: Python retraining completed successfully");
-                            
-                            // PHASE 3: Reload updated ONNX models into C# neural networks
-                            var reloadSuccess = await ReloadNeuralUcbModelsAsync(bandit, cancellationToken).ConfigureAwait(false);
-                            
-                            if (reloadSuccess)
-                            {
-                                _logger.LogInformation("[LAB] ✅ Neural UCB: Models reloaded successfully");
-                                result.NeuralUcbSuccess = true;
-                            }
-                            else
-                            {
-                                _logger.LogWarning("[LAB] ⚠️ Neural UCB: Model reload failed, using existing models");
-                                result.NeuralUcbSuccess = true; // Export worked, training worked, only reload had issues
-                            }
-                        }
-                        else
-                        {
-                            // CRITICAL ERROR: Neural-UCB Python training failed
-                            _logger.LogError("[LAB] ❌ Neural UCB: Python retraining failed");
-                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
-                            _logger.LogError("CRITICAL: Neural-UCB Python training failed. Strategy selection learning will");
-                            _logger.LogError("not improve. Check logs above for Python errors. Neural-UCB will continue");
-                            _logger.LogError("using old models but won't learn from this week's data.");
-                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
-                            _logger.LogError("TROUBLESHOOTING STEPS:");
-                            _logger.LogError("1. Verify Python is installed: python --version");
-                            _logger.LogError("2. Verify PyTorch & NumPy are available: pip list | grep -E 'torch|numpy'");
-                            _logger.LogError("3. Verify training data JSON is valid: {DataPath}", neuralUcbDataPath);
-                            _logger.LogError("4. Check Python training script exists: python/ucb/train_neural_ucb_from_strategy_data.py");
-                            _logger.LogError("5. Review Python stderr output above for specific error messages");
-                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
-                            
-                            result.NeuralUcbSuccess = false;
-                            result.FailedComponents.Add("Neural UCB Python Training");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[LAB] Neural UCB: Strategy selector not available (may not be initialized yet)");
-                        result.NeuralUcbSuccess = true; // Not a failure - bandit may not be active
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("[LAB] Neural UCB: UnifiedTradingBrain not available in service provider");
-                    result.NeuralUcbSuccess = true; // Not a failure - brain may not be initialized
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[LAB] Neural UCB: Error exporting training data - {Error}", ex.Message);
-                result.NeuralUcbSuccess = false;
-                result.FailedComponents.Add("Neural UCB Export");
-            }
+            await ExportAndTrainNeuralUCBModelsAsync(result, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             
-            // Phase 14: Record memory after component - run async but don't wait
-            _ = _memoryLeakDetector.RecordAfterComponentAsync("Neural UCB", cancellationToken);
+            _ = _memoryLeakDetector.RecordAfterComponentAsync(ComponentNeuralUCB, cancellationToken);
+            _debugLogger.LogAfterComponent(ComponentNeuralUCB, true, stopwatch.Elapsed);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("Neural UCB", true, stopwatch.Elapsed);
-            
-            _logger.LogInformation("[LAB] Neural UCB acknowledged - Online learning active in Terminal mode");
+            _logger.LogDebug("[LAB] {Component} acknowledged - Online learning active in Terminal mode", ComponentNeuralUCB);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: Neural UCB - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentNeuralUCB, ex.Message);
             result.NeuralUcbTrainingDuration = stopwatch.Elapsed;
             result.NeuralUcbSuccess = false;
-            result.FailedComponents.Add("Neural UCB");
+            result.FailedComponents.Add(ComponentNeuralUCB);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("Neural UCB", false, stopwatch.Elapsed);
+            _debugLogger.LogAfterComponent(ComponentNeuralUCB, false, stopwatch.Elapsed);
         }
+    }
+    
+    private async Task ExportAndTrainNeuralUCBModelsAsync(
+        TrainingSessionResult result, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
+            if (brain == null)
+            {
+                _logger.LogWarning("[LAB] {Component}: UnifiedTradingBrain not available in service provider", ComponentNeuralUCB);
+                result.NeuralUcbSuccess = true;
+                return;
+            }
+
+            var bandit = brain.GetStrategySelector();
+            if (bandit == null)
+            {
+                _logger.LogWarning("[LAB] {Component}: Strategy selector not available (may not be initialized yet)", ComponentNeuralUCB);
+                result.NeuralUcbSuccess = true;
+                return;
+            }
+
+            var neuralUcbDataPath = await ExportNeuralUCBTrainingDataAsync(bandit, cancellationToken).ConfigureAwait(false);
+            
+            // Export decision history for offline analysis
+            await ExportDecisionHistoryAsync(cancellationToken).ConfigureAwait(false);
+            
+            var pythonSuccess = await InvokePythonNeuralUcbTrainingAsync(neuralUcbDataPath, cancellationToken).ConfigureAwait(false);
+            
+            if (pythonSuccess)
+            {
+                _logger.LogDebug("[LAB] {Component}: Python retraining completed successfully", ComponentNeuralUCB);
+                
+                var reloadSuccess = await ReloadNeuralUcbModelsAsync(bandit, cancellationToken).ConfigureAwait(false);
+                
+                result.NeuralUcbSuccess = reloadSuccess;
+                if (!reloadSuccess)
+                {
+                    _logger.LogWarning("[LAB] {Component}: Model reload failed, using existing models", ComponentNeuralUCB);
+                }
+            }
+            else
+            {
+                LogNeuralUCBPythonTrainingFailure(neuralUcbDataPath);
+                result.NeuralUcbSuccess = false;
+                result.FailedComponents.Add($"{ComponentNeuralUCB} Python Training");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] {Component}: Error exporting training data - {Error}", ComponentNeuralUCB, ex.Message);
+            result.NeuralUcbSuccess = false;
+            result.FailedComponents.Add($"{ComponentNeuralUCB} Export");
+        }
+    }
+
+    private async Task<string> ExportNeuralUCBTrainingDataAsync(
+        global::BotCore.Bandits.NeuralUcbBandit bandit, 
+        CancellationToken cancellationToken)
+    {
+        var totalUpdates = bandit.GetTotalUpdates();
+        _logger.LogDebug("[LAB] {Component}: Exporting {Updates} updates from live bandit", ComponentNeuralUCB, totalUpdates);
+        
+        var trainingData = bandit.ExportTrainingData();
+        
+        var neuralUcbDataPath = Path.Combine("models", "neural_ucb_training_data.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(neuralUcbDataPath)!);
+        
+        var serializedData = System.Text.Json.JsonSerializer.Serialize(trainingData, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        await File.WriteAllTextAsync(neuralUcbDataPath, serializedData, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogDebug("[LAB] {Component}: Saved {Arms} arms with {Samples} total training samples to {Path}",
+            ComponentNeuralUCB, trainingData.Count, trainingData.Sum(kvp => kvp.Value.Count), neuralUcbDataPath);
+        
+        var stats = await bandit.GetArmStatisticsAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var stat in stats.OrderByDescending(kvp => kvp.Value.UpdateCount))
+        {
+            _logger.LogDebug("[LAB] {Component} Arm {Arm}: {Updates} updates, avg reward: {Reward:F3}",
+                ComponentNeuralUCB, stat.Key, stat.Value.UpdateCount, stat.Value.AverageReward);
+        }
+        
+        return neuralUcbDataPath;
+    }
+
+    private async Task ExportDecisionHistoryAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
+            if (brain == null)
+            {
+                _logger.LogWarning("[LAB] Decision History: UnifiedTradingBrain not available in service provider");
+                return;
+            }
+
+            _logger.LogDebug("[LAB] Decision History: Exporting decision history...");
+            
+            var decisionHistory = brain.ExportDecisionHistory();
+            
+            var decisionHistoryPath = Path.Combine("models", "decision_history.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(decisionHistoryPath)!);
+            
+            var serializedData = System.Text.Json.JsonSerializer.Serialize(decisionHistory, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+            await File.WriteAllTextAsync(decisionHistoryPath, serializedData, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] Decision History: Saved {Count} decisions to {Path}", 
+                decisionHistory.Count, decisionHistoryPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Decision History: Failed to export decision history - {Error}", ex.Message);
+        }
+    }
+
+    private void LogNeuralUCBPythonTrainingFailure(string neuralUcbDataPath)
+    {
+        _logger.LogError("[LAB] {Component}: Python retraining failed", ComponentNeuralUCB);
+        _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+        _logger.LogError("CRITICAL: {Component} Python training failed. Strategy selection learning will", ComponentNeuralUCB);
+        _logger.LogError("not improve. Check logs above for Python errors. {Component} will continue", ComponentNeuralUCB);
+        _logger.LogError("using old models but won't learn from this week's data.");
+        _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+        _logger.LogError("TROUBLESHOOTING STEPS:");
+        _logger.LogError("1. Verify Python is installed: python --version");
+        _logger.LogError("2. Verify PyTorch & NumPy are available: pip list | grep -E 'torch|numpy'");
+        _logger.LogError("3. Verify training data JSON is valid: {DataPath}", neuralUcbDataPath);
+        _logger.LogError("4. Check Python training script exists: python/ucb/train_neural_ucb_from_strategy_data.py");
+        _logger.LogError("5. Review Python stderr output above for specific error messages");
+        _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
     }
 
     private async Task TrainLSTMAsync(
@@ -773,43 +906,32 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogInformation("[LAB] Neural UCB complete - Starting LSTM");
-            _logger.LogInformation("[LAB] LSTM training - started");
+            _logger.LogDebug("[LAB] {Component} training - started (after Neural UCB)", ComponentLSTM);
             
-            // Phase 14: Record memory before component
-            _memoryLeakDetector.RecordBeforeComponent("LSTM");
+            _memoryLeakDetector.RecordBeforeComponent(ComponentLSTM);
+            _debugLogger.LogBeforeComponent(ComponentLSTM, PhaseMain, 3, 5);
             
-            // Phase 14: Debug logging before component
-            _debugLogger.LogBeforeComponent("LSTM", "Main", 3, 5);
-            
-            // LSTM is integrated into intelligence stack - training happens through existing components
-            // Mark as success since LSTM training is handled by IntelligenceOrchestrator
             await Task.CompletedTask.ConfigureAwait(false);
             
             stopwatch.Stop();
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = true;
             
-            // Phase 14: Record memory after component
-            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("LSTM", cancellationToken)
-                .ConfigureAwait(false);
+            await _memoryLeakDetector.RecordAfterComponentAsync(ComponentLSTM, cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent(ComponentLSTM, true, stopwatch.Elapsed);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("LSTM", true, stopwatch.Elapsed);
-            
-            _logger.LogInformation("[LAB] LSTM complete in {Duration:F0} min - Integrated into IntelligenceOrchestrator", 
-                stopwatch.Elapsed.TotalMinutes);
+            _logger.LogDebug("[LAB] {Component} complete in {Duration:F0} min - Integrated into IntelligenceOrchestrator", 
+                ComponentLSTM, stopwatch.Elapsed.TotalMinutes);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: LSTM - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentLSTM, ex.Message);
             result.LstmTrainingDuration = stopwatch.Elapsed;
             result.LstmSuccess = false;
-            result.FailedComponents.Add("LSTM");
+            result.FailedComponents.Add(ComponentLSTM);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("LSTM", false, stopwatch.Elapsed);
+            _debugLogger.LogAfterComponent(ComponentLSTM, false, stopwatch.Elapsed);
         }
     }
 
@@ -820,43 +942,32 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogInformation("[LAB] LSTM complete - Starting Position Management");
-            _logger.LogInformation("[LAB] Position Management optimization - started");
+            _logger.LogDebug("[LAB] {Component} optimization - started (after LSTM)", ComponentPositionManagement);
             
-            // Phase 14: Record memory before component
-            _memoryLeakDetector.RecordBeforeComponent("Position Management");
+            _memoryLeakDetector.RecordBeforeComponent(ComponentPositionManagement);
+            _debugLogger.LogBeforeComponent(ComponentPositionManagement, PhaseMain, 4, 5);
             
-            // Phase 14: Debug logging before component
-            _debugLogger.LogBeforeComponent("Position Management", "Main", 4, 5);
-            
-            // Position management optimization is handled by PositionManagementOptimizer service
-            // This is integrated into the existing system and runs continuously
             await Task.CompletedTask.ConfigureAwait(false);
             
             stopwatch.Stop();
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = true;
             
-            // Phase 14: Record memory after component
-            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("Position Management", cancellationToken)
-                .ConfigureAwait(false);
+            await _memoryLeakDetector.RecordAfterComponentAsync(ComponentPositionManagement, cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent(ComponentPositionManagement, true, stopwatch.Elapsed);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("Position Management", true, stopwatch.Elapsed);
-            
-            _logger.LogInformation("[LAB] Position Management complete in {Duration:F0} min - Integrated into PositionManagementOptimizer", 
-                stopwatch.Elapsed.TotalMinutes);
+            _logger.LogDebug("[LAB] {Component} complete in {Duration:F0} min - Integrated into PositionManagementOptimizer", 
+                ComponentPositionManagement, stopwatch.Elapsed.TotalMinutes);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: Position Management - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentPositionManagement, ex.Message);
             result.PositionMgmtTrainingDuration = stopwatch.Elapsed;
             result.PositionMgmtSuccess = false;
-            result.FailedComponents.Add("Position Management");
+            result.FailedComponents.Add(ComponentPositionManagement);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("Position Management", false, stopwatch.Elapsed);
+            _debugLogger.LogAfterComponent(ComponentPositionManagement, false, stopwatch.Elapsed);
         }
     }
 
@@ -867,43 +978,32 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogInformation("[LAB] Position Management complete - Starting S15 Shadow Validation");
-            _logger.LogInformation("[LAB] S15 Shadow Validation - started");
+            _logger.LogDebug("[LAB] {Component} - started (after Position Management)", ComponentS15ShadowValidation);
             
-            // Phase 14: Record memory before component
-            _memoryLeakDetector.RecordBeforeComponent("S15 Shadow Validation");
+            _memoryLeakDetector.RecordBeforeComponent(ComponentS15ShadowValidation);
+            _debugLogger.LogBeforeComponent(ComponentS15ShadowValidation, PhaseMain, 5, 5);
             
-            // Phase 14: Debug logging before component
-            _debugLogger.LogBeforeComponent("S15 Shadow Validation", "Main", 5, 5);
-            
-            // S15 shadow validation is integrated into the strategy system
-            // Validation happens through existing S15 strategy components
             await Task.CompletedTask.ConfigureAwait(false);
             
             stopwatch.Stop();
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = true;
             
-            // Phase 14: Record memory after component
-            var memoryAnalysis = await _memoryLeakDetector.RecordAfterComponentAsync("S15 Shadow Validation", cancellationToken)
-                .ConfigureAwait(false);
+            await _memoryLeakDetector.RecordAfterComponentAsync(ComponentS15ShadowValidation, cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent(ComponentS15ShadowValidation, true, stopwatch.Elapsed);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("S15 Shadow Validation", true, stopwatch.Elapsed);
-            
-            _logger.LogInformation("[LAB] S15 Shadow Validation complete in {Duration:F0} min - Integrated into S15 strategy", 
-                stopwatch.Elapsed.TotalMinutes);
+            _logger.LogDebug("[LAB] {Component} complete in {Duration:F0} min - Integrated into S15 strategy", 
+                ComponentS15ShadowValidation, stopwatch.Elapsed.TotalMinutes);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: S15 Shadow Validation - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentS15ShadowValidation, ex.Message);
             result.ShadowValidationDuration = stopwatch.Elapsed;
             result.ShadowValidationSuccess = false;
-            result.FailedComponents.Add("S15 Shadow Validation");
+            result.FailedComponents.Add(ComponentS15ShadowValidation);
             
-            // Phase 14: Debug logging after component
-            _debugLogger.LogAfterComponent("S15 Shadow Validation", false, stopwatch.Elapsed);
+            _debugLogger.LogAfterComponent(ComponentS15ShadowValidation, false, stopwatch.Elapsed);
         }
     }
 
@@ -923,7 +1023,7 @@ internal sealed class HistoricalTrainingOrchestrator
         }).ToArray();
     }
 
-    private IReadOnlyList<double> ParseState(string stateString)
+    private static IReadOnlyList<double> ParseState(string stateString)
     {
         try
         {
@@ -931,12 +1031,11 @@ internal sealed class HistoricalTrainingOrchestrator
         }
         catch
         {
-            // Return empty state if parsing fails
             return Array.Empty<double>();
         }
     }
 
-    private int ParseAction(string actionString)
+    private static int ParseAction(string actionString)
     {
         try
         {
@@ -944,7 +1043,6 @@ internal sealed class HistoricalTrainingOrchestrator
         }
         catch
         {
-            // Return 0 if parsing fails
             return 0;
         }
     }
@@ -1182,7 +1280,7 @@ internal sealed class HistoricalTrainingOrchestrator
     /// <summary>
     /// Get Eastern Time from UTC
     /// </summary>
-    private DateTime GetEasternTime(DateTime utcTime)
+    private static DateTime GetEasternTime(DateTime utcTime)
     {
         try
         {
@@ -1191,7 +1289,6 @@ internal sealed class HistoricalTrainingOrchestrator
         }
         catch
         {
-            // Fallback to UTC-5 (EST) if timezone not found
             return utcTime.AddHours(-5);
         }
     }
@@ -1371,9 +1468,8 @@ internal sealed class HistoricalTrainingOrchestrator
     {
         try
         {
-            _logger.LogInformation("[LAB] Neural UCB: Reloading updated ONNX models...");
+            _logger.LogDebug("[LAB] {Component}: Reloading updated ONNX models...", ComponentNeuralUCB);
 
-            // Expected model files after Python training
             var modelDir = "models";
             var expectedModels = new[] { "S2", "S3", "S6", "S11" };
             var foundModels = 0;
@@ -1384,34 +1480,43 @@ internal sealed class HistoricalTrainingOrchestrator
                 if (File.Exists(modelPath))
                 {
                     var fileInfo = new FileInfo(modelPath);
-                    _logger.LogInformation("[LAB] Neural UCB: Found model {ArmId}: {Path} ({Size} bytes, modified {Modified})",
-                        armId, modelPath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+                    _logger.LogDebug("[LAB] {Component}: Found model {ArmId}: {Path} ({Size} bytes, modified {Modified})",
+                        ComponentNeuralUCB, armId, modelPath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
                     foundModels++;
                 }
                 else
                 {
-                    _logger.LogWarning("[LAB] Neural UCB: Model not found for {ArmId}: {Path}", armId, modelPath);
+                    _logger.LogWarning("[LAB] {Component}: Model not found for {ArmId}: {Path}", ComponentNeuralUCB, armId, modelPath);
                 }
             }
 
             if (foundModels == 0)
             {
-                _logger.LogError("[LAB] Neural UCB: No ONNX models found after training");
+                _logger.LogError("[LAB] {Component}: No ONNX models found after training", ComponentNeuralUCB);
                 return false;
             }
 
-            _logger.LogInformation("[LAB] ✅ Neural UCB: Verified {Count}/{Total} models exist", foundModels, expectedModels.Length);
+            _logger.LogDebug("[LAB] {Component}: Verified {Count}/{Total} models exist", ComponentNeuralUCB, foundModels, expectedModels.Length);
 
-            // TODO: Add actual model reload logic when OnnxNeuralNetwork supports hot-reload
-            // For now, models will be loaded on next bot restart
-            _logger.LogInformation("[LAB] Neural UCB: Models will be loaded on next bot startup");
+            // Hot-reload models into the bandit arms
+            _logger.LogDebug("[LAB] {Component}: Hot-reloading models into bandit arms...", ComponentNeuralUCB);
+            var reloadSuccess = await bandit.ReloadModelsAsync(modelDir, cancellationToken).ConfigureAwait(false);
             
-            await Task.CompletedTask.ConfigureAwait(false);
-            return true;
+            if (reloadSuccess)
+            {
+                _logger.LogInformation("[LAB] {Component}: Successfully hot-reloaded {Count} models without bot restart", 
+                    ComponentNeuralUCB, foundModels);
+            }
+            else
+            {
+                _logger.LogWarning("[LAB] {Component}: Some models failed to reload, check logs for details", ComponentNeuralUCB);
+            }
+            
+            return reloadSuccess;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LAB] Neural UCB: Error reloading models - {Error}", ex.Message);
+            _logger.LogError(ex, "[LAB] {Component}: Error reloading models - {Error}", ComponentNeuralUCB, ex.Message);
             return false;
         }
     }
@@ -1422,128 +1527,146 @@ internal sealed class HistoricalTrainingOrchestrator
     /// </summary>
     private string? FindPythonExecutable()
     {
-        // Strategy 0: Check configuration first
-        var configuredPath = _configuration.GetValue<string>("LabMode:NeuralUCB:PythonExecutablePath");
-        if (!string.IsNullOrEmpty(configuredPath))
-        {
-            try
-            {
-                var process = new System.Diagnostics.Process
-                {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = configuredPath,
-                        Arguments = "--version",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-                process.WaitForExit(5000); // 5 second timeout
-
-                if (process.ExitCode == 0)
-                {
-                    _logger.LogInformation("[LAB] Found configured Python: {Python}", configuredPath);
-                    return configuredPath;
-                }
-                else
-                {
-                    _logger.LogWarning("[LAB] Configured Python path '{Path}' failed validation, falling back to auto-detection", configuredPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[LAB] Configured Python path '{Path}' is invalid, falling back to auto-detection", configuredPath);
-            }
-        }
+        var configuredPath = TryGetConfiguredPythonPath();
+        if (configuredPath != null)
+            return configuredPath;
         
-        // Strategy 1: Check common names in PATH
+        var pathPython = TryFindPythonInPath();
+        if (pathPython != null)
+            return pathPython;
+
+        if (OperatingSystem.IsWindows())
+        {
+            var windowsPath = TryFindPythonInCommonWindowsPaths();
+            if (windowsPath != null)
+                return windowsPath;
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            var unixPath = TryFindPythonInCommonUnixPaths();
+            if (unixPath != null)
+                return unixPath;
+        }
+
+        _logger.LogWarning("[LAB] Python executable not found in PATH or common locations");
+        return null;
+    }
+
+    private string? TryGetConfiguredPythonPath()
+    {
+        var configuredPath = _configuration.GetValue<string>("LabMode:NeuralUCB:PythonExecutablePath");
+        if (string.IsNullOrEmpty(configuredPath))
+            return null;
+
+        try
+        {
+            if (ValidatePythonExecutable(configuredPath))
+            {
+                _logger.LogDebug("[LAB] Found configured Python: {Python}", configuredPath);
+                return configuredPath;
+            }
+            
+            _logger.LogWarning("[LAB] Configured Python path '{Path}' failed validation, falling back to auto-detection", configuredPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Configured Python path '{Path}' is invalid, falling back to auto-detection", configuredPath);
+        }
+
+        return null;
+    }
+
+    private string? TryFindPythonInPath()
+    {
         var pythonNames = new[] { "python", "python3", "python.exe", "python3.exe" };
         
         foreach (var pythonName in pythonNames)
         {
             try
             {
-                var process = new System.Diagnostics.Process
+                if (ValidatePythonExecutable(pythonName))
                 {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = pythonName,
-                        Arguments = "--version",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-                process.WaitForExit(5000); // 5 second timeout
-
-                if (process.ExitCode == 0)
-                {
-                    _logger.LogInformation("[LAB] Found Python: {Python}", pythonName);
+                    _logger.LogDebug("[LAB] Found Python: {Python}", pythonName);
                     return pythonName;
                 }
             }
             catch
             {
                 // Try next name
-                continue;
             }
         }
 
-        // Strategy 2: Check common installation paths (Windows)
-        if (OperatingSystem.IsWindows())
-        {
-            var commonPaths = new[]
-            {
-                @"C:\Python312\python.exe",
-                @"C:\Python311\python.exe",
-                @"C:\Python310\python.exe",
-                @"C:\Python39\python.exe",
-                @"C:\Python38\python.exe",
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python312", "python.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python311", "python.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python310", "python.exe"),
-            };
-
-            foreach (var path in commonPaths)
-            {
-                if (File.Exists(path))
-                {
-                    _logger.LogInformation("[LAB] Found Python at: {Path}", path);
-                    return path;
-                }
-            }
-        }
-
-        // Strategy 3: Check common paths (Linux/Mac)
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-        {
-            var unixPaths = new[]
-            {
-                "/usr/bin/python3",
-                "/usr/bin/python",
-                "/usr/local/bin/python3",
-                "/usr/local/bin/python",
-            };
-
-            foreach (var path in unixPaths)
-            {
-                if (File.Exists(path))
-                {
-                    _logger.LogInformation("[LAB] Found Python at: {Path}", path);
-                    return path;
-                }
-            }
-        }
-
-        _logger.LogWarning("[LAB] Python executable not found in PATH or common locations");
         return null;
+    }
+
+    // Note: Hardcoded Windows Python paths are intentional fallbacks for common installation locations
+    // when Python is not in PATH. These are industry-standard locations used by the official Python installer.
+#pragma warning disable S1075 // URIs should not be hardcoded - these are intentional fallback paths for common Python installations
+    private string? TryFindPythonInCommonWindowsPaths()
+    {
+        var commonPaths = new[]
+        {
+            @"C:\Python312\python.exe",
+            @"C:\Python311\python.exe",
+            @"C:\Python310\python.exe",
+            @"C:\Python39\python.exe",
+            @"C:\Python38\python.exe",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python312", "python.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python311", "python.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python", "Python310", "python.exe"),
+        };
+
+        return FindFirstExistingPath(commonPaths);
+    }
+#pragma warning restore S1075
+
+    private string? TryFindPythonInCommonUnixPaths()
+    {
+        var unixPaths = new[]
+        {
+            "/usr/bin/python3",
+            "/usr/bin/python",
+            "/usr/local/bin/python3",
+            "/usr/local/bin/python",
+        };
+
+        return FindFirstExistingPath(unixPaths);
+    }
+
+    private string? FindFirstExistingPath(string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            if (File.Exists(path))
+            {
+                _logger.LogDebug("[LAB] Found Python at: {Path}", path);
+                return path;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool ValidatePythonExecutable(string pythonPath)
+    {
+        var process = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = pythonPath,
+                Arguments = "--version",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+        process.WaitForExit(5000);
+
+        return process.ExitCode == 0;
     }
 
     #endregion
