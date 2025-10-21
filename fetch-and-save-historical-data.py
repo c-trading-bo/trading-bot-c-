@@ -50,7 +50,7 @@ def load_existing_data(file_path):
         with open(file_path, 'r') as f:
             return json.load(f)
     except Exception as e:
-        print(f"   ⚠️ Could not load existing file: {e}")
+        print(f"   [WARN] Could not load existing file: {e}")
         return None
 
 
@@ -75,7 +75,7 @@ def get_last_timestamp(existing_data):
         ts_without_tz = timestamp_str.rsplit('-', 1)[0].rsplit('+', 1)[0].strip()
         return datetime.strptime(ts_without_tz, '%Y-%m-%d %H:%M:%S')
     except Exception as e:
-        print(f"   ⚠️ Could not parse timestamp: {e}")
+        print(f"   [WARN] Could not parse timestamp: {e}")
         return None
 
 
@@ -169,18 +169,18 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
             
             # Check for rate limiting
             if 'rate limit' in error_msg.lower() or 'too many' in error_msg.lower():
-                print(f"      ⚠️ Rate limited, waiting {RATE_LIMIT_DELAY}s...")
+                print(f"      [WARN] Rate limited, waiting {RATE_LIMIT_DELAY}s...")
                 await asyncio.sleep(RATE_LIMIT_DELAY)
                 
                 if attempt < MAX_RETRIES:
-                    print(f"      🔄 Retry {attempt}/{MAX_RETRIES} after rate limit...")
+                    print(f"      [RETRY] Retry {attempt}/{MAX_RETRIES} after rate limit...")
                     return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
             
             # Check for timeout
             if 'timeout' in error_msg.lower() or 'timed out' in error_msg.lower():
                 if attempt < MAX_RETRIES:
                     delay = RETRY_DELAY_BASE ** attempt  # Exponential backoff: 2s, 4s, 8s
-                    print(f"      ⚠️ Timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
+                    print(f"      [WARN] Timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
                     await asyncio.sleep(delay)
                     return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
             
@@ -189,7 +189,7 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
     except asyncio.TimeoutError:
         if attempt < MAX_RETRIES:
             delay = RETRY_DELAY_BASE ** attempt
-            print(f"      ⚠️ Request timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
+            print(f"      [WARN] Request timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
             await asyncio.sleep(delay)
             return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
         else:
@@ -198,7 +198,7 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
     except Exception as e:
         if attempt < MAX_RETRIES:
             delay = RETRY_DELAY_BASE ** attempt
-            print(f"      ⚠️ Error: {str(e)}, retrying in {delay}s ({attempt}/{MAX_RETRIES})...")
+            print(f"      [WARN] Error: {str(e)}, retrying in {delay}s ({attempt}/{MAX_RETRIES})...")
             await asyncio.sleep(delay)
             return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
         else:
@@ -213,10 +213,10 @@ async def fetch_and_save_historical_data():
     username = os.getenv('TOPSTEPX_USERNAME')
     
     if not api_key or not username:
-        print("❌ ERROR: TOPSTEPX_API_KEY and TOPSTEPX_USERNAME must be set in .env")
+        print("[ERROR] TOPSTEPX_API_KEY and TOPSTEPX_USERNAME must be set in .env")
         return False
     
-    print(f"✅ Environment variables loaded")
+    print("[OK] Environment variables loaded")
     print(f"   Username: {username}")
     print(f"   API Key: {'*' * 20}{api_key[-4:]}")
     print(f"   Refresh Mode: {REFRESH_MODE.upper()}")
@@ -230,7 +230,7 @@ async def fetch_and_save_historical_data():
     data_dir.mkdir(parents=True, exist_ok=True)
     
     for symbol in symbols:
-        print(f"🔍 Fetching {symbol} data...")
+        print(f"[FETCH] Fetching {symbol} data...")
         
         # Check for existing data
         file_path = data_dir / f'{symbol}_90days.json'
@@ -245,23 +245,23 @@ async def fetch_and_save_historical_data():
             
             if last_timestamp:
                 start_date = last_timestamp + timedelta(minutes=5)  # Start after last bar
-                print(f"   📊 Incremental update from last bar: {last_timestamp.strftime('%Y-%m-%d %H:%M')}")
+                print(f"   [INFO] Incremental update from last bar: {last_timestamp.strftime('%Y-%m-%d %H:%M')}")
                 
                 # If last bar is very recent (< 10 minutes), nothing to fetch
                 time_since_last = (end_date - last_timestamp).total_seconds() / 60
                 if time_since_last < 10:
-                    print(f"   ✅ Data is up-to-date (last bar {int(time_since_last)} min ago)")
+                    print(f"   [OK] Data is up-to-date (last bar {int(time_since_last)} min ago)")
                     continue
             else:
                 # No valid timestamp, fall back to full refresh
-                print(f"   ⚠️ Could not find last timestamp, doing full refresh")
+                print(f"   [WARN] Could not find last timestamp, doing full refresh")
                 start_date = end_date - timedelta(days=LOOKBACK_DAYS)
         else:
             # Full refresh: Fetch entire lookback window
             start_date = end_date - timedelta(days=LOOKBACK_DAYS)
-            print(f"   🔄 Full refresh mode")
+            print(f"   [REFRESH] Full refresh mode")
         
-        print(f"   � Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+        print(f"   [DATE] Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
         print()
         
         try:
@@ -296,7 +296,7 @@ async def fetch_and_save_historical_data():
                 # Each chunk: ~15 calendar days to ensure we get 1000 bars
                 chunk_end = min(chunk_start + timedelta(days=15), end_date)
                 
-                print(f"   📦 Chunk {chunk_number}: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}...")
+                print(f"   [CHUNK] Chunk {chunk_number}: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}...")
                 
                 # Use retry logic
                 success, bars_result, error = await fetch_with_retry(
@@ -322,25 +322,25 @@ async def fetch_and_save_historical_data():
                                 invalid_bars_count += 1
                                 # Only log first few invalid bars to avoid spam
                                 if invalid_bars_count <= 5:
-                                    print(f"      ⚠️ Invalid bar: {reason} - {bar.get('timestamp', 'N/A')}")
+                                    print(f"      [WARN] Invalid bar: {reason} - {bar.get('timestamp', 'N/A')}")
                         
                         fetched_count = len(validated_bars)
                         total_fetched += fetched_count
                         
-                        print(f"      ✅ Fetched {fetched_count} valid bars")
+                        print(f"      [OK] Fetched {fetched_count} valid bars")
                         
                         if invalid_bars_count > 0 and invalid_bars_count <= 5:
-                            print(f"      ⚠️ Filtered {invalid_bars_count} invalid bars")
+                            print(f"      [WARN] Filtered {invalid_bars_count} invalid bars")
                         
                         all_bars.extend(validated_bars)
                         
                         # Progress logging (Phase 3)
                         if total_fetched > 0 and total_fetched % PROGRESS_LOG_INTERVAL == 0:
-                            print(f"   📊 Progress: {total_fetched:,} bars fetched so far...")
+                            print(f"   [PROGRESS] Progress: {total_fetched:,} bars fetched so far...")
                     else:
-                        print(f"      ⚠️ No data returned")
+                        print(f"      [WARN] No data returned")
                 else:
-                    print(f"      ❌ Request failed after {MAX_RETRIES} retries: {error}")
+                    print(f"      [ERROR] Request failed after {MAX_RETRIES} retries: {error}")
                     # Continue to next chunk rather than failing completely
                 
                 # Move to next chunk
@@ -351,24 +351,24 @@ async def fetch_and_save_historical_data():
                 await asyncio.sleep(0.5)
             
             if invalid_bars_count > 5:
-                print(f"   ⚠️ Total invalid bars filtered: {invalid_bars_count}")
+                print(f"   [WARN] Total invalid bars filtered: {invalid_bars_count}")
             
             bar_count = len(all_bars)
             
             if bar_count == 0:
                 if REFRESH_MODE == 'incremental' and existing_data:
-                    print(f"   ℹ️ No new bars to fetch (data already up-to-date)")
+                    print(f"   [INFO] No new bars to fetch (data already up-to-date)")
                     continue
                 else:
-                    print(f"   ❌ No data fetched for {symbol}")
+                    print(f"   [ERROR] No data fetched for {symbol}")
                     continue
             
-            print(f"   ✅ Fetched: {bar_count} new bars")
+            print(f"   [OK] Fetched: {bar_count} new bars")
             
             # Merge with existing data if incremental mode
             if REFRESH_MODE == 'incremental' and existing_data:
                 existing_bars = existing_data.get('bars', [])
-                print(f"   🔗 Merging with {len(existing_bars)} existing bars...")
+                print(f"   [MERGE] Merging with {len(existing_bars)} existing bars...")
                 
                 # Combine: existing + new
                 combined_bars = existing_bars + all_bars
@@ -389,7 +389,7 @@ async def fetch_and_save_historical_data():
                 bars_list = trim_to_lookback_days(bars_list, LOOKBACK_DAYS)
                 
                 bar_count = len(bars_list)
-                print(f"   ✅ After merge and trim: {bar_count} bars (last {LOOKBACK_DAYS} days)")
+                print(f"   [OK] After merge and trim: {bar_count} bars (last {LOOKBACK_DAYS} days)")
             else:
                 # Full refresh mode: just use fetched bars
                 # Sort by timestamp and remove duplicates
@@ -404,11 +404,11 @@ async def fetch_and_save_historical_data():
                     bars_list.append(bar)
             
             if len(bars_list) < bar_count:
-                print(f"   🔧 Removed {bar_count - len(bars_list)} duplicate bars")
+                print(f"   [DEDUP] Removed {bar_count - len(bars_list)} duplicate bars")
                 bar_count = len(bars_list)
             
             if bar_count == 0:
-                print(f"   ⚠️  No data returned for {symbol}")
+                print(f"   [WARN] No data returned for {symbol}")
                 continue
             
             # Save to file with enhanced metadata (Phase 3)
@@ -429,11 +429,11 @@ async def fetch_and_save_historical_data():
                     }
                 }, f, indent=2)
             
-            print(f"   💾 Saved to: {output_file}")
+            print(f"   [SAVE] Saved to: {output_file}")
             
             # Show sample bars
             if bar_count >= 5:
-                print(f"\n   📊 Sample bars (first 3):")
+                print(f"\n   [SAMPLE] Sample bars (first 3):")
                 for i, bar in enumerate(bars_list[:3], 1):
                     timestamp = bar.get('timestamp', 'N/A')
                     open_price = bar.get('open', 0)
@@ -444,7 +444,7 @@ async def fetch_and_save_historical_data():
                     print(f"      [{i}] {timestamp}")
                     print(f"          O: {open_price}, H: {high}, L: {low}, C: {close}, V: {volume}")
                 
-                print(f"\n   📊 Sample bars (last 3):")
+                print("\n   [SAMPLE] Sample bars (last 3):")
                 for i, bar in enumerate(bars_list[-3:], bar_count - 2):
                     timestamp = bar.get('timestamp', 'N/A')
                     open_price = bar.get('open', 0)
@@ -458,16 +458,16 @@ async def fetch_and_save_historical_data():
             print()
             
         except Exception as e:
-            print(f"   ❌ Error fetching {symbol} data: {str(e)}")
+            print(f"   [ERROR] Error fetching {symbol} data: {str(e)}")
             import traceback
             traceback.print_exc()
             continue
     
     print("=" * 60)
-    print("✅ HISTORICAL DATA FETCH COMPLETED")
-    print(f"📁 Data saved to: {data_dir.absolute()}")
+    print("[COMPLETE] HISTORICAL DATA FETCH COMPLETED")
+    print(f"[PATH] Data saved to: {data_dir.absolute()}")
     print()
-    print("🤖 Bot can now practice using:")
+    print("[BOT] Bot can now practice using:")
     print("   - data/historical/ES_90days.json")
     print("   - data/historical/NQ_90days.json")
     print("=" * 60)

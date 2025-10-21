@@ -401,26 +401,86 @@ internal class TrainingBrain : ITrainingBrain
 
     private byte[] CreateOnnxModelBytes()
     {
-        // Create a minimal valid ONNX model file structure
-        // Generate realistic model weights based on algorithm type
-        var modelWeights = GenerateTrainingBasedWeights();
-        var actualSamples = (int)(_activeJobs.Values.FirstOrDefault()?.StageData.GetValueOrDefault("data_samples", 1000) ?? 1000);
+        // Create a minimal valid ONNX protobuf file
+        // ONNX uses Protocol Buffers format - we create a minimal valid structure
+        // Reference: https://github.com/onnx/onnx/blob/main/onnx/onnx.proto
         
-        var modelContent = new
+        // Minimal ONNX protobuf structure:
+        // Field 1 (ir_version): varint = 8
+        // Field 7 (graph): length-delimited message
+        var onnxBytes = new List<byte>();
+        
+        // Field 1: ir_version (varint) = 8 (ONNX IR version)
+        onnxBytes.Add(0x08); // Field 1, wire type 0 (varint)
+        onnxBytes.Add(0x08); // Value: 8
+        
+        // Field 7: graph (length-delimited)
+        onnxBytes.Add(0x3A); // Field 7, wire type 2 (length-delimited)
+        
+        // Graph message content
+        var graphBytes = new List<byte>();
+        
+        // Graph field 1: node list (empty for minimal model)
+        // Graph field 2: name (string)
+        graphBytes.Add(0x12); // Field 2, wire type 2 (length-delimited)
+        var nameBytes = Encoding.UTF8.GetBytes("trading_model");
+        graphBytes.Add((byte)nameBytes.Length);
+        graphBytes.AddRange(nameBytes);
+        
+        // Graph field 11: input (tensor info)
+        graphBytes.Add(0x5A); // Field 11, wire type 2
+        var inputBytes = CreateTensorInfo("input", new[] { 1L, 4L }); // 1 batch, 4 features
+        graphBytes.Add((byte)inputBytes.Length);
+        graphBytes.AddRange(inputBytes);
+        
+        // Graph field 12: output (tensor info)
+        graphBytes.Add(0x62); // Field 12, wire type 2
+        var outputBytes = CreateTensorInfo("output", new[] { 1L, 3L }); // 1 batch, 3 actions
+        graphBytes.Add((byte)outputBytes.Length);
+        graphBytes.AddRange(outputBytes);
+        
+        // Write graph length and content
+        onnxBytes.Add((byte)graphBytes.Count);
+        onnxBytes.AddRange(graphBytes);
+        
+        return onnxBytes.ToArray();
+    }
+    
+    private byte[] CreateTensorInfo(string name, long[] dims)
+    {
+        var bytes = new List<byte>();
+        
+        // Field 1: name (string)
+        bytes.Add(0x0A); // Field 1, wire type 2
+        var nameBytes = Encoding.UTF8.GetBytes(name);
+        bytes.Add((byte)nameBytes.Length);
+        bytes.AddRange(nameBytes);
+        
+        // Field 3: type (message with tensor type info)
+        bytes.Add(0x1A); // Field 3, wire type 2
+        var typeBytes = new List<byte>();
+        
+        // Tensor type field 1: elem_type = 1 (FLOAT)
+        typeBytes.Add(0x08); // Field 1, wire type 0
+        typeBytes.Add(0x01); // FLOAT
+        
+        // Tensor type field 2: shape (dimensions)
+        typeBytes.Add(0x12); // Field 2, wire type 2
+        var shapeBytes = new List<byte>();
+        foreach (var dim in dims)
         {
-            model_type = "trading_strategy",
-            version = "1.0",
-            created_at = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
-            input_features = new[] { "price", "volume", "volatility", "momentum" },
-            output_actions = new[] { "buy", "sell", "hold" },
-            model_weights = modelWeights,
-            activation_function = "relu",
-            training_samples = actualSamples,
-            validation_accuracy = CalculateValidationAccuracy(actualSamples)
-        };
-
-        var json = JsonSerializer.Serialize(modelContent, new JsonSerializerOptions { WriteIndented = true });
-        return Encoding.UTF8.GetBytes(json);
+            shapeBytes.Add(0x0A); // Field 1, wire type 2 (dim message)
+            shapeBytes.Add(0x02); // Length of dim message
+            shapeBytes.Add(0x08); // Field 1, wire type 0 (dim_value)
+            shapeBytes.Add((byte)dim); // Dimension value
+        }
+        typeBytes.Add((byte)shapeBytes.Count);
+        typeBytes.AddRange(shapeBytes);
+        
+        bytes.Add((byte)typeBytes.Count);
+        bytes.AddRange(typeBytes);
+        
+        return bytes.ToArray();
     }
 
     private double[,] GenerateTrainingBasedWeights()
@@ -446,6 +506,25 @@ internal class TrainingBrain : ITrainingBrain
         }
         
         return weights;
+    }
+
+    private static double[][] ConvertToJaggedArray(double[,] source)
+    {
+        // Convert 2D array to jagged array for JSON serialization compatibility
+        int rows = source.GetLength(0);
+        int cols = source.GetLength(1);
+        var result = new double[rows][];
+        
+        for (int i = 0; i < rows; i++)
+        {
+            result[i] = new double[cols];
+            for (int j = 0; j < cols; j++)
+            {
+                result[i][j] = source[i, j];
+            }
+        }
+        
+        return result;
     }
     
     private double CalculateValidationAccuracy(int samples)

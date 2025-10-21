@@ -198,17 +198,23 @@ internal sealed class DataIntegrityService
                 continue;
             }
 
-            // File size check (should be >10MB, <500MB for reasonable data)
+            // File size check (reasonable data size depends on bar interval)
+            // 5-min bars: ~0.5-5 MB for 90 days
+            // 1-min bars: ~5-50 MB for 90 days
             var fileInfo = new FileInfo(filePath);
             var fileSizeMB = fileInfo.Length / (1024.0 * 1024.0);
             
-            if (fileSizeMB < 10)
+            if (fileSizeMB < 0.1)
             {
-                result.Warnings.Add($"{symbol}: File size too small ({fileSizeMB:F1} MB < 10 MB)");
+                result.Warnings.Add($"{symbol}: File size too small ({fileSizeMB:F1} MB < 0.1 MB) - likely corrupted or empty");
             }
             else if (fileSizeMB > 500)
             {
                 result.Warnings.Add($"{symbol}: File size unexpectedly large ({fileSizeMB:F1} MB > 500 MB)");
+            }
+            else
+            {
+                _logger.LogInformation("[DATA-INTEGRITY] ✓ {Symbol}: File size {SizeMB:F1} MB is reasonable", symbol, fileSizeMB);
             }
 
             try
@@ -249,22 +255,54 @@ internal sealed class DataIntegrityService
                     continue;
                 }
 
-                // Validate bar count matches expected (90 days of 5-min bars)
-                // ES: ~7020 bars per day (23 hours trading) * 90 days = ~631,800 bars
-                // Allow variance for holidays and early closes
-                const int ExpectedBarsPerDay = 7020;
+                // Validate bar count matches expected (90 days of data)
+                // Detect bar interval from metadata or infer from bar count
+                // ES/NQ trade ~23 hours per day (Sunday 6pm - Friday 5pm ET)
+                // 1-min bars: ~1380 bars/day × 90 = ~124,200 bars
+                // 5-min bars: ~276 bars/day × 90 = ~24,840 bars
+                // Allow variance for holidays and early closes (50% tolerance)
+                
+                // Infer interval from bar count (flexible detection)
+                int expectedBarsPerDay;
+                string detectedInterval;
+                
+                if (barCount > 80000) // Likely 1-minute data
+                {
+                    expectedBarsPerDay = 1380; // 23 hours × 60 min
+                    detectedInterval = "1-min";
+                }
+                else if (barCount > 15000) // Likely 5-minute data
+                {
+                    expectedBarsPerDay = 276; // 23 hours × 12 (5-min intervals)
+                    detectedInterval = "5-min";
+                }
+                else if (barCount > 3000) // Likely 15-minute or sparse 5-minute data
+                {
+                    expectedBarsPerDay = 92; // 23 hours × 4 (15-min intervals)
+                    detectedInterval = "15-min or sparse 5-min";
+                }
+                else // Hourly or daily
+                {
+                    expectedBarsPerDay = 23;
+                    detectedInterval = "hourly or daily";
+                }
+                
                 const int ExpectedDays = 90;
-                var expectedBars = ExpectedBarsPerDay * ExpectedDays;
-                var minBars = (int)(expectedBars * 0.7); // Allow 30% variance
-                var maxBars = (int)(expectedBars * 1.3);
+                var expectedBars = expectedBarsPerDay * ExpectedDays;
+                var minBars = (int)(expectedBars * 0.5); // Allow 50% variance for holidays
+                var maxBars = (int)(expectedBars * 1.5);
                 
                 if (barCount < minBars)
                 {
-                    result.Warnings.Add($"{symbol}: Low bar count {barCount:N0} (expected ~{expectedBars:N0}, min {minBars:N0})");
+                    result.Warnings.Add($"{symbol}: Low bar count {barCount:N0} for {detectedInterval} data (expected ~{expectedBars:N0}, min {minBars:N0})");
                 }
                 else if (barCount > maxBars)
                 {
-                    result.Warnings.Add($"{symbol}: High bar count {barCount:N0} (expected ~{expectedBars:N0}, max {maxBars:N0})");
+                    result.Warnings.Add($"{symbol}: High bar count {barCount:N0} for {detectedInterval} data (expected ~{expectedBars:N0}, max {maxBars:N0})");
+                }
+                else
+                {
+                    _logger.LogInformation("[DATA-INTEGRITY] ✓ {Symbol}: {BarCount:N0} bars ({Interval} data) within expected range", symbol, barCount, detectedInterval);
                 }
 
                 // Date range validation

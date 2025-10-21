@@ -238,6 +238,16 @@ public class AutonomousDecisionEngine : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // LAB_MODE guard: Autonomous engine requires live market data from TopstepX
+        // In Lab mode, we train models offline using historical data only
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1")
+        {
+            _logger.LogInformation("🔬 [AUTONOMOUS-ENGINE] Disabled in Lab Mode - Lab uses historical data for training only");
+            _logger.LogInformation("   ℹ️ Autonomous engine requires live TopstepX connection (Terminal mode)");
+            return; // Exit immediately - no autonomous trading in Lab mode
+        }
+        
         _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Starting autonomous profit-maximizing trading system...");
         
         try

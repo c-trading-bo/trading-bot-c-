@@ -119,6 +119,22 @@ internal class EnhancedBacktestLearningService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // CRITICAL FIX: Only run in BACKTEST mode, NOT in LAB mode
+        // Lab Mode = Real ONNX training (HistoricalTrainingOrchestrator)
+        // Backtest Mode = Lightweight simulation (this service)
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+        
+        var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
+        var isBacktestMode = backtestMode == "1" || backtestMode?.ToLowerInvariant() == "true";
+        
+        if (isLabMode && !isBacktestMode)
+        {
+            _logger.LogInformation("[ENHANCED-BACKTEST] ⏸️ Skipping - LAB_MODE detected (HistoricalTrainingOrchestrator handles real training)");
+            _logger.LogInformation("[ENHANCED-BACKTEST] This service only runs in BACKTEST_MODE for lightweight simulation");
+            return; // Exit immediately, don't run backtest spam
+        }
+        
         _logger.LogInformation("[ENHANCED-BACKTEST] Starting enhanced backtest learning service with UnifiedTradingBrain");
         
         // Wait for system initialization
