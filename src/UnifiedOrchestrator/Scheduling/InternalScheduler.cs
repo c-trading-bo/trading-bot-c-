@@ -783,14 +783,11 @@ internal sealed class InternalScheduler : BackgroundService
         // 🚀 DEBUG: Log every check to see if this is even being called
         _logger.LogWarning("[LAB-DEBUG] ⏰ IsTrainingTime() called at {Time}", easternTime.ToString("yyyy-MM-dd HH:mm:ss"));
 
-        // 🚀 TEMPORARY FIX: Force training to run immediately for model improvement
-        _logger.LogInformation("[LAB-DEBUG] IsTrainingTime called - forcing training to START NOW");
-        return true; // HARDCODED to force training session
-
         // 🚀 FORCE_LAB_NOW: Bypass Sunday schedule for immediate testing
         var forceLab = Environment.GetEnvironmentVariable("FORCE_LAB_NOW") == "1";
         if (forceLab)
         {
+            _logger.LogInformation("[LAB-DEBUG] FORCE_LAB_NOW=1 detected - forcing training to START NOW");
             return true; // Always return true to run immediately
         }
 

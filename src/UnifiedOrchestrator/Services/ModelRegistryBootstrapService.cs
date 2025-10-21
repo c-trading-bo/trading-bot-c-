@@ -10,8 +10,26 @@ using TradingBot.UnifiedOrchestrator.Models;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Automatically bootstraps the model registry with initial champions on first startup
-/// Only runs once - skips if champions already registered
+/// Automatically bootstraps the model registry with initial champions on first startup.
+/// Only runs once - skips if champions already registered.
+/// 
+/// ARCHITECTURE NOTE - ML/RL Component Training Status:
+/// 
+/// ✅ TRAINABLE COMPONENTS (2/9):
+/// - CVaR-PPO: Has CVaRPPOTrainer.cs, trains in HistoricalTrainingOrchestrator
+/// - Neural-UCB: Has NeuralUcbBanditTrainer.cs, trains in HistoricalTrainingOrchestrator
+/// 
+/// ⚠️ INTEGRATED COMPONENTS (7/9) - No dedicated trainers:
+/// - Regime-Detector: Placeholder bootstrap model
+/// - Model-Ensemble: Placeholder bootstrap model
+/// - Online-Learning-System: Uses IncrementalBayesianOptimizer (optimization, not training)
+/// - Slippage-Latency-Model: Placeholder bootstrap model
+/// - S15-RL-Policy: Validated but not trained (uses external S15 system)
+/// - Pattern-Recognition: Placeholder bootstrap model
+/// - PM-Optimizer: Uses PositionManagementOptimizer (optimization, not training)
+/// 
+/// All 9 components get bootstrap champion pointers created to prevent re-bootstrap on each startup.
+/// Only CVaR-PPO and Neural-UCB produce new trained ONNX models during Sunday Lab Mode sessions.
 /// </summary>
 internal sealed class ModelRegistryBootstrapService : IHostedService
 {
