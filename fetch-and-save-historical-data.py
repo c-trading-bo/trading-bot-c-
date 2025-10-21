@@ -45,7 +45,7 @@ def load_existing_data(file_path):
     """Load existing historical data from file."""
     if not file_path.exists():
         return None
-    
+
     try:
         with open(file_path, 'r') as f:
             return json.load(f)
@@ -58,17 +58,17 @@ def get_last_timestamp(existing_data):
     """Get the timestamp of the last bar in existing data."""
     if not existing_data or not existing_data.get('bars'):
         return None
-    
+
     bars = existing_data['bars']
     if not bars:
         return None
-    
+
     last_bar = bars[-1]
     timestamp_str = last_bar.get('timestamp')
-    
+
     if not timestamp_str:
         return None
-    
+
     try:
         # Parse timestamp (format: "2025-08-31 17:00:00-05:00")
         # Remove timezone for datetime parsing
@@ -83,7 +83,7 @@ def validate_bar(bar, symbol):
     """
     Validate a single bar for data quality.
     Phase 3: Check for nulls, zeros, outliers
-    
+
     Returns: (is_valid, reason)
     """
     # Check required fields
@@ -91,26 +91,26 @@ def validate_bar(bar, symbol):
     for field in required_fields:
         if field not in bar or bar[field] is None:
             return False, f"Missing or null {field}"
-    
+
     # Check for zero prices (invalid for ES/NQ)
     if bar['open'] == 0 or bar['high'] == 0 or bar['low'] == 0 or bar['close'] == 0:
         return False, "Zero price detected"
-    
+
     # Check OHLC logic: High >= Low, and Open/Close between High/Low
     high = float(bar['high'])
     low = float(bar['low'])
     open_price = float(bar['open'])
     close_price = float(bar['close'])
-    
+
     if high < low:
         return False, f"High ({high}) < Low ({low})"
-    
+
     if open_price > high or open_price < low:
         return False, f"Open ({open_price}) outside High/Low range"
-    
+
     if close_price > high or close_price < low:
         return False, f"Close ({close_price}) outside High/Low range"
-    
+
     # Check for outliers (ES typically 4000-6000, NQ 15000-20000)
     # Allow wide range but catch extreme outliers
     if symbol == 'ES':
@@ -119,7 +119,7 @@ def validate_bar(bar, symbol):
     elif symbol == 'NQ':
         if close_price < 5000 or close_price > 30000:
             return False, f"Price outlier for NQ: {close_price}"
-    
+
     return True, ""
 
 
@@ -127,10 +127,10 @@ def trim_to_lookback_days(bars, lookback_days):
     """Keep only the most recent bars within lookback window."""
     if not bars:
         return bars
-    
+
     # Find cutoff date
     cutoff = datetime.now() - timedelta(days=lookback_days)
-    
+
     # Filter bars
     trimmed = []
     for bar in bars:
@@ -138,13 +138,13 @@ def trim_to_lookback_days(bars, lookback_days):
         try:
             ts_without_tz = timestamp_str.rsplit('-', 1)[0].rsplit('+', 1)[0].strip()
             bar_time = datetime.strptime(ts_without_tz, '%Y-%m-%d %H:%M:%S')
-            
+
             if bar_time >= cutoff:
                 trimmed.append(bar)
         except:
             # Keep bar if we can't parse (safer)
             trimmed.append(bar)
-    
+
     return trimmed
 
 
@@ -152,7 +152,7 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
     """
     Fetch historical bars with retry logic and exponential backoff.
     Phase 3: Retry on timeout/failure with exponential backoff
-    
+
     Returns: (success, bars_result, error_message)
     """
     try:
@@ -161,21 +161,21 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
             start_date=start_date,
             end_date=end_date
         )
-        
+
         if bars_result and bars_result.get('success'):
             return True, bars_result, None
         else:
             error_msg = bars_result.get('error', 'Unknown error') if bars_result else 'No response'
-            
+
             # Check for rate limiting
             if 'rate limit' in error_msg.lower() or 'too many' in error_msg.lower():
                 print(f"      [WARN] Rate limited, waiting {RATE_LIMIT_DELAY}s...")
                 await asyncio.sleep(RATE_LIMIT_DELAY)
-                
+
                 if attempt < MAX_RETRIES:
                     print(f"      [RETRY] Retry {attempt}/{MAX_RETRIES} after rate limit...")
                     return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
-            
+
             # Check for timeout
             if 'timeout' in error_msg.lower() or 'timed out' in error_msg.lower():
                 if attempt < MAX_RETRIES:
@@ -183,9 +183,9 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
                     print(f"      [WARN] Timeout, waiting {delay}s before retry {attempt}/{MAX_RETRIES}...")
                     await asyncio.sleep(delay)
                     return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
-            
+
             return False, bars_result, error_msg
-            
+
     except asyncio.TimeoutError:
         if attempt < MAX_RETRIES:
             delay = RETRY_DELAY_BASE ** attempt
@@ -194,7 +194,7 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
             return await fetch_with_retry(adapter, symbol, start_date, end_date, attempt + 1)
         else:
             return False, None, f"Timeout after {MAX_RETRIES} attempts"
-    
+
     except Exception as e:
         if attempt < MAX_RETRIES:
             delay = RETRY_DELAY_BASE ** attempt
@@ -207,46 +207,46 @@ async def fetch_with_retry(adapter, symbol, start_date, end_date, attempt=1):
 
 async def fetch_and_save_historical_data():
     """Fetch 90 days of historical data and save to disk for bot practice."""
-    
+
     # Check environment variables
     api_key = os.getenv('TOPSTEPX_API_KEY')
     username = os.getenv('TOPSTEPX_USERNAME')
-    
+
     if not api_key or not username:
         print("[ERROR] TOPSTEPX_API_KEY and TOPSTEPX_USERNAME must be set in .env")
         return False
-    
+
     print("[OK] Environment variables loaded")
     print(f"   Username: {username}")
     print(f"   API Key: {'*' * 20}{api_key[-4:]}")
     print(f"   Refresh Mode: {REFRESH_MODE.upper()}")
     print()
-    
+
     # Symbols to fetch
     symbols = ['ES', 'NQ']
-    
+
     # Create data directory
     data_dir = Path('data/historical')
     data_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for symbol in symbols:
         print(f"[FETCH] Fetching {symbol} data...")
-        
+
         # Check for existing data
         file_path = data_dir / f'{symbol}_90days.json'
         existing_data = load_existing_data(file_path)
-        
+
         # Determine date range based on mode
         end_date = datetime.now()
-        
+
         if REFRESH_MODE == 'incremental' and existing_data:
             # Incremental: Fetch only new bars since last update
             last_timestamp = get_last_timestamp(existing_data)
-            
+
             if last_timestamp:
                 start_date = last_timestamp + timedelta(minutes=5)  # Start after last bar
                 print(f"   [INFO] Incremental update from last bar: {last_timestamp.strftime('%Y-%m-%d %H:%M')}")
-                
+
                 # If last bar is very recent (< 10 minutes), nothing to fetch
                 time_since_last = (end_date - last_timestamp).total_seconds() / 60
                 if time_since_last < 10:
@@ -260,49 +260,49 @@ async def fetch_and_save_historical_data():
             # Full refresh: Fetch entire lookback window
             start_date = end_date - timedelta(days=LOOKBACK_DAYS)
             print(f"   [REFRESH] Full refresh mode")
-        
+
         print(f"   [DATE] Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
         print()
-        
+
         try:
             # Create adapter
             adapter = TopstepXAdapter(instruments=[symbol])
-            
+
             # Initialize with stdout redirect
             print(f"   Initializing TopstepX SDK...")
             original_stdout = sys.stdout
             sys.stdout = sys.stderr
-            
+
             try:
                 await asyncio.wait_for(adapter.initialize(), timeout=60.0)
             finally:
                 sys.stdout = original_stdout
-            
+
             print(f"   ✅ TopstepX SDK initialized")
-            
+
             # Fetch in chunks to get full 90 days
             # API limit: 1000 bars/request
             # 5min bars: 1000 bars = ~13 trading days
             # Need ~7 chunks for 90 calendar days
             print(f"   Fetching bars in chunks (API limit: 1000 bars/request)...")
-            
+
             all_bars = []
             chunk_start = start_date
             chunk_number = 1
             invalid_bars_count = 0
             total_fetched = 0
-            
+
             while chunk_start < end_date:
                 # Each chunk: ~15 calendar days to ensure we get 1000 bars
                 chunk_end = min(chunk_start + timedelta(days=15), end_date)
-                
+
                 print(f"   [CHUNK] Chunk {chunk_number}: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}...")
-                
+
                 # Use retry logic
                 success, bars_result, error = await fetch_with_retry(
                     adapter, symbol, chunk_start, chunk_end
                 )
-                
+
                 if success and bars_result:
                     # Extract bars from result
                     bars_data = bars_result.get('bars', {})
@@ -310,7 +310,7 @@ async def fetch_and_save_historical_data():
                         chunk_bars = bars_data.get('bars', [])
                     else:
                         chunk_bars = bars_data
-                    
+
                     if chunk_bars:
                         # Validate bars (Phase 3)
                         validated_bars = []
@@ -323,17 +323,17 @@ async def fetch_and_save_historical_data():
                                 # Only log first few invalid bars to avoid spam
                                 if invalid_bars_count <= 5:
                                     print(f"      [WARN] Invalid bar: {reason} - {bar.get('timestamp', 'N/A')}")
-                        
+
                         fetched_count = len(validated_bars)
                         total_fetched += fetched_count
-                        
+
                         print(f"      [OK] Fetched {fetched_count} valid bars")
-                        
+
                         if invalid_bars_count > 0 and invalid_bars_count <= 5:
                             print(f"      [WARN] Filtered {invalid_bars_count} invalid bars")
-                        
+
                         all_bars.extend(validated_bars)
-                        
+
                         # Progress logging (Phase 3)
                         if total_fetched > 0 and total_fetched % PROGRESS_LOG_INTERVAL == 0:
                             print(f"   [PROGRESS] Progress: {total_fetched:,} bars fetched so far...")
@@ -342,19 +342,19 @@ async def fetch_and_save_historical_data():
                 else:
                     print(f"      [ERROR] Request failed after {MAX_RETRIES} retries: {error}")
                     # Continue to next chunk rather than failing completely
-                
+
                 # Move to next chunk
                 chunk_start = chunk_end
                 chunk_number += 1
-                
+
                 # Small delay to avoid rate limiting
                 await asyncio.sleep(0.5)
-            
+
             if invalid_bars_count > 5:
                 print(f"   [WARN] Total invalid bars filtered: {invalid_bars_count}")
-            
+
             bar_count = len(all_bars)
-            
+
             if bar_count == 0:
                 if REFRESH_MODE == 'incremental' and existing_data:
                     print(f"   [INFO] No new bars to fetch (data already up-to-date)")
@@ -362,20 +362,20 @@ async def fetch_and_save_historical_data():
                 else:
                     print(f"   [ERROR] No data fetched for {symbol}")
                     continue
-            
+
             print(f"   [OK] Fetched: {bar_count} new bars")
-            
+
             # Merge with existing data if incremental mode
             if REFRESH_MODE == 'incremental' and existing_data:
                 existing_bars = existing_data.get('bars', [])
                 print(f"   [MERGE] Merging with {len(existing_bars)} existing bars...")
-                
+
                 # Combine: existing + new
                 combined_bars = existing_bars + all_bars
-                
+
                 # Sort by timestamp
                 combined_bars.sort(key=lambda b: b.get('timestamp', ''))
-                
+
                 # Remove duplicates
                 seen_timestamps = set()
                 bars_list = []
@@ -384,17 +384,17 @@ async def fetch_and_save_historical_data():
                     if ts and ts not in seen_timestamps:
                         seen_timestamps.add(ts)
                         bars_list.append(bar)
-                
+
                 # Trim to lookback window (keep last 90 days)
                 bars_list = trim_to_lookback_days(bars_list, LOOKBACK_DAYS)
-                
+
                 bar_count = len(bars_list)
                 print(f"   [OK] After merge and trim: {bar_count} bars (last {LOOKBACK_DAYS} days)")
             else:
                 # Full refresh mode: just use fetched bars
                 # Sort by timestamp and remove duplicates
                 all_bars.sort(key=lambda b: b.get('timestamp', ''))
-            
+
             seen_timestamps = set()
             bars_list = []
             for bar in all_bars:
@@ -402,15 +402,15 @@ async def fetch_and_save_historical_data():
                 if ts and ts not in seen_timestamps:
                     seen_timestamps.add(ts)
                     bars_list.append(bar)
-            
+
             if len(bars_list) < bar_count:
                 print(f"   [DEDUP] Removed {bar_count - len(bars_list)} duplicate bars")
                 bar_count = len(bars_list)
-            
+
             if bar_count == 0:
                 print(f"   [WARN] No data returned for {symbol}")
                 continue
-            
+
             # Save to file with enhanced metadata (Phase 3)
             output_file = data_dir / f'{symbol}_90days.json'
             with open(output_file, 'w') as f:
@@ -428,9 +428,9 @@ async def fetch_and_save_historical_data():
                         'validation_enabled': True
                     }
                 }, f, indent=2)
-            
+
             print(f"   [SAVE] Saved to: {output_file}")
-            
+
             # Show sample bars
             if bar_count >= 5:
                 print(f"\n   [SAMPLE] Sample bars (first 3):")
@@ -443,7 +443,7 @@ async def fetch_and_save_historical_data():
                     volume = bar.get('volume', 0)
                     print(f"      [{i}] {timestamp}")
                     print(f"          O: {open_price}, H: {high}, L: {low}, C: {close}, V: {volume}")
-                
+
                 print("\n   [SAMPLE] Sample bars (last 3):")
                 for i, bar in enumerate(bars_list[-3:], bar_count - 2):
                     timestamp = bar.get('timestamp', 'N/A')
@@ -454,15 +454,15 @@ async def fetch_and_save_historical_data():
                     volume = bar.get('volume', 0)
                     print(f"      [{i}] {timestamp}")
                     print(f"          O: {open_price}, H: {high}, L: {low}, C: {close}, V: {volume}")
-            
+
             print()
-            
+
         except Exception as e:
             print(f"   [ERROR] Error fetching {symbol} data: {str(e)}")
             import traceback
             traceback.print_exc()
             continue
-    
+
     print("=" * 60)
     print("[COMPLETE] HISTORICAL DATA FETCH COMPLETED")
     print(f"[PATH] Data saved to: {data_dir.absolute()}")
@@ -471,7 +471,7 @@ async def fetch_and_save_historical_data():
     print("   - data/historical/ES_90days.json")
     print("   - data/historical/NQ_90days.json")
     print("=" * 60)
-    
+
     return True
 
 

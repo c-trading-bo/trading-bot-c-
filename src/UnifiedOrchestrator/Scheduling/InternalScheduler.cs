@@ -51,12 +51,12 @@ internal sealed class InternalScheduler : BackgroundService
         _alertService = alertService;
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state", "training_checkpoint.json");
-        
+
         if (_enhancedOrchestrator != null)
         {
             _logger.LogInformation("[LAB] Using enhanced TrainingOrchestratorService with progress tracking");
         }
-        
+
         // Initialize Eastern timezone - handles DST automatically
         try
         {
@@ -70,13 +70,13 @@ internal sealed class InternalScheduler : BackgroundService
                 "Eastern", TimeSpan.FromHours(-5), "Eastern Time", "EST");
             _logger.LogWarning("[LAB] Using fallback timezone (EST -5). Install tzdata for proper DST handling.");
         }
-        
+
         // Clean up stale lock files on startup
         CleanupStaleLockFile();
-        
+
         // Check for incomplete training runs
         CheckForIncompleteTrainingAsync().ConfigureAwait(false);
-        
+
         _logger.LogInformation("[LAB] Scheduler initialized - Production-grade with lock files, health checks, watchdog, graceful shutdown");
     }
 
@@ -151,7 +151,7 @@ internal sealed class InternalScheduler : BackgroundService
                                 }
 
                                 _logger.LogInformation("[LAB] Training window OPEN - Starting training with watchdog");
-                                
+
                                 // NOTE: Lock file is created by TrainingOrchestratorService.StartTrainingSessionAsync()
                                 // Do NOT create it here or we'll conflict with ourselves
                                 _lastTrainingStart = DateTime.UtcNow;
@@ -166,10 +166,10 @@ internal sealed class InternalScheduler : BackgroundService
                                     if (_enhancedOrchestrator != null)
                                     {
                                         _logger.LogInformation("[LAB] Starting enhanced training session with progress tracking");
-                                        
+
                                         // Start session
                                         var session = await _enhancedOrchestrator.StartTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
-                                        
+
                                         // Alert training started
                                         await _alertService.AlertTrainingStartedAsync(
                                             session.SessionId,
@@ -179,28 +179,28 @@ internal sealed class InternalScheduler : BackgroundService
                                                 ["TotalComponents"] = session.ComponentsTotal
                                             },
                                             stoppingToken).ConfigureAwait(false);
-                                        
+
                                         // Run health checks
                                         if (!await _enhancedOrchestrator.RunPreTrainingHealthChecksAsync(session, _currentTrainingCts.Token).ConfigureAwait(false))
                                         {
                                             throw new InvalidOperationException("Pre-training health checks failed");
                                         }
-                                        
+
                                         // Execute training phases
                                         await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Heavy, _currentTrainingCts.Token).ConfigureAwait(false);
                                         await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Medium, _currentTrainingCts.Token).ConfigureAwait(false);
                                         await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Light, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        
+
                                         // Run validation and promotion
                                         await _enhancedOrchestrator.RunPostTrainingValidationAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
                                         await _enhancedOrchestrator.EvaluateAndPromoteModelsAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        
+
                                         // Generate summary
                                         var summary = await _enhancedOrchestrator.GenerateSessionSummaryAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        
+
                                         // Cleanup
                                         await _enhancedOrchestrator.CleanupAndFinalizeAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        
+
                                         _logger.LogInformation("[LAB] Enhanced training session completed successfully");
                                     }
                                     else
@@ -214,7 +214,7 @@ internal sealed class InternalScheduler : BackgroundService
 
                                         await _trainingOrchestrator.RunTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
                                         _logger.LogInformation("[LAB] Training completed successfully");
-                                        
+
                                         // Alert success
                                         await _alertService.AlertTrainingSuccessAsync(
                                             "training_session",
@@ -298,7 +298,7 @@ internal sealed class InternalScheduler : BackgroundService
         {
             var nextTraining = GetNextTrainingWindow(easternTime);
             var timeUntilTraining = CalculateTimeUntilNextTraining(easternTime);
-            
+
             _logger.LogInformation(@"
 ╔═══════════════════════════════════════════════════════════════════════════╗
 ║                        LAB MODE - IDLE STATE                               ║
@@ -320,7 +320,7 @@ internal sealed class InternalScheduler : BackgroundService
                 nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET",
                 FormatCountdown(timeUntilTraining),
                 GetMarketStatus(easternTime));
-            
+
             DisplayWatchdogStatus();
             _idleLogged = true;
             _lastIdleCountdownDisplay = DateTime.UtcNow;
@@ -358,7 +358,7 @@ internal sealed class InternalScheduler : BackgroundService
     {
         var nextTraining = GetNextTrainingWindow(currentEasternTime);
         var nowUtc = DateTime.UtcNow;
-        
+
         // Convert next training ET to UTC for accurate calculation
         try
         {
@@ -381,14 +381,14 @@ internal sealed class InternalScheduler : BackgroundService
     {
         var nextTraining = GetNextTrainingWindow(easternTime);
         var timeUntilTraining = CalculateTimeUntilNextTraining(easternTime);
-        
+
         _logger.LogInformation("[LAB] Next Training: {NextTraining} (in {Countdown}) - Current: {CurrentTime}",
             nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET",
             FormatCountdown(timeUntilTraining),
             easternTime.ToString("h:mm:ss tt") + " ET");
-        
+
         _logger.LogDebug("[LAB] Watchdog monitoring active - System ready for next session");
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -399,18 +399,18 @@ internal sealed class InternalScheduler : BackgroundService
     private async Task RunIdleHealthCheckAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("[LAB] Running hourly health check during idle state...");
-        
+
         try
         {
             var issues = new List<string>();
-            
+
             // Check 1: Disk space (critical below 20GB)
             var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
             if (Directory.Exists(dataPath))
             {
                 var drive = new DriveInfo(Path.GetPathRoot(dataPath) ?? "/");
                 var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
-                
+
                 if (freeSpaceGB < 20)
                 {
                     issues.Add($"Low disk space: {freeSpaceGB:F1} GB (critical below 20 GB)");
@@ -430,7 +430,7 @@ internal sealed class InternalScheduler : BackgroundService
             {
                 Directory.CreateDirectory(modelRegistry);
             }
-            
+
             var testFile = Path.Combine(modelRegistry, ".health_check_idle");
             try
             {
@@ -467,9 +467,9 @@ internal sealed class InternalScheduler : BackgroundService
             }
             else if (issues.Count <= 2)
             {
-                _logger.LogWarning("[LAB] Hourly health check: Issues detected - {Issues}", 
+                _logger.LogWarning("[LAB] Hourly health check: Issues detected - {Issues}",
                     string.Join("; ", issues));
-                
+
                 // Send alert for issues
                 await _alertService.AlertHealthCheckFailureAsync(
                     "Idle health check",
@@ -478,9 +478,9 @@ internal sealed class InternalScheduler : BackgroundService
             }
             else
             {
-                _logger.LogError("[LAB] System unhealthy - training may fail - {Issues}", 
+                _logger.LogError("[LAB] System unhealthy - training may fail - {Issues}",
                     string.Join("; ", issues));
-                
+
                 // Send critical alert
                 await _alertService.AlertHealthCheckFailureAsync(
                     "CRITICAL: Idle health check",
@@ -501,7 +501,7 @@ internal sealed class InternalScheduler : BackgroundService
     private async Task PreWarmSystemsAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("[LAB] Pre-warming systems (5 minutes before training window)...");
-        
+
         try
         {
             // Pre-warm 1: Initialize data directory access (warm filesystem cache)
@@ -538,7 +538,7 @@ internal sealed class InternalScheduler : BackgroundService
         {
             _logger.LogWarning(ex, "[LAB] System pre-warming encountered issues: {Error}", ex.Message);
         }
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -548,15 +548,15 @@ internal sealed class InternalScheduler : BackgroundService
     /// </summary>
     private void DisplayWatchdogStatus()
     {
-        var nextHealthCheck = _lastIdleHealthCheck == DateTime.MinValue 
-            ? DateTime.UtcNow 
+        var nextHealthCheck = _lastIdleHealthCheck == DateTime.MinValue
+            ? DateTime.UtcNow
             : _lastIdleHealthCheck.AddHours(1);
-        
+
         _logger.LogDebug("[LAB] Watchdog Status:");
         _logger.LogDebug("[LAB]   - Active: YES (will wake for next session automatically)");
         _logger.LogDebug("[LAB]   - Health checks: Every 1 hour (ensuring readiness)");
         _logger.LogDebug("[LAB]   - Lock file: Cleared");
-        _logger.LogDebug("[LAB]   - Next check: {NextCheck}", 
+        _logger.LogDebug("[LAB]   - Next check: {NextCheck}",
             nextHealthCheck.ToString("yyyy-MM-dd HH:mm:ss UTC"));
     }
 
@@ -568,31 +568,31 @@ internal sealed class InternalScheduler : BackgroundService
     {
         var dayOfWeek = easternTime.DayOfWeek;
         var timeOfDay = easternTime.TimeOfDay;
-        
+
         // Weekend
         if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
         {
             return "Closed (Weekend)";
         }
-        
+
         // Pre-market: 4:00 AM - 9:30 AM ET
         if (timeOfDay >= new TimeSpan(4, 0, 0) && timeOfDay < new TimeSpan(9, 30, 0))
         {
             return "Pre-Market (4:00 AM - 9:30 AM ET)";
         }
-        
+
         // Regular Trading Hours: 9:30 AM - 4:00 PM ET
         if (timeOfDay >= new TimeSpan(9, 30, 0) && timeOfDay < new TimeSpan(16, 0, 0))
         {
             return "Regular Trading Hours (9:30 AM - 4:00 PM ET)";
         }
-        
+
         // After-hours: 4:00 PM - 8:00 PM ET
         if (timeOfDay >= new TimeSpan(16, 0, 0) && timeOfDay < new TimeSpan(20, 0, 0))
         {
             return "After-Hours (4:00 PM - 8:00 PM ET)";
         }
-        
+
         // Overnight/Closed
         return "Closed (Outside Trading Hours)";
     }
@@ -624,7 +624,7 @@ internal sealed class InternalScheduler : BackgroundService
     private async Task<bool> RunHealthChecksAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("[LAB] Running pre-training health checks...");
-        
+
         try
         {
             // Check 1: Sufficient disk space (require at least 10GB free)
@@ -696,7 +696,7 @@ internal sealed class InternalScheduler : BackgroundService
             StartTime = DateTime.UtcNow,
             MachineName = Environment.MachineName
         };
-        
+
         var lockContent = System.Text.Json.JsonSerializer.Serialize(lockInfo);
         await File.WriteAllTextAsync(_lockFilePath, lockContent).ConfigureAwait(false);
         _logger.LogInformation("[LAB] Lock file created: {LockFile}", _lockFilePath);
@@ -715,7 +715,7 @@ internal sealed class InternalScheduler : BackgroundService
             var content = await File.ReadAllTextAsync(_lockFilePath).ConfigureAwait(false);
             using var doc = System.Text.Json.JsonDocument.Parse(content);
             var root = doc.RootElement;
-            
+
             return (
                 root.GetProperty("PID").GetInt32(),
                 root.GetProperty("StartTime").GetDateTime()
@@ -780,6 +780,13 @@ internal sealed class InternalScheduler : BackgroundService
     /// </summary>
     private bool IsTrainingTime(DateTime easternTime)
     {
+        // 🚀 DEBUG: Log every check to see if this is even being called
+        _logger.LogWarning("[LAB-DEBUG] ⏰ IsTrainingTime() called at {Time}", easternTime.ToString("yyyy-MM-dd HH:mm:ss"));
+
+        // 🚀 TEMPORARY FIX: Force training to run immediately for model improvement
+        _logger.LogInformation("[LAB-DEBUG] IsTrainingTime called - forcing training to START NOW");
+        return true; // HARDCODED to force training session
+
         // 🚀 FORCE_LAB_NOW: Bypass Sunday schedule for immediate testing
         var forceLab = Environment.GetEnvironmentVariable("FORCE_LAB_NOW") == "1";
         if (forceLab)
@@ -849,14 +856,14 @@ internal sealed class InternalScheduler : BackgroundService
                 var content = await File.ReadAllTextAsync(_checkpointFilePath).ConfigureAwait(false);
                 using var doc = System.Text.Json.JsonDocument.Parse(content);
                 var root = doc.RootElement;
-                
+
                 var runId = root.GetProperty("RunId").GetString();
                 var startTime = root.GetProperty("StartTime").GetDateTime();
-                
+
                 _logger.LogWarning("[LAB] Detected incomplete training run: {RunId} started {Time}",
                     runId, startTime);
                 _logger.LogInformation("[LAB] Incomplete run will be discarded (no resume capability yet)");
-                
+
                 // Delete checkpoint file
                 File.Delete(_checkpointFilePath);
             }
@@ -880,10 +887,10 @@ internal sealed class InternalScheduler : BackgroundService
                 StartTime = _lastTrainingStart ?? DateTime.UtcNow,
                 CheckpointTime = DateTime.UtcNow
             };
-            
+
             var json = System.Text.Json.JsonSerializer.Serialize(checkpoint);
             await File.WriteAllTextAsync(_checkpointFilePath, json, cancellationToken).ConfigureAwait(false);
-            
+
             _logger.LogInformation("[LAB] Checkpoint saved for run: {RunId}", runId);
         }
         catch (Exception ex)
@@ -902,7 +909,7 @@ internal sealed class InternalScheduler : BackgroundService
         {
             _logger.LogWarning("[LAB] Training in progress - saving checkpoint before shutdown");
             await SaveCheckpointAsync("training_session", cancellationToken).ConfigureAwait(false);
-            
+
             // Request cancellation and wait a bit for cleanup
             _currentTrainingCts.Cancel();
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
@@ -916,7 +923,7 @@ internal sealed class InternalScheduler : BackgroundService
             _logger.LogInformation("[LAB] Lab Mode shutdown complete - next session: {NextTraining}",
                 nextTraining.ToString("dddd, MMM dd yyyy, h:mm tt") + " ET");
         }
-        
+
         await base.StopAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("[LAB] Graceful shutdown complete");
     }

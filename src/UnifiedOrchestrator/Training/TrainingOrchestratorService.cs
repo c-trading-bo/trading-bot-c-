@@ -57,7 +57,7 @@ internal sealed class TrainingOrchestratorService
         _atomicPromotionService = atomicPromotionService;
         _atomicCoordinator = atomicCoordinator;
         _baselineManager = baselineManager;
-        
+
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
         Directory.CreateDirectory(_checkpointDirectory);
@@ -148,7 +148,7 @@ internal sealed class TrainingOrchestratorService
         // Check 2: Historical data availability (Phase 3 enhanced)
         _logger.LogInformation("[LAB] [2/5] Checking historical data...");
         var histDataValidation = await _dataIntegrityService.ValidateHistoricalDataFilesAsync(cancellationToken).ConfigureAwait(false);
-        
+
         if (histDataValidation.IsValid)
         {
             _logger.LogInformation("[LAB]   ✓ Historical data files validated");
@@ -166,7 +166,7 @@ internal sealed class TrainingOrchestratorService
             }
             allChecksPassed = false;
         }
-        
+
         // Log warnings if any
         foreach (var warning in histDataValidation.Warnings)
         {
@@ -206,7 +206,7 @@ internal sealed class TrainingOrchestratorService
         }
 
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        
+
         if (allChecksPassed)
         {
             _logger.LogInformation("[LAB] ✅ ALL HEALTH CHECKS PASSED");
@@ -215,7 +215,7 @@ internal sealed class TrainingOrchestratorService
         {
             _logger.LogError("[LAB] ❌ HEALTH CHECKS FAILED");
         }
-        
+
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
 
         return allChecksPassed;
@@ -254,11 +254,11 @@ internal sealed class TrainingOrchestratorService
         if (phase == TrainingPhase.Heavy)
         {
             _logger.LogInformation("[LAB] Delegating to HistoricalTrainingOrchestrator for actual model training...");
-            
+
             try
             {
                 var trainingResult = await _historicalOrchestrator.RunTrainingSessionAsync(cancellationToken).ConfigureAwait(false);
-                
+
                 if (trainingResult.Success)
                 {
                     // Count successful components from individual component success flags
@@ -268,10 +268,10 @@ internal sealed class TrainingOrchestratorService
                     if (trainingResult.LstmSuccess) successCount++;
                     if (trainingResult.PositionMgmtSuccess) successCount++;
                     if (trainingResult.ShadowValidationSuccess) successCount++;
-                    
+
                     phaseResult.SuccessfulComponents = successCount;
                     phaseResult.FailedComponents = trainingResult.FailedComponents.Count;
-                    
+
                     _logger.LogInformation("[LAB] ✅ Training completed - {Successful} successful, {Failed} failed",
                         successCount, trainingResult.FailedComponents.Count);
                 }
@@ -294,11 +294,11 @@ internal sealed class TrainingOrchestratorService
             foreach (var component in components)
             {
                 var componentStartTime = DateTimeOffset.UtcNow;
-                
+
                 try
                 {
                     session.CurrentComponent = component.Name;
-                    
+
                     // Render component start
                     _progressRenderer.RenderComponentStart(component.Name, componentNumber, components.Count);
 
@@ -321,25 +321,25 @@ internal sealed class TrainingOrchestratorService
                             currentEpoch: i,
                             totalEpochs: 10,
                             currentLoss: 1.0 / i);
-                        
+
                         await Task.Delay(10, cancellationToken).ConfigureAwait(false);
                     }
-                    
+
                     // Record success
                     var componentDuration = DateTimeOffset.UtcNow - componentStartTime;
                     _progressTracker.CompleteComponent(component.Name, componentDuration);
                     session.RecordComponentSuccess(component.Name);
                     phaseResult.SuccessfulComponents++;
-                    
+
                     // Render component completion
                     _progressRenderer.RenderComponentComplete(component.Name, true, componentDuration);
-                    
+
                     // Render compact progress every few components
                     if (componentNumber % 3 == 0)
                     {
                         _progressRenderer.RenderCompactProgress();
                     }
-                    
+
                     componentNumber++;
                 }
                 catch (Exception ex)
@@ -348,7 +348,7 @@ internal sealed class TrainingOrchestratorService
                     _progressRenderer.RenderComponentComplete(component.Name, false, componentDuration, ex.Message);
                     session.RecordComponentFailure(component.Name, ex.Message);
                     phaseResult.FailedComponents++;
-                    
+
                     // Continue with next component (don't fail entire phase)
                 }
             }
@@ -395,13 +395,13 @@ internal sealed class TrainingOrchestratorService
             }
 
             _logger.LogInformation("[LAB] ✓ Phase 4 validation passed - all checks successful");
-            _logger.LogInformation("[LAB]   Inference tests: {Status}", 
+            _logger.LogInformation("[LAB]   Inference tests: {Status}",
                 validationResult.InferenceTests.Passed ? "PASS" : "FAIL");
-            _logger.LogInformation("[LAB]   Baseline comparison: {Status}", 
+            _logger.LogInformation("[LAB]   Baseline comparison: {Status}",
                 validationResult.BaselineComparison.Passed ? "PASS" : "FAIL");
-            _logger.LogInformation("[LAB]   Catastrophic forgetting: {Status}", 
+            _logger.LogInformation("[LAB]   Catastrophic forgetting: {Status}",
                 validationResult.CatastrophicForgetting.Passed ? "PASS" : "FAIL");
-            _logger.LogInformation("[LAB]   Model integrity: {Status}", 
+            _logger.LogInformation("[LAB]   Model integrity: {Status}",
                 validationResult.ModelIntegrity.Passed ? "PASS" : "FAIL");
 
             return true;
@@ -470,7 +470,7 @@ internal sealed class TrainingOrchestratorService
                 var coordinatorResult = await _atomicCoordinator.PromoteModelsAsync(
                     session.SessionId,
                     cancellationToken).ConfigureAwait(false);
-                
+
                 if (!coordinatorResult.Success)
                 {
                     _logger.LogError("[LAB] ❌ Phase 7 atomic promotion failed:");
@@ -481,7 +481,7 @@ internal sealed class TrainingOrchestratorService
                     session.PromotionSuccess = false;
                     return false;
                 }
-                
+
                 // Capture baseline after successful promotion
                 if (_baselineManager != null)
                 {
@@ -494,7 +494,7 @@ internal sealed class TrainingOrchestratorService
                     await _baselineManager.CaptureBaselineAsync(performanceMetrics, cancellationToken)
                         .ConfigureAwait(false);
                 }
-                
+
                 session.PromotionSuccess = true;
                 _logger.LogInformation("[LAB] ✅ Phase 7 atomic promotion successful:");
                 _logger.LogInformation("[LAB]   Models promoted: {Count}", coordinatorResult.ModelsPromoted);
@@ -502,10 +502,10 @@ internal sealed class TrainingOrchestratorService
                 _logger.LogInformation("[LAB]   Version: {Version}", coordinatorResult.Version);
                 _logger.LogInformation("[LAB]   Backup created: {BackupLocation}", coordinatorResult.BackupLocation);
                 _logger.LogInformation("[LAB]   Rollback available: {Available}", coordinatorResult.RollbackCapable ? "YES" : "NO");
-                
+
                 return true;
             }
-            
+
             // Fall back to Phase 5 atomic promotion
             _logger.LogInformation("[LAB] Using Phase 5 AtomicPromotionService (Phase 7 coordinator not available)");
             var atomicResult = await _atomicPromotionService.PromoteModelsAtomicallyAsync(
@@ -565,7 +565,7 @@ internal sealed class TrainingOrchestratorService
             "logs",
             "training",
             $"session-summary-{session.SessionId}.json");
-        
+
         var directory = Path.GetDirectoryName(summaryPath);
         if (!string.IsNullOrEmpty(directory))
         {

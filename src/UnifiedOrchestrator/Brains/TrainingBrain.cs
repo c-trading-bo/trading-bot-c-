@@ -38,16 +38,16 @@ internal class TrainingBrain : ITrainingBrain
         _logger = logger;
         _modelRegistry = modelRegistry;
         _stagingPath = stagingPath ?? Path.Combine(Directory.GetCurrentDirectory(), "model_staging");
-        
+
         // Index artifact builders by supported model type
         _artifactBuilders = artifactBuilders.ToDictionary(
             builder => builder.SupportedModelType,
             builder => builder,
             StringComparer.OrdinalIgnoreCase);
-        
+
         // Ensure staging directory exists
         Directory.CreateDirectory(_stagingPath);
-        
+
         _logger.LogInformation("TrainingBrain initialized with staging path: {StagingPath}", _stagingPath);
     }
 
@@ -69,38 +69,38 @@ internal class TrainingBrain : ITrainingBrain
         };
 
         _activeJobs[jobId] = job;
-        
+
         try
         {
             _logger.LogInformation("Starting training job {JobId} for algorithm {Algorithm}", jobId, algorithm);
-            
+
             // Validate training configuration
             await ValidateTrainingConfigAsync(config).ConfigureAwait(false);
-            
+
             job.Status = "RUNNING";
             job.CurrentStage = "DATA_PREPARATION";
-            
+
             // Stage 1: Data Preparation (20% progress)
             await PrepareTrainingDataAsync(job, cancellationToken).ConfigureAwait(false);
             job.Progress = 0.2m;
-            
+
             job.CurrentStage = "MODEL_TRAINING";
-            
+
             // Stage 2: Model Training (60% progress)
             var modelPath = await TrainModelAsync(job, cancellationToken).ConfigureAwait(false);
             job.Progress = 0.8m;
-            
+
             job.CurrentStage = "ARTIFACT_CREATION";
-            
+
             // Stage 3: Export to artifact (20% progress)
             var metadata = CreateTrainingMetadata(job);
             var modelVersion = await ExportModelAsync(algorithm, modelPath, metadata, cancellationToken).ConfigureAwait(false);
             job.Progress = 1.0m;
-            
+
             job.Status = "COMPLETED";
             job.EndTime = DateTime.UtcNow;
             job.CurrentStage = "COMPLETE";
-            
+
             var result = new TrainingResult
             {
                 JobId = jobId,
@@ -112,10 +112,10 @@ internal class TrainingBrain : ITrainingBrain
                 Metadata = metadata,
                 Metrics = ExtractRealTrainingMetrics(job)
             };
-            
-            _logger.LogInformation("Training job {JobId} completed successfully in {Duration:F1}s", 
+
+            _logger.LogInformation("Training job {JobId} completed successfully in {Duration:F1}s",
                 jobId, result.TrainingDuration.TotalSeconds);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -123,9 +123,9 @@ internal class TrainingBrain : ITrainingBrain
             job.Status = "FAILED";
             job.EndTime = DateTime.UtcNow;
             job.ErrorMessage = ex.Message;
-            
+
             _logger.LogError(ex, "Training job {JobId} failed: {Error}", jobId, ex.Message);
-            
+
             return new TrainingResult
             {
                 JobId = jobId,
@@ -155,9 +155,9 @@ internal class TrainingBrain : ITrainingBrain
             var versionId = GenerateVersionId(algorithm);
             var artifactFileName = $"{algorithm}_{versionId}.{GetArtifactExtension(modelType)}";
             var artifactPath = Path.Combine(_stagingPath, artifactFileName);
-            
+
             var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken).ConfigureAwait(false);
-            
+
             // Validate artifact
             if (!await artifactBuilder.ValidateArtifactAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false))
             {
@@ -166,7 +166,7 @@ internal class TrainingBrain : ITrainingBrain
 
             // Get artifact metadata
             var artifactMetadata = await artifactBuilder.GetArtifactMetadataAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false);
-            
+
             // Create model version
             var modelVersion = new ModelVersion
             {
@@ -177,13 +177,13 @@ internal class TrainingBrain : ITrainingBrain
                 GitSha = metadata.GitSha,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = metadata.CreatedBy,
-                
+
                 // Training metadata
                 TrainingStartTime = metadata.TrainingStartTime,
                 TrainingEndTime = metadata.TrainingEndTime,
                 DataRangeStart = metadata.DataRangeStart,
                 DataRangeEnd = metadata.DataRangeEnd,
-                
+
                 // Performance metrics (from training)
                 Sharpe = metadata.PerformanceMetrics.GetValueOrDefault("sharpe_ratio", 0),
                 Sortino = metadata.PerformanceMetrics.GetValueOrDefault("sortino_ratio", 0),
@@ -191,7 +191,7 @@ internal class TrainingBrain : ITrainingBrain
                 MaxDrawdown = metadata.PerformanceMetrics.GetValueOrDefault("max_drawdown", 0),
                 WinRate = metadata.PerformanceMetrics.GetValueOrDefault("win_rate", 0),
                 TotalTrades = (int)metadata.PerformanceMetrics.GetValueOrDefault("total_trades", 0),
-                
+
                 // Model schema
                 SchemaVersion = "1.0",
                 ModelType = modelType,
@@ -244,10 +244,10 @@ internal class TrainingBrain : ITrainingBrain
                 throw new InvalidOperationException($"Failed to register model {algorithm} version {versionId}");
             }
             modelVersion.VersionId = versionId;
-            
-            _logger.LogInformation("Exported model {Algorithm} version {VersionId} to artifact {ArtifactPath}", 
+
+            _logger.LogInformation("Exported model {Algorithm} version {VersionId} to artifact {ArtifactPath}",
                 algorithm, versionId, finalArtifactPath);
-            
+
             return modelVersion;
         }
         catch (Exception ex)
@@ -263,7 +263,7 @@ internal class TrainingBrain : ITrainingBrain
     public async Task<TrainingStatus> GetTrainingStatusAsync(string jobId, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask.ConfigureAwait(false);
-        
+
         if (!_activeJobs.TryGetValue(jobId, out var job))
         {
             return new TrainingStatus
@@ -293,7 +293,7 @@ internal class TrainingBrain : ITrainingBrain
     public async Task<bool> CancelTrainingAsync(string jobId, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask.ConfigureAwait(false);
-        
+
         if (!_activeJobs.TryGetValue(jobId, out var job))
         {
             return false;
@@ -304,7 +304,7 @@ internal class TrainingBrain : ITrainingBrain
             job.Status = "CANCELLED";
             job.EndTime = DateTime.UtcNow;
             job.CurrentStage = "CANCELLED";
-            
+
             _logger.LogInformation("Training job {JobId} cancelled", jobId);
             return true;
         }
@@ -317,7 +317,7 @@ internal class TrainingBrain : ITrainingBrain
     private async Task ValidateTrainingConfigAsync(TrainingConfig config)
     {
         await Task.CompletedTask.ConfigureAwait(false);
-        
+
         if (string.IsNullOrEmpty(config.Algorithm))
         {
             throw new ArgumentException("Algorithm is required", nameof(config));
@@ -344,7 +344,7 @@ internal class TrainingBrain : ITrainingBrain
     {
         // Simulate data preparation
         await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
-        
+
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Preparing training data from {job.Config.DataStartTime} to {job.Config.DataEndTime}");
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Data source: {job.Config.DataSource}");
         job.StageData["data_samples"] = await CountActualDataSamples(job.Config).ConfigureAwait(false);
@@ -355,7 +355,7 @@ internal class TrainingBrain : ITrainingBrain
         // Simulate model training
         var epochs = job.Config.MaxEpochs;
         var modelPath = Path.Combine(_stagingPath, $"{job.Algorithm}_temp_model_{job.JobId}.onnx");
-        
+
         for (int epoch = 1; epoch <= epochs; epoch++)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -365,10 +365,10 @@ internal class TrainingBrain : ITrainingBrain
 
             // Simulate training time
             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-            
+
             var epochProgress = (decimal)epoch / epochs;
             job.Progress = 0.2m + (epochProgress * 0.6m); // 20% base + 60% training progress
-            
+
             if (epoch % 10 == 0 || epoch == epochs)
             {
                 job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Epoch {epoch}/{epochs} - Loss: {0.1m / epoch:F4}");
@@ -378,7 +378,7 @@ internal class TrainingBrain : ITrainingBrain
         // Create a realistic ONNX model file with proper structure
         var modelBytes = CreateOnnxModelBytes();
         await File.WriteAllBytesAsync(modelPath, modelBytes, cancellationToken).ConfigureAwait(false);
-        
+
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Training completed - Model saved to {modelPath}");
         return modelPath;
     }
@@ -404,66 +404,66 @@ internal class TrainingBrain : ITrainingBrain
         // Create a minimal valid ONNX protobuf file
         // ONNX uses Protocol Buffers format - we create a minimal valid structure
         // Reference: https://github.com/onnx/onnx/blob/main/onnx/onnx.proto
-        
+
         // Minimal ONNX protobuf structure:
         // Field 1 (ir_version): varint = 8
         // Field 7 (graph): length-delimited message
         var onnxBytes = new List<byte>();
-        
+
         // Field 1: ir_version (varint) = 8 (ONNX IR version)
         onnxBytes.Add(0x08); // Field 1, wire type 0 (varint)
         onnxBytes.Add(0x08); // Value: 8
-        
+
         // Field 7: graph (length-delimited)
         onnxBytes.Add(0x3A); // Field 7, wire type 2 (length-delimited)
-        
+
         // Graph message content
         var graphBytes = new List<byte>();
-        
+
         // Graph field 1: node list (empty for minimal model)
         // Graph field 2: name (string)
         graphBytes.Add(0x12); // Field 2, wire type 2 (length-delimited)
         var nameBytes = Encoding.UTF8.GetBytes("trading_model");
         graphBytes.Add((byte)nameBytes.Length);
         graphBytes.AddRange(nameBytes);
-        
+
         // Graph field 11: input (tensor info)
         graphBytes.Add(0x5A); // Field 11, wire type 2
         var inputBytes = CreateTensorInfo("input", new[] { 1L, 4L }); // 1 batch, 4 features
         graphBytes.Add((byte)inputBytes.Length);
         graphBytes.AddRange(inputBytes);
-        
+
         // Graph field 12: output (tensor info)
         graphBytes.Add(0x62); // Field 12, wire type 2
         var outputBytes = CreateTensorInfo("output", new[] { 1L, 3L }); // 1 batch, 3 actions
         graphBytes.Add((byte)outputBytes.Length);
         graphBytes.AddRange(outputBytes);
-        
+
         // Write graph length and content
         onnxBytes.Add((byte)graphBytes.Count);
         onnxBytes.AddRange(graphBytes);
-        
+
         return onnxBytes.ToArray();
     }
-    
+
     private byte[] CreateTensorInfo(string name, long[] dims)
     {
         var bytes = new List<byte>();
-        
+
         // Field 1: name (string)
         bytes.Add(0x0A); // Field 1, wire type 2
         var nameBytes = Encoding.UTF8.GetBytes(name);
         bytes.Add((byte)nameBytes.Length);
         bytes.AddRange(nameBytes);
-        
+
         // Field 3: type (message with tensor type info)
         bytes.Add(0x1A); // Field 3, wire type 2
         var typeBytes = new List<byte>();
-        
+
         // Tensor type field 1: elem_type = 1 (FLOAT)
         typeBytes.Add(0x08); // Field 1, wire type 0
         typeBytes.Add(0x01); // FLOAT
-        
+
         // Tensor type field 2: shape (dimensions)
         typeBytes.Add(0x12); // Field 2, wire type 2
         var shapeBytes = new List<byte>();
@@ -476,10 +476,10 @@ internal class TrainingBrain : ITrainingBrain
         }
         typeBytes.Add((byte)shapeBytes.Count);
         typeBytes.AddRange(shapeBytes);
-        
+
         bytes.Add((byte)typeBytes.Count);
         bytes.AddRange(typeBytes);
-        
+
         return bytes.ToArray();
     }
 
@@ -487,7 +487,7 @@ internal class TrainingBrain : ITrainingBrain
     {
         // Generate weights based on actual training parameters using secure random
         var weights = new double[4, 3]; // 4 features, 3 actions
-        
+
         // Generate normalized weights that sum to 1.0 for each feature using cryptographic RNG
         for (int i = 0; i < 4; i++)
         {
@@ -497,14 +497,14 @@ internal class TrainingBrain : ITrainingBrain
                 // Use RandomNumberGenerator for cryptographic-grade randomness
                 rawWeights[j] = RandomNumberGenerator.GetInt32(0, 1000) / 1000.0;
             }
-            
+
             var sum = rawWeights.Sum();
             for (int j = 0; j < 3; j++)
             {
                 weights[i, j] = Math.Round(rawWeights[j] / sum, 3);
             }
         }
-        
+
         return weights;
     }
 
@@ -514,7 +514,7 @@ internal class TrainingBrain : ITrainingBrain
         int rows = source.GetLength(0);
         int cols = source.GetLength(1);
         var result = new double[rows][];
-        
+
         for (int i = 0; i < rows; i++)
         {
             result[i] = new double[cols];
@@ -523,17 +523,17 @@ internal class TrainingBrain : ITrainingBrain
                 result[i][j] = source[i, j];
             }
         }
-        
+
         return result;
     }
-    
+
     private double CalculateValidationAccuracy(int samples)
     {
         // Calculate realistic validation accuracy based on sample size and complexity
         var baseAccuracy = 0.6; // Baseline for financial prediction
         var sampleBonus = Math.Min(0.25, samples / 50000.0); // More samples = better accuracy
         var complexity_penalty = 0.05; // Trading is inherently complex
-        
+
         return Math.Round(baseAccuracy + sampleBonus - complexity_penalty, 3);
     }
 
@@ -542,7 +542,7 @@ internal class TrainingBrain : ITrainingBrain
         return algorithm.ToUpperInvariant() switch
         {
             "PPO" => "ONNX",
-            "LSTM" => "ONNX", 
+            "LSTM" => "ONNX",
             "UCB" => "UCB",
             _ => Path.GetExtension(modelPath).ToLowerInvariant() switch
             {
@@ -588,15 +588,15 @@ internal class TrainingBrain : ITrainingBrain
                 "daily" => 1,      // 1 sample per day
                 _ => 1440          // Default to minute data
             };
-            
+
             var totalSamples = (int)(timeSpan.TotalDays * samplesPerDay);
-            
+
             // Apply realistic market hours filtering (exclude weekends, holidays)
             var marketDaysRatio = 5.0 / 7.0; // ~71% market days
             var marketHoursRatio = config.DataSource.Contains("hour") ? 6.5 / 24.0 : 1.0; // Market hours vs 24/7
-            
+
             var adjustedSamples = (int)(totalSamples * marketDaysRatio * marketHoursRatio);
-            
+
             _logger.LogDebug("[TRAINING] Data samples calculated: {Samples:N0} ({DataSource} frequency)", adjustedSamples, config.DataSource);
             return Task.FromResult(Math.Max(100, adjustedSamples)); // Minimum 100 samples for training
         }
@@ -614,17 +614,17 @@ internal class TrainingBrain : ITrainingBrain
             // Extract real metrics from training process
             var totalEpochs = job.Config.MaxEpochs;
             var samplesCount = (int)job.StageData.GetValueOrDefault("data_samples", 1000);
-            
+
             // Calculate realistic final loss based on training progression
             var finalLoss = Math.Max(0.001m, 1.0m / totalEpochs); // Loss decreases with more training
-            
+
             // Calculate validation score based on data quality
             var dataQualityScore = Math.Min(0.95m, 0.7m + (samplesCount / 100000m)); // More data = better score
-            
+
             // Calculate training efficiency metric
             var trainingDuration = (job.EndTime ?? DateTime.UtcNow) - job.StartTime;
             var efficiencyScore = Math.Max(0.1m, Math.Min(1.0m, 3600m / (decimal)trainingDuration.TotalSeconds));
-            
+
             return new Dictionary<string, decimal>
             {
                 ["final_loss"] = finalLoss,
@@ -652,18 +652,18 @@ internal class TrainingBrain : ITrainingBrain
         {
             var samplesCount = (int)job.StageData.GetValueOrDefault("data_samples", 1000);
             var totalEpochs = job.Config.MaxEpochs;
-            
+
             // Calculate metrics based on actual training data and configuration
             var basePerformance = Math.Min(0.9m, 0.5m + (totalEpochs / 1000m)); // More epochs = better performance
             var dataQualityFactor = Math.Min(1.2m, samplesCount / 10000m); // More data = reliability multiplier
-            
+
             // Realistic performance metrics based on market conditions
             var sharpeRatio = Math.Max(0.5m, basePerformance * dataQualityFactor);
             var sortinoRatio = sharpeRatio * 1.2m; // Sortino typically higher than Sharpe
             var maxDrawdown = -Math.Max(0.02m, 0.1m / sharpeRatio); // Better Sharpe = lower drawdown
             var winRate = Math.Max(0.45m, Math.Min(0.85m, 0.5m + (sharpeRatio - 1.0m) * 0.2m));
             var totalTrades = Math.Max(10, samplesCount / 100); // Realistic trade frequency
-            
+
             return new Dictionary<string, decimal>
             {
                 ["sharpe_ratio"] = Math.Round(sharpeRatio, 2),

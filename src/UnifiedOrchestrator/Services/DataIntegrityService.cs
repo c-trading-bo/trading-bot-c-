@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 internal sealed class DataIntegrityService
 {
     private readonly ILogger<DataIntegrityService> _logger;
-    
+
     // Expected bars per trading day (ES/NQ futures trade nearly 24/5)
     private const int ExpectedBarsPerDay = 390; // Approximate for 5-min bars during main session
     private const double CompletenessThreshold = 95.0; // Require 95% data completeness
@@ -189,7 +189,7 @@ internal sealed class DataIntegrityService
         foreach (var symbol in symbols)
         {
             var filePath = System.IO.Path.Combine(dataDir, $"{symbol}_90days.json");
-            
+
             // File existence check
             if (!File.Exists(filePath))
             {
@@ -203,7 +203,7 @@ internal sealed class DataIntegrityService
             // 1-min bars: ~5-50 MB for 90 days
             var fileInfo = new FileInfo(filePath);
             var fileSizeMB = fileInfo.Length / (1024.0 * 1024.0);
-            
+
             if (fileSizeMB < 0.1)
             {
                 result.Warnings.Add($"{symbol}: File size too small ({fileSizeMB:F1} MB < 0.1 MB) - likely corrupted or empty");
@@ -220,7 +220,7 @@ internal sealed class DataIntegrityService
             try
             {
                 var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
-                
+
                 // Check if file is readable and parseable JSON
                 System.Text.Json.JsonDocument data;
                 try
@@ -233,9 +233,9 @@ internal sealed class DataIntegrityService
                     result.IsValid = false;
                     continue;
                 }
-                
+
                 var root = data.RootElement;
-                
+
                 // Check metadata
                 if (!root.TryGetProperty("bar_count", out var barCountElement))
                 {
@@ -261,11 +261,11 @@ internal sealed class DataIntegrityService
                 // 1-min bars: ~1380 bars/day × 90 = ~124,200 bars
                 // 5-min bars: ~276 bars/day × 90 = ~24,840 bars
                 // Allow variance for holidays and early closes (50% tolerance)
-                
+
                 // Infer interval from bar count (flexible detection)
                 int expectedBarsPerDay;
                 string detectedInterval;
-                
+
                 if (barCount > 80000) // Likely 1-minute data
                 {
                     expectedBarsPerDay = 1380; // 23 hours × 60 min
@@ -286,12 +286,12 @@ internal sealed class DataIntegrityService
                     expectedBarsPerDay = 23;
                     detectedInterval = "hourly or daily";
                 }
-                
+
                 const int ExpectedDays = 90;
                 var expectedBars = expectedBarsPerDay * ExpectedDays;
                 var minBars = (int)(expectedBars * 0.5); // Allow 50% variance for holidays
                 var maxBars = (int)(expectedBars * 1.5);
-                
+
                 if (barCount < minBars)
                 {
                     result.Warnings.Add($"{symbol}: Low bar count {barCount:N0} for {detectedInterval} data (expected ~{expectedBars:N0}, min {minBars:N0})");
@@ -311,12 +311,12 @@ internal sealed class DataIntegrityService
                 {
                     var startDateStr = startDateElement.GetString();
                     var endDateStr = endDateElement.GetString();
-                    
+
                     if (DateTime.TryParse(startDateStr, out var startDate) &&
                         DateTime.TryParse(endDateStr, out var endDate))
                     {
                         var daysDiff = (endDate - startDate).TotalDays;
-                        
+
                         // Check if approximately 90 days
                         if (daysDiff < 80)
                         {
@@ -326,14 +326,14 @@ internal sealed class DataIntegrityService
                         {
                             result.Warnings.Add($"{symbol}: Date range too long ({daysDiff:F0} days > 100 days)");
                         }
-                        
+
                         // Check if end date is recent (within last week)
                         var age = DateTime.UtcNow - endDate.ToUniversalTime();
                         if (age.TotalDays > 7)
                         {
                             result.Warnings.Add($"{symbol}: Data end date is {age.TotalDays:F1} days old (>7 days)");
                         }
-                        
+
                         result.DateRanges[symbol] = (startDate, endDate);
                     }
                 }
@@ -356,10 +356,10 @@ internal sealed class DataIntegrityService
                 var barsArray = barsElement.EnumerateArray().Take(100).ToList();
                 var invalidBars = 0;
                 var nullTimestamps = 0;
-                
+
                 DateTime? prevTimestamp = null;
                 var outOfOrderCount = 0;
-                
+
                 foreach (var bar in barsArray)
                 {
                     // Check for null or missing timestamp
@@ -368,14 +368,14 @@ internal sealed class DataIntegrityService
                         nullTimestamps++;
                         continue;
                     }
-                    
+
                     var timestamp = tsElement.GetString();
                     if (string.IsNullOrEmpty(timestamp))
                     {
                         nullTimestamps++;
                         continue;
                     }
-                    
+
                     // Check timestamp ordering
                     if (DateTime.TryParse(timestamp, out var currentTimestamp))
                     {
@@ -385,7 +385,7 @@ internal sealed class DataIntegrityService
                         }
                         prevTimestamp = currentTimestamp;
                     }
-                    
+
                     // Check OHLC values
                     if (bar.TryGetProperty("open", out var openEl) &&
                         bar.TryGetProperty("high", out var highEl) &&
@@ -396,7 +396,7 @@ internal sealed class DataIntegrityService
                         var high = highEl.GetDecimal();
                         var low = lowEl.GetDecimal();
                         var close = closeEl.GetDecimal();
-                        
+
                         // Validate OHLC logic
                         if (open == 0 || high == 0 || low == 0 || close == 0)
                         {
@@ -408,17 +408,17 @@ internal sealed class DataIntegrityService
                         }
                     }
                 }
-                
+
                 if (nullTimestamps > 0)
                 {
                     result.Warnings.Add($"{symbol}: Found {nullTimestamps} bars with null/missing timestamps (sampled 100 bars)");
                 }
-                
+
                 if (outOfOrderCount > 0)
                 {
                     result.Warnings.Add($"{symbol}: Found {outOfOrderCount} bars with out-of-order timestamps (sampled 100 bars)");
                 }
-                
+
                 if (invalidBars > 0)
                 {
                     result.Warnings.Add($"{symbol}: Found {invalidBars} bars with invalid OHLC values (sampled 100 bars)");
@@ -451,7 +451,7 @@ internal sealed class DataIntegrityService
                     summaryParts.Add($"{symbol}: {barCount:N0} bars, {dateRange}");
                 }
             }
-            
+
             _logger.LogInformation("[DATA-INTEGRITY] ✅ Historical data validation PASSED - {Summary}",
                 string.Join("; ", summaryParts));
         }
@@ -485,7 +485,7 @@ internal sealed class DataIntegrityService
         for (int i = 1; i < timestamps.Count; i++)
         {
             var gap = timestamps[i] - timestamps[i - 1];
-            
+
             // If gap is significantly larger than expected interval
             if (gap > expectedInterval + maxGapTolerance)
             {
@@ -541,7 +541,7 @@ internal sealed class DataIntegrityService
         }
 
         var changed = currentHash != previousHash;
-        
+
         if (changed)
         {
             _logger.LogInformation("[DATA-INTEGRITY] Data has CHANGED since last run");
