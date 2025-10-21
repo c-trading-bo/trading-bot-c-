@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
-    <ProjectReference Include="../BotCore/BotCore.csproj" />
   </ItemGroup>
 
 </Project>

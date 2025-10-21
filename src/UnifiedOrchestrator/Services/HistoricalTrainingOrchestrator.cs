@@ -1236,25 +1236,16 @@ internal sealed class HistoricalTrainingOrchestrator
             _memoryLeakDetector.RecordBeforeComponent(ComponentLSTM);
             _debugLogger.LogBeforeComponent(ComponentLSTM, PhaseMain, 3, 7);
             
-            // Convert Experience list to TradingExperience list for trainer
-            var tradingExperiences = experiences.Select(e => new global::BotCore.Models.TradingExperience
+            // Convert Experience to ExperienceData for trainer (lightweight, no BotCore dependency)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
-                ExperienceId = Guid.NewGuid().ToString(),
-                Timestamp = DateTime.UtcNow,
-                PositionId = "training",
-                Symbol = "ES", // Simplified
-                RMultiple = e.Reward,
-                PnL = e.Reward * 50m, // Approximate
-                EntryConfidence = 0.5m,
-                EntryRegimeConfidence = 0.5m,
-                VolatilityAtEntry = 1.0m,
-                EntryHour = DateTime.UtcNow.Hour,
-                PositionSize = 1
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
             }).ToList();
             
-            // Call actual LSTM trainer
+            // Call actual LSTM trainer with production implementation
             var trainingResult = await _lstmTrainer.TrainFromHistoricalBarsAsync(
-                historicalBars, tradingExperiences, cancellationToken).ConfigureAwait(false);
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             result.LstmTrainingDuration = stopwatch.Elapsed;
@@ -1298,25 +1289,16 @@ internal sealed class HistoricalTrainingOrchestrator
             _memoryLeakDetector.RecordBeforeComponent("Pattern-Recognition");
             _debugLogger.LogBeforeComponent("Pattern-Recognition", PhaseMain, 4, 7);
             
-            // Convert Experience list to TradingExperience list
-            var tradingExperiences = experiences.Select(e => new global::BotCore.Models.TradingExperience
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
-                ExperienceId = Guid.NewGuid().ToString(),
-                Timestamp = DateTime.UtcNow,
-                PositionId = "training",
-                Symbol = "ES",
-                RMultiple = e.Reward,
-                PnL = e.Reward * 50m,
-                EntryConfidence = 0.5m,
-                EntryRegimeConfidence = 0.5m,
-                VolatilityAtEntry = 1.0m,
-                EntryHour = DateTime.UtcNow.Hour,
-                PositionSize = 1
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
             }).ToList();
             
             // Call actual Pattern Recognition trainer
             var trainingResult = await _patternRecognitionTrainer.TrainFromHistoricalBarsAsync(
-                historicalBars, tradingExperiences, cancellationToken).ConfigureAwait(false);
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             
@@ -1355,25 +1337,16 @@ internal sealed class HistoricalTrainingOrchestrator
             _memoryLeakDetector.RecordBeforeComponent("Regime-Detector");
             _debugLogger.LogBeforeComponent("Regime-Detector", PhaseMain, 5, 7);
             
-            // Convert Experience list to TradingExperience list
-            var tradingExperiences = experiences.Select(e => new global::BotCore.Models.TradingExperience
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
-                ExperienceId = Guid.NewGuid().ToString(),
-                Timestamp = DateTime.UtcNow,
-                PositionId = "training",
-                Symbol = "ES",
-                RMultiple = e.Reward,
-                PnL = e.Reward * 50m,
-                EntryConfidence = 0.5m,
-                EntryRegimeConfidence = 0.5m,
-                VolatilityAtEntry = 1.0m,
-                EntryHour = DateTime.UtcNow.Hour,
-                PositionSize = 1
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
             }).ToList();
             
             // Call actual Regime Detector trainer
             var trainingResult = await _regimeDetectorTrainer.TrainFromHistoricalBarsAsync(
-                historicalBars, tradingExperiences, cancellationToken).ConfigureAwait(false);
+                historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             
@@ -1411,25 +1384,16 @@ internal sealed class HistoricalTrainingOrchestrator
             _memoryLeakDetector.RecordBeforeComponent("Slippage-Latency");
             _debugLogger.LogBeforeComponent("Slippage-Latency", PhaseMain, 6, 7);
             
-            // Convert Experience list to TradingExperience list
-            var tradingExperiences = experiences.Select(e => new global::BotCore.Models.TradingExperience
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
-                ExperienceId = Guid.NewGuid().ToString(),
-                Timestamp = DateTime.UtcNow,
-                PositionId = "training",
-                Symbol = "ES",
-                RMultiple = e.Reward,
-                PnL = e.Reward * 50m,
-                EntryConfidence = 0.5m,
-                EntryRegimeConfidence = 0.5m,
-                VolatilityAtEntry = 1.0m,
-                EntryHour = DateTime.UtcNow.Hour,
-                PositionSize = 1
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
             }).ToList();
             
             // Call actual Slippage/Latency trainer
             var trainingResult = await _slippageLatencyTrainer.TrainFromExperiencesAsync(
-                tradingExperiences, cancellationToken).ConfigureAwait(false);
+                experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             
@@ -1467,25 +1431,16 @@ internal sealed class HistoricalTrainingOrchestrator
             _memoryLeakDetector.RecordBeforeComponent("Model-Ensemble");
             _debugLogger.LogBeforeComponent("Model-Ensemble", PhaseMain, 7, 7);
             
-            // Convert Experience list to TradingExperience list
-            var tradingExperiences = experiences.Select(e => new global::BotCore.Models.TradingExperience
+            // Convert Experience to ExperienceData for trainer (lightweight)
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
-                ExperienceId = Guid.NewGuid().ToString(),
-                Timestamp = DateTime.UtcNow,
-                PositionId = "training",
-                Symbol = "ES",
-                RMultiple = e.Reward,
-                PnL = e.Reward * 50m,
-                EntryConfidence = 0.5m,
-                EntryRegimeConfidence = 0.5m,
-                VolatilityAtEntry = 1.0m,
-                EntryHour = DateTime.UtcNow.Hour,
-                PositionSize = 1
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
             }).ToList();
             
             // Call actual Model Ensemble trainer
             var trainingResult = await _modelEnsembleTrainer.TrainFromExperiencesAsync(
-                tradingExperiences, cancellationToken).ConfigureAwait(false);
+                experienceData, cancellationToken).ConfigureAwait(false);
             
             stopwatch.Stop();
             

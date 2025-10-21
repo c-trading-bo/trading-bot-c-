@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BotCore.Models;
+
 
 namespace TradingBot.RLAgent;
 
@@ -38,7 +38,7 @@ public class RegimeDetectorTrainer
     /// </summary>
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
-        List<TradingExperience> experiences,
+        List<ExperienceData> experiences,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🔧 RegimeDetectorTrainer starting training from {BarCount} bars and {ExpCount} experiences",
@@ -83,7 +83,7 @@ public class RegimeDetectorTrainer
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
-            result.SampleCount = regimes.Count;
+            result.ExperiencesUsed = regimes.Count;
 
             _logger.LogInformation("✅ RegimeDetectorTrainer completed training - Regimes: {Count}, Duration: {Duration:F1}s",
                 regimes.Count, (result.EndTime.Value - result.StartTime).TotalSeconds);
@@ -210,7 +210,7 @@ public class RegimeDetectorTrainer
 
     private Dictionary<string, double> AnalyzeRegimePerformance(
         List<MarketRegime> regimes,
-        List<TradingExperience> experiences)
+        List<ExperienceData> experiences)
     {
         var performance = new Dictionary<string, double>();
 
@@ -225,7 +225,7 @@ public class RegimeDetectorTrainer
                 if (!performance.ContainsKey(regime.RegimeType))
                     performance[regime.RegimeType] = 0;
 
-                performance[regime.RegimeType] += (double)exp.RMultiple;
+                performance[regime.RegimeType] += (double)exp.Reward;
             }
         }
 

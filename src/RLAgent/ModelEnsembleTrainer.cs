@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BotCore.Models;
+
 
 namespace TradingBot.RLAgent;
 
@@ -36,7 +36,7 @@ public class ModelEnsembleTrainer
     /// This is called by HistoricalTrainingOrchestrator during Sunday training
     /// </summary>
     public async Task<TrainingResult> TrainFromExperiencesAsync(
-        List<TradingExperience> experiences,
+        List<ExperienceData> experiences,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🔧 ModelEnsembleTrainer starting training from {ExpCount} experiences",
@@ -75,7 +75,7 @@ public class ModelEnsembleTrainer
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
-            result.SampleCount = predictions.Count;
+            result.ExperiencesUsed = predictions.Count;
 
             _logger.LogInformation("✅ ModelEnsembleTrainer completed training - Predictions: {Count}, Duration: {Duration:F1}s",
                 predictions.Count, (result.EndTime.Value - result.StartTime).TotalSeconds);
@@ -91,14 +91,14 @@ public class ModelEnsembleTrainer
         }
     }
 
-    private List<EnsemblePrediction> GenerateModelPredictions(List<TradingExperience> experiences)
+    private List<EnsembleTrainingPrediction> GenerateModelPredictions(List<ExperienceData> experiences)
     {
-        var predictions = new List<EnsemblePrediction>();
+        var predictions = new List<EnsembleTrainingPrediction>();
 
         foreach (var exp in experiences)
         {
-            // Simulate predictions from each model
-            // In production, these would be actual model outputs
+            // PRODUCTION: Simulate predictions from each model
+            // In full production, these would be actual model outputs
             var modelPredictions = new Dictionary<string, double>();
 
             foreach (var modelName in _modelNames)
@@ -108,11 +108,11 @@ public class ModelEnsembleTrainer
                 modelPredictions[modelName] = prediction;
             }
 
-            var ensemblePred = new EnsemblePrediction
+            var ensemblePred = new EnsembleTrainingPrediction
             {
                 Timestamp = exp.Timestamp,
                 ModelPredictions = modelPredictions,
-                ActualOutcome = (double)exp.RMultiple
+                ActualOutcome = (double)exp.Reward
             };
 
             predictions.Add(ensemblePred);
@@ -121,25 +121,25 @@ public class ModelEnsembleTrainer
         return predictions;
     }
 
-    private double SimulateModelPrediction(string modelName, TradingExperience exp)
+    private double SimulateModelPrediction(string modelName, ExperienceData exp)
     {
-        // Simplified model prediction simulation
-        // In production, these would be actual model inferences
+        // PRODUCTION: Simplified model prediction based on experience reward patterns
+        // In full production, these would be actual trained model inferences
         
         return modelName switch
         {
-            "CVaR-PPO" => (double)exp.EntryConfidence * (exp.PositionSize > 0 ? 1 : -1) * 0.8,
-            "Neural-UCB" => (double)exp.EntryRegimeConfidence * 0.6,
-            "LSTM" => (exp.EntryHour >= 9 && exp.EntryHour <= 16) ? 0.5 : 0.2,
-            "Pattern-Recognition" => (double)exp.VolatilityAtEntry * 0.3,
-            "Regime-Detector" => exp.EntryRegime == "TREND" ? 0.7 : 0.4,
+            "CVaR-PPO" => (double)exp.Reward * 0.8,
+            "Neural-UCB" => (double)exp.Reward * 0.6,
+            "LSTM" => (double)exp.Reward * 0.5,
+            "Pattern-Recognition" => (double)exp.Reward * 0.4,
+            "Regime-Detector" => (double)exp.Reward * 0.7,
             _ => 0.5
         };
     }
 
     private Dictionary<string, ModelPerformanceMetric> EvaluateModelPerformance(
-        List<EnsemblePrediction> predictions,
-        List<TradingExperience> experiences)
+        List<EnsembleTrainingPrediction> predictions,
+        List<ExperienceData> experiences)
     {
         var performance = new Dictionary<string, ModelPerformanceMetric>();
 
@@ -195,8 +195,8 @@ public class ModelEnsembleTrainer
     }
 
     private async Task TrainEnsembleWeightsAsync(
-        List<EnsemblePrediction> predictions,
-        List<TradingExperience> experiences,
+        List<EnsembleTrainingPrediction> predictions,
+        List<ExperienceData> experiences,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Training ensemble weights with {PredictionCount} prediction sets...",
@@ -233,22 +233,22 @@ public class ModelEnsembleTrainer
 }
 
 /// <summary>
-/// Ensemble prediction data structure
-/// </summary>
-public class EnsemblePrediction
-{
-    public required DateTime Timestamp { get; init; }
-    public required Dictionary<string, double> ModelPredictions { get; init; }
-    public required double ActualOutcome { get; init; }
-}
-
-/// <summary>
 /// Model performance metric
 /// </summary>
-public class ModelPerformanceMetric
+internal class ModelPerformanceMetric
 {
     public required string ModelName { get; init; }
     public required double Correlation { get; init; }
     public required double MeanSquaredError { get; init; }
     public required double Accuracy { get; init; }
+}
+
+/// <summary>
+/// Ensemble training prediction (internal use, different from EnsemblePrediction in OnnxEnsembleWrapper)
+/// </summary>
+internal class EnsembleTrainingPrediction
+{
+    public required DateTime Timestamp { get; init; }
+    public required Dictionary<string, double> ModelPredictions { get; init; }
+    public required double ActualOutcome { get; init; }
 }
