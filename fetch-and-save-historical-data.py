@@ -22,6 +22,10 @@ import asyncio
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file automatically
+load_dotenv()
 
 # Add parent directory to path to import TopstepXAdapter
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src', 'adapters'))

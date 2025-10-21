@@ -582,7 +582,7 @@ namespace BotCore.Services
         /// <summary>
         /// Register a position in tracking (called when trade is opened)
         /// </summary>
-        public void RegisterPosition(string positionId, string symbol, string side, int quantity, decimal entryPrice, decimal? stopLoss = null, decimal? takeProfit = null)
+        public void RegisterPosition(string positionId, string symbol, string side, int quantity, decimal entryPrice, decimal? stopLoss = null, decimal? takeProfit = null, string? strategy = null, string? decisionId = null)
         {
             var position = new TradingBot.Abstractions.Position
             {
@@ -596,14 +596,17 @@ namespace BotCore.Services
                 ConfigSnapshotId = DefaultConfigSnapshotId,
                 OpenTime = DateTimeOffset.UtcNow,
                 StopLoss = stopLoss,
-                TakeProfit = takeProfit
+                TakeProfit = takeProfit,
+                Strategy = strategy ?? "UNKNOWN", // Neural-UCB learning: track which strategy opened position
+                DecisionId = decisionId, // Neural-UCB learning: link position to strategy decision
+                EntryTime = DateTimeOffset.UtcNow // Neural-UCB learning: track position lifetime
             };
             
             _positions.TryAdd(positionId, position);
             _symbolToPositionId[symbol] = positionId;
             
-            _logger.LogInformation("📊 [ORDER-EXEC] Position registered: {PositionId} - {Symbol} {Side} {Qty} @ {Price}",
-                positionId, symbol, side, quantity, entryPrice);
+            _logger.LogInformation("📊 [ORDER-EXEC] Position registered: {PositionId} - {Symbol} {Side} {Qty} @ {Price} | Strategy={Strategy} DecisionId={DecisionId}",
+                positionId, symbol, side, quantity, entryPrice, strategy ?? "UNKNOWN", decisionId ?? "N/A");
         }
         
         /// <summary>

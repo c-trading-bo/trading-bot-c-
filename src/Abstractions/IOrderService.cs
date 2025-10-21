@@ -69,6 +69,11 @@ namespace TradingBot.Abstractions
         public System.DateTimeOffset OpenTime { get; set; }
         public decimal? StopLoss { get; set; }
         public decimal? TakeProfit { get; set; }
+        
+        // Learning feedback properties - link positions to Neural-UCB decisions
+        public string? DecisionId { get; set; }
+        public string? Strategy { get; set; }
+        public System.DateTimeOffset EntryTime { get; set; } = System.DateTimeOffset.UtcNow;
     }
 
     /// <summary>
