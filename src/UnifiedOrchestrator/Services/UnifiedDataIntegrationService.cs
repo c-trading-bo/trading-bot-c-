@@ -22,6 +22,7 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
     private readonly ITradingBrainAdapter _brainAdapter;
     private readonly TopstepXAdapterService? _topstepXAdapter;
     private readonly IHistoricalDataBridgeService? _historicalDataBridge;
+    private readonly TradingBot.Abstractions.IHistoricalDataSeedService? _seedService;
     
     // Data flow tracking
     private readonly List<DataFlowEvent> _dataFlowEvents = new();
@@ -44,12 +45,14 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
         ILogger<UnifiedDataIntegrationService> logger,
         ITradingBrainAdapter brainAdapter,
         TradingBot.Abstractions.ITopstepXAdapterService? topstepXAdapter = null,
-        IHistoricalDataBridgeService? historicalDataBridge = null)
+        IHistoricalDataBridgeService? historicalDataBridge = null,
+        TradingBot.Abstractions.IHistoricalDataSeedService? seedService = null)
     {
         _logger = logger;
         _brainAdapter = brainAdapter;
         _topstepXAdapter = topstepXAdapter as TopstepXAdapterService;
         _historicalDataBridge = historicalDataBridge;
+        _seedService = seedService;
         
         // Subscribe to bar events if adapter is available
         if (_topstepXAdapter != null)
@@ -372,6 +375,29 @@ internal class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataIn
         
         try
         {
+            // PRIORITY 1: Try to load from seed files (ES_90days.json, NQ_90days.json)
+            if (_seedService != null)
+            {
+                _logger.LogInformation("📂 [DATA-INTEGRATION] Loading historical seed data from JSON files...");
+                var seedResult = await _seedService.TryApplySeedAsync(_tradingInstruments).ConfigureAwait(false);
+                
+                if (seedResult.Success)
+                {
+                    _isHistoricalDataConnected = true;
+                    _lastHistoricalDataSync = DateTime.UtcNow;
+                    _historicalBarsReceived += seedResult.Bars.Count;
+                    _totalBarsReceived += seedResult.Bars.Count;
+                    _logger.LogInformation("✅ [DATA-INTEGRATION] Historical data seeding completed: {BarCount} bars loaded from disk", 
+                        seedResult.Bars.Count);
+                    return;
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ [DATA-INTEGRATION] Seed loading failed: {Reason}", seedResult.ErrorMessage);
+                }
+            }
+            
+            // PRIORITY 2: Fallback to historical data bridge (Python SDK - requires API)
             if (_historicalDataBridge == null)
             {
                 _logger.LogInformation("📊 [DATA-INTEGRATION] Historical data bridge not available - bot will collect live bars over time");

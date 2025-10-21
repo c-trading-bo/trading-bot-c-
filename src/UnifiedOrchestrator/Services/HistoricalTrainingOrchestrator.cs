@@ -507,7 +507,8 @@ internal sealed class HistoricalTrainingOrchestrator
         {
             try
             {
-                var dataFile = Path.Combine("data", $"historical_{symbol.ToLowerInvariant()}_90d.json");
+                // Fixed: Use correct filename format - ES_90days.json and NQ_90days.json
+                var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
                 
                 if (!File.Exists(dataFile))
                 {
@@ -532,6 +533,171 @@ internal sealed class HistoricalTrainingOrchestrator
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Replay all historical bars sequentially through 24-hour cycle to generate training experiences.
+    /// This feeds bars to the brain chronologically, allowing time-gated strategies to activate at their designated windows.
+    /// </summary>
+    private async Task ReplayHistoricalBarsAsync(
+        Dictionary<string, int> historicalData, 
+        TrainingSessionResult result, 
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var totalBarsProcessed = 0;
+        
+        try
+        {
+            _logger.LogInformation("[LAB] 🎬 Starting historical bar replay across 24-hour cycle...");
+            
+            // Get the UnifiedTradingBrain instance from the service provider
+            var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
+            if (brain == null)
+            {
+                _logger.LogWarning("[LAB] ⚠️ UnifiedTradingBrain not available - skipping bar replay");
+                return;
+            }
+            
+            // Load and merge bars from all symbols
+            var allBars = new List<HistoricalBar>();
+            
+            foreach (var kvp in historicalData)
+            {
+                var symbol = kvp.Key;
+                var barCount = kvp.Value;
+                
+                if (barCount == 0)
+                {
+                    _logger.LogWarning("[LAB] Skipping {Symbol} - no bars loaded", symbol);
+                    continue;
+                }
+                
+                try
+                {
+                    var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                    var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                    
+                    using var jsonDoc = JsonDocument.Parse(jsonContent);
+                    var barsArray = jsonDoc.RootElement.GetProperty("bars");
+                    
+                    foreach (var barElement in barsArray.EnumerateArray())
+                    {
+                        var bar = new HistoricalBar
+                        {
+                            Symbol = symbol,
+                            Timestamp = DateTimeOffset.Parse(barElement.GetProperty("timestamp").GetString()!),
+                            Open = barElement.GetProperty("open").GetDecimal(),
+                            High = barElement.GetProperty("high").GetDecimal(),
+                            Low = barElement.GetProperty("low").GetDecimal(),
+                            Close = barElement.GetProperty("close").GetDecimal(),
+                            Volume = barElement.GetProperty("volume").GetInt64()
+                        };
+                        allBars.Add(bar);
+                    }
+                    
+                    _logger.LogInformation("[LAB] Loaded {Count} bars from {Symbol}", barCount, symbol);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] ERROR: Failed to load bars for replay - {Symbol}: {Error}", 
+                        symbol, ex.Message);
+                }
+            }
+            
+            // Sort all bars chronologically
+            allBars = allBars.OrderBy(b => b.Timestamp).ToList();
+            _logger.LogInformation("[LAB] 📊 Total bars for replay: {Count} (sorted chronologically)", allBars.Count);
+            
+            // Replay bars sequentially
+            var barsThisHour = new Dictionary<int, int>();
+            
+            foreach (var bar in allBars)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+                
+                try
+                {
+                    // Track hour distribution
+                    var hour = bar.Timestamp.Hour;
+                    barsThisHour.TryGetValue(hour, out var count);
+                    barsThisHour[hour] = count + 1;
+                    
+                    // Feed bar to brain - This will trigger strategy selection based on time window
+                    // and generate training experiences via SaveTrainingDataImmediatelyAsync
+                    var features = new float[]
+                    {
+                        (float)bar.Close,
+                        (float)bar.High,
+                        (float)bar.Low,
+                        (float)bar.Open,
+                        (float)bar.Volume,
+                        hour, // Hour of day for time-gated strategy selection
+                        bar.Timestamp.DayOfWeek == DayOfWeek.Monday ? 1f : 0f,
+                        bar.Timestamp.DayOfWeek == DayOfWeek.Friday ? 1f : 0f
+                    };
+                    
+                    // Call brain.MakeDecisionAsync which internally calls GetAvailableStrategies
+                    // This respects time gates and will activate different strategies at correct times
+                    await brain.MakeDecisionAsync(
+                        bar.Symbol,
+                        features,
+                        bar.Timestamp.DateTime,
+                        cancellationToken).ConfigureAwait(false);
+                    
+                    totalBarsProcessed++;
+                    
+                    // Log progress every 500 bars
+                    if (totalBarsProcessed % 500 == 0)
+                    {
+                        _logger.LogInformation("[LAB] 📈 Progress: {Processed}/{Total} bars replayed ({Percent:F1}%)",
+                            totalBarsProcessed, allBars.Count, (totalBarsProcessed * 100.0 / allBars.Count));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] ERROR: Failed to process bar at {Timestamp}: {Error}",
+                        bar.Timestamp, ex.Message);
+                }
+            }
+            
+            // Log hour distribution
+            _logger.LogInformation("[LAB] ✅ Bar replay complete - {Total} bars processed in {Elapsed:F1}s",
+                totalBarsProcessed, stopwatch.Elapsed.TotalSeconds);
+            
+            _logger.LogInformation("[LAB] 📊 Hour distribution:");
+            foreach (var hour in Enumerable.Range(0, 24))
+            {
+                var count = barsThisHour.GetValueOrDefault(hour, 0);
+                _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars", hour, count);
+            }
+            
+            result.HistoricalBarsProcessed = totalBarsProcessed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ERROR: Historical bar replay failed: {Error}", ex.Message);
+            result.Errors.Add($"Bar replay failed: {ex.Message}");
+        }
+        finally
+        {
+            stopwatch.Stop();
+        }
+    }
+    
+    /// <summary>
+    /// Simple DTO for historical bar data
+    /// </summary>
+    private sealed class HistoricalBar
+    {
+        public required string Symbol { get; init; }
+        public required DateTimeOffset Timestamp { get; init; }
+        public required decimal Open { get; init; }
+        public required decimal High { get; init; }
+        public required decimal Low { get; init; }
+        public required decimal Close { get; init; }
+        public required long Volume { get; init; }
     }
 
     private async Task InvokePythonHistoricalDataFetchAsync(CancellationToken cancellationToken)
@@ -650,6 +816,18 @@ internal sealed class HistoricalTrainingOrchestrator
         CancellationToken cancellationToken)
     {
         // Sequential training pipeline - each step must complete before next starts
+        
+        // STEP 0: Replay historical bars to generate new experiences across all 24 hours
+        _logger.LogInformation("[LAB] 🎬 Starting 24/7 historical bar replay - {TotalBars} bars loaded",
+            historicalData.Sum(kvp => kvp.Value));
+        
+        await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
+        
+        // Reload experiences after replay (now includes data from all time windows)
+        experiences = await LoadAndVerifyExperiencesAsync(result, historicalData, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogInformation("[LAB] ✅ Replay complete - {ExperienceCount} total experiences available for training",
+            experiences.Count);
         
         // 1. CVaR-PPO Training (30 min) - uses real trainer
         await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
@@ -1690,6 +1868,7 @@ internal class TrainingSessionResult
     
     // Data loading
     public int HistoricalBarsLoaded { get; set; }
+    public int HistoricalBarsProcessed { get; set; } // Bars fed through brain during replay
     public int ExperiencesLoaded { get; set; }
     
     // Training results

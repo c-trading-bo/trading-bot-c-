@@ -780,6 +780,13 @@ internal sealed class InternalScheduler : BackgroundService
     /// </summary>
     private bool IsTrainingTime(DateTime easternTime)
     {
+        // 🚀 FORCE_LAB_NOW: Bypass Sunday schedule for immediate testing
+        var forceLab = Environment.GetEnvironmentVariable("FORCE_LAB_NOW") == "1";
+        if (forceLab)
+        {
+            return true; // Always return true to run immediately
+        }
+
         var dayOfWeek = easternTime.DayOfWeek;
         var timeOfDay = easternTime.TimeOfDay;
 

@@ -1844,6 +1844,25 @@ namespace BotCore.Brain
                     await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, cancellationToken).ConfigureAwait(false);
                 }
 
+                // ✅ FIX: Update the decision history entry with actual outcome
+                var recentDecision = _decisionHistory
+                    .Where(d => d.Symbol == symbol && d.Strategy == strategy && !d.WasCorrect && d.PnL == 0)
+                    .OrderByDescending(d => d.Timestamp)
+                    .FirstOrDefault();
+                
+                if (recentDecision != null)
+                {
+                    recentDecision.WasCorrect = wasCorrect;
+                    recentDecision.PnL = pnl;
+                    _logger.LogDebug("[BRAIN-LEARNING] ✅ Updated decision history: {Strategy} on {Symbol} - PnL: {PnL:F2}, Correct: {WasCorrect}", 
+                        strategy, symbol, pnl, wasCorrect);
+                }
+                else
+                {
+                    _logger.LogWarning("[BRAIN-LEARNING] ⚠️ Could not find matching decision in history to update for {Strategy} on {Symbol}", 
+                        strategy, symbol);
+                }
+                
                 // Update performance tracking for the specific strategy
                 if (!_performance.TryGetValue(symbol, out var perf))
                 {
@@ -1883,6 +1902,23 @@ namespace BotCore.Brain
                 }
 
                 LogUnifiedLearning(_logger, symbol, strategy, (double)pnl, wasCorrect, (double)WinRateToday, perf.TotalTrades, null);
+
+                // ✅ FIX: IMMEDIATELY save training data after EVERY trade outcome (don't wait for periodic retrain)
+                // This ensures we NEVER lose learning data even if bot crashes or gets cancelled
+                if (_decisionHistory.Count > 0)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await SaveTrainingDataImmediatelyAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[BRAIN-LEARNING] ❌ Failed to save training data immediately");
+                        }
+                    }, cancellationToken);
+                }
 
                 // AI bot reflection - reflect on completed trade
                 if (_ollamaClient != null && (Environment.GetEnvironmentVariable("BOT_REFLECTION_ENABLED") == "true"))
@@ -4509,16 +4545,55 @@ Reason closed: {reason}
             {
                 LogUnifiedRetrainingStarting(_logger, null);
                 
+                await SaveTrainingDataImmediatelyAsync(cancellationToken).ConfigureAwait(false);
+                
+                // Enhanced Python training scripts for multi-strategy learning would be integrated here
+            }
+            catch (IOException ex)
+            {
+                LogUnifiedRetrainingIOError(_logger, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogUnifiedRetrainingAccessDenied(_logger, ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogUnifiedRetrainingInvalidOperation(_logger, ex);
+            }
+            catch (JsonException ex)
+            {
+                LogUnifiedRetrainingJsonError(_logger, ex);
+            }
+        }
+
+        /// <summary>
+        /// ✅ NEW: Save training data immediately after every trade (don't wait for periodic retrain)
+        /// This prevents data loss if bot crashes or gets cancelled
+        /// </summary>
+        private async Task SaveTrainingDataImmediatelyAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
                 // Export comprehensive training data including all strategies
-                var unifiedTrainingData = _decisionHistory.TakeLast(TopStepConfig.TrainingDataHistorySize).Select(d => new
+                var unifiedTrainingData = _decisionHistory.TakeLast(TopStepConfig.TrainingDataHistorySize).Select(d => 
                 {
-                    features = CreateContextVector(d.Context).Features,
-                    strategy = d.Strategy,
-                    reward = d.WasCorrect ? 1.0 : 0.0,
-                    pnl = (double)d.PnL,
-                    market_conditions = GetCurrentMarketConditions(d.Context),
-                    timestamp = d.Timestamp,
-                    strategy_specialization = _strategySpecializations.GetValueOrDefault(d.Strategy)?.Name ?? "unknown"
+                    // Calculate sophisticated reward based on PnL, correctness, and time efficiency
+                    var holdTime = DateTime.UtcNow - d.Timestamp;
+                    var calculatedReward = CalculateReward(d.PnL, d.WasCorrect, holdTime);
+                    
+                    return new
+                    {
+                        features = CreateContextVector(d.Context).Features,
+                        strategy = d.Strategy,
+                        reward = (double)calculatedReward,
+                        pnl = (double)d.PnL,
+                        action = GetActionFromDecision(d),
+                        was_correct = d.WasCorrect,
+                        market_conditions = GetCurrentMarketConditions(d.Context),
+                        timestamp = d.Timestamp,
+                        strategy_specialization = _strategySpecializations.GetValueOrDefault(d.Strategy)?.Name ?? "unknown"
+                    };
                 });
                 
                 // Export strategy performance data
@@ -4546,25 +4621,34 @@ Reason closed: {reason}
                     CachedJsonOptions), cancellationToken).ConfigureAwait(false);
                 
                 LogUnifiedRetrainingDataExported(_logger, unifiedTrainingData.Count(), _strategyPerformance.Count, null);
-                
-                // Enhanced Python training scripts for multi-strategy learning would be integrated here
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
-                LogUnifiedRetrainingIOError(_logger, ex);
+                _logger.LogError(ex, "[BRAIN-SAVE] ❌ Failed to save training data immediately");
+                throw;
             }
-            catch (UnauthorizedAccessException ex)
+        }
+        
+        /// <summary>
+        /// Convert trading decision to human-readable action (BUY/SELL/HOLD)
+        /// </summary>
+        private string GetActionFromDecision(TradingDecision decision)
+        {
+            // If PnL is 0, it means no trade was taken = HOLD
+            if (decision.PnL == 0)
+                return "HOLD";
+            
+            // If PnL is positive or negative, we traded
+            // Determine direction from context or assume based on strategy
+            // For now, we'll infer from common strategy patterns
+            return decision.Strategy switch
             {
-                LogUnifiedRetrainingAccessDenied(_logger, ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                LogUnifiedRetrainingInvalidOperation(_logger, ex);
-            }
-            catch (JsonException ex)
-            {
-                LogUnifiedRetrainingJsonError(_logger, ex);
-            }
+                "S2" => decision.PnL > 0 ? "BUY" : "SELL", // VWAP mean reversion
+                "S3" => decision.PnL > 0 ? "BUY" : "SELL", // Compression breakout
+                "S6" => decision.PnL > 0 ? "SELL" : "BUY", // Mean reversion (fade)
+                "S11" => decision.PnL > 0 ? "BUY" : "SELL", // Opening range breakout
+                _ => "HOLD"
+            };
         }
 
         #endregion
@@ -4974,6 +5058,14 @@ Explain in 1-2 sentences what I learned and how it will improve my future tradin
             var adjustedMultiplier = sizeMultiplier * probabilityAdjustment * valueAdjustment;
             var contracts = (int)Math.Round(baseContracts * adjustedMultiplier);
             
+            // 🌱 LAB MODE BOOTSTRAP: Force minimum 1 contract when CVaR-PPO wants to trade (action > 0)
+            // This breaks the learning deadlock: CVaR-PPO needs trade outcomes to learn from
+            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE_BOOTSTRAP") == "1";
+            if (isLabMode && actionResult.Action > 0 && contracts == 0)
+            {
+                contracts = 1; // Force 1 contract to generate learning data
+            }
+            
             return Math.Max(0, contracts);
         }
 
@@ -4984,13 +5076,18 @@ Explain in 1-2 sentences what I learned and how it will improve my future tradin
         {
             if (contracts <= 0) return 0;
             
+            // 🌱 LAB MODE BOOTSTRAP: Relax CVaR thresholds during training to allow learning
+            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE_BOOTSTRAP") == "1";
+            var highRiskThreshold = isLabMode ? -0.5 : (double)TopStepConfig.HighNegativeTailRiskThreshold;  // Lab: -50%, Live: -10%
+            var moderateRiskThreshold = isLabMode ? -0.2 : (double)TopStepConfig.ModerateTailRiskThreshold;  // Lab: -20%, Live: -5%
+            
             // CVaR tail risk adjustment - reduce position if high tail risk
             var cvarAdjustment = TopStepConfig.NormalPositionMultiplier;
-            if (actionResult.CVaREstimate < (double)TopStepConfig.HighNegativeTailRiskThreshold) // High negative tail risk
+            if (actionResult.CVaREstimate < highRiskThreshold) // High negative tail risk
             {
                 cvarAdjustment = TopStepConfig.HighRiskPositionReduction; // Cut position in half
             }
-            else if (actionResult.CVaREstimate < (double)TopStepConfig.ModerateTailRiskThreshold) // Moderate tail risk
+            else if (actionResult.CVaREstimate < moderateRiskThreshold) // Moderate tail risk
             {
                 cvarAdjustment = TopStepConfig.ModerateRiskPositionReduction; // Reduce position by 25%
             }
