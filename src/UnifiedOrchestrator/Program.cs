@@ -2436,6 +2436,21 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
         services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
         
+        Console.WriteLine("   ✓ Registering LSTMTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.LSTMTrainer>();
+        
+        Console.WriteLine("   ✓ Registering PatternRecognitionTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.PatternRecognitionTrainer>();
+        
+        Console.WriteLine("   ✓ Registering RegimeDetectorTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.RegimeDetectorTrainer>();
+        
+        Console.WriteLine("   ✓ Registering SlippageLatencyTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.SlippageLatencyTrainer>();
+        
+        Console.WriteLine("   ✓ Registering ModelEnsembleTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.ModelEnsembleTrainer>();
+        
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
