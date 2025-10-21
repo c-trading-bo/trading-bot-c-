@@ -2407,7 +2407,31 @@ Please check the configuration and ensure all required services are registered.
 
         // Lab Training Services (Phase 2 splits)
         Console.WriteLine("   ✓ Registering CVaRPPOTrainer (Lab training)");
-        services.AddSingleton<TradingBot.RLAgent.CVaRPPOTrainer>();
+        services.AddSingleton<TradingBot.RLAgent.CVaRPPOTrainer>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TradingBot.RLAgent.CVaRPPOTrainer>>();
+            var config = new TradingBot.RLAgent.CVaRPPOConfig(); // Default config
+            var modelRegistry = sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry>();
+            
+            // Create callback to register models in the registry
+            Func<string, Dictionary<string, object>, Task> registrationCallback = async (versionId, metadata) =>
+            {
+                var modelVersion = new TradingBot.UnifiedOrchestrator.Models.ModelVersion
+                {
+                    VersionId = versionId,
+                    Algorithm = metadata.GetValueOrDefault("algorithm", "CVaR-PPO")?.ToString() ?? "CVaR-PPO",
+                    ArtifactPath = metadata.GetValueOrDefault("artifact_path", string.Empty)?.ToString() ?? string.Empty,
+                    ModelType = metadata.GetValueOrDefault("model_type", "CVaR-PPO")?.ToString() ?? "CVaR-PPO",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = metadata.GetValueOrDefault("created_by", "CVaRPPOTrainer")?.ToString() ?? "CVaRPPOTrainer",
+                    Metadata = metadata
+                };
+                
+                await modelRegistry.RegisterModelAsync(modelVersion, CancellationToken.None);
+            };
+            
+            return new TradingBot.RLAgent.CVaRPPOTrainer(logger, config, "models/cvar_ppo", registrationCallback);
+        });
         
         Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
         services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
