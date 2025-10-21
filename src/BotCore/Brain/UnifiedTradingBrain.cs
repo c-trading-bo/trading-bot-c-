@@ -194,6 +194,8 @@ namespace BotCore.Brain
         private readonly BotCore.Services.HistoricalPatternRecognitionService? _historicalPatterns;
         private readonly BotCore.Services.ParameterChangeTracker? _parameterTracker;
         private readonly BotCore.Services.INewsMonitorService? _newsMonitor; // Optional real-time news monitoring
+        private readonly TradingBot.Abstractions.IS7Service? _s7Service; // Optional S7 multi-horizon coherence filter
+        private readonly BotCore.Services.SafeHoldDecisionPolicy? _safeHoldPolicy; // Optional zone gate filtering
         
         // Latest market data for risk analysis (updated in MakeIntelligentDecisionAsync)
         private Env? _latestEnv;
@@ -1156,7 +1158,9 @@ namespace BotCore.Brain
             BotCore.Services.MarketSnapshotStore? snapshotStore = null,
             BotCore.Services.HistoricalPatternRecognitionService? historicalPatterns = null,
             BotCore.Services.ParameterChangeTracker? parameterTracker = null,
-            BotCore.Services.INewsMonitorService? newsMonitor = null)
+            BotCore.Services.INewsMonitorService? newsMonitor = null,
+            TradingBot.Abstractions.IS7Service? s7Service = null,
+            BotCore.Services.SafeHoldDecisionPolicy? safeHoldPolicy = null)
         {
             _logger = logger;
             _memoryManager = memoryManager;
@@ -1172,6 +1176,8 @@ namespace BotCore.Brain
             _historicalPatterns = historicalPatterns;
             _parameterTracker = parameterTracker;
             _newsMonitor = newsMonitor; // Optional real-time news monitoring
+            _s7Service = s7Service; // Optional S7 multi-horizon coherence filter
+            _safeHoldPolicy = safeHoldPolicy; // Optional zone gate filtering
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
@@ -2956,7 +2962,7 @@ Reason closed: {reason}
         /// Generate enhanced candidates that integrate with AllStrategies.cs
         /// This replaces the manual candidate generation
         /// </summary>
-        private Task<IReadOnlyList<Candidate>> GenerateEnhancedCandidatesAsync(
+        private async Task<IReadOnlyList<Candidate>> GenerateEnhancedCandidatesAsync(
             string symbol,
             Env env,
             Levels levels,
@@ -2969,6 +2975,20 @@ Reason closed: {reason}
         {
             try
             {
+                // 🛡️ APPLY S7 COHERENCE FILTER FIRST
+                // Check if this strategy should run based on ES/NQ multi-horizon coherence
+                if (_s7Service != null)
+                {
+                    if (!BotCore.Config.StrategyGates.PassesS7Gate(_s7Service, strategySelection.SelectedStrategy))
+                    {
+                        _logger.LogWarning("[S7-GATE] ❌ Strategy {Strategy} blocked by S7 coherence filter - ES/NQ not aligned", 
+                            strategySelection.SelectedStrategy);
+                        return Array.Empty<Candidate>();
+                    }
+                    _logger.LogDebug("[S7-GATE] ✅ Strategy {Strategy} passed S7 coherence check", 
+                        strategySelection.SelectedStrategy);
+                }
+                
                 // Get candidates from the selected strategy only (instead of all 14)
                 var candidateFunction = GetStrategyFunction(strategySelection.SelectedStrategy);
                 var baseCandidates = candidateFunction(symbol, env, levels, bars, risk);
@@ -2988,6 +3008,30 @@ Reason closed: {reason}
                         _logger.LogTrace("[BRAIN-CANDIDATES] Skipping candidate {Id} - direction {CandDir} doesn't match prediction {PredDir}", 
                             candidate.strategy_id, candidateDirection, prediction.Direction);
                         continue; // Skip candidates against predicted direction
+                    }
+                    
+                    // 🛡️ APPLY ZONE GATE FILTER
+                    // Check if entry would be too close to opposing supply/demand zone
+                    if (_safeHoldPolicy != null)
+                    {
+                        var tempDecision = new BotCore.Services.TradingDecision
+                        {
+                            Action = candidate.side == Side.BUY ? TradingAction.Buy : TradingAction.Sell,
+                            Confidence = (double)strategySelection.Confidence,
+                            Symbol = symbol,
+                            StrategyId = candidate.strategy_id,
+                            Timestamp = DateTime.UtcNow
+                        };
+                        
+                        var (held, reason, _) = await _safeHoldPolicy.ZoneGateAsync(tempDecision, symbol, default).ConfigureAwait(false);
+                        if (held)
+                        {
+                            _logger.LogWarning("[ZONE-GATE] ❌ Candidate {Strategy} {Side} blocked - {Reason}", 
+                                candidate.strategy_id, candidate.side, reason);
+                            continue; // Skip this candidate - too close to opposing zone
+                        }
+                        _logger.LogDebug("[ZONE-GATE] ✅ Candidate {Strategy} {Side} passed zone check", 
+                            candidate.strategy_id, candidate.side);
                     }
                     
                     // Apply AI-optimized position sizing
@@ -3019,28 +3063,28 @@ Reason closed: {reason}
                 
                 LogBrainEnhanceGenerated(_logger, symbol, enhancedCandidates.Count, strategySelection.SelectedStrategy, null);
                 
-                return Task.FromResult<IReadOnlyList<Candidate>>(enhancedCandidates);
+                return enhancedCandidates;
             }
             catch (InvalidOperationException ex)
             {
                 LogBrainEnhanceInvalidOperation(_logger, ex);
                 
                 // Fallback to original AllStrategies logic
-                return Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk));
+                return await Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk)).ConfigureAwait(false);
             }
             catch (ArgumentException ex)
             {
                 LogBrainEnhanceInvalidArgument(_logger, ex);
                 
                 // Fallback to original AllStrategies logic
-                return Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk));
+                return await Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk)).ConfigureAwait(false);
             }
             catch (KeyNotFoundException ex)
             {
                 LogBrainEnhanceKeyNotFound(_logger, ex);
                 
                 // Fallback to original AllStrategies logic
-                return Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk));
+                return await Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk)).ConfigureAwait(false);
             }
         }
 
@@ -3158,34 +3202,66 @@ Reason closed: {reason}
         {
             // Enhanced strategy selection logic for primary strategies (S2, S3, S6, S11)
             // Strictly follows time-based scheduling - each strategy runs at its designated time
-            var hour = timeOfDay.Hours;
             
-            // Time-based primary strategy allocation - strategies run at their scheduled times ONLY
-            var timeBasedStrategies = hour switch
+            // Check if time window filtering is enabled (default: enabled for production safety)
+            var skipTimeWindows = Environment.GetEnvironmentVariable("SKIP_TIME_WINDOWS") == "1";
+            
+            if (skipTimeWindows)
             {
-                >= 18 or <= 2 => new[] { "S2", "S11" }, // Asian Session: Mean reversion works well
-                >= 2 and <= 5 => new[] { "S3", "S2" }, // European Open: Breakouts and compression
-                >= 5 and <= 8 => new[] { "S2", "S3", "S11" }, // London Morning: Good liquidity
-                >= 8 and <= 9 => new[] { "S3", "S2" }, // US PreMarket: Compression setups
-                >= 9 and <= 10 => new[] { "S6", "S3", "S2" }, // Opening Drive: Momentum + breakouts + mean reversion
-                >= 10 and <= 11 => new[] { "S3", "S2", "S11" }, // Morning Trend: Best trends
-                >= 11 and <= 13 => new[] { "S2", "S3" }, // Lunch: Mean reversion + compression
-                >= 13 and <= 16 => new[] { "S11", "S3", "S6" }, // Afternoon: Exhaustion + compression + momentum
-                _ => new[] { "S2", "S3" } // Default safe strategies
-            };
+                // All strategies available 24/7 (for testing/development only)
+                var allStrategies = new List<string> { "S2", "S3", "S6", "S11" };
+                LogStrategySelection(_logger, timeOfDay.Hours, regime.ToString(), string.Join(",", allStrategies), null);
+                return allStrategies;
+            }
             
-            // Return ONLY time-based strategies - do not modify schedules with regime filtering
-            // Neural UCB will select best strategy from the time-appropriate options
-            var availableStrategies = timeBasedStrategies.ToList();
+            // PRODUCTION MODE: Strategy-specific time windows based on optimal market conditions
+            var availableStrategies = new List<string>();
             
-            LogStrategySelection(_logger, hour, regime.ToString(), string.Join(",", availableStrategies), null);
+            // S2 (VWAP Mean Reversion): Regular Trading Hours (high volume needed)
+            // Window: 09:30 - 16:00 ET
+            if (timeOfDay >= new TimeSpan(9, 30, 0) && timeOfDay < new TimeSpan(16, 0, 0))
+            {
+                availableStrategies.Add("S2");
+            }
+            
+            // S3 (Bollinger Squeeze): Overnight/Pre-Market (compression builds up)
+            // Window: 18:00 - 09:30 ET (overnight + pre-market)
+            if (timeOfDay >= new TimeSpan(18, 0, 0) || timeOfDay < new TimeSpan(9, 30, 0))
+            {
+                availableStrategies.Add("S3");
+            }
+            
+            // S6 (MaxPerf Momentum): Session Opens (momentum at transitions)
+            // Windows: 09:28-10:00 ET (market open) + 18:00-09:28 ET (overnight session)
+            if ((timeOfDay >= new TimeSpan(9, 28, 0) && timeOfDay < new TimeSpan(10, 0, 0)) ||
+                (timeOfDay >= new TimeSpan(18, 0, 0) || timeOfDay < new TimeSpan(9, 28, 0)))
+            {
+                availableStrategies.Add("S6");
+            }
+            
+            // S11 (ADR/IB Fade): Afternoon (exhaustion after morning ranges)
+            // Window: 13:30 - 15:30 ET
+            if (timeOfDay >= new TimeSpan(13, 30, 0) && timeOfDay < new TimeSpan(15, 30, 0))
+            {
+                availableStrategies.Add("S11");
+            }
+            
+            // Fallback: If no strategies available (shouldn't happen with 24-hour coverage), use S2
+            if (availableStrategies.Count == 0)
+            {
+                availableStrategies.Add("S2");
+                _logger.LogWarning("[TIME-FILTER] ⚠️ No strategies available at {Time}, falling back to S2", timeOfDay);
+            }
+            
+            LogStrategySelection(_logger, timeOfDay.Hours, regime.ToString(), string.Join(",", availableStrategies), null);
             
             return availableStrategies;
         }
 
-        private static Func<string, Env, Levels, IList<Bar>, RiskEngine, IReadOnlyList<Candidate>> GetStrategyFunction(string strategy)
+        private Func<string, Env, Levels, IList<Bar>, RiskEngine, IReadOnlyList<Candidate>> GetStrategyFunction(string strategy)
         {
             // Map to ACTIVE strategy functions in AllStrategies.cs (only S2, S3, S6, S11)
+            // Note: S7 filtering is now applied at the candidate generation level via AllStrategies.generate_candidates()
             return strategy switch
             {
                 "S2" => AllStrategies.S2,   // VWAP Mean reversion (most used)
@@ -5004,6 +5080,15 @@ Explain in 1-2 sentences what I learned and how it will improve my future tradin
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+        
+        /// <summary>
+        /// Gets the strategy selector (Neural-UCB bandit) for Lab Mode persistence.
+        /// Allows HistoricalTrainingOrchestrator to export training data and save learning state.
+        /// </summary>
+        public NeuralUcbBandit? GetStrategySelector()
+        {
+            return _strategySelector;
         }
         
         /// <summary>

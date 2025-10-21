@@ -14,12 +14,12 @@ namespace BotCore.Bandits;
 
 /// <summary>
 /// Neural Upper Confidence Bound (NeuralUCB) bandit - SPLIT FOR LAB/TERMINAL SEPARATION
-/// 
+///
 /// TERMINAL MODE (this class): Inference only - SelectArmAsync, UpdateArmStatisticsAsync (lightweight, milliseconds)
 /// LAB MODE: Neural network retraining moved to NeuralUcbBanditTrainer.cs (heavy, 15 minutes)
-/// 
+///
 /// This split ensures Terminal stays lean (fast UCB arm selection) while Lab handles heavy neural network training.
-/// 
+///
 /// Uses deep learning to model complex non-linear relationships in high-dimensional contexts.
 /// More powerful than LinUCB but training requires more data and computation (Lab only).
 /// </summary>
@@ -48,7 +48,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
     {
         ArgumentNullException.ThrowIfNull(availableArms);
         ArgumentNullException.ThrowIfNull(context);
-        
+
         lock (_lock)
         {
             // Ensure all arms exist
@@ -145,6 +145,41 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
     }
 
     /// <summary>
+    /// Exports training data from all arms for Lab Mode persistence.
+    /// Returns dictionary of arm ID -> training samples for offline model retraining.
+    /// </summary>
+    public Dictionary<string, List<(ContextVector context, decimal reward)>> ExportTrainingData()
+    {
+        var trainingData = new Dictionary<string, List<(ContextVector context, decimal reward)>>();
+
+        lock (_lock)
+        {
+            foreach (var kvp in _arms)
+            {
+                var armData = kvp.Value.GetTrainingData();
+                if (armData.Count > 0)
+                {
+                    trainingData[kvp.Key] = armData;
+                }
+            }
+        }
+
+        Console.WriteLine($"[NEURAL-UCB] Exported training data: {trainingData.Sum(kvp => kvp.Value.Count)} total samples across {trainingData.Count} arms");
+        return trainingData;
+    }
+
+    /// <summary>
+    /// Gets total number of updates across all arms (for logging/monitoring).
+    /// </summary>
+    public int GetTotalUpdates()
+    {
+        lock (_lock)
+        {
+            return _arms.Values.Sum(arm => arm.UpdateCount);
+        }
+    }
+
+    /// <summary>
     /// Analyzes feature importance using neural network gradients.
     /// </summary>
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
@@ -226,7 +261,7 @@ internal sealed class NeuralUcbArm
     private const decimal HighUncertainty = 1m; // High uncertainty value for insufficient data cases
     private const decimal DefaultUncertaintyValue = 0.5m;
     private const decimal MaxUncertaintyValue = 1.0m;
-    
+
     private readonly INeuralNetwork _network;
     private readonly NeuralUcbConfig _config;
     private readonly List<(ContextVector context, decimal reward)> _trainingData = new();
@@ -343,6 +378,17 @@ internal sealed class NeuralUcbArm
         return importance;
     }
 
+    /// <summary>
+    /// Exports training data for Lab Mode persistence (allows offline retraining).
+    /// </summary>
+    public List<(ContextVector context, decimal reward)> GetTrainingData()
+    {
+        lock (_dataLock)
+        {
+            return _trainingData.ToList(); // Return copy
+        }
+    }
+
     private async Task<decimal> EstimateUncertaintyAsync(ContextVector context, CancellationToken ct)
     {
         if (UpdateCount < _config.MinSamplesForUncertainty)
@@ -384,10 +430,10 @@ internal sealed class NeuralUcbArm
 
     /// <summary>
     /// Retrain network - Training logic moved to NeuralUcbBanditTrainer.cs for Lab/Terminal separation
-    /// 
+    ///
     /// Terminal (this class): Lightweight statistics updates only (UpdateArmStatisticsAsync)
     /// Lab: Use NeuralUcbBanditTrainer.RetrainNetworkAsync() for Sunday training (15 minutes)
-    /// 
+    ///
     /// This method is kept for backward compatibility during inline updates but should not be called in Terminal mode
     /// </summary>
     [Obsolete("Neural network retraining moved to NeuralUcbBanditTrainer.cs. Terminal should use lightweight statistics updates. Lab should use NeuralUcbBanditTrainer.RetrainNetworkAsync()")]
@@ -396,7 +442,7 @@ internal sealed class NeuralUcbArm
         // Retraining now in NeuralUcbBanditTrainer.cs (Lab only)
         // Terminal should never trigger this - only lightweight statistics updates
         Console.WriteLine("[NEURAL-UCB] RetrainNetworkAsync called on Terminal class. Use NeuralUcbBanditTrainer.cs for Lab retraining");
-        
+
         // Keep minimal implementation for backward compatibility
         List<(ContextVector context, decimal reward)> trainingData;
 
@@ -408,8 +454,8 @@ internal sealed class NeuralUcbArm
         if (trainingData.Count < _config.MinSamplesForTraining)
             return;
 
-        // Stub implementation - real training should use NeuralUcbBanditTrainer
-        // This prevents Terminal from doing heavy neural network training
+        // Terminal Mode: Defer neural network training to Lab Mode (Sunday training window)
+        // This prevents Terminal from doing heavy neural network training during live trading
         Console.WriteLine($"[NEURAL-UCB] Skipping inline retraining ({trainingData.Count} samples). Use Lab training for neural network updates.");
         LastTraining = DateTime.UtcNow;
         await Task.CompletedTask.ConfigureAwait(false);
@@ -486,7 +532,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     // Constants for complexity calculation
     private const decimal MaxUncertaintyValue = 1.0m;
     private const decimal ComplexityNormalizationFactor = 10m;
-    
+
     private readonly OnnxModelLoader _onnxLoader;
     private readonly ILogger<OnnxNeuralNetwork> _logger;
     private readonly TradingBot.Abstractions.RlRuntimeMode _runtimeMode;
@@ -506,7 +552,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private async Task EnsureInitializedAsync()
     {
         if (_isInitialized) return;
-        
+
         try
         {
             _session = await _onnxLoader.LoadModelAsync(_modelPath, validateInference: true).ConfigureAwait(false);
@@ -537,9 +583,9 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     public async Task<decimal> PredictAsync(decimal[] features, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(features);
-        
+
         await EnsureInitializedAsync().ConfigureAwait(false);
-        
+
         if (_session != null)
         {
             try
@@ -547,10 +593,10 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                 // Use real ONNX inference
                 var inputTensor = new DenseTensor<float>(features.Select(f => (float)f).ToArray(), new[] { 1, features.Length });
                 var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputTensor) };
-                
+
                 using var results = _session.Run(inputs);
                 var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0f;
-                
+
                 return (decimal)output;
             }
             catch (Microsoft.ML.OnnxRuntime.OnnxRuntimeException ex)
@@ -569,7 +615,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                 return PredictFallback(features);
             }
         }
-        
+
         return PredictFallback(features);
     }
 
@@ -591,13 +637,13 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(targets);
-        
+
         // ONNX models are pre-trained, but we can log training data for future model updates
         _logger.LogInformation("[NEURAL_UCB] Training data received: {Samples} samples", features.Length);
-        
+
         // Store training data for potential model retraining
         await StoreTrainingDataAsync(features, targets).ConfigureAwait(false);
-        
+
         // In a full implementation, this would trigger model retraining pipeline
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -605,13 +651,13 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     public async Task<decimal[]> ComputeGradientsAsync(decimal[] features, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(features);
-        
+
         // For ONNX models, gradients are computed during training
         // For UCB, we can approximate gradients using finite differences
         var gradients = new decimal[features.Length];
         var epsilon = 0.001m;
         var basePrediction = await PredictAsync(features).ConfigureAwait(false);
-        
+
         for (int i = 0; i < features.Length; i++)
         {
             var perturbedFeatures = features.ToArray();
@@ -619,24 +665,24 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             var perturbedPrediction = await PredictAsync(perturbedFeatures).ConfigureAwait(false);
             gradients[i] = (perturbedPrediction - basePrediction) / epsilon;
         }
-        
+
         return gradients;
     }
 
     public async Task<decimal> GetComplexityAsync(CancellationToken ct = default)
     {
         await EnsureInitializedAsync().ConfigureAwait(false);
-        
+
         if (_session?.InputMetadata != null && _session.OutputMetadata != null)
         {
             // Estimate complexity based on model architecture
             var inputNodes = _session.InputMetadata.Count;
             var outputNodes = _session.OutputMetadata.Count;
             var estimatedParams = inputNodes * outputNodes * 100; // Rough estimate
-            
+
             return (decimal)Math.Log(estimatedParams) / ComplexityNormalizationFactor; // Normalize complexity
         }
-        
+
         return MaxUncertaintyValue; // Default complexity for fallback
     }
 
@@ -645,16 +691,16 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         // Sophisticated fallback using feature analysis
         var weighted_sum = 0m;
         var weights = new decimal[] { 0.3m, 0.2m, 0.15m, 0.1m, 0.1m, 0.05m, 0.05m, 0.03m, 0.01m, 0.01m };
-        
+
         for (int i = 0; i < Math.Min(features.Length, weights.Length); i++)
         {
             weighted_sum += features[i] * weights[i];
         }
-        
+
         // Apply sigmoid activation for bounded output
         return 1m / (1m + (decimal)Math.Exp(-(double)weighted_sum));
     }
-    
+
     private async Task StoreTrainingDataAsync(decimal[][] features, decimal[] targets)
     {
         try
@@ -666,13 +712,13 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                 Targets = targets,
                 ModelPath = _modelPath
             };
-            
+
             var dataPath = Path.Combine("data", "neural_ucb_training.json");
             Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
-            
+
             var json = System.Text.Json.JsonSerializer.Serialize(trainingData);
             await File.AppendAllTextAsync(dataPath, json + Environment.NewLine).ConfigureAwait(false);
-            
+
             _logger.LogDebug("[NEURAL_UCB] Training data stored for future model updates");
         }
         catch (DirectoryNotFoundException ex)
@@ -735,11 +781,11 @@ public static class RandomExtensions
     private const double BoxMullerCircleMultiplier = 2.0;
     private const int BitShiftForRandomSeed = 11;
     private const int BitShiftForRandomScale = 53;
-    
+
     public static double NextGaussian(this Random random)
     {
         ArgumentNullException.ThrowIfNull(random);
-        
+
         // Box-Muller transform using cryptographically secure random numbers
         var u1 = 1.0 - GetSecureRandomDouble();
         var u2 = 1.0 - GetSecureRandomDouble();

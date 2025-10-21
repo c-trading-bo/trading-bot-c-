@@ -430,6 +430,23 @@ internal class EnhancedBacktestLearningService : BackgroundService
                         var currentBar = bars[i];
                         var recentBars = bars.Skip(i - 50).Take(50).ToList();
                         
+                        // 🚨 LAB MODE FIX: Check if current bar's time matches strategy's time window
+                        // This ensures each strategy is tested during its designated time period
+                        var barTimeOfDay = currentBar.Start.TimeOfDay;
+                        var isInStrategyWindow = IsBarInStrategyTimeWindow(strategy, barTimeOfDay);
+                        
+                        if (!isInStrategyWindow)
+                        {
+                            // Skip this bar - not in strategy's time window
+                            // Log first skip for each strategy to confirm time filtering is working
+                            if (i == 50)
+                            {
+                                _logger.LogDebug("[TIME-FILTER] {Strategy} skipping bar at {Time} (outside window)", 
+                                    strategy, barTimeOfDay.ToString(@"hh\:mm"));
+                            }
+                            continue;
+                        }
+                        
                         // Create REAL market environment (same as live trading)
                         var env = new Env
                         {
@@ -564,6 +581,47 @@ internal class EnhancedBacktestLearningService : BackgroundService
             configs.Count, lookbackDays, startDate, endDate, string.Join(", ", scheduling.RecommendedStrategies));
         
         return configs;
+    }
+
+    /// <summary>
+    /// Check if a bar's timestamp falls within a strategy's designated time window.
+    /// This ensures Lab Mode tests each strategy during its optimal trading hours.
+    /// </summary>
+    private static bool IsBarInStrategyTimeWindow(string strategy, TimeSpan barTimeOfDay)
+    {
+        // Check if time window filtering is disabled
+        var skipTimeWindows = Environment.GetEnvironmentVariable("SKIP_TIME_WINDOWS") == "1";
+        if (skipTimeWindows)
+        {
+            return true; // All strategies active 24/7 if time windows disabled
+        }
+        
+        return strategy switch
+        {
+            // S2: VWAP Mean-Reversion - Active during regular trading hours (high volume)
+            // Trades when price deviates from VWAP during liquid hours
+            "S2" => barTimeOfDay >= TimeSpan.FromHours(9.5) &&   // 9:30 AM
+                   barTimeOfDay <= TimeSpan.FromHours(16),      // 4:00 PM
+            
+            // S3: Bollinger Squeeze - Active overnight and pre-market
+            // Best during low volatility periods before breakouts
+            "S3" => barTimeOfDay >= TimeSpan.FromHours(18) ||    // 6:00 PM onwards
+                   barTimeOfDay <= TimeSpan.FromHours(9.5),     // Until 9:30 AM
+            
+            // S6: MaxPerf Momentum - Active at open and overnight
+            // Catches momentum at market open and overnight sessions
+            "S6" => (barTimeOfDay >= TimeSpan.FromHours(9.47) && // 9:28 AM (pre-open)
+                    barTimeOfDay <= TimeSpan.FromHours(10)) ||   // Until 10:00 AM
+                   (barTimeOfDay >= TimeSpan.FromHours(18) &&    // 6:00 PM onwards
+                    barTimeOfDay <= TimeSpan.FromHours(9.47)),   // Until 9:28 AM
+            
+            // S11: ADR/IB Fade - Active afternoon exhaustion periods
+            // Fades extreme moves during afternoon session
+            "S11" => barTimeOfDay >= TimeSpan.FromHours(13.5) &&  // 1:30 PM
+                    barTimeOfDay <= TimeSpan.FromHours(15.5),    // 3:30 PM
+            
+            _ => true // Unknown strategy, allow all times
+        };
     }
 
     /// <summary>
@@ -818,9 +876,30 @@ internal class EnhancedBacktestLearningService : BackgroundService
                 backtestState.UnifiedDecisions.Add(historicalDecision);
                 
                 // Execute trades if brain recommends them
-                if (brainDecision.RecommendedStrategy != "HOLD" && brainDecision.OptimalPositionMultiplier != 0)
+                if (brainDecision.RecommendedStrategy != "HOLD" && brainDecision.OptimalPositionMultiplier != 0 && i + 10 < dailyBars.Count)
                 {
-                    await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState).ConfigureAwait(false);
+                    var tradeResult = await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState).ConfigureAwait(false);
+                    
+                    // Track trade statistics and determine win/loss by looking ahead
+                    if (tradeResult.Success)
+                    {
+                        backtestState.TotalTrades++;
+                        
+                        // Look ahead to determine if this was a winning trade
+                        var futureBar = dailyBars[i + 10];
+                        var priceMove = futureBar.Close - currentBar.Close;
+                        var wasCorrect = (brainDecision.PriceDirection == PriceDirection.Up && priceMove > 0) ||
+                                       (brainDecision.PriceDirection == PriceDirection.Down && priceMove < 0);
+                        
+                        if (wasCorrect)
+                        {
+                            backtestState.WinningTrades++;
+                        }
+                        else
+                        {
+                            backtestState.LosingTrades++;
+                        }
+                    }
                 }
                 
                 // Feed result back to brain for continuous learning (simulate trade outcome)
