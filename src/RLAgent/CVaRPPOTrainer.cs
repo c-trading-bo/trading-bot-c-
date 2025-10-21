@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using TradingBot.UnifiedOrchestrator.Interfaces;
+using TradingBot.UnifiedOrchestrator.Models;
 
 namespace TradingBot.RLAgent;
 
@@ -16,6 +18,7 @@ public class CVaRPPOTrainer
     private readonly ILogger<CVaRPPOTrainer> _logger;
     private readonly CVaRPPOConfig _config;
     private readonly string _modelBasePath;
+    private readonly IModelRegistry? _modelRegistry;
     
     // Neural network components (for training)
     private PolicyNetwork _policyNetwork = null!;
@@ -47,19 +50,21 @@ public class CVaRPPOTrainer
     public CVaRPPOTrainer(
         ILogger<CVaRPPOTrainer> logger,
         CVaRPPOConfig config,
-        string modelBasePath = "models/cvar_ppo")
+        string modelBasePath = "models/cvar_ppo",
+        IModelRegistry? modelRegistry = null)
     {
         _logger = logger;
         _config = config;
         _modelBasePath = modelBasePath;
+        _modelRegistry = modelRegistry;
         
         Directory.CreateDirectory(_modelBasePath);
         
         // Initialize neural networks for training
         InitializeNetworks();
         
-        _logger.LogInformation("CVaRPPOTrainer initialized (Lab mode) - StateSize: {StateSize}, ActionSize: {ActionSize}, CVaRAlpha: {CVaRAlpha}",
-            _config.StateSize, _config.ActionSize, _config.CVaRAlpha);
+        _logger.LogInformation("CVaRPPOTrainer initialized (Lab mode) - StateSize: {StateSize}, ActionSize: {ActionSize}, CVaRAlpha: {CVaRAlpha}, ModelRegistry: {HasRegistry}",
+            _config.StateSize, _config.ActionSize, _config.CVaRAlpha, _modelRegistry != null);
     }
 
     /// <summary>
@@ -457,6 +462,45 @@ public class CVaRPPOTrainer
             _currentModelVersion = version;
 
             _logger.LogInformation("CVaRPPOTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            // Register model in Model Registry
+            if (_modelRegistry != null)
+            {
+                try
+                {
+                    var modelVersion = new ModelVersion
+                    {
+                        VersionId = $"cvar-ppo-v{version}-{timestamp}",
+                        Algorithm = "CVaR-PPO",
+                        ArtifactPath = modelPath,
+                        ModelType = "CVaR-PPO",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "CVaRPPOTrainer",
+                        TrainingStartTime = _lastTrainingTime,
+                        TrainingEndTime = DateTime.UtcNow,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["episode"] = _currentEpisode,
+                            ["average_reward"] = _averageReward,
+                            ["average_loss"] = _averageLoss,
+                            ["version"] = version,
+                            ["timestamp"] = timestamp
+                        }
+                    };
+                    
+                    var registryId = await _modelRegistry.RegisterModelAsync(modelVersion, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("CVaRPPOTrainer registered model in registry - VersionId: {VersionId}, RegistryId: {RegistryId}", 
+                        modelVersion.VersionId, registryId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CVaRPPOTrainer failed to register model in registry - Model saved but not tracked");
+                }
+            }
+            else
+            {
+                _logger.LogWarning("CVaRPPOTrainer: Model registry not available - Model saved but not tracked");
+            }
             
             return modelPath;
         }

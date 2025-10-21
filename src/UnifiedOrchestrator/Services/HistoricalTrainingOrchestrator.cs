@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
 
@@ -51,6 +52,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingDebugLogger _debugLogger;
     private readonly MemoryLeakDetector _memoryLeakDetector;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
     
     // Training pipeline configuration
@@ -82,6 +84,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingDebugLogger debugLogger,
         MemoryLeakDetector memoryLeakDetector,
         IServiceProvider serviceProvider,
+        IConfiguration configuration,
         GitHubBackupService? githubBackupService = null)
     {
         _logger = logger;
@@ -105,6 +108,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _debugLogger = debugLogger;
         _memoryLeakDetector = memoryLeakDetector;
         _serviceProvider = serviceProvider;
+        _configuration = configuration;
         _githubBackupService = githubBackupService;
         
         _logger.LogInformation("HistoricalTrainingOrchestrator initialized with Phase 10-14 enhancements");
@@ -700,7 +704,21 @@ internal sealed class HistoricalTrainingOrchestrator
                         }
                         else
                         {
+                            // CRITICAL ERROR: Neural-UCB Python training failed
                             _logger.LogError("[LAB] ❌ Neural UCB: Python retraining failed");
+                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+                            _logger.LogError("CRITICAL: Neural-UCB Python training failed. Strategy selection learning will");
+                            _logger.LogError("not improve. Check logs above for Python errors. Neural-UCB will continue");
+                            _logger.LogError("using old models but won't learn from this week's data.");
+                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+                            _logger.LogError("TROUBLESHOOTING STEPS:");
+                            _logger.LogError("1. Verify Python is installed: python --version");
+                            _logger.LogError("2. Verify PyTorch & NumPy are available: pip list | grep -E 'torch|numpy'");
+                            _logger.LogError("3. Verify training data JSON is valid: {DataPath}", neuralUcbDataPath);
+                            _logger.LogError("4. Check Python training script exists: python/ucb/train_neural_ucb_from_strategy_data.py");
+                            _logger.LogError("5. Review Python stderr output above for specific error messages");
+                            _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+                            
                             result.NeuralUcbSuccess = false;
                             result.FailedComponents.Add("Neural UCB Python Training");
                         }
@@ -1404,6 +1422,44 @@ internal sealed class HistoricalTrainingOrchestrator
     /// </summary>
     private string? FindPythonExecutable()
     {
+        // Strategy 0: Check configuration first
+        var configuredPath = _configuration.GetValue<string>("LabMode:NeuralUCB:PythonExecutablePath");
+        if (!string.IsNullOrEmpty(configuredPath))
+        {
+            try
+            {
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = configuredPath,
+                        Arguments = "--version",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                process.WaitForExit(5000); // 5 second timeout
+
+                if (process.ExitCode == 0)
+                {
+                    _logger.LogInformation("[LAB] Found configured Python: {Python}", configuredPath);
+                    return configuredPath;
+                }
+                else
+                {
+                    _logger.LogWarning("[LAB] Configured Python path '{Path}' failed validation, falling back to auto-detection", configuredPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[LAB] Configured Python path '{Path}' is invalid, falling back to auto-detection", configuredPath);
+            }
+        }
+        
         // Strategy 1: Check common names in PATH
         var pythonNames = new[] { "python", "python3", "python.exe", "python3.exe" };
         
