@@ -5092,6 +5092,46 @@ Explain in 1-2 sentences what I learned and how it will improve my future tradin
         }
         
         /// <summary>
+        /// Exports decision history for Lab Mode persistence and offline analysis.
+        /// Captures strategy selection patterns, market conditions, and outcomes.
+        /// To keep file size manageable, exports only the last 7 days of decisions (up to ~10,000 entries).
+        /// </summary>
+        public List<DecisionHistoryEntry> ExportDecisionHistory()
+        {
+            lock (_decisionHistory)
+            {
+                var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+                var recentDecisions = _decisionHistory
+                    .Where(d => d.Timestamp >= sevenDaysAgo)
+                    .Select(d => new DecisionHistoryEntry
+                    {
+                        Timestamp = d.Timestamp,
+                        Symbol = d.Symbol,
+                        StrategyChosen = d.Strategy,
+                        Confidence = d.Confidence,
+                        // Market conditions
+                        VIX = d.Context.VolatilityRank,
+                        PriceDirection = d.Context.PriceChange > 0 ? "Up" : (d.Context.PriceChange < 0 ? "Down" : "Flat"),
+                        Volatility = d.Context.Volatility,
+                        Volume = d.Context.Volume,
+                        RSI = d.Context.RSI,
+                        TrendStrength = d.Context.TrendStrength,
+                        TimeOfDay = d.Context.TimeOfDay.ToString(@"hh\:mm"),
+                        DayOfWeek = d.Context.DayOfWeek.ToString(),
+                        // Outcome
+                        PnL = d.PnL,
+                        WasCorrect = d.WasCorrect,
+                        // Selection reason
+                        MarketRegime = ((MarketRegime)d.Context.MarketRegime).ToString()
+                    })
+                    .ToList();
+
+                _logger.LogInformation("[DECISION-HISTORY] Exported {Count} decisions from last 7 days", recentDecisions.Count);
+                return recentDecisions;
+            }
+        }
+        
+        /// <summary>
         /// Generate cryptographically secure random double in [0.0, 1.0)
         /// Used for ML training data generation to prevent adversarial exploitation
         /// </summary>

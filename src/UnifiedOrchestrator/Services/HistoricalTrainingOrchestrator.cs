@@ -709,6 +709,9 @@ internal sealed class HistoricalTrainingOrchestrator
 
             var neuralUcbDataPath = await ExportNeuralUCBTrainingDataAsync(bandit, cancellationToken).ConfigureAwait(false);
             
+            // Export decision history for offline analysis
+            await ExportDecisionHistoryAsync(cancellationToken).ConfigureAwait(false);
+            
             var pythonSuccess = await InvokePythonNeuralUcbTrainingAsync(neuralUcbDataPath, cancellationToken).ConfigureAwait(false);
             
             if (pythonSuccess)
@@ -767,6 +770,39 @@ internal sealed class HistoricalTrainingOrchestrator
         }
         
         return neuralUcbDataPath;
+    }
+
+    private async Task ExportDecisionHistoryAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
+            if (brain == null)
+            {
+                _logger.LogWarning("[LAB] Decision History: UnifiedTradingBrain not available in service provider");
+                return;
+            }
+
+            _logger.LogDebug("[LAB] Decision History: Exporting decision history...");
+            
+            var decisionHistory = brain.ExportDecisionHistory();
+            
+            var decisionHistoryPath = Path.Combine("models", "decision_history.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(decisionHistoryPath)!);
+            
+            var serializedData = System.Text.Json.JsonSerializer.Serialize(decisionHistory, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+            await File.WriteAllTextAsync(decisionHistoryPath, serializedData, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] Decision History: Saved {Count} decisions to {Path}", 
+                decisionHistory.Count, decisionHistoryPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] Decision History: Failed to export decision history - {Error}", ex.Message);
+        }
     }
 
     private void LogNeuralUCBPythonTrainingFailure(string neuralUcbDataPath)
