@@ -76,7 +76,7 @@ internal class FileModelRegistry : IModelRegistry
                 
                 File.Copy(model.ArtifactPath, tempArtifactPath, true);
                 
-                // Delete target if exists, then move (atomic operation)
+                // Delete target file if it exists before moving (ensures clean state)
                 if (File.Exists(finalArtifactPath))
                 {
                     File.Delete(finalArtifactPath);
@@ -99,10 +99,15 @@ internal class FileModelRegistry : IModelRegistry
             
             await File.WriteAllTextAsync(tempMetadataPath, json, cancellationToken).ConfigureAwait(false);
             
-            // Delete target if exists, then move (atomic operation)
+            // Delete target file if it exists before moving (ensures clean state)
             if (File.Exists(modelMetadataPath))
             {
                 File.Delete(modelMetadataPath);
+            }
+            // Also clean up any leftover temp files
+            if (File.Exists(modelMetadataPath + ".tmp") && modelMetadataPath + ".tmp" != tempMetadataPath)
+            {
+                File.Delete(modelMetadataPath + ".tmp");
             }
             File.Move(tempMetadataPath, modelMetadataPath);
             
@@ -227,6 +232,12 @@ internal class FileModelRegistry : IModelRegistry
             });
             
             await File.WriteAllTextAsync(tempPromotionPath, promotionJson, cancellationToken).ConfigureAwait(false);
+            
+            // Delete target file if it exists before moving (ensures clean state)
+            if (File.Exists(promotionPath))
+            {
+                File.Delete(promotionPath);
+            }
             File.Move(tempPromotionPath, promotionPath);
 
             // Update champion pointer atomically
@@ -234,6 +245,12 @@ internal class FileModelRegistry : IModelRegistry
             var tempChampionPath = championPointerPath + ".tmp";
             
             await File.WriteAllTextAsync(tempChampionPath, challengerVersionId, cancellationToken).ConfigureAwait(false);
+            
+            // Delete target file if it exists before moving (ensures clean state)
+            if (File.Exists(championPointerPath))
+            {
+                File.Delete(championPointerPath);
+            }
             File.Move(tempChampionPath, championPointerPath);
 
             // Update in-memory champion pointer

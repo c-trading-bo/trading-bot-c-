@@ -42,21 +42,16 @@ namespace BotCore.Extensions
             // Register trading readiness tracker
             services.AddSingleton<ITradingReadinessTracker, TradingReadinessTracker>();
 
-            // Register HistoricalDataBridgeService in HISTORICAL_MODE or LAB_MODE
-            // Lab Mode needs historical data for training, Historical Mode needs it for backtesting
-            // In pure LIVE/DRY-RUN Terminal modes, we don't need historical data seeding
-            var isHistoricalMode = global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode();
-            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" || 
-                           Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
-            
-            if (isHistoricalMode || isLabMode)
-            {
-                // Register historical data bridge service - Singleton for consumption by singleton services
-                services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
+            // Register HistoricalDataBridgeService in all modes
+            // - Lab Mode needs historical data for training
+            // - Historical Mode needs it for backtesting
+            // - Terminal Mode needs it for some services that depend on it (e.g., TradingSystemIntegrationService)
+            // Note: In Terminal mode, it may not be actively used for seeding, but needs to be available for DI
+            // Register historical data bridge service - Singleton for consumption by singleton services
+            services.AddSingleton<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
 
-                // Register bar consumer for historical data integration
-                services.AddSingleton<IHistoricalBarConsumer, TradingSystemBarConsumer>();
-            }
+            // Register bar consumer for historical data integration
+            services.AddSingleton<IHistoricalBarConsumer, TradingSystemBarConsumer>();
 
             // Register enhanced market data flow service (needed in all modes)
             services.AddSingleton<IEnhancedMarketDataFlowService, EnhancedMarketDataFlowService>();
