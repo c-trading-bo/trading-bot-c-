@@ -10,6 +10,16 @@ using TradingBot.UnifiedOrchestrator.Models;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
+/// Result of champion registration attempt
+/// </summary>
+internal enum RegistrationResult
+{
+    Success,
+    AlreadyExists,
+    Failed
+}
+
+/// <summary>
 /// Automatically bootstraps the model registry with initial champions on first startup.
 /// Only runs once - skips if champions already registered.
 /// 
@@ -73,18 +83,31 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
 
             _logger.LogInformation("🌱 [MODEL-BOOTSTRAP] Registry initialization - {Registered}/{Total} champions found, registering missing...", registeredCount, algorithms.Length);
             
-            // Register all 9 learning components (skip if already exists)
-            await RegisterComponent("CVaR-PPO", "models/rl/cvar_ppo_agent.onnx", cancellationToken);
-            await RegisterComponent("Neural-UCB", "models/rl/neural_ucb.onnx", cancellationToken);
-            await RegisterComponent("Regime-Detector", "models/regime/detector.onnx", cancellationToken);
-            await RegisterComponent("Model-Ensemble", "models/ensemble/meta_learner.onnx", cancellationToken);
-            await RegisterComponent("Online-Learning-System", "models/online/incremental.onnx", cancellationToken);
-            await RegisterComponent("Slippage-Latency-Model", "models/execution/slippage.onnx", cancellationToken);
-            await RegisterComponent("S15-RL-Policy", "artifacts/current/rl_policy.onnx", cancellationToken);
-            await RegisterComponent("Pattern-Recognition", "models/patterns/recognition.onnx", cancellationToken);
-            await RegisterComponent("PM-Optimizer", "models/pm/optimizer.onnx", cancellationToken);
+            // Register all 9 learning components sequentially to avoid race conditions
+            int successCount = 0;
+            int skippedCount = 0;
+            int failedCount = 0;
+            
+            foreach (var (algo, path) in new[] {
+                ("CVaR-PPO", "models/rl/cvar_ppo_agent.onnx"),
+                ("Neural-UCB", "models/rl/neural_ucb.onnx"),
+                ("Regime-Detector", "models/regime/detector.onnx"),
+                ("Model-Ensemble", "models/ensemble/meta_learner.onnx"),
+                ("Online-Learning-System", "models/online/incremental.onnx"),
+                ("Slippage-Latency-Model", "models/execution/slippage.onnx"),
+                ("S15-RL-Policy", "artifacts/current/rl_policy.onnx"),
+                ("Pattern-Recognition", "models/patterns/recognition.onnx"),
+                ("PM-Optimizer", "models/pm/optimizer.onnx")
+            })
+            {
+                var result = await RegisterComponent(algo, path, cancellationToken);
+                if (result == RegistrationResult.Success) successCount++;
+                else if (result == RegistrationResult.AlreadyExists) skippedCount++;
+                else failedCount++;
+            }
 
-            _logger.LogInformation("✅ [MODEL-BOOTSTRAP] Registry initialization complete");
+            _logger.LogInformation("✅ [MODEL-BOOTSTRAP] Registry initialization complete: {Success} registered, {Skipped} skipped, {Failed} failed", 
+                successCount, skippedCount, failedCount);
         }
         catch (Exception ex)
         {
@@ -92,7 +115,7 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
         }
     }
 
-    private async Task RegisterComponent(string algorithm, string modelPath, CancellationToken cancellationToken)
+    private async Task<RegistrationResult> RegisterComponent(string algorithm, string modelPath, CancellationToken cancellationToken)
     {
         try
         {
@@ -101,13 +124,16 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
             if (existingChampion != null)
             {
                 _logger.LogDebug("  ⏭️ Skipping {Algorithm} - champion already registered", algorithm);
-                return;
+                return RegistrationResult.AlreadyExists;
             }
 
+            // Use unique version ID per algorithm to avoid file conflicts
+            var versionId = $"v1.0.0-bootstrap-{algorithm.ToLowerInvariant().Replace("-", "")}";
+            
             var model = new ModelVersion
             {
                 Algorithm = algorithm,
-                VersionId = "v1.0.0-bootstrap",
+                VersionId = versionId,
                 CreatedAt = DateTime.UtcNow,
                 ArtifactPath = File.Exists(modelPath) ? modelPath : string.Empty,
                 Sharpe = 0.0m,
@@ -126,10 +152,12 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
             }, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("  ✅ Registered {Algorithm} champion", algorithm);
+            return RegistrationResult.Success;
         }
         catch (Exception ex)
         {
             _logger.LogWarning("  ⚠️ Failed to register {Algorithm} champion: {Error}", algorithm, ex.Message);
+            return RegistrationResult.Failed;
         }
     }
 

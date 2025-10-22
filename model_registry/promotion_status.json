@@ -1,8 +1,0 @@
-{
-  "currentChampion": "CVaR-PPO_champion",
-  "status": "operational",
-  "systemInitialized": "2025-10-16T12:44:10.5994487Z",
-  "autoPromotionEnabled": true,
-  "minimumTradesBeforePromotion": 50,
-  "nextEvaluation": "2025-10-16T18:44:10.6001886Z"
-}
