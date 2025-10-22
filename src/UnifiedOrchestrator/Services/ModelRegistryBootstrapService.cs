@@ -48,17 +48,32 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
     {
         try
         {
-            // Check if bootstrap needed
-            var cvarChampion = await _modelRegistry.GetChampionAsync("CVaR-PPO", cancellationToken).ConfigureAwait(false);
-            if (cvarChampion != null)
+            // Check if bootstrap needed - verify all champions exist
+            int registeredCount = 0;
+            var algorithms = new[] {
+                "CVaR-PPO", "Neural-UCB", "Regime-Detector", "Model-Ensemble",
+                "Online-Learning-System", "Slippage-Latency-Model", "S15-RL-Policy",
+                "Pattern-Recognition", "PM-Optimizer"
+            };
+            
+            foreach (var algo in algorithms)
             {
-                _logger.LogInformation("🌱 [MODEL-BOOTSTRAP] Registry already initialized - skipping bootstrap");
+                var champion = await _modelRegistry.GetChampionAsync(algo, cancellationToken).ConfigureAwait(false);
+                if (champion != null)
+                {
+                    registeredCount++;
+                }
+            }
+            
+            if (registeredCount == algorithms.Length)
+            {
+                _logger.LogInformation("🌱 [MODEL-BOOTSTRAP] Registry already initialized - all {Count} champions registered", algorithms.Length);
                 return;
             }
 
-            _logger.LogWarning("🌱 [MODEL-BOOTSTRAP] Empty registry detected - registering initial champions...");
+            _logger.LogInformation("🌱 [MODEL-BOOTSTRAP] Registry initialization - {Registered}/{Total} champions found, registering missing...", registeredCount, algorithms.Length);
             
-            // Register all 9 learning components
+            // Register all 9 learning components (skip if already exists)
             await RegisterComponent("CVaR-PPO", "models/rl/cvar_ppo_agent.onnx", cancellationToken);
             await RegisterComponent("Neural-UCB", "models/rl/neural_ucb.onnx", cancellationToken);
             await RegisterComponent("Regime-Detector", "models/regime/detector.onnx", cancellationToken);
@@ -69,11 +84,11 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
             await RegisterComponent("Pattern-Recognition", "models/patterns/recognition.onnx", cancellationToken);
             await RegisterComponent("PM-Optimizer", "models/pm/optimizer.onnx", cancellationToken);
 
-            _logger.LogWarning("✅ [MODEL-BOOTSTRAP] Registered 9 ML/RL components as initial champions");
+            _logger.LogInformation("✅ [MODEL-BOOTSTRAP] Registry initialization complete");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [MODEL-BOOTSTRAP] Bootstrap failed - registry may be empty");
+            _logger.LogError(ex, "❌ [MODEL-BOOTSTRAP] Bootstrap failed - registry may be incomplete");
         }
     }
 
@@ -81,11 +96,11 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
     {
         try
         {
-            // Check if model already exists
-            var existingModel = await _modelRegistry.GetModelAsync("v1.0.0-bootstrap", cancellationToken).ConfigureAwait(false);
-            if (existingModel != null && existingModel.Algorithm == algorithm)
+            // Check if champion already exists
+            var existingChampion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
+            if (existingChampion != null)
             {
-                _logger.LogDebug("  ⏭️ Skipping {Algorithm} - already registered", algorithm);
+                _logger.LogDebug("  ⏭️ Skipping {Algorithm} - champion already registered", algorithm);
                 return;
             }
 
@@ -114,7 +129,7 @@ internal sealed class ModelRegistryBootstrapService : IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "  ⚠️ Failed to register {Algorithm} champion (may already exist)", algorithm);
+            _logger.LogWarning("  ⚠️ Failed to register {Algorithm} champion: {Error}", algorithm, ex.Message);
         }
     }
 

@@ -76,12 +76,8 @@ internal class FileModelRegistry : IModelRegistry
                 
                 File.Copy(model.ArtifactPath, tempArtifactPath, true);
                 
-                // Delete target if exists, then move (atomic operation)
-                if (File.Exists(finalArtifactPath))
-                {
-                    File.Delete(finalArtifactPath);
-                }
-                File.Move(tempArtifactPath, finalArtifactPath);
+                // Move with overwrite support (handles existing files gracefully)
+                File.Move(tempArtifactPath, finalArtifactPath, overwrite: true);
                 
                 model.ArtifactPath = finalArtifactPath;
                 _logger.LogDebug("Artifact copied to registry: {Path}", finalArtifactPath);
@@ -99,12 +95,8 @@ internal class FileModelRegistry : IModelRegistry
             
             await File.WriteAllTextAsync(tempMetadataPath, json, cancellationToken).ConfigureAwait(false);
             
-            // Delete target if exists, then move (atomic operation)
-            if (File.Exists(modelMetadataPath))
-            {
-                File.Delete(modelMetadataPath);
-            }
-            File.Move(tempMetadataPath, modelMetadataPath);
+            // Move with overwrite support (handles existing files gracefully)
+            File.Move(tempMetadataPath, modelMetadataPath, overwrite: true);
             
             var hashPreview = string.IsNullOrEmpty(model.ArtifactHash) ? "none" : model.ArtifactHash[..Math.Min(8, model.ArtifactHash.Length)];
             _logger.LogInformation("Registered model {Algorithm} version {VersionId} with hash {Hash}", 
@@ -227,14 +219,14 @@ internal class FileModelRegistry : IModelRegistry
             });
             
             await File.WriteAllTextAsync(tempPromotionPath, promotionJson, cancellationToken).ConfigureAwait(false);
-            File.Move(tempPromotionPath, promotionPath);
+            File.Move(tempPromotionPath, promotionPath, overwrite: true);
 
             // Update champion pointer atomically
             var championPointerPath = Path.Combine(_registryPath, $"{algorithm}_champion.txt");
             var tempChampionPath = championPointerPath + ".tmp";
             
             await File.WriteAllTextAsync(tempChampionPath, challengerVersionId, cancellationToken).ConfigureAwait(false);
-            File.Move(tempChampionPath, championPointerPath);
+            File.Move(tempChampionPath, championPointerPath, overwrite: true);
 
             // Update in-memory champion pointer
             lock (_championLock)
