@@ -93,6 +93,7 @@ internal static class Program
         Dir("reports"); Dir("artifacts"); Dir("artifacts/models"); Dir("artifacts/temp"); 
         Dir("artifacts/current"); Dir("artifacts/previous"); Dir("artifacts/stage");
         Dir("model_registry/models"); Dir("config/calendar"); Dir("manifests");
+        Dir("data"); Dir("data/calibration");  // Add calibration directory
         
         var overrides = "state/runtime-overrides.json";
         if (!File.Exists(overrides)) File.WriteAllText(overrides, "{}");
@@ -2534,6 +2535,14 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionValidationService>();
         
         Console.WriteLine("   ✓ Registering IsotonicCalibrationService (isotonic calibration)");
+        // Configure CalibrationConfiguration with default values
+        services.Configure<global::BotCore.Calibration.CalibrationConfiguration>(config =>
+        {
+            config.CalibrationTableDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data", "calibration");
+            config.MinCalibrationDataPoints = 100;
+            config.CalibrationBinCount = 10;
+            config.CalibrationUpdateThreshold = 0.05;
+        });
         services.AddSingleton<global::BotCore.Calibration.IsotonicCalibrationService>();
         
         Console.WriteLine("   ✓ Registering MediumPhaseTrainerService (calibration/optimization training)");
@@ -2599,8 +2608,10 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
+        // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)
         Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
-        services.AddHostedService<EnhancedBacktestLearningService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
+        services.AddHostedService(sp => sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>());
         
         // Promotion Evaluator is already registered via PromotionService
         // Model Registry is shared (both modes)
@@ -2678,7 +2689,9 @@ Please check the configuration and ensure all required services are registered.
         
         if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
-            services.AddHostedService<EnhancedBacktestLearningService>();
+            // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)
+            services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
+            services.AddHostedService(sp => sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>());
         }
         else
         {
