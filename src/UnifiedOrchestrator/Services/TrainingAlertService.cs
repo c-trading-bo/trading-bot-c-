@@ -87,6 +87,28 @@ internal sealed class TrainingAlertService
     public async Task AlertTrainingFailureAsync(
         string runId,
         string errorMessage,
+        CancellationToken cancellationToken = default)
+    {
+        var alert = new
+        {
+            EventType = "TRAINING_FAILURE",
+            RunId = runId,
+            ErrorMessage = errorMessage,
+            Timestamp = DateTime.UtcNow
+        };
+
+        _logger.LogError("❌ [ALERT] Training run FAILED - RunID: {RunId}, Error: {Error}",
+            runId, errorMessage);
+
+        await LogAlertAsync(alert, cancellationToken).ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Alert: Training run failed with details
+    /// </summary>
+    public async Task AlertTrainingFailureAsync(
+        string runId,
+        string errorMessage,
         List<string> failedComponents,
         CancellationToken cancellationToken = default)
     {
