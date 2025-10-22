@@ -2523,6 +2523,12 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
         
+        Console.WriteLine("   ✓ Registering MediumPhaseTrainerService (calibration/optimization training)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MediumPhaseTrainerService>();
+        
+        Console.WriteLine("   ✓ Registering LightPhaseTrainerService (online learning/fine-tuning training)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LightPhaseTrainerService>();
+        
         Console.WriteLine("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
         

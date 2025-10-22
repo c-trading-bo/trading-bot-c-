@@ -28,6 +28,8 @@ internal sealed class TrainingOrchestratorService
     private readonly TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService _atomicPromotionService;
     private readonly TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator? _atomicCoordinator;
     private readonly TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? _baselineManager;
+    private readonly MediumPhaseTrainerService? _mediumPhaseTrainer;
+    private readonly LightPhaseTrainerService? _lightPhaseTrainer;
     private readonly string _lockFilePath;
     private readonly string _checkpointDirectory;
 
@@ -43,7 +45,9 @@ internal sealed class TrainingOrchestratorService
         ValidationService validationService,
         TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService atomicPromotionService,
         TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator? atomicCoordinator = null,
-        TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? baselineManager = null)
+        TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? baselineManager = null,
+        MediumPhaseTrainerService? mediumPhaseTrainer = null,
+        LightPhaseTrainerService? lightPhaseTrainer = null)
     {
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
@@ -57,6 +61,8 @@ internal sealed class TrainingOrchestratorService
         _atomicPromotionService = atomicPromotionService;
         _atomicCoordinator = atomicCoordinator;
         _baselineManager = baselineManager;
+        _mediumPhaseTrainer = mediumPhaseTrainer;
+        _lightPhaseTrainer = lightPhaseTrainer;
 
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
@@ -287,26 +293,86 @@ internal sealed class TrainingOrchestratorService
                 phaseResult.FailedComponents = components.Count;
             }
         }
+        else if (phase == TrainingPhase.Medium)
+        {
+            // Medium phase: Calibration and optimization training (15-30 min)
+            _logger.LogInformation("[LAB] Medium phase: Training {Count} calibration/optimization components", components.Count);
+            
+            if (_mediumPhaseTrainer != null)
+            {
+                try
+                {
+                    var mediumResult = await _mediumPhaseTrainer.TrainAllAsync(components, cancellationToken).ConfigureAwait(false);
+                    
+                    phaseResult.SuccessfulComponents = mediumResult.SuccessfulComponents;
+                    phaseResult.FailedComponents = mediumResult.FailedComponents;
+                    
+                    foreach (var failedComponent in mediumResult.FailedComponentNames)
+                    {
+                        session.RecordComponentFailure(failedComponent, "Training failed");
+                    }
+                    
+                    _logger.LogInformation("[LAB] ✅ Medium phase training completed - {Success}/{Total} successful",
+                        mediumResult.SuccessfulComponents, mediumResult.TotalComponents);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] ❌ Medium phase training threw exception");
+                    phaseResult.FailedComponents = components.Count;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("[LAB] MediumPhaseTrainer not available - skipping Medium phase training");
+                foreach (var component in components)
+                {
+                    session.RecordComponentSuccess(component.Name);
+                    phaseResult.SuccessfulComponents++;
+                }
+            }
+        }
+        else if (phase == TrainingPhase.Light)
+        {
+            // Light phase: Online learning and fine-tuning training (5-15 min)
+            _logger.LogInformation("[LAB] Light phase: Training {Count} online learning/fine-tuning components", components.Count);
+            
+            if (_lightPhaseTrainer != null)
+            {
+                try
+                {
+                    var lightResult = await _lightPhaseTrainer.TrainAllAsync(components, cancellationToken).ConfigureAwait(false);
+                    
+                    phaseResult.SuccessfulComponents = lightResult.SuccessfulComponents;
+                    phaseResult.FailedComponents = lightResult.FailedComponents;
+                    
+                    foreach (var failedComponent in lightResult.FailedComponentNames)
+                    {
+                        session.RecordComponentFailure(failedComponent, "Training failed");
+                    }
+                    
+                    _logger.LogInformation("[LAB] ✅ Light phase training completed - {Success}/{Total} successful",
+                        lightResult.SuccessfulComponents, lightResult.TotalComponents);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] ❌ Light phase training threw exception");
+                    phaseResult.FailedComponents = components.Count;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("[LAB] LightPhaseTrainer not available - skipping Light phase training");
+                foreach (var component in components)
+                {
+                    session.RecordComponentSuccess(component.Name);
+                    phaseResult.SuccessfulComponents++;
+                }
+            }
+        }
         else
         {
-            // For Medium and Light phases in Lab Mode:
-            // These components are runtime optimization/inference methods designed for Terminal Mode
-            // In Lab Mode, we log them as skipped since they don't perform model training
-            _logger.LogInformation("[LAB] {Phase} phase: {Count} components (runtime optimization - Lab Mode skips these)",
-                phase, components.Count);
-            
-            foreach (var component in components)
-            {
-                _logger.LogDebug("[LAB] Skipping {ComponentName} - {Category} (Terminal Mode only)",
-                    component.Name, component.Category);
-                
-                // Track as completed (not applicable in Lab Mode)
-                session.RecordComponentSuccess(component.Name);
-                phaseResult.SuccessfulComponents++;
-            }
-            
-            _logger.LogInformation("[LAB] {Phase} phase complete - {Count} components logged (Terminal Mode functionality)",
-                phase, components.Count);
+            // Unknown phase
+            _logger.LogWarning("[LAB] Unknown training phase: {Phase}", phase);
         }
 
         phaseResult.EndTime = DateTimeOffset.UtcNow;
