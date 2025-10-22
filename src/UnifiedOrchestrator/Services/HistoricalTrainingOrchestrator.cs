@@ -76,6 +76,9 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingRunLogger _trainingRunLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
+    private readonly Training.DynamicDataSplitStrategy _dataSplitStrategy;
+    private readonly Training.EarlyStoppingTracker _earlyStoppingTracker;
+    private readonly Training.MultiSeedTrainingCoordinator _multiSeedCoordinator;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
 
     // Note: 24 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
@@ -113,6 +116,9 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingRunLogger trainingRunLogger,
         IServiceProvider serviceProvider,
         IConfiguration configuration,
+        Training.DynamicDataSplitStrategy dataSplitStrategy,
+        Training.EarlyStoppingTracker earlyStoppingTracker,
+        Training.MultiSeedTrainingCoordinator multiSeedCoordinator,
         GitHubBackupService? githubBackupService = null)
 #pragma warning restore S107
     {
@@ -145,6 +151,9 @@ internal sealed class HistoricalTrainingOrchestrator
         _trainingRunLogger = trainingRunLogger;
         _serviceProvider = serviceProvider;
         _configuration = configuration;
+        _dataSplitStrategy = dataSplitStrategy;
+        _earlyStoppingTracker = earlyStoppingTracker;
+        _multiSeedCoordinator = multiSeedCoordinator;
         _githubBackupService = githubBackupService;
         
         _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Lab Mode uses Python scripts for data (NO API connections)");
