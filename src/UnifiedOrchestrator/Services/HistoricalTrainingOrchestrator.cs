@@ -189,6 +189,9 @@ internal sealed class HistoricalTrainingOrchestrator
         var result = InitializeTrainingResult(sessionId, startTime);
         _metricsCollector.StartRun(sessionId);
         
+        // Start epoch-by-epoch logging for proof of training
+        await _trainingRunLogger.StartRunAsync($"run-{sessionId}", cancellationToken).ConfigureAwait(false);
+        
         try
         {
             await ProfileSystemCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
@@ -511,6 +514,22 @@ internal sealed class HistoricalTrainingOrchestrator
         {
             _logger.LogDebug("[LAB] Performance Profile:\n{Report}", profileReport);
         }
+        
+        // Complete epoch logging with success/failure status
+        var modelsCount = 0;
+        if (result.CvarPpoSuccess) modelsCount++;
+        if (result.NeuralUcbSuccess) modelsCount++;
+        if (result.LstmSuccess) modelsCount++;
+        
+        await _trainingRunLogger.CompleteRunAsync(
+            result.Success,
+            result.ErrorMessage,
+            new Dictionary<string, object>
+            {
+                ["modelsTrained"] = modelsCount,
+                ["totalDurationSeconds"] = (DateTime.UtcNow - result.StartTime).TotalSeconds
+            },
+            cancellationToken).ConfigureAwait(false);
         
         if (result.Success)
         {
@@ -1073,11 +1092,36 @@ internal sealed class HistoricalTrainingOrchestrator
             
             var rlExperiences = ConvertToRLExperiences(experiences);
             
+            // Capture model hash before training for verification
+            var modelPath = Path.Combine("models", "cvar_ppo", "cvar_ppo_latest.onnx");
+            var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
+            
             var componentResult = await _failureHandler.RetryComponentTrainingAsync(
                 ComponentCVarPPO,
                 async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
                 3,
                 cancellationToken).ConfigureAwait(false);
+            
+            // Verify model changed after training (proof of learning)
+            if (componentResult.Success)
+            {
+                var verificationResult = await _modelHashVerifier.VerifyModelChangedAsync(
+                    modelPath,
+                    ComponentCVarPPO,
+                    beforeHash,
+                    cancellationToken).ConfigureAwait(false);
+                
+                if (!verificationResult.Success)
+                {
+                    _logger.LogError("[LAB] {Component} verification FAILED: {Error}", 
+                        ComponentCVarPPO, verificationResult.ErrorMessage);
+                    componentResult = new ComponentTrainingResult 
+                    { 
+                        Success = false, 
+                        ErrorMessage = $"Model verification failed: {verificationResult.ErrorMessage}"
+                    };
+                }
+            }
             
             _performanceProfiler.EndProfilingSection("Train_CVaRPPO");
             stopwatch.Stop();
