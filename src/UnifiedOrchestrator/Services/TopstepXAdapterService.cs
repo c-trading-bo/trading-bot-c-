@@ -85,8 +85,14 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         
-        // Log constructor entry for debugging DI issues
-        _logger.LogInformation("🏗️ [TopstepXAdapter] Constructor invoked - initializing service");
+        // Check if running in LAB_MODE (offline training)
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+        
+        // Log constructor entry for debugging DI issues (suppress in LAB_MODE)
+        if (!isLabMode)
+        {
+            _logger.LogInformation("🏗️ [TopstepXAdapter] Constructor invoked - initializing service");
+        }
         
         try
         {
@@ -104,10 +110,14 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
                 throw new InvalidOperationException("TopstepX configuration is missing or invalid in appsettings.json");
             }
             
-            _logger.LogInformation("✅ [TopstepXAdapter] Configuration loaded successfully");
-            _logger.LogInformation("   📍 ApiBaseUrl: {ApiBase}", _config.ApiBaseUrl);
-            _logger.LogInformation("   🔌 UserHubUrl: {UserHub}", _config.UserHubUrl);
-            _logger.LogInformation("   📊 MarketHubUrl: {MarketHub}", _config.MarketHubUrl);
+            // Only log configuration details in Terminal mode (not LAB_MODE)
+            if (!isLabMode)
+            {
+                _logger.LogInformation("✅ [TopstepXAdapter] Configuration loaded successfully");
+                _logger.LogInformation("   📍 ApiBaseUrl: {ApiBase}", _config.ApiBaseUrl);
+                _logger.LogInformation("   🔌 UserHubUrl: {UserHub}", _config.UserHubUrl);
+                _logger.LogInformation("   📊 MarketHubUrl: {MarketHub}", _config.MarketHubUrl);
+            }
         }
         catch (Exception ex)
         {
@@ -119,7 +129,11 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
         _isInitialized = false;
         _connectionHealth = 0.0;
         
-        _logger.LogInformation("✅ [TopstepXAdapter] Constructor completed successfully");
+        // Only log completion in Terminal mode
+        if (!isLabMode)
+        {
+            _logger.LogInformation("✅ [TopstepXAdapter] Constructor completed successfully");
+        }
     }
 
     public bool IsConnected => _isInitialized && _connectionHealth >= 80.0;
@@ -1792,7 +1806,11 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
         
         FillEventReceived += (sender, fillData) => callback(fillData);
         
-        _logger.LogInformation("✅ [FILL-LISTENER] Callback subscribed to fill events");
+        // Only log in Terminal mode (suppress in LAB_MODE)
+        if (Environment.GetEnvironmentVariable("LAB_MODE") != "1")
+        {
+            _logger.LogInformation("✅ [FILL-LISTENER] Callback subscribed to fill events");
+        }
     }
     
     // ========================================================================
@@ -1940,7 +1958,11 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
         
         BarEventReceived += (sender, barData) => callback(barData);
         
-        _logger.LogInformation("✅ [BAR-LISTENER] Callback subscribed to bar events");
+        // Only log in Terminal mode (suppress in LAB_MODE)
+        if (Environment.GetEnvironmentVariable("LAB_MODE") != "1")
+        {
+            _logger.LogInformation("✅ [BAR-LISTENER] Callback subscribed to bar events");
+        }
     }
 
     public async ValueTask DisposeAsync()
