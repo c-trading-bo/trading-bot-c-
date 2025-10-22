@@ -305,37 +305,74 @@ internal sealed class DataIntegrityService
                     _logger.LogInformation("[DATA-INTEGRITY] ✓ {Symbol}: {BarCount:N0} bars ({Interval} data) within expected range", symbol, barCount, detectedInterval);
                 }
 
-                // Date range validation
-                if (root.TryGetProperty("start_date", out var startDateElement) &&
-                    root.TryGetProperty("end_date", out var endDateElement))
+                // Date range validation - Calculate from ACTUAL bar timestamps (not metadata)
+                // Metadata dates can be incorrect, so we parse first and last bar timestamps
+                DateTime? actualStartDate = null;
+                DateTime? actualEndDate = null;
+                
+                if (barsElement.GetArrayLength() > 0)
+                {
+                    // Get first bar timestamp
+                    var firstBar = barsElement.EnumerateArray().FirstOrDefault();
+                    if (firstBar.ValueKind != default && firstBar.TryGetProperty("timestamp", out var firstTimestamp))
+                    {
+                        var firstTimeStr = firstTimestamp.GetString();
+                        if (DateTime.TryParse(firstTimeStr, out var firstTime))
+                        {
+                            actualStartDate = firstTime;
+                        }
+                    }
+                    
+                    // Get last bar timestamp
+                    var lastBar = barsElement.EnumerateArray().LastOrDefault();
+                    if (lastBar.ValueKind != default && lastBar.TryGetProperty("timestamp", out var lastTimestamp))
+                    {
+                        var lastTimeStr = lastTimestamp.GetString();
+                        if (DateTime.TryParse(lastTimeStr, out var lastTime))
+                        {
+                            actualEndDate = lastTime;
+                        }
+                    }
+                }
+                
+                // Use actual bar dates if available, fallback to metadata
+                DateTime? startDate = actualStartDate;
+                DateTime? endDate = actualEndDate;
+                
+                if (!startDate.HasValue && root.TryGetProperty("start_date", out var startDateElement))
                 {
                     var startDateStr = startDateElement.GetString();
-                    var endDateStr = endDateElement.GetString();
-
-                    if (DateTime.TryParse(startDateStr, out var startDate) &&
-                        DateTime.TryParse(endDateStr, out var endDate))
+                    if (DateTime.TryParse(startDateStr, out var metadataStart))
                     {
-                        var daysDiff = (endDate - startDate).TotalDays;
-
-                        // Check if approximately 90 days
-                        if (daysDiff < 80)
-                        {
-                            result.Warnings.Add($"{symbol}: Date range too short ({daysDiff:F0} days < 80 days)");
-                        }
-                        else if (daysDiff > 100)
-                        {
-                            result.Warnings.Add($"{symbol}: Date range too long ({daysDiff:F0} days > 100 days)");
-                        }
-
-                        // Check if end date is recent (within last week)
-                        var age = DateTime.UtcNow - endDate.ToUniversalTime();
-                        if (age.TotalDays > 7)
-                        {
-                            result.Warnings.Add($"{symbol}: Data end date is {age.TotalDays:F1} days old (>7 days)");
-                        }
-
-                        result.DateRanges[symbol] = (startDate, endDate);
+                        startDate = metadataStart;
                     }
+                }
+                
+                if (!endDate.HasValue && root.TryGetProperty("end_date", out var endDateElement))
+                {
+                    var endDateStr = endDateElement.GetString();
+                    if (DateTime.TryParse(endDateStr, out var metadataEnd))
+                    {
+                        endDate = metadataEnd;
+                    }
+                }
+                
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    var daysDiff = (endDate.Value - startDate.Value).TotalDays;
+
+                    // Log actual date range (no hardcoded expectations)
+                    _logger.LogDebug("[DATA-INTEGRITY] {Symbol}: Date range {Start:yyyy-MM-dd} to {End:yyyy-MM-dd} ({Days:F0} calendar days)",
+                        symbol, startDate.Value, endDate.Value, daysDiff);
+
+                    // Check if end date is recent (within last week)
+                    var age = DateTime.UtcNow - endDate.Value.ToUniversalTime();
+                    if (age.TotalDays > 7)
+                    {
+                        result.Warnings.Add($"{symbol}: Data end date is {age.TotalDays:F1} days old (>7 days)");
+                    }
+
+                    result.DateRanges[symbol] = (startDate.Value, endDate.Value);
                 }
 
                 // Check freshness (data should be < 7 days old)
@@ -442,13 +479,14 @@ internal sealed class DataIntegrityService
             {
                 if (result.SymbolBarCounts.TryGetValue(symbol, out var barCount))
                 {
-                    string dateRange = "date range unknown";
+                    string dateInfo = "date range unknown";
                     if (result.DateRanges.TryGetValue(symbol, out var range))
                     {
                         var days = (range.End - range.Start).TotalDays;
-                        dateRange = $"{days:F0} days";
+                        // Show actual date range, not hardcoded "90 days"
+                        dateInfo = $"{range.Start:MMM dd} - {range.End:MMM dd} ({days:F0} days)";
                     }
-                    summaryParts.Add($"{symbol}: {barCount:N0} bars, {dateRange}");
+                    summaryParts.Add($"{symbol}: {barCount:N0} bars, {dateInfo}");
                 }
             }
 
