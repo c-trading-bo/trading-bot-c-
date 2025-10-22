@@ -140,8 +140,9 @@ internal sealed class LightPhaseTrainerService
         _logger.LogInformation("[LIGHT-PHASE] Training online learning weight updates from recent experiences");
 
         // Online learning weight update process:
-        // Uses UpdateWeightsAsync to update strategy selection weights
-        // Weights are regime-specific for trending, ranging, volatile, and calm markets
+        // 1. Get current weights for each regime
+        // 2. Initialize with default weights if needed (prepares system for Terminal Mode)
+        // 3. Weights will be updated automatically as trading data comes in
         
         var regimes = new[] { "trending", "ranging", "volatile", "calm" };
         var updatedCount = 0;
@@ -150,25 +151,42 @@ internal sealed class LightPhaseTrainerService
         {
             try
             {
-                // Get current weights for this regime
+                // Get current weights for this regime to ensure system is initialized
                 var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regime, cancellationToken).ConfigureAwait(false);
                 
-                // In production, we would compute performance-adjusted weights here
-                // For now, we verify the system is operational by getting current weights
-                var weightCount = currentWeights?.Count ?? 0;
-                
-                _logger.LogDebug("[LIGHT-PHASE] Online learning operational for regime: {Regime} ({Count} strategy weights)", 
-                    regime, weightCount);
-                
-                updatedCount++;
+                // Initialize regime with baseline weights if empty
+                // This prepares the system for Terminal Mode where weights will be updated from live data
+                if (currentWeights != null && currentWeights.Count > 0)
+                {
+                    _logger.LogInformation("[LIGHT-PHASE] Regime {Regime} initialized with {Count} strategy weights", 
+                        regime, currentWeights.Count);
+                    updatedCount++;
+                }
+                else
+                {
+                    // Initialize with default weights for common strategies
+                    var defaultWeights = new Dictionary<string, double>
+                    {
+                        ["S2"] = 1.0,
+                        ["S3"] = 1.0,
+                        ["S6"] = 1.0,
+                        ["S11"] = 1.0
+                    };
+                    
+                    await _onlineLearning.UpdateWeightsAsync(regime, defaultWeights, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("[LIGHT-PHASE] Initialized regime {Regime} with default weights for {Count} strategies", 
+                        regime, defaultWeights.Count);
+                    updatedCount++;
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[LIGHT-PHASE] Failed to access weights for regime: {Regime}", regime);
+                _logger.LogWarning(ex, "[LIGHT-PHASE] Failed to initialize weights for regime: {Regime}", regime);
             }
         }
 
-        _logger.LogInformation("[LIGHT-PHASE] ✓ Online learning weight update complete - {Count} regimes operational", updatedCount);
+        _logger.LogInformation("[LIGHT-PHASE] ✓ Online learning initialization complete - {Count}/{Total} regimes ready", 
+            updatedCount, regimes.Length);
         return updatedCount > 0;
     }
 
