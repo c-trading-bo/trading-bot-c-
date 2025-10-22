@@ -206,18 +206,24 @@ internal sealed class LightPhaseTrainerService
 
         _logger.LogInformation("[LIGHT-PHASE] Training MAML meta-learner gradient calculations");
 
-        // MAML (Model-Agnostic Meta-Learning) uses AdaptToRegimeAsync
-        // The method performs inner loop adaptation and outer loop meta-gradient computation
-        // This enables fast adaptation to new market regimes with minimal data
+        // MAML (Model-Agnostic Meta-Learning) setup:
+        // Start periodic updates to enable automatic adaptation every 5 minutes
+        // This allows the system to adapt to regime changes during Terminal Mode
         
-        // MAML service is available and will adapt when called during live trading
-        // The StartPeriodicUpdates() enables automatic adaptation every 5 minutes
-        // AdaptToRegimeAsync performs the actual MAML training when triggered
-        
-        _logger.LogInformation("[LIGHT-PHASE] ✓ MAML meta-learner ready - periodic updates enabled for fast adaptation");
-        
-        await Task.CompletedTask;
-        return true;
+        try
+        {
+            // Start the periodic update timer if not already running
+            _mamlIntegration.StartPeriodicUpdates();
+            _logger.LogInformation("[LIGHT-PHASE] ✓ MAML periodic updates started - will adapt to regime changes every 5 minutes");
+            
+            await Task.CompletedTask;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LIGHT-PHASE] Failed to start MAML periodic updates");
+            return false;
+        }
     }
 
     /// <summary>
