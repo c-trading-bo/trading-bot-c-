@@ -156,9 +156,14 @@ internal sealed class InternalScheduler : BackgroundService
                                 // Do NOT create it here or we'll conflict with ourselves
                                 _lastTrainingStart = DateTime.UtcNow;
 
-                                // Run training with watchdog timeout
+                                // Run training with watchdog timeout (5 hours = 18,000,000 milliseconds)
                                 _currentTrainingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                                _currentTrainingCts.CancelAfter(MaxTrainingDuration);
+                                // BUGFIX: Explicitly convert to milliseconds to avoid any ambiguity in overload resolution
+                                // MaxTrainingDuration = TimeSpan.FromHours(5) = 18,000,000 ms
+                                var timeoutMilliseconds = (int)MaxTrainingDuration.TotalMilliseconds;
+                                _logger.LogInformation("[LAB] Setting training timeout to {Hours} hours ({Milliseconds:N0} ms)", 
+                                    MaxTrainingDuration.TotalHours, timeoutMilliseconds);
+                                _currentTrainingCts.CancelAfter(timeoutMilliseconds);
 
                                 try
                                 {
