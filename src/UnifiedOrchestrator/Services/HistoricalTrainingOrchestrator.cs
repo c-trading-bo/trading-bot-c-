@@ -783,6 +783,16 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task InvokePythonHistoricalDataFetchAsync(CancellationToken cancellationToken)
     {
+        // CRITICAL FIX: In Lab Mode, NEVER invoke Python script - it makes live API calls
+        // Lab Mode should only use pre-existing JSON files
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1")
+        {
+            _logger.LogInformation("[LAB] 📊 Loading historical data for training session...");
+            _logger.LogDebug("[LAB] Skipping Python data fetch - LAB_MODE=1 (using existing JSON files)");
+            return;
+        }
+
         try
         {
             var pythonPath = FindPythonExecutable();
