@@ -195,10 +195,9 @@ internal sealed class InternalScheduler : BackgroundService
                                         // Heavy phase contains actual model training (CVaRPPO, NeuralUCB, LSTM, etc.)
                                         await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Heavy, _currentTrainingCts.Token).ConfigureAwait(false);
                                         
-                                        // Medium/Light phases are NOT executed in Lab Mode training
-                                        // These phases contain runtime optimization and inference methods (SelectAction, OptimizeBreakeven, etc.)
-                                        // which are designed for Terminal Mode (live trading), not offline model training
-                                        _logger.LogInformation("[LAB] Training complete - Medium/Light phases are Terminal Mode only");
+                                        // Medium and Light phases execute but components are runtime optimization, not training
+                                        await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Medium, _currentTrainingCts.Token).ConfigureAwait(false);
+                                        await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Light, _currentTrainingCts.Token).ConfigureAwait(false);
 
                                         // Run validation and promotion
                                         await _enhancedOrchestrator.RunPostTrainingValidationAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
