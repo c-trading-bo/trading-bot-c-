@@ -29,6 +29,11 @@ model_registry/promotions/
 test_manifest.json
 **/test_*.json
 temp_manifest.json
+manifests/training/training_manifest_*.json
+
+# Test documentation (should not be committed)
+*_TEST_REPORT.md
+LAB_MODE_TEST_REPORT.md
 
 # Test and demo scripts
 test_pipeline_integration.py
