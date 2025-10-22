@@ -72,6 +72,8 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly MemoryLeakDetector _memoryLeakDetector;
     private readonly LearningMetricsTracker _learningMetricsTracker;
     private readonly TrainingSessionMemory _trainingSessionMemory;
+    private readonly ModelHashVerifier _modelHashVerifier;
+    private readonly TrainingRunLogger _trainingRunLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
@@ -107,6 +109,8 @@ internal sealed class HistoricalTrainingOrchestrator
         MemoryLeakDetector memoryLeakDetector,
         LearningMetricsTracker learningMetricsTracker,
         TrainingSessionMemory trainingSessionMemory,
+        ModelHashVerifier modelHashVerifier,
+        TrainingRunLogger trainingRunLogger,
         IServiceProvider serviceProvider,
         IConfiguration configuration,
         GitHubBackupService? githubBackupService = null)
@@ -137,6 +141,8 @@ internal sealed class HistoricalTrainingOrchestrator
         _memoryLeakDetector = memoryLeakDetector;
         _learningMetricsTracker = learningMetricsTracker;
         _trainingSessionMemory = trainingSessionMemory;
+        _modelHashVerifier = modelHashVerifier;
+        _trainingRunLogger = trainingRunLogger;
         _serviceProvider = serviceProvider;
         _configuration = configuration;
         _githubBackupService = githubBackupService;

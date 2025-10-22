@@ -2592,6 +2592,12 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
         
+        Console.WriteLine("   ✓ Registering ModelHashVerifier (SHA256 verification for proof of learning)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ModelHashVerifier>();
+        
+        Console.WriteLine("   ✓ Registering TrainingRunLogger (epoch-by-epoch JSONL logging)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRunLogger>();
+        
         // Phase 14: Memory Leak Detection & Profiling
         Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.MemoryLeakDetector>();
