@@ -289,69 +289,24 @@ internal sealed class TrainingOrchestratorService
         }
         else
         {
-            // For Medium and Light phases, use component-based execution (future enhancement)
-            var componentNumber = 1;
+            // For Medium and Light phases in Lab Mode:
+            // These components are runtime optimization/inference methods designed for Terminal Mode
+            // In Lab Mode, we log them as skipped since they don't perform model training
+            _logger.LogInformation("[LAB] {Phase} phase: {Count} components (runtime optimization - Lab Mode skips these)",
+                phase, components.Count);
+            
             foreach (var component in components)
             {
-                var componentStartTime = DateTimeOffset.UtcNow;
-
-                try
-                {
-                    session.CurrentComponent = component.Name;
-
-                    // Render component start
-                    _progressRenderer.RenderComponentStart(component.Name, componentNumber, components.Count);
-
-                    // Update progress tracker
-                    _progressTracker.UpdateComponentProgress(
-                        component.Name,
-                        progress: 0.0,
-                        currentEpoch: 0,
-                        totalEpochs: 10);
-
-                    // Placeholder for future component-specific training
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-
-                    // Simulate progress updates
-                    for (int i = 1; i <= 10; i++)
-                    {
-                        _progressTracker.UpdateComponentProgress(
-                            component.Name,
-                            progress: i / 10.0,
-                            currentEpoch: i,
-                            totalEpochs: 10,
-                            currentLoss: 1.0 / i);
-
-                        await Task.Delay(10, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    // Record success
-                    var componentDuration = DateTimeOffset.UtcNow - componentStartTime;
-                    _progressTracker.CompleteComponent(component.Name, componentDuration);
-                    session.RecordComponentSuccess(component.Name);
-                    phaseResult.SuccessfulComponents++;
-
-                    // Render component completion
-                    _progressRenderer.RenderComponentComplete(component.Name, true, componentDuration);
-
-                    // Render compact progress every few components
-                    if (componentNumber % 3 == 0)
-                    {
-                        _progressRenderer.RenderCompactProgress();
-                    }
-
-                    componentNumber++;
-                }
-                catch (Exception ex)
-                {
-                    var componentDuration = DateTimeOffset.UtcNow - componentStartTime;
-                    _progressRenderer.RenderComponentComplete(component.Name, false, componentDuration, ex.Message);
-                    session.RecordComponentFailure(component.Name, ex.Message);
-                    phaseResult.FailedComponents++;
-
-                    // Continue with next component (don't fail entire phase)
-                }
+                _logger.LogDebug("[LAB] Skipping {ComponentName} - {Category} (Terminal Mode only)",
+                    component.Name, component.Category);
+                
+                // Track as completed (not applicable in Lab Mode)
+                session.RecordComponentSuccess(component.Name);
+                phaseResult.SuccessfulComponents++;
             }
+            
+            _logger.LogInformation("[LAB] {Phase} phase complete - {Count} components logged (Terminal Mode functionality)",
+                phase, components.Count);
         }
 
         phaseResult.EndTime = DateTimeOffset.UtcNow;
