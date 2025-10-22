@@ -70,11 +70,13 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingPerformanceProfiler _performanceProfiler;
     private readonly TrainingDebugLogger _debugLogger;
     private readonly MemoryLeakDetector _memoryLeakDetector;
+    private readonly LearningMetricsTracker _learningMetricsTracker;
+    private readonly TrainingSessionMemory _trainingSessionMemory;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
 
-    // Note: 22 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
+    // Note: 24 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
     // This class is the central coordinator for Lab Mode training and needs access to all specialized services.
     // Future refactoring could split this into LabModeDataLoader, ModelManagementService, and TrainingCoordinator,
     // but that would require significant changes to the DI container registration and service architecture.
@@ -103,6 +105,8 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingPerformanceProfiler performanceProfiler,
         TrainingDebugLogger debugLogger,
         MemoryLeakDetector memoryLeakDetector,
+        LearningMetricsTracker learningMetricsTracker,
+        TrainingSessionMemory trainingSessionMemory,
         IServiceProvider serviceProvider,
         IConfiguration configuration,
         GitHubBackupService? githubBackupService = null)
@@ -131,6 +135,8 @@ internal sealed class HistoricalTrainingOrchestrator
         _performanceProfiler = performanceProfiler;
         _debugLogger = debugLogger;
         _memoryLeakDetector = memoryLeakDetector;
+        _learningMetricsTracker = learningMetricsTracker;
+        _trainingSessionMemory = trainingSessionMemory;
         _serviceProvider = serviceProvider;
         _configuration = configuration;
         _githubBackupService = githubBackupService;
@@ -394,6 +400,9 @@ internal sealed class HistoricalTrainingOrchestrator
         result.Success = true;
 
         LogSessionSummary(result);
+        
+        // Save learning metrics to track bot improvement over time
+        await SaveLearningMetricsAsync(sessionId, result, cancellationToken).ConfigureAwait(false);
         
         await _alertService.AlertTrainingSuccessAsync(
             sessionId,
@@ -2241,6 +2250,139 @@ internal sealed class HistoricalTrainingOrchestrator
         process.WaitForExit(5000);
 
         return process.ExitCode == 0;
+    }
+
+    /// <summary>
+    /// Save learning metrics after training to track bot improvement over time
+    /// This is the proof that the bot is actually learning and improving
+    /// </summary>
+    private async Task SaveLearningMetricsAsync(
+        string sessionId,
+        TrainingSessionResult result,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] SAVING LEARNING METRICS - SESSION {SessionId}", sessionId);
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+
+            // Calculate performance metrics from training results
+            var totalTrades = result.ExperiencesLoaded;
+            var winningTrades = 0;
+            var totalPnL = 0m;
+            var totalRMultiple = 0m;
+            
+            // Load experiences to calculate actual performance
+            if (_experienceRepository != null)
+            {
+                var experiences = await _experienceRepository.LoadRecentExperiencesAsync(7).ConfigureAwait(false);
+                
+                winningTrades = experiences.Count(e => e.PnL > 0);
+                totalPnL = experiences.Sum(e => e.PnL);
+                totalRMultiple = experiences.Count > 0 ? experiences.Average(e => e.RMultiple) : 0;
+                
+                _logger.LogInformation("[LAB] Analyzed {Count} recent trading experiences", experiences.Count);
+                _logger.LogInformation("[LAB]   - Winning trades: {Winning}/{Total}", winningTrades, experiences.Count);
+                _logger.LogInformation("[LAB]   - Total PnL: ${PnL:F2}", totalPnL);
+                _logger.LogInformation("[LAB]   - Average R-Multiple: {RMultiple:F2}", totalRMultiple);
+            }
+
+            var winRate = totalTrades > 0 ? (decimal)winningTrades / totalTrades * 100 : 0;
+            var sharpeRatio = CalculateSharpeRatio(totalRMultiple);
+            
+            var metrics = new TrainingSessionMetrics
+            {
+                SessionId = sessionId,
+                Timestamp = DateTime.UtcNow,
+                WinRate = winRate,
+                AverageRMultiple = totalRMultiple,
+                SharpeRatio = sharpeRatio,
+                TotalTrades = totalTrades,
+                WinningTrades = winningTrades,
+                LosingTrades = totalTrades - winningTrades,
+                TotalPnL = totalPnL,
+                ModelScores = new Dictionary<string, decimal>
+                {
+                    ["CVaRPPO"] = result.CvarPpoSuccess ? 1.0m : 0.0m,
+                    ["NeuralUCB"] = result.NeuralUcbSuccess ? 1.0m : 0.0m,
+                    ["LSTM"] = result.LstmSuccess ? 1.0m : 0.0m,
+                    ["PositionManagement"] = result.PositionMgmtSuccess ? 1.0m : 0.0m,
+                    ["ShadowValidation"] = result.ShadowValidationSuccess ? 1.0m : 0.0m
+                },
+                ModelVersions = new Dictionary<string, int>
+                {
+                    ["ModelsPromoted"] = result.ModelsPromoted,
+                    ["ModelsTrained"] = 5 - result.FailedComponents.Count
+                }
+            };
+
+            // Save metrics to history
+            await _learningMetricsTracker.SaveTrainingSessionMetricsAsync(metrics, cancellationToken).ConfigureAwait(false);
+
+            // Get learning progress summary
+            var progress = await _learningMetricsTracker.GetLearningProgressAsync(cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] LEARNING PROGRESS SUMMARY");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] Total Training Sessions: {Count}", progress.TotalSessions);
+            
+            if (progress.TotalSessions >= 2)
+            {
+                _logger.LogInformation("[LAB] Win Rate Journey: {Start:F2}% → {Current:F2}% (Δ {Change:+0.00;-0.00}%)",
+                    progress.StartingWinRate, progress.CurrentWinRate, progress.WinRateImprovement);
+                _logger.LogInformation("[LAB] Sharpe Journey: {Start:F2} → {Current:F2} (Δ {Change:+0.00;-0.00})",
+                    progress.StartingSharpe, progress.CurrentSharpe, progress.SharpeImprovement);
+                _logger.LogInformation("[LAB] Total Trades Learned: {Count:N0}", progress.TotalTradesLearned);
+                _logger.LogInformation("[LAB] Target Progress: {Current:F2}% / {Target:F2}% ({Remaining:F2}% to go)",
+                    progress.CurrentWinRate, progress.TargetWinRate, progress.RemainingImprovement);
+                
+                if (progress.EstimatedSessionsToTarget > 0)
+                {
+                    _logger.LogInformation("[LAB] Estimated Sessions to 85% Target: {Sessions}", progress.EstimatedSessionsToTarget);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("[LAB] Baseline Win Rate: {WinRate:F2}%", progress.CurrentWinRate);
+                _logger.LogInformation("[LAB] Target: Improve to {Target:F2}% over multiple sessions", progress.TargetWinRate);
+            }
+            
+            _logger.LogInformation("[LAB] {Message}", progress.Message);
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+
+            // Check for catastrophic forgetting
+            var (hasForgotten, reason) = await _learningMetricsTracker.DetectCatastrophicForgettingAsync(
+                metrics, cancellationToken).ConfigureAwait(false);
+
+            if (hasForgotten)
+            {
+                _logger.LogWarning("[LAB] ⚠️ CATASTROPHIC FORGETTING DETECTED: {Reason}", reason);
+                _logger.LogWarning("[LAB] Review training data and model checkpoints to prevent knowledge loss");
+            }
+            else
+            {
+                _logger.LogInformation("[LAB] ✅ No catastrophic forgetting detected - knowledge retained");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] Failed to save learning metrics (non-fatal): {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Calculate Sharpe ratio from R-multiple
+    /// Simple approximation: Sharpe ≈ Average R / StdDev R
+    /// For simplicity, assume StdDev ≈ 1.0 for positive R, 2.0 for negative
+    /// </summary>
+    private static decimal CalculateSharpeRatio(decimal avgRMultiple)
+    {
+        if (avgRMultiple <= 0)
+            return avgRMultiple / 2.0m; // Negative Sharpe for losing strategy
+        
+        return avgRMultiple; // Simplified: assumes unit variance
     }
 
     #endregion
