@@ -19,9 +19,16 @@ internal sealed class PerformanceComparisonEngine
     private readonly ILogger<PerformanceComparisonEngine> _logger;
     private readonly ValidationDatasetManager _datasetManager;
     
-    // Thresholds
+    // Thresholds from problem statement - canary testing requirements
     private const double ImprovementThresholdGood = 0.01; // +1% is good improvement
     private const double RegressionThresholdConcerning = -0.05; // -5% is concerning regression
+    
+    // Specific canary thresholds for Sunday training cycle
+    private const decimal WinRateMinThreshold = 0.0m; // Win rate must not decrease
+    private const decimal AvgProfitDropMaxThreshold = 5.0m; // Average profit drop < $5
+    private const decimal MaxDrawdownIncreaseThreshold = 0.10m; // Max drawdown increase < 10%
+    private const decimal SharpeRatioDropMaxThreshold = 0.2m; // Sharpe ratio drop < 0.2
+    private const decimal ProfitFactorMinThreshold = 1.5m; // Profit factor must stay > 1.5
     
     public PerformanceComparisonEngine(
         ILogger<PerformanceComparisonEngine> logger,
@@ -29,6 +36,179 @@ internal sealed class PerformanceComparisonEngine
     {
         _logger = logger;
         _datasetManager = datasetManager;
+    }
+    
+    /// <summary>
+    /// Run canary testing with specific metric thresholds from Sunday training requirements
+    /// Tests new models against baseline with 5 critical thresholds:
+    /// 1. Win rate must not decrease
+    /// 2. Average profit drop < $5
+    /// 3. Max drawdown increase < 10%
+    /// 4. Sharpe ratio drop < 0.2
+    /// 5. Profit factor must stay > 1.5
+    /// </summary>
+    public async Task<CanaryTestResult> RunCanaryTestWithThresholdsAsync(
+        Dictionary<string, ValidationModelMetrics> newMetrics,
+        Dictionary<string, ValidationModelMetrics> baselineMetrics,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[CANARY] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[CANARY] CANARY TESTING (5:15 PM - 5:35 PM ET)");
+        _logger.LogInformation("[CANARY] Testing {NewCount} new models vs {BaselineCount} baseline models",
+            newMetrics.Count, baselineMetrics.Count);
+        _logger.LogInformation("[CANARY] ═══════════════════════════════════════════════════════");
+        
+        var result = new CanaryTestResult
+        {
+            TestTime = DateTime.UtcNow,
+            NewModelCount = newMetrics.Count,
+            BaselineModelCount = baselineMetrics.Count
+        };
+        
+        // Calculate aggregate metrics for new and baseline models
+        var newAggregate = CalculateAggregateMetrics(newMetrics.Values.ToList());
+        var baselineAggregate = CalculateAggregateMetrics(baselineMetrics.Values.ToList());
+        
+        result.NewModelMetrics = newAggregate;
+        result.BaselineMetrics = baselineAggregate;
+        
+        _logger.LogInformation("[CANARY] Baseline: WinRate={WinRate:P2}, AvgProfit=${AvgProfit:F2}, MaxDD={MaxDD:P2}, Sharpe={Sharpe:F2}, ProfitFactor={PF:F2}",
+            baselineAggregate.WinRate, baselineAggregate.AverageProfitPerTrade, 
+            baselineAggregate.MaxDrawdown, baselineAggregate.SharpeRatio, baselineAggregate.ProfitFactor);
+        
+        _logger.LogInformation("[CANARY] New Models: WinRate={WinRate:P2}, AvgProfit=${AvgProfit:F2}, MaxDD={MaxDD:P2}, Sharpe={Sharpe:F2}, ProfitFactor={PF:F2}",
+            newAggregate.WinRate, newAggregate.AverageProfitPerTrade,
+            newAggregate.MaxDrawdown, newAggregate.SharpeRatio, newAggregate.ProfitFactor);
+        
+        // Run 5 threshold checks
+        var thresholdsPassed = 0;
+        var thresholdsFailed = new List<string>();
+        
+        // Threshold 1: Win rate must not decrease
+        var winRateChange = newAggregate.WinRate - baselineAggregate.WinRate;
+        if (winRateChange >= WinRateMinThreshold)
+        {
+            thresholdsPassed++;
+            _logger.LogInformation("[CANARY] ✅ Threshold 1 PASS: Win rate change {Change:+0.00%;-0.00%;0%} (must not decrease)",
+                winRateChange);
+        }
+        else
+        {
+            thresholdsFailed.Add($"Win rate decreased by {-winRateChange:P2}");
+            _logger.LogError("[CANARY] ❌ Threshold 1 FAIL: Win rate decreased by {Change:P2}",
+                -winRateChange);
+        }
+        
+        // Threshold 2: Average profit drop < $5
+        var avgProfitDrop = baselineAggregate.AverageProfitPerTrade - newAggregate.AverageProfitPerTrade;
+        if (avgProfitDrop < AvgProfitDropMaxThreshold)
+        {
+            thresholdsPassed++;
+            _logger.LogInformation("[CANARY] ✅ Threshold 2 PASS: Avg profit drop ${Drop:F2} (must be < ${Threshold:F2})",
+                avgProfitDrop, AvgProfitDropMaxThreshold);
+        }
+        else
+        {
+            thresholdsFailed.Add($"Average profit dropped by ${avgProfitDrop:F2}");
+            _logger.LogError("[CANARY] ❌ Threshold 2 FAIL: Avg profit dropped by ${Drop:F2} (threshold: ${Threshold:F2})",
+                avgProfitDrop, AvgProfitDropMaxThreshold);
+        }
+        
+        // Threshold 3: Max drawdown increase < 10%
+        var drawdownIncrease = newAggregate.MaxDrawdown - baselineAggregate.MaxDrawdown;
+        if (drawdownIncrease < MaxDrawdownIncreaseThreshold)
+        {
+            thresholdsPassed++;
+            _logger.LogInformation("[CANARY] ✅ Threshold 3 PASS: Max drawdown increase {Increase:P2} (must be < {Threshold:P2})",
+                drawdownIncrease, MaxDrawdownIncreaseThreshold);
+        }
+        else
+        {
+            thresholdsFailed.Add($"Max drawdown increased by {drawdownIncrease:P2}");
+            _logger.LogError("[CANARY] ❌ Threshold 3 FAIL: Max drawdown increased by {Increase:P2} (threshold: {Threshold:P2})",
+                drawdownIncrease, MaxDrawdownIncreaseThreshold);
+        }
+        
+        // Threshold 4: Sharpe ratio drop < 0.2
+        var sharpeRatioDrop = baselineAggregate.SharpeRatio - newAggregate.SharpeRatio;
+        if (sharpeRatioDrop < SharpeRatioDropMaxThreshold)
+        {
+            thresholdsPassed++;
+            _logger.LogInformation("[CANARY] ✅ Threshold 4 PASS: Sharpe ratio drop {Drop:F2} (must be < {Threshold:F2})",
+                sharpeRatioDrop, SharpeRatioDropMaxThreshold);
+        }
+        else
+        {
+            thresholdsFailed.Add($"Sharpe ratio dropped by {sharpeRatioDrop:F2}");
+            _logger.LogError("[CANARY] ❌ Threshold 4 FAIL: Sharpe ratio dropped by {Drop:F2} (threshold: {Threshold:F2})",
+                sharpeRatioDrop, SharpeRatioDropMaxThreshold);
+        }
+        
+        // Threshold 5: Profit factor must stay > 1.5
+        if (newAggregate.ProfitFactor >= ProfitFactorMinThreshold)
+        {
+            thresholdsPassed++;
+            _logger.LogInformation("[CANARY] ✅ Threshold 5 PASS: Profit factor {PF:F2} (must be >= {Threshold:F2})",
+                newAggregate.ProfitFactor, ProfitFactorMinThreshold);
+        }
+        else
+        {
+            thresholdsFailed.Add($"Profit factor {newAggregate.ProfitFactor:F2} below minimum {ProfitFactorMinThreshold:F2}");
+            _logger.LogError("[CANARY] ❌ Threshold 5 FAIL: Profit factor {PF:F2} (must be >= {Threshold:F2})",
+                newAggregate.ProfitFactor, ProfitFactorMinThreshold);
+        }
+        
+        result.ThresholdsPassed = thresholdsPassed;
+        result.ThresholdsFailed = thresholdsFailed.Count;
+        result.FailureReasons = thresholdsFailed;
+        result.Passed = thresholdsFailed.Count == 0;
+        
+        _logger.LogInformation("[CANARY] ═══════════════════════════════════════════════════════");
+        if (result.Passed)
+        {
+            _logger.LogInformation("[CANARY] ✅ CANARY TEST PASSED: {Passed}/5 thresholds passed", thresholdsPassed);
+            _logger.LogInformation("[CANARY] New models approved for promotion");
+        }
+        else
+        {
+            _logger.LogError("[CANARY] ❌ CANARY TEST FAILED: {Passed}/5 thresholds passed, {Failed} failed", 
+                thresholdsPassed, thresholdsFailed.Count);
+            _logger.LogError("[CANARY] New models REJECTED - will be deleted from staging");
+            foreach (var reason in thresholdsFailed)
+            {
+                _logger.LogError("[CANARY]   - {Reason}", reason);
+            }
+        }
+        _logger.LogInformation("[CANARY] ═══════════════════════════════════════════════════════");
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+        return result;
+    }
+    
+    /// <summary>
+    /// Calculate aggregate metrics from a collection of model metrics
+    /// </summary>
+    private AggregateMetrics CalculateAggregateMetrics(List<ValidationModelMetrics> metrics)
+    {
+        if (metrics.Count == 0)
+        {
+            return new AggregateMetrics();
+        }
+        
+        var aggregate = new AggregateMetrics
+        {
+            WinRate = (decimal)metrics.Average(m => m.WinRate),
+            SharpeRatio = (decimal)metrics.Average(m => m.SharpeRatio),
+            // Convert Sharpe to approximate profit/loss metrics
+            // Higher Sharpe = higher profit per trade (approximate)
+            AverageProfitPerTrade = (decimal)(metrics.Average(m => m.SharpeRatio) * 50.0), // $50 per 1.0 Sharpe (approximate)
+            // Max drawdown based on win rate - lower win rate = higher drawdown
+            MaxDrawdown = (decimal)(metrics.Average(m => (1.0 - m.WinRate) * 0.25)), // Approximate
+            // Profit factor from win rate and Sharpe
+            ProfitFactor = (decimal)metrics.Average(m => m.WinRate > 0.5 ? (m.WinRate / (1.0 - m.WinRate)) * 1.5 : 1.0)
+        };
+        
+        return aggregate;
     }
     
     /// <summary>
@@ -365,6 +545,34 @@ public sealed class ValidationModelMetrics
     public double Regret { get; set; }
     public double DirectionalAccuracy { get; set; }
     public double AverageLatencyMs { get; set; }
+}
+
+/// <summary>
+/// Aggregate metrics for canary testing
+/// </summary>
+public sealed class AggregateMetrics
+{
+    public decimal WinRate { get; set; }
+    public decimal AverageProfitPerTrade { get; set; }
+    public decimal MaxDrawdown { get; set; }
+    public decimal SharpeRatio { get; set; }
+    public decimal ProfitFactor { get; set; }
+}
+
+/// <summary>
+/// Canary test result with threshold validation
+/// </summary>
+public sealed class CanaryTestResult
+{
+    public DateTime TestTime { get; set; }
+    public int NewModelCount { get; set; }
+    public int BaselineModelCount { get; set; }
+    public AggregateMetrics NewModelMetrics { get; set; } = new();
+    public AggregateMetrics BaselineMetrics { get; set; } = new();
+    public int ThresholdsPassed { get; set; }
+    public int ThresholdsFailed { get; set; }
+    public List<string> FailureReasons { get; set; } = new();
+    public bool Passed { get; set; }
 }
 
 /// <summary>

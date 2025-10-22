@@ -95,7 +95,7 @@ public class AutonomousDecisionEngine : BackgroundService
     // Current autonomous state
     private string _currentStrategy = "S11";
     private decimal _currentRiskPerTrade = 0.005m; // Start conservative at 0.5%
-    private readonly decimal _currentAccountBalance = 50000m;
+    private decimal _currentAccountBalance; // Dynamically fetched from account
     private int _consecutiveWins;
     private int _consecutiveLosses;
     private decimal _todayPnL;
@@ -230,10 +230,32 @@ public class AutonomousDecisionEngine : BackgroundService
         }
 
         InitializeAutonomousStrategyMetrics();
+        
+        // Initialize account balance dynamically from TopstepX or configuration
+        _currentAccountBalance = InitializeAccountBalance();
 
         _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Initialized - Profit-maximizing autonomous trading engine ready");
         _logger.LogInformation("💰 [AUTONOMOUS-ENGINE] Target: ${DailyTarget}/day, Risk: {MinRisk}%-{MaxRisk}%, Account: ${Balance}",
             DailyProfitTarget, MinRiskPerTrade * PercentageConversionFactor, MaxRiskPerTrade * PercentageConversionFactor, _currentAccountBalance);
+    }
+    
+    /// <summary>
+    /// Initialize account balance dynamically from TopstepX API or configuration
+    /// </summary>
+    private decimal InitializeAccountBalance()
+    {
+        // First try to get from compliance manager (it tracks real balance from trades)
+        var complianceStatus = _complianceManager.GetComplianceStatus();
+        if (complianceStatus != null && complianceStatus.AccountBalance > 0)
+        {
+            _logger.LogInformation("💰 [AUTONOMOUS-ENGINE] Account balance from compliance tracker: ${Balance}", complianceStatus.AccountBalance);
+            return complianceStatus.AccountBalance;
+        }
+        
+        // Fall back to configured account balance or default
+        var configuredBalance = _config.AccountBalance ?? 50000m;
+        _logger.LogInformation("💰 [AUTONOMOUS-ENGINE] Using configured account balance: ${Balance}", configuredBalance);
+        return configuredBalance;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -2179,6 +2201,7 @@ public class AutonomousConfig
     private const decimal DefaultDailyProfitTarget = 300m;
     private const decimal DefaultMaxDailyLoss = -1000m;
     private const decimal DefaultMaxDrawdown = -2000m;
+    private const decimal DefaultAccountBalance = 50000m;
 
     public bool IsEnabled { get; set; }
     public bool Enabled { get; set; } // Legacy property for compatibility
@@ -2187,6 +2210,7 @@ public class AutonomousConfig
     public decimal DailyProfitTarget { get; set; } = DefaultDailyProfitTarget;
     public decimal MaxDailyLoss { get; set; } = DefaultMaxDailyLoss;
     public decimal MaxDrawdown { get; set; } = DefaultMaxDrawdown; // Add back for compatibility
+    public decimal? AccountBalance { get; set; } = DefaultAccountBalance; // Nullable to allow override from TopstepX
     public bool TradeDuringLunch { get; set; }
     public bool TradeOvernight { get; set; }
     public bool TradePreMarket { get; set; }
