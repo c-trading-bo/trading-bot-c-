@@ -279,6 +279,122 @@ internal static class Program
     }
 
     /// <summary>
+    /// Interactive prompt for Lab Mode training schedule selection
+    /// Allows user to choose between Scheduled (Sunday only) or Manual (run now) training
+    /// </summary>
+    private static async Task PromptForLabModeScheduleAsync()
+    {
+        Console.WriteLine(@"
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                      Lab Mode - Training Schedule Options                     ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║  [1] Scheduled Training (Sunday Only)                                         ║
+║      • Runs Sunday 12:00 PM - 5:45 PM ET                                      ║
+║      • Waits for Sunday if not today                                          ║
+║      • Automatic weekly retraining                                            ║
+║      • Best for: Production automation                                        ║
+║                                                                                ║
+║  [2] Manual Training (Run Now)                                                ║
+║      • Starts immediately (any day/time)                                      ║
+║      • No schedule restrictions                                               ║
+║      • Run as many times as you want                                          ║
+║      • Best for: Testing, emergencies, experiments                            ║
+║                                                                                ║
+║  [3] Back to Main Menu                                                        ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+");
+        Console.Write("Select training schedule [1-3]: ");
+        
+        var input = Console.ReadLine()?.Trim();
+        
+        switch (input)
+        {
+            case "1":
+                // Scheduled Training (Sunday only)
+                Console.WriteLine(@"
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   🧪 LAB MODE - SCHEDULED TRAINING 🧪                     ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  SCHEDULED TRAINING MODE - Automated Sunday training                      ║
+║                                                                            ║
+║  ✓ Scheduled training: Sundays 12:00 PM - 5:45 PM ET (DST-aware)         ║
+║  ✓ Pre-training health checks (disk, RAM, CPU, data integrity)            ║
+║  ✓ Retry logic with exponential backoff (5m, 15m, 30m)                    ║
+║  ✓ Watchdog timeout enforcement (5 hour maximum)                          ║
+║  ✓ Post-training canary tests before model promotion                      ║
+║  ✓ Artifact manifests with SHA256 checksums                               ║
+║  ✓ Atomic file operations and rollback safety                             ║
+║  ✓ Structured logging with unique run IDs                                 ║
+║  ✓ Alert notifications for all training events                            ║
+║  ✓ Graceful shutdown with checkpoint saving                               ║
+║  ✓ Metrics collection and export                                          ║
+║                                                                            ║
+║  ⚠️  NO LIVE TRADING in Lab mode - Training pipeline only                 ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+");
+                Environment.SetEnvironmentVariable("LAB_MODE", "1");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
+                Environment.SetEnvironmentVariable("FORCE_LAB_NOW", "0"); // Use Sunday schedule
+                Console.WriteLine("🧪 Lab scheduler will activate and wait for Sunday training window");
+                break;
+                
+            case "2":
+                // Manual Training (Run now)
+                Console.WriteLine(@"
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                     🧪 LAB MODE - MANUAL TRAINING 🧪                      ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  MANUAL TRAINING MODE - Immediate training execution                      ║
+║                                                                            ║
+║  ✓ Starts IMMEDIATELY (no wait for Sunday)                                ║
+║  ✓ All training features enabled (same as scheduled)                      ║
+║  ✓ Pre-training health checks (disk, RAM, CPU, data integrity)            ║
+║  ✓ Watchdog timeout enforcement (5 hour maximum)                          ║
+║  ✓ Post-training canary tests before model promotion                      ║
+║  ✓ Artifact manifests with SHA256 checksums                               ║
+║  ✓ Atomic file operations and rollback safety                             ║
+║  ✓ Structured logging with unique run IDs                                 ║
+║  ✓ Alert notifications for all training events                            ║
+║                                                                            ║
+║  ⚠️  NO LIVE TRADING in Lab mode - Training pipeline only                 ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+");
+                Environment.SetEnvironmentVariable("LAB_MODE", "1");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
+                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
+                Environment.SetEnvironmentVariable("FORCE_LAB_NOW", "1"); // Bypass Sunday schedule
+                Console.WriteLine("🧪 Manual training mode activated - Training will start IMMEDIATELY");
+                Console.WriteLine("⚡ Bypassing Sunday schedule restriction");
+                break;
+                
+            case "3":
+                // Back to Main Menu
+                Console.WriteLine("\n🔄 Returning to main menu...");
+                Console.WriteLine();
+                await PromptForTradingModeAsync().ConfigureAwait(false);
+                return;
+                
+            default:
+                Console.WriteLine("\n❌ Invalid selection. Please choose 1, 2, or 3");
+                await PromptForLabModeScheduleAsync().ConfigureAwait(false); // Recursive retry
+                return;
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("Press Enter to continue...");
+        Console.ReadLine();
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Interactive prompt to select trading mode before bot starts
     /// Allows user to choose between Historical Training, Dry-Run, or Live modes
     /// </summary>
@@ -342,35 +458,9 @@ internal static class Program
                 break;
                 
             case "2":
-                // Lab Mode (Historical Training)
-                Console.WriteLine(@"
-╔═══════════════════════════════════════════════════════════════════════════╗
-║                         🧪 LAB MODE ACTIVATED 🧪                          ║
-╠═══════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  LAB MODE is the automated training environment - SEPARATE from Live      ║
-║                                                                            ║
-║  ✓ Scheduled training: Sundays 12:00 PM - 5:45 PM ET (DST-aware)         ║
-║  ✓ Pre-training health checks (disk, RAM, CPU, data integrity)            ║
-║  ✓ Retry logic with exponential backoff (5m, 15m, 30m)                    ║
-║  ✓ Watchdog timeout enforcement (5 hour maximum)                          ║
-║  ✓ Post-training canary tests before model promotion                      ║
-║  ✓ Artifact manifests with SHA256 checksums                               ║
-║  ✓ Atomic file operations and rollback safety                             ║
-║  ✓ Structured logging with unique run IDs                                 ║
-║  ✓ Alert notifications for all training events                            ║
-║  ✓ Graceful shutdown with checkpoint saving                               ║
-║  ✓ Metrics collection and export                                          ║
-║                                                                            ║
-║  ⚠️  NO LIVE TRADING in Lab mode - Training pipeline only                 ║
-║                                                                            ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-");
-                Environment.SetEnvironmentVariable("LAB_MODE", "1");
-                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
-                Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
-                Console.WriteLine("🧪 Lab scheduler will activate and wait for Sunday training window");
-                break;
+                // Lab Mode (Historical Training) - Show sub-menu for schedule selection
+                await PromptForLabModeScheduleAsync().ConfigureAwait(false);
+                return; // Return early - sub-menu handles all configuration
 
             case "3":
                 // Backtest Mode (Strategy Testing)
@@ -2501,6 +2591,12 @@ Please check the configuration and ensure all required services are registered.
         
         Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
+        
+        Console.WriteLine("   ✓ Registering ModelHashVerifier (SHA256 verification for proof of learning)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ModelHashVerifier>();
+        
+        Console.WriteLine("   ✓ Registering TrainingRunLogger (epoch-by-epoch JSONL logging)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRunLogger>();
         
         // Phase 14: Memory Leak Detection & Profiling
         Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
