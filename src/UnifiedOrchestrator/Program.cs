@@ -2523,6 +2523,19 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
         
+        // Register Medium Phase Training Dependencies (4 missing services)
+        Console.WriteLine("   ✓ Registering ContinuousOperationService (continuous operation optimization)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ContinuousOperationService>();
+        
+        Console.WriteLine("   ✓ Registering MicrostructureCalibrationService (microstructure calibration)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
+        
+        Console.WriteLine("   ✓ Registering ProductionValidationService (production validation)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionValidationService>();
+        
+        Console.WriteLine("   ✓ Registering IsotonicCalibrationService (isotonic calibration)");
+        services.AddSingleton<global::BotCore.Calibration.IsotonicCalibrationService>();
+        
         Console.WriteLine("   ✓ Registering MediumPhaseTrainerService (calibration/optimization training)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MediumPhaseTrainerService>();
         

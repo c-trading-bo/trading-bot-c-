@@ -533,8 +533,16 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
 
                 var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
-                var historicalBars = System.Text.Json.JsonSerializer.Deserialize<List<object>>(jsonContent);
-                var barCount = historicalBars?.Count ?? 0;
+                
+                // Parse JSON structure: { "bars": [ {...}, {...}, ... ] }
+                using var jsonDoc = JsonDocument.Parse(jsonContent);
+                var barCount = 0;
+                
+                if (jsonDoc.RootElement.TryGetProperty("bars", out var barsElement) && 
+                    barsElement.ValueKind == JsonValueKind.Array)
+                {
+                    barCount = barsElement.GetArrayLength();
+                }
                 
                 data[symbol] = barCount;
                 _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol} from {File}", barCount, symbol, dataFile);

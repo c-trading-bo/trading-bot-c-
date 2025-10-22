@@ -130,6 +130,18 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        // CRITICAL: Lab Mode should NEVER connect to TopstepX API
+        // Lab Mode uses pre-loaded JSON files only (NO API calls)
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
+        {
+            _logger.LogInformation("🧪 [LAB-MODE] TopstepX adapter initialization SKIPPED - Lab Mode uses offline data only");
+            _logger.LogInformation("📊 [LAB-MODE] Training will use pre-loaded JSON files (NO API calls)");
+            _isInitialized = false;
+            _connectionHealth = 0.0;
+            return;
+        }
+        
         // Prevent multiple concurrent initialization attempts
         await _initLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -169,6 +181,13 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
 
     public async Task<decimal> GetPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
+        // CRITICAL: Lab Mode should NEVER poll live prices
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
+        {
+            throw new InvalidOperationException("GetPriceAsync not available in Lab Mode - use historical data only");
+        }
+        
         if (!_isInitialized)
         {
             throw new InvalidOperationException("Adapter not initialized. Call InitializeAsync first.");
@@ -298,6 +317,14 @@ internal class TopstepXAdapterService : TradingBot.Abstractions.ITopstepXAdapter
 
     public async Task<HealthScoreResult> GetHealthScoreAsync(CancellationToken cancellationToken = default)
     {
+        // CRITICAL: Lab Mode should NEVER poll health scores from API
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
+        {
+            // Return offline health in Lab Mode
+            return new HealthScoreResult(0, "lab_mode", new(), new(), DateTime.UtcNow, false);
+        }
+        
         try
         {
             JsonElement result;
