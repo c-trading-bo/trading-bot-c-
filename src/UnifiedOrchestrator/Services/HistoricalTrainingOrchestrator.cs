@@ -634,6 +634,7 @@ internal sealed class HistoricalTrainingOrchestrator
             
             // Replay bars sequentially
             var barsThisHour = new Dictionary<int, int>();
+            var strategiesActivatedByHour = new Dictionary<int, HashSet<string>>();
             
             foreach (var bar in allBars)
             {
@@ -655,7 +656,7 @@ internal sealed class HistoricalTrainingOrchestrator
                     
                     // Call brain.MakeIntelligentDecisionAsync with bar timestamp
                     // This respects time gates and will activate different strategies at correct times
-                    await brain.MakeIntelligentDecisionAsync(
+                    var decision = await brain.MakeIntelligentDecisionAsync(
                         bar.Symbol,
                         env,
                         levels,
@@ -663,6 +664,16 @@ internal sealed class HistoricalTrainingOrchestrator
                         risk,
                         null, // No intelligence data for historical replay
                         cancellationToken).ConfigureAwait(false);
+                    
+                    // Track which strategies are being activated at different times
+                    if (decision != null && !string.IsNullOrEmpty(decision.RecommendedStrategy))
+                    {
+                        if (!strategiesActivatedByHour.ContainsKey(hour))
+                        {
+                            strategiesActivatedByHour[hour] = new HashSet<string>();
+                        }
+                        strategiesActivatedByHour[hour].Add(decision.RecommendedStrategy);
+                    }
                     
                     totalBarsProcessed++;
                     
@@ -684,11 +695,19 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] ✅ Bar replay complete - {Total} bars processed in {Elapsed:F1}s",
                 totalBarsProcessed, stopwatch.Elapsed.TotalSeconds);
             
-            _logger.LogInformation("[LAB] 📊 Hour distribution:");
+            _logger.LogInformation("[LAB] 📊 Hour distribution and strategy activation:");
             foreach (var hour in Enumerable.Range(0, 24))
             {
                 var count = barsThisHour.GetValueOrDefault(hour, 0);
-                _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars", hour, count);
+                if (count > 0)
+                {
+                    var strategies = strategiesActivatedByHour.GetValueOrDefault(hour, new HashSet<string>());
+                    var strategyList = strategies.Count > 0 
+                        ? string.Join(", ", strategies) 
+                        : "No strategies activated";
+                    _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars - Strategies: {Strategies}", 
+                        hour, count, strategyList);
+                }
             }
             
             result.HistoricalBarsProcessed = totalBarsProcessed;
@@ -980,6 +999,13 @@ internal sealed class HistoricalTrainingOrchestrator
         _logger.LogInformation("[LAB] 🎓 Starting pure training pipeline (NO API calls, NO backtesting)");
         _logger.LogInformation("[LAB] 📊 Training data: {TotalBars} historical bars, {ExpCount} experiences",
             historicalData.Sum(kvp => kvp.Value), experiences.Count);
+        
+        // STEP 0: Replay historical bars through UnifiedTradingBrain to activate time-gated strategies
+        // This allows each strategy to run on bars that fall within their designated time windows
+        _logger.LogInformation("[LAB] 📊 Phase 0: Replaying historical bars through trading brain for strategy activation...");
+        await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("[LAB] ✅ Phase 0 complete: {BarsProcessed} bars replayed, strategies activated at appropriate times", 
+            result.HistoricalBarsProcessed);
         
         // Load historical bars for trainer use
         var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
