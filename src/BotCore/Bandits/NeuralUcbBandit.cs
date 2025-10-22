@@ -30,6 +30,10 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
     private readonly INeuralNetwork _networkTemplate;
     private readonly object _lock = new();
 
+    // Constants for secure random number generation
+    private const int BitShiftForRandomSeed = 11;
+    private const int BitShiftForRandomScale = 53;
+
     public NeuralUcbBandit(
         INeuralNetwork networkTemplate,
         NeuralUcbConfig? config = null)
@@ -39,7 +43,20 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
     }
 
     /// <summary>
+    /// Generate cryptographically secure random double value between 0.0 and 1.0
+    /// </summary>
+    private static double GetSecureRandomDouble()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[8];
+        rng.GetBytes(bytes);
+        var uint64 = BitConverter.ToUInt64(bytes, 0);
+        return (uint64 >> BitShiftForRandomSeed) * (1.0 / (1UL << BitShiftForRandomScale));
+    }
+
+    /// <summary>
     /// Selects arm using NeuralUCB algorithm with neural network predictions.
+    /// In LAB_MODE, uses increased exploration to ensure all strategies get training data.
     /// </summary>
     public async Task<BanditSelection> SelectArmAsync(
         List<string> availableArms,
@@ -61,6 +78,27 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
                         _config);
                 }
             }
+        }
+
+        // LAB_MODE: Force more exploration to ensure all strategies get training opportunities
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+        
+        // In LAB_MODE, use epsilon-greedy with 30% random exploration
+        if (isLabMode && GetSecureRandomDouble() < 0.3)
+        {
+            var randomIndex = (int)(GetSecureRandomDouble() * availableArms.Count);
+            var randomArm = availableArms[randomIndex];
+            Console.WriteLine($"[NEURAL-UCB] LAB_MODE: Random exploration selected {randomArm} (30% epsilon)");
+            
+            return new BanditSelection
+            {
+                SelectedArm = randomArm,
+                Prediction = 0.5m,
+                Confidence = 0.5m,
+                UcbValue = 0.5m,
+                SelectionReason = $"NeuralUCB: LAB_MODE random exploration (30% epsilon)",
+                ContextFeatures = context.Features.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            };
         }
 
         var selections = new List<(string armId, decimal ucbValue, decimal prediction, decimal uncertainty)>();
