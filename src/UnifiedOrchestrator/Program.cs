@@ -2506,6 +2506,13 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.MemoryLeakDetector>();
         
+        // Learning Persistence Services - Track bot improvement and prevent forgetting
+        Console.WriteLine("   ✓ Registering LearningMetricsTracker (tracks win rate improvement over time)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.LearningMetricsTracker>();
+        
+        Console.WriteLine("   ✓ Registering TrainingSessionMemory (prevents catastrophic forgetting)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingSessionMemory>();
+        
         // Phase 11: GitHub Cloud Backup System (Optional)
         Console.WriteLine("   ✓ Registering GitHubBackupService (cloud backup of training artifacts)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.GitHubBackupService>();

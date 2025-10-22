@@ -70,11 +70,13 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TrainingPerformanceProfiler _performanceProfiler;
     private readonly TrainingDebugLogger _debugLogger;
     private readonly MemoryLeakDetector _memoryLeakDetector;
+    private readonly LearningMetricsTracker _learningMetricsTracker;
+    private readonly TrainingSessionMemory _trainingSessionMemory;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
 
-    // Note: 22 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
+    // Note: 24 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
     // This class is the central coordinator for Lab Mode training and needs access to all specialized services.
     // Future refactoring could split this into LabModeDataLoader, ModelManagementService, and TrainingCoordinator,
     // but that would require significant changes to the DI container registration and service architecture.
@@ -103,6 +105,8 @@ internal sealed class HistoricalTrainingOrchestrator
         TrainingPerformanceProfiler performanceProfiler,
         TrainingDebugLogger debugLogger,
         MemoryLeakDetector memoryLeakDetector,
+        LearningMetricsTracker learningMetricsTracker,
+        TrainingSessionMemory trainingSessionMemory,
         IServiceProvider serviceProvider,
         IConfiguration configuration,
         GitHubBackupService? githubBackupService = null)
@@ -131,6 +135,8 @@ internal sealed class HistoricalTrainingOrchestrator
         _performanceProfiler = performanceProfiler;
         _debugLogger = debugLogger;
         _memoryLeakDetector = memoryLeakDetector;
+        _learningMetricsTracker = learningMetricsTracker;
+        _trainingSessionMemory = trainingSessionMemory;
         _serviceProvider = serviceProvider;
         _configuration = configuration;
         _githubBackupService = githubBackupService;
