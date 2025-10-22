@@ -386,25 +386,26 @@ internal sealed class ResourcePreCheckService
             const double ModelsRequired = 5.0;
             const double CheckpointsRequired = 2.0;
             const double LogsRequired = 0.5;
-            const double TotalMinimum = 20.0;
+            // Use configured minimum disk space instead of hard-coded value
+            var totalMinimum = (double)_options.MinDiskSpaceGB;
 
             _logger.LogInformation("[RESOURCE-CHECK]   Available disk space: {Free:F2} GB", freeSpaceGB);
             _logger.LogInformation("[RESOURCE-CHECK]   Models directory: needs {Required} GB", ModelsRequired);
             _logger.LogInformation("[RESOURCE-CHECK]   Checkpoints directory: needs {Required} GB", CheckpointsRequired);
             _logger.LogInformation("[RESOURCE-CHECK]   Logs directory: needs {Required} GB", LogsRequired);
-            _logger.LogInformation("[RESOURCE-CHECK]   Total minimum required: {Required} GB", TotalMinimum);
+            _logger.LogInformation("[RESOURCE-CHECK]   Total minimum required: {Required} GB", totalMinimum);
 
-            if (freeSpaceGB < TotalMinimum)
+            if (freeSpaceGB < totalMinimum)
             {
                 if (_options.WarningOnly)
                 {
                     _logger.LogWarning("[RESOURCE-CHECK] ⚠️ Low disk space: {Free:F2} GB < {Required} GB (warning only)",
-                        freeSpaceGB, TotalMinimum);
+                        freeSpaceGB, totalMinimum);
                     return true;
                 }
 
                 _logger.LogError("[RESOURCE-CHECK] ❌ Insufficient disk space: {Free:F2} GB < {Required} GB",
-                    freeSpaceGB, TotalMinimum);
+                    freeSpaceGB, totalMinimum);
                 return false;
             }
 
