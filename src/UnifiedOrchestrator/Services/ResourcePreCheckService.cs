@@ -12,12 +12,13 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Pre-training resource checks - verify system has sufficient resources
-/// Prevents training from starting if resources are insufficient
+/// All checks are informational only and will not prevent training from starting
 /// 
-/// Thresholds are now configurable via appsettings.json:
-/// - MinDiskSpaceGB: Lowered from 50GB to 20GB (configurable)
-/// - MinRamGB: Lowered from 8GB to 4GB (configurable)
-/// - WarningOnly: Can emit warnings instead of hard failures
+/// Thresholds are configurable via appsettings.json but default to 0 (no requirements):
+/// - MinDiskSpaceGB: Default 0 (no minimum requirement)
+/// - MinRamGB: Default 0 (no minimum requirement)
+/// - MaxCpuThreshold: Default 100% (no CPU limit)
+/// - WarningOnly: Default true (all checks are informational)
 /// </summary>
 internal sealed class ResourcePreCheckService
 {
@@ -395,6 +396,14 @@ internal sealed class ResourcePreCheckService
             _logger.LogInformation("[RESOURCE-CHECK]   Logs directory: needs {Required} GB", LogsRequired);
             _logger.LogInformation("[RESOURCE-CHECK]   Total minimum required: {Required} GB", totalMinimum);
 
+            // If minimum is 0, skip the check (no requirement)
+            if (totalMinimum == 0)
+            {
+                _logger.LogInformation("[RESOURCE-CHECK] ✓ No disk space requirement configured (training allowed on any hardware)");
+                await Task.CompletedTask.ConfigureAwait(false);
+                return true;
+            }
+
             if (freeSpaceGB < totalMinimum)
             {
                 if (_options.WarningOnly)
@@ -437,6 +446,13 @@ internal sealed class ResourcePreCheckService
             _logger.LogInformation("[RESOURCE-CHECK]   Current process usage: {Used:F2} GB", usedMemoryGB);
             _logger.LogInformation("[RESOURCE-CHECK]   Available memory: {Available:F2} GB", availableMemoryGB);
             _logger.LogInformation("[RESOURCE-CHECK]   Required minimum: {Required} GB", _options.MinRamGB);
+
+            // If minimum is 0, skip the check (no requirement)
+            if (_options.MinRamGB == 0)
+            {
+                _logger.LogInformation("[RESOURCE-CHECK] ✓ No RAM requirement configured (training allowed on any hardware)");
+                return true;
+            }
 
             if (availableMemoryGB < _options.MinRamGB)
             {
@@ -496,6 +512,13 @@ internal sealed class ResourcePreCheckService
             _logger.LogInformation("[RESOURCE-CHECK]   CPU cores: {Cores}", coreCount);
             _logger.LogInformation("[RESOURCE-CHECK]   Current CPU usage: {Cpu:F1}%", cpuPercent);
             _logger.LogInformation("[RESOURCE-CHECK]   Maximum threshold: {Threshold}%", _options.MaxCpuThreshold);
+
+            // If threshold is 100%, skip the check (no requirement)
+            if (_options.MaxCpuThreshold >= 100.0)
+            {
+                _logger.LogInformation("[RESOURCE-CHECK] ✓ No CPU threshold configured (training allowed on any hardware)");
+                return true;
+            }
 
             if (coreCount < 2)
             {
@@ -774,33 +797,34 @@ internal sealed class ResourcePreCheckService
 
 /// <summary>
 /// Configuration options for resource pre-check service
+/// All values default to 0 or permissive settings to allow training on any hardware
 /// </summary>
 public sealed class ResourcePreCheckOptions
 {
     /// <summary>
-    /// Minimum disk space required in GB (default: 20GB, previously 50GB)
+    /// Minimum disk space required in GB (default: 0 - no requirement)
     /// </summary>
-    public long MinDiskSpaceGB { get; set; } = 20;
+    public long MinDiskSpaceGB { get; set; } = 0;
     
     /// <summary>
-    /// Minimum RAM required in GB (default: 4GB, previously 8GB)
+    /// Minimum RAM required in GB (default: 0 - no requirement)
     /// </summary>
-    public long MinRamGB { get; set; } = 4;
+    public long MinRamGB { get; set; } = 0;
     
     /// <summary>
-    /// Maximum CPU threshold percentage (default: 90%)
+    /// Maximum CPU threshold percentage (default: 100% - no limit)
     /// </summary>
-    public double MaxCpuThreshold { get; set; } = 90.0;
+    public double MaxCpuThreshold { get; set; } = 100.0;
     
     /// <summary>
     /// If true, emit warnings instead of hard failures for marginal resources
-    /// Allows training to proceed but logs concerns (default: false)
+    /// Allows training to proceed but logs concerns (default: true - all checks are warnings)
     /// </summary>
-    public bool WarningOnly { get; set; } = false;
+    public bool WarningOnly { get; set; } = true;
     
     /// <summary>
-    /// Enable GPU availability check (default: true)
+    /// Enable GPU availability check (default: false - GPU not required)
     /// GPU is optional - check is informational only
     /// </summary>
-    public bool EnableGpuCheck { get; set; } = true;
+    public bool EnableGpuCheck { get; set; } = false;
 }
