@@ -192,17 +192,13 @@ internal sealed class InternalScheduler : BackgroundService
                                         }
 
                                         // Execute training phases
-                                        // Phase 1: Heavy training (full model training - CRITICAL)
+                                        // Heavy phase contains actual model training (CVaRPPO, NeuralUCB, LSTM, etc.)
                                         await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Heavy, _currentTrainingCts.Token).ConfigureAwait(false);
                                         
-                                        // Phase 2 & 3: Medium/Light phases SKIPPED for now
-                                        // TODO: Medium and Light phases currently contain inference methods, not training methods
-                                        // These should only run during Terminal Mode (live trading), not Lab Mode training
-                                        // Once real training implementations are added, uncomment these lines:
-                                        // await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Medium, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        // await _enhancedOrchestrator.ExecuteTrainingPhaseAsync(session, Training.TrainingPhase.Light, _currentTrainingCts.Token).ConfigureAwait(false);
-                                        
-                                        _logger.LogInformation("[LAB] Medium and Light phases skipped (contain inference methods, not training methods)");
+                                        // Medium/Light phases are NOT executed in Lab Mode training
+                                        // These phases contain runtime optimization and inference methods (SelectAction, OptimizeBreakeven, etc.)
+                                        // which are designed for Terminal Mode (live trading), not offline model training
+                                        _logger.LogInformation("[LAB] Training complete - Medium/Light phases are Terminal Mode only");
 
                                         // Run validation and promotion
                                         await _enhancedOrchestrator.RunPostTrainingValidationAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
