@@ -35,6 +35,103 @@ internal sealed class TrainingResourceMonitor
     }
 
     /// <summary>
+    /// Run pre-flight checks before training starts (11:55 AM, 5 minutes before noon)
+    /// Implements comprehensive resource verification with retry logic
+    /// </summary>
+    public async Task<(bool CanProceed, string? Issue)> RunPreFlightChecksAsync(
+        int maxRetries = 3,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[PRE-FLIGHT] Running pre-training checks (5 minutes before training)...");
+        
+        var retryDelays = new[] { TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30) };
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return (false, "Cancelled");
+            
+            _logger.LogInformation("[PRE-FLIGHT] Attempt {Attempt}/{Max}", attempt + 1, maxRetries);
+            
+            // Update resource snapshot
+            await UpdateResourceSnapshotAsync(cancellationToken).ConfigureAwait(false);
+            
+            var issues = new List<string>();
+            
+            // Check 1: Disk Space (minimum 10 GB required)
+            if (CurrentDiskSpaceGB < 10)
+            {
+                issues.Add($"Insufficient disk space: {CurrentDiskSpaceGB:F1} GB (need 10+ GB)");
+            }
+            else
+            {
+                _logger.LogInformation("[PRE-FLIGHT] ✓ Disk space: {Space:F1} GB available", CurrentDiskSpaceGB);
+            }
+            
+            // Check 2: RAM Memory (minimum 4 GB free required)
+            var gcInfo = GC.GetGCMemoryInfo();
+            var totalMemoryGB = gcInfo.TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024.0);
+            var freeMemoryGB = totalMemoryGB - CurrentMemoryUsageGB;
+            
+            if (freeMemoryGB < 4)
+            {
+                issues.Add($"Insufficient free memory: {freeMemoryGB:F1} GB (need 4+ GB free)");
+            }
+            else
+            {
+                _logger.LogInformation("[PRE-FLIGHT] ✓ Free memory: {Memory:F1} GB available", freeMemoryGB);
+            }
+            
+            // Check 3: CPU Utilization (should be below 80%)
+            if (CurrentCpuUsagePercent > 80)
+            {
+                issues.Add($"High CPU usage: {CurrentCpuUsagePercent:F0}% (should be < 80%)");
+            }
+            else
+            {
+                _logger.LogInformation("[PRE-FLIGHT] ✓ CPU usage: {Cpu:F0}% (acceptable)", CurrentCpuUsagePercent);
+            }
+            
+            // If all checks passed, proceed
+            if (issues.Count == 0)
+            {
+                _logger.LogInformation("[PRE-FLIGHT] ✅ All pre-flight checks PASSED - ready for training");
+                return (true, null);
+            }
+            
+            // Some checks failed
+            var issueMessage = string.Join("; ", issues);
+            _logger.LogWarning("[PRE-FLIGHT] ❌ Pre-flight checks FAILED: {Issues}", issueMessage);
+            
+            // If this was the last attempt, give up
+            if (attempt >= maxRetries - 1)
+            {
+                _logger.LogError("[PRE-FLIGHT] ❌ Pre-flight checks FAILED after {Attempts} attempts - aborting training", maxRetries);
+                
+                await _alertService.AlertHealthCheckFailureAsync(
+                    "Pre-flight checks failed",
+                    issueMessage,
+                    cancellationToken).ConfigureAwait(false);
+                
+                return (false, issueMessage);
+            }
+            
+            // Wait before retry with exponential backoff
+            var delay = retryDelays[attempt];
+            _logger.LogWarning("[PRE-FLIGHT] Waiting {Minutes} minutes before retry {Next}/{Max}...",
+                delay.TotalMinutes, attempt + 2, maxRetries);
+            
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            
+            // Force GC to free memory before retry
+            _logger.LogDebug("[PRE-FLIGHT] Running garbage collection before retry");
+            GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        }
+        
+        return (false, "Pre-flight checks failed after all retries");
+    }
+
+    /// <summary>
     /// Check resources before each component trains
     /// Phase 12.4: Resource Monitor During Training
     /// </summary>
@@ -224,6 +321,70 @@ internal sealed class TrainingResourceMonitor
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[RESOURCE-MONITOR] Disk space management failed: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Check for training lock file to prevent concurrent training sessions
+    /// </summary>
+    public (bool CanProceed, string? Issue) CheckTrainingLock()
+    {
+        try
+        {
+            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_training.lock");
+            
+            if (File.Exists(lockFilePath))
+            {
+                // Lock file exists - check if it's stale (older than 6 hours)
+                var lockFileInfo = new FileInfo(lockFilePath);
+                var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
+                
+                if (lockAge.TotalHours < 6)
+                {
+                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} hours) - another training session may be running",
+                        lockAge.TotalHours);
+                    return (false, $"Training lock file exists (created {lockAge.TotalHours:F1} hours ago) - another session may be running");
+                }
+                else
+                {
+                    // Stale lock file - delete it
+                    _logger.LogWarning("[PRE-FLIGHT] Stale training lock file detected (age: {Age:F1} hours) - deleting",
+                        lockAge.TotalHours);
+                    File.Delete(lockFilePath);
+                }
+            }
+            
+            // Create new lock file
+            File.WriteAllText(lockFilePath, $"Training started at {DateTime.UtcNow:O}");
+            _logger.LogInformation("[PRE-FLIGHT] ✓ Training lock file created: {Path}", lockFilePath);
+            
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PRE-FLIGHT] Failed to check/create training lock file: {Error}", ex.Message);
+            return (true, null); // Allow training to proceed on lock check failure
+        }
+    }
+    
+    /// <summary>
+    /// Release training lock file
+    /// </summary>
+    public void ReleaseTrainingLock()
+    {
+        try
+        {
+            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_training.lock");
+            
+            if (File.Exists(lockFilePath))
+            {
+                File.Delete(lockFilePath);
+                _logger.LogInformation("[TRAINING] Training lock file released");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[TRAINING] Failed to release training lock file: {Error}", ex.Message);
         }
     }
 

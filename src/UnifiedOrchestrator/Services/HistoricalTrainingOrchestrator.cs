@@ -226,6 +226,30 @@ internal sealed class HistoricalTrainingOrchestrator
 
     private async Task ProfileSystemCapabilitiesAsync(CancellationToken cancellationToken)
     {
+        // Run pre-flight checks (11:55 AM, 5 minutes before training)
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] PRE-TRAINING PHASE (11:55 AM ET - 5 min before training)");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        // Check 1: Training lock file
+        var (lockOk, lockIssue) = _resourceMonitor.CheckTrainingLock();
+        if (!lockOk)
+        {
+            throw new InvalidOperationException($"Training lock check failed: {lockIssue}");
+        }
+        
+        // Check 2: Pre-flight resource checks with retry
+        var (preFlightOk, preFlightIssue) = await _resourceMonitor.RunPreFlightChecksAsync(3, cancellationToken).ConfigureAwait(false);
+        if (!preFlightOk)
+        {
+            _resourceMonitor.ReleaseTrainingLock();
+            throw new InvalidOperationException($"Pre-flight checks failed: {preFlightIssue}");
+        }
+        
+        _logger.LogInformation("[LAB] ✅ All pre-flight checks PASSED - proceeding with training");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        // Profile system capabilities
         _logger.LogDebug("[LAB] Profiling system capabilities...");
         var systemProfile = await _capabilityProfiler.ProfileSystemCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
         
@@ -537,6 +561,18 @@ internal sealed class HistoricalTrainingOrchestrator
         }
         
         await _resourceMonitor.ManageDiskSpaceAsync(cancellationToken).ConfigureAwait(false);
+        
+        // Release training lock file
+        _resourceMonitor.ReleaseTrainingLock();
+        _logger.LogInformation("[LAB] Training lock released - graceful shutdown complete");
+        
+        // Log next training schedule
+        var nextTraining = GetNextSundayNoon();
+        var nextTrainingEt = GetEasternTime(nextTraining);
+        _logger.LogInformation("[LAB] Next training session: {Day} {Date} at {Time}",
+            nextTrainingEt.ToString("dddd"),
+            nextTrainingEt.ToString("MMMM dd, yyyy"),
+            nextTrainingEt.ToString("h:mm tt") + " ET");
     }
 
     #region Private Methods - Data Loading
