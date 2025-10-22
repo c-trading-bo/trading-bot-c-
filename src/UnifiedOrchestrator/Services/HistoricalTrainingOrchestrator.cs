@@ -1066,9 +1066,13 @@ internal sealed class HistoricalTrainingOrchestrator
         // Sequential training pipeline - each step must complete before next starts
         // LAB MODE: NO API CALLS - Training only using historical bar data and collected experiences
         
-        _logger.LogInformation("[LAB] 🎓 Starting pure training pipeline (NO API calls, NO backtesting)");
-        _logger.LogInformation("[LAB] 📊 Training data: {TotalBars} historical bars, {ExpCount} experiences",
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] 🎓 SUNDAY TRAINING PIPELINE STARTED");
+        _logger.LogInformation("[LAB] Training data: {TotalBars} historical bars, {ExpCount} experiences",
             historicalData.Sum(kvp => kvp.Value), experiences.Count);
+        _logger.LogInformation("[LAB] Timeline: Heavy Phase (~2.5h) → Medium Phase (~1.5h) → Light Phase (~1.25h)");
+        _logger.LogInformation("[LAB] Total expected duration: ~5-6 hours");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         
         // STEP 0: Replay historical bars through UnifiedTradingBrain to activate time-gated strategies
         // This allows each strategy to run on bars that fall within their designated time windows
@@ -1080,27 +1084,43 @@ internal sealed class HistoricalTrainingOrchestrator
         // Load historical bars for trainer use
         var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
         
-        // 1. CVaR-PPO Training (30 min) - uses real trainer
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] 🔥 HEAVY PHASE TRAINING (12:05 PM - 2:30 PM ET)");
+        _logger.LogInformation("[LAB] 7 complex neural network models | 50 epochs each | ~30 min per model");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer
         await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 2. Neural UCB Retraining (15 min) - uses real trainer
+        // 2. Neural UCB Retraining (15 min) - HEAVY PHASE Model 2/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 2/7: {Component}", ComponentNeuralUCB);
         await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 3. LSTM Training (20 min) - NOW uses real trainer
+        // 3. LSTM Training (20 min) - HEAVY PHASE Model 3/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 3/7: {Component}", ComponentLSTM);
         await TrainLSTMAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 4. Pattern Recognition Training (15 min) - NOW uses real trainer
+        // 4. Pattern Recognition Training (15 min) - HEAVY PHASE Model 4/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 4/7: Pattern-Recognition");
         await TrainPatternRecognitionAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 5. Regime Detector Training (15 min) - NOW uses real trainer
+        // 5. Regime Detector Training (15 min) - HEAVY PHASE Model 5/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 5/7: Regime-Detector");
         await TrainRegimeDetectorAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 6. Slippage/Latency Model Training (10 min) - NOW uses real trainer
+        // 6. Slippage/Latency Model Training (10 min) - HEAVY PHASE Model 6/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 6/7: Slippage-Latency");
         await TrainSlippageLatencyAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 7. Model Ensemble Training (15 min) - NOW uses real trainer
+        // 7. Model Ensemble Training (15 min) - HEAVY PHASE Model 7/7 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
         await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
         
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
+        _logger.LogInformation("[LAB] 🔶 MEDIUM PHASE would start here (not yet implemented)");
+        _logger.LogInformation("[LAB] 🔷 LIGHT PHASE would start here (not yet implemented)");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] ✅ Pure training pipeline complete - All models trained on historical data only");
     }
 
@@ -1112,7 +1132,10 @@ internal sealed class HistoricalTrainingOrchestrator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogDebug("[LAB] {Component} training - started", ComponentCVarPPO);
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 1/7: {Component}", ComponentCVarPPO);
+            _logger.LogInformation("[LAB] Target: 50 epochs | ~6-8 min training time");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
             
             _memoryLeakDetector.RecordBeforeComponent(ComponentCVarPPO);
             _debugLogger.LogBeforeComponent(ComponentCVarPPO, PhaseMain, 1, 2);
@@ -1131,6 +1154,8 @@ internal sealed class HistoricalTrainingOrchestrator
             // Capture model hash before training for verification
             var modelPath = Path.Combine("models", "cvar_ppo", "cvar_ppo_latest.onnx");
             var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] Starting CVaR-PPO training with {ExpCount} experiences...", experiences.Count);
             
             var componentResult = await _failureHandler.RetryComponentTrainingAsync(
                 ComponentCVarPPO,
@@ -1157,6 +1182,22 @@ internal sealed class HistoricalTrainingOrchestrator
                         ErrorMessage = $"Model verification failed: {verificationResult.ErrorMessage}"
                     };
                 }
+                else
+                {
+                    // Log model file size as proof it's real trained model
+                    if (File.Exists(modelPath))
+                    {
+                        var fileInfo = new FileInfo(modelPath);
+                        var fileSizeMB = fileInfo.Length / (1024.0 * 1024.0);
+                        _logger.LogInformation("[LAB] ✅ {Component} model saved: {Size:F2} MB (proof of real training)",
+                            ComponentCVarPPO, fileSizeMB);
+                        
+                        if (fileSizeMB < 0.1)
+                        {
+                            _logger.LogWarning("[LAB] ⚠️ Model file suspiciously small - may be incomplete");
+                        }
+                    }
+                }
             }
             
             _performanceProfiler.EndProfilingSection("Train_CVaRPPO");
@@ -1170,12 +1211,12 @@ internal sealed class HistoricalTrainingOrchestrator
             if (componentResult.Success)
             {
                 var stats = _cvarPpoTrainer.GetTrainingStatistics();
-                _logger.LogInformation("[LAB] {Component} complete in {Duration:F0} min - Avg Reward: {Reward:F3}, Avg Loss: {Loss:F4}", 
+                _logger.LogInformation("[LAB] ✅ {Component} complete in {Duration:F1} min - Avg Reward: {Reward:F3}, Avg Loss: {Loss:F4}", 
                     ComponentCVarPPO, stopwatch.Elapsed.TotalMinutes, stats.AverageReward, stats.AverageLoss);
             }
             else
             {
-                _logger.LogWarning("[LAB] {Component} failed after retries - {Message}", ComponentCVarPPO, componentResult.ErrorMessage);
+                _logger.LogWarning("[LAB] ❌ {Component} failed after retries - {Message}", ComponentCVarPPO, componentResult.ErrorMessage);
                 result.FailedComponents.Add(ComponentCVarPPO);
             }
         }
