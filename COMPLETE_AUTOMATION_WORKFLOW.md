@@ -565,44 +565,60 @@ If any gate fails:
 
 ### Emergency Week Cycle (Performance Degradation)
 
-#### Wednesday 2:00 PM ET
+#### Wednesday 2:15 PM ET
 - **Terminal Mode detects degradation**
-- Sharpe ratio: 0.42 (below 0.5 threshold)
+- Sharpe ratio: 0.38 (below 0.5 threshold)
 - Consecutive days degraded: 3
-- Logs: "Performance degradation detected: Sharpe 0.42 for 3 days"
+- Logs: "Performance degradation detected: Sharpe 0.38 for 3 consecutive days"
 
-#### Wednesday 2:05 PM ET
-- **Safety checks before triggering Anyday Lab**
-- ✅ Not already training
-- ✅ Sufficient data (54 days available)
-- ✅ Sufficient resources (CPU, RAM, disk)
+#### Wednesday 2:16 PM ET
+- **Terminal Mode triggers Anyday Lab automatically**
 - Sets `LAB_MODE_SCHEDULE=MANUAL`
-- Spawns Anyday Lab Mode process
+- Spawns Anyday Lab process
+- Continues trading with current champions (degraded but still safe)
+- Logs: "Safety checks passed - triggering emergency retraining"
 
-#### Wednesday 2:10-7:30 PM: Anyday Lab Training
-- Same process as Sunday Lab but:
-  - Uses current data (54 days → 36/10/8 split)
-  - Extra verbose logging (debug + trace)
-  - Writes to `/manifests/sandbox/` instead of `/manifests/training/`
-  - Does NOT auto-promote
+#### Wednesday 2:17 PM ET: Anyday Lab Starts
+- **Loads current historical data** (54 days available mid-week)
+- **Splits data**: 36 train / 11 validation / 7 test (adapts to 54 days)
+- **Trains ALL components** with overfitting prevention (same rigor as Sunday)
+  - Multi-seed training (5 seeds per component)
+  - Early stopping on validation set
+  - Test set evaluation
+- **Runs canary tests** (latency, stability, memory)
+- **Checks catastrophic forgetting** (95%+ retention required)
+- **Creates promotion candidates** in sandbox directory
+- Extra verbose logging (debug + trace level)
 
-#### Wednesday 7:30 PM: Anyday Lab Complete
-- All gates evaluated
-- If passed: Creates promotion candidate
-- Requires manual approval before promotion
-- Logs: "Anyday Lab complete - awaiting approval for 12 models"
+#### Wednesday 4:30 PM ET: Anyday Lab Completes
+- All training finished, process exits
+- Logs: "Emergency retrain complete: 5/7 components improved"
+- Results saved to `/manifests/sandbox/emergency_retrain_2025_10_22.json`
 
-#### Thursday 9:00 AM
-- **Admin reviews results**
-- Checks training logs
-- Validates promotion candidate
-- If approved: Promotes models to production
-- If rejected: Keeps current champions
+#### Wednesday 4:31 PM ET: Terminal Mode Reviews Sandbox Results
+- **Checks all gates passed**:
+  - ✅ Multi-seed: 3+/5 seeds succeeded per component
+  - ✅ Canary: Latency < 50ms, no errors
+  - ✅ Forgetting: 95%+ retention on old scenarios
+  - ✅ Significance: Improvement statistically significant
+- **Validates improvement is real** (multi-seed confirmed)
+- **Runs additional safety check**: Shadow mode test (optional)
+- **Decision**: If all gates pass + manual approval received → Promote
+- Logs: "Sandbox validation complete - awaiting admin approval"
 
-#### Thursday 9:30 AM
-- **Terminal Mode reloads models** (if approved)
-- Continues trading with new champions
-- Resets environment variable to `LAB_MODE_SCHEDULE=SCHEDULED`
+#### Wednesday 4:35 PM ET (If Approved)
+- **Admin approves emergency promotion**
+- Terminal Mode promotes sandbox models to production
+- Loads new emergency-trained champions
+- Trading resumes with improved models
+- Logs: "Emergency models promoted, Sharpe improved 0.38 → 0.91"
+- Resets environment to `LAB_MODE_SCHEDULE=SCHEDULED`
+
+#### Sunday 12:05 PM ET (Next Sunday)
+- **Normal Sunday Lab still runs**
+- Uses full week's data including Wednesday-Saturday experiences
+- Emergency-trained models become the new baseline/champion
+- Sunday training attempts to improve upon emergency models
 
 ### Data Growth Timeline
 
@@ -649,4 +665,214 @@ If any gate fails:
 - Self-correcting
 - Admin only needed for Anyday Lab approval
 
-This completes the full automation workflow from Parts 4-7.
+## PART 8: CONFIGURATION (ZERO ONGOING MAINTENANCE)
+
+### One-Time Setup Requirements
+
+The overfitting prevention system requires minimal one-time setup with **zero ongoing maintenance** once configured.
+
+#### Step 1: Create Core Components ✅ (COMPLETED)
+
+**Three new files created:**
+1. `src/UnifiedOrchestrator/Training/DynamicDataSplitStrategy.cs` (148 lines)
+2. `src/UnifiedOrchestrator/Training/EarlyStoppingTracker.cs` (156 lines)
+3. `src/UnifiedOrchestrator/Training/MultiSeedTrainingCoordinator.cs` (161 lines)
+
+**Status**: ✅ All files created and tested
+
+#### Step 2: Register Services in DI Container ✅ (COMPLETED)
+
+**File**: `src/UnifiedOrchestrator/Program.cs`
+
+**Changes made:**
+```csharp
+// Overfitting Prevention Components
+Console.WriteLine("   ✓ Registering DynamicDataSplitStrategy (train/validation/test split)");
+services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.DynamicDataSplitStrategy>();
+
+Console.WriteLine("   ✓ Registering EarlyStoppingTracker (validation-based early stopping)");
+services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>>();
+    var checkpointDir = Path.Combine(Directory.GetCurrentDirectory(), "artifacts", "training_checkpoints");
+    return new TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker(logger, checkpointDir);
+});
+
+Console.WriteLine("   ✓ Registering MultiSeedTrainingCoordinator (multi-seed promotion logic)");
+services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MultiSeedTrainingCoordinator>();
+```
+
+**Status**: ✅ All services registered and injected
+
+#### Step 3: Modify HistoricalTrainingOrchestrator ✅ (COMPLETED)
+
+**File**: `src/UnifiedOrchestrator/Services/HistoricalTrainingOrchestrator.cs`
+
+**Changes made:**
+
+1. **Added services to constructor:**
+```csharp
+private readonly Training.DynamicDataSplitStrategy _dataSplitStrategy;
+private readonly Training.EarlyStoppingTracker _earlyStoppingTracker;
+private readonly Training.MultiSeedTrainingCoordinator _multiSeedCoordinator;
+
+public HistoricalTrainingOrchestrator(
+    // ... existing parameters ...
+    Training.DynamicDataSplitStrategy dataSplitStrategy,
+    Training.EarlyStoppingTracker earlyStoppingTracker,
+    Training.MultiSeedTrainingCoordinator multiSeedCoordinator,
+    // ... other parameters ...
+)
+{
+    _dataSplitStrategy = dataSplitStrategy;
+    _earlyStoppingTracker = earlyStoppingTracker;
+    _multiSeedCoordinator = multiSeedCoordinator;
+}
+```
+
+2. **Updated ExecuteTrainingPipelineAsync to split data:**
+```csharp
+// Load actual historical bars for splitting
+var allHistoricalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken);
+
+// Calculate total days from bar count (assuming 360 bars per day)
+var totalDays = allHistoricalBars.Count > 0 ? Math.Max(30, allHistoricalBars.Count / 360) : 51;
+
+// Apply dynamic data splitting
+var dataSplit = _dataSplitStrategy.SplitData(allHistoricalBars, totalDays);
+
+_logger.LogInformation("[LAB] Train set: {TrainDays} days, {TrainBars} bars", 
+    dataSplit.TrainDays, dataSplit.TrainData.Count);
+_logger.LogInformation("[LAB] Validation set: {ValDays} days, {ValBars} bars", 
+    dataSplit.ValidationDays, dataSplit.ValidationData.Count);
+_logger.LogInformation("[LAB] Test set: {TestDays} days, {TestBars} bars (LOCKED)", 
+    dataSplit.TestDays, dataSplit.TestData.Count);
+```
+
+3. **Wrapped each training method in multi-seed loop:**
+
+Example for CVaR-PPO:
+```csharp
+private async Task TrainCVarPPOAsync(...)
+{
+    // Multi-seed training
+    var seeds = _multiSeedCoordinator.GetTrainingSeeds();
+    var seedResults = new List<Training.SeedTrainingResult>();
+    
+    foreach (var seed in seeds)
+    {
+        _earlyStoppingTracker.Reset();
+        
+        // Train with this seed
+        var trainingResult = await _cvarPpoTrainer.TrainFromExperiencesAsync(...);
+        
+        if (trainingResult.Success)
+        {
+            seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
+                seed, testMetric, validationMetric, modelPath));
+        }
+    }
+    
+    // Make promotion decision
+    var decision = _multiSeedCoordinator.MakePromotionDecision(
+        ComponentCVarPPO, seedResults, championMetric);
+    
+    if (decision.Approved)
+    {
+        // Promote best seed's model
+    }
+}
+```
+
+**Status**: ✅ All 7 Heavy Phase components updated (CVaR-PPO, LSTM, Pattern Recognition, Regime Detector, Slippage/Latency, Model Ensemble, Neural UCB)
+
+#### Step 4: Add Performance Monitoring to Terminal Mode ✅ (COMPLETED)
+
+**File**: `src/UnifiedOrchestrator/Services/PerformanceDegradationDetector.cs` (NEW)
+
+**Features implemented:**
+- Track rolling 3-day Sharpe ratio
+- Detect degradation thresholds:
+  - Sharpe < 0.5 for 3+ days
+  - Drawdown > 10% for 3+ days
+  - 5+ consecutive losses
+- Run safety checks before triggering Anyday Lab
+- Automatically set `LAB_MODE_SCHEDULE=MANUAL`
+- Spawn Anyday Lab Mode process
+
+**Status**: ✅ Performance monitoring implemented
+
+#### Step 5: Create Required Directories (One-Time)
+
+**Directories to create** (if they don't exist):
+```bash
+mkdir -p artifacts/training_checkpoints
+mkdir -p models/staging
+mkdir -p models/rejected
+mkdir -p manifests/training
+mkdir -p manifests/sandbox
+```
+
+**Status**: Directories created automatically by code on first run
+
+#### Step 6: Configure Environment Variables (Optional)
+
+**LAB_MODE_SCHEDULE** - Controls which Lab Mode to run:
+- `SCHEDULED` (default) - Sunday Lab Mode (automatic weekly training)
+- `MANUAL` - Anyday Lab Mode (emergency on-demand training)
+
+**Setting**:
+```bash
+# Linux/Mac
+export LAB_MODE_SCHEDULE=SCHEDULED
+
+# Windows
+set LAB_MODE_SCHEDULE=SCHEDULED
+```
+
+**Status**: Defaults to SCHEDULED if not set, Terminal Mode sets to MANUAL when triggering emergency retraining
+
+### Zero Ongoing Maintenance
+
+Once the above one-time setup is complete:
+
+**No configuration changes needed when:**
+- Data grows from 51 to 90 days → Split adapts automatically
+- More training days available → Split ratios adjust automatically
+- Performance degrades → Anyday Lab triggers automatically
+- Sunday arrives → Sunday Lab triggers automatically
+- Models need promotion → Gates evaluate automatically
+
+**Only manual intervention required:**
+- Anyday Lab approval (safety check after emergency retraining)
+- Reviewing rejected models (optional, for analysis)
+- Checking training logs (optional, for monitoring)
+
+**Everything else is fully automatic:**
+- Data splitting (adapts to available days)
+- Multi-seed training (always uses 5 seeds)
+- Early stopping (10 epoch patience)
+- Promotion decisions (3/5 seeds required)
+- Performance monitoring (every 4 hours)
+- Degradation detection (3-day window)
+- Emergency retraining triggers
+- Canary testing
+- Catastrophic forgetting checks
+
+### Configuration Summary
+
+| Component | Configuration Required | Ongoing Maintenance |
+|-----------|----------------------|-------------------|
+| DynamicDataSplitStrategy | None | None - adapts automatically |
+| EarlyStoppingTracker | None (10 epoch patience) | None |
+| MultiSeedTrainingCoordinator | None (5 seeds: 42, 123, 456, 789, 1337) | None |
+| PerformanceDegradationDetector | None (Sharpe < 0.5, Drawdown > 10%) | None |
+| Sunday Lab Schedule | None (Sunday 12:05 PM ET) | None |
+| Anyday Lab Trigger | None (automatic when degradation detected) | Approval required |
+| Data Growth | None (daily at 6 AM ET) | None |
+| Promotion Pipeline | None (5 gates automatic) | None |
+
+**Total Configuration Effort**: One-time setup (already completed)  
+**Ongoing Maintenance**: Zero (except Anyday Lab approval)
+
+This completes the full automation workflow from Parts 4-8.
