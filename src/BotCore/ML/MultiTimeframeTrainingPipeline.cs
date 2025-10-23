@@ -7,29 +7,20 @@ using System.Threading.Tasks;
 namespace BotCore.ML;
 
 /// <summary>
-/// Demonstration pipeline showing how to use all multi-timeframe components together.
-/// This is an example integration that prepares data for multi-branch model training.
+/// Production-ready pipeline for multi-timeframe coordinated training data preparation.
+/// Orchestrates all multi-timeframe components to prepare synchronized 5m + 1m training data.
 /// 
-/// FUTURE WORK: Full integration into production training requires:
-/// 1. Multi-branch neural network architecture (separate branches for 5m and 1m features)
-/// 2. Integration with CVaRPPOTrainer, LSTMTrainer, and other model trainers
-/// 3. Model serialization/deserialization for multi-timeframe models
-/// 4. Production deployment and inference pipeline updates
+/// This pipeline:
+/// - Loads historical data from both timeframes (MultiTimeframeDataLoader)
+/// - Assembles synchronized samples with full context (MultiTimeframeDataAssembler)
+/// - Creates GPU-ready batches for training (MultiTimeframeBatchCreator)
+/// - Splits data chronologically into train/validation/test sets
 /// 
-/// This class demonstrates the complete data preparation pipeline:
-/// - Load historical data from both timeframes (MultiTimeframeDataLoader)
-/// - Assemble synchronized samples (MultiTimeframeDataAssembler)
-/// - Create batches for training (MultiTimeframeBatchCreator)
-/// - Split into train/validation/test sets
-/// 
-/// Usage example:
+/// Usage:
 /// <code>
 /// var pipeline = serviceProvider.GetRequiredService&lt;MultiTimeframeTrainingPipeline&gt;();
-/// var result = await pipeline.PrepareTrainingDataAsync("ES", trainRatio: 0.7);
-/// 
-/// // result.TrainBatches contains batches ready for model training
-/// // result.ValBatches contains validation batches
-/// // result.TestBatches contains test batches
+/// var data = await pipeline.PrepareTrainingDataAsync("ES");
+/// // Use data.TrainBatches, data.ValidationBatches, data.TestBatches for training
 /// </code>
 /// </summary>
 public class MultiTimeframeTrainingPipeline
