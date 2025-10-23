@@ -1730,7 +1730,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training with overfitting prevention
@@ -1845,7 +1853,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -1909,7 +1925,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -1971,7 +1995,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -2033,7 +2065,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -2096,7 +2136,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training

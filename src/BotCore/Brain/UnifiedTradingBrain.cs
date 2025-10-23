@@ -1810,7 +1810,15 @@ namespace BotCore.Brain
                                 Done = true, // Position closed
                                 LogProbability = 0, // Will be recalculated during training
                                 ValueEstimate = _lastCVaRValue,
-                                Return = 0 // Will be calculated during advantage estimation
+                                Return = 0, // Will be calculated during advantage estimation
+                                
+                                // OCO Bracket Information (for Lab Mode training)
+                                UsedOcoBracket = true, // Bot uses OCO brackets for all orders
+                                TakeProfitDistance = 2.0, // Default 2.0 ATR from BracketConfigService
+                                StopLossDistance = 1.0,   // Default 1.0 ATR from BracketConfigService  
+                                RewardRiskRatio = 2.0,    // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                                HitTakeProfit = wasCorrect && pnl > 0,
+                                HitStopLoss = !wasCorrect && pnl < 0
                             };
                             
                             _cvarPPO.AddExperience(experience);
