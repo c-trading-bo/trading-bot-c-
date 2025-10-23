@@ -14,12 +14,14 @@ namespace TradingBot.UnifiedOrchestrator.Scheduling;
 /// Features: DST handling, lock files, health checks, watchdog, proper event-driven architecture
 /// 
 /// MULTI-TIMEFRAME TRAINING MODES:
-/// - Sunday Lab Mode (Scheduled): Automatic weekly training with full multi-timeframe data (5m + 1m bars)
-/// - Anyday Lab Mode (Emergency): Can trigger any day when PerformanceDegradationDetector detects issues
+/// - Sunday Lab Mode (Automatic): Clock-triggered every Sunday, runs full multi-timeframe training (5m + 1m bars)
+/// - Anyday Lab Mode (Manual Only): User manually triggers via FORCE_LAB_NOW=1 environment variable
+///   → NOT automatically triggered by performance degradation or any other condition
+///   → User reviews metrics from PerformanceDegradationDetector and decides when to intervene
 ///   → Uses SAME training pipeline as Sunday mode (HistoricalTrainingOrchestrator)
 ///   → Same multi-timeframe learning (loads 5m + 1m bars identically)
-///   → Can run on Wednesday, Thursday, or any day if performance drops
-///   → Uses FORCE_LAB_NOW=1 environment variable to bypass Sunday-only schedule
+///   → Can run on any day of the week when user explicitly launches it
+///   → Uses whatever days of data exist (e.g., 54 days on Wednesday vs 90 days on Sunday)
 /// </summary>
 internal sealed class InternalScheduler : BackgroundService
 {

@@ -8,23 +8,25 @@ using System.Threading.Tasks;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Performance Degradation Detector - Monitors live trading performance and triggers
-/// emergency retraining (Anyday Lab Mode) when degradation is detected.
+/// Performance Degradation Detector - Monitors live trading performance and reports
+/// degradation status for user review. Does NOT automatically trigger retraining.
 /// 
-/// Degradation conditions:
+/// Degradation conditions monitored:
 /// - Sharpe ratio < 0.5 for 3+ consecutive days
 /// - Drawdown > 10% for 3+ consecutive days
 /// - 5+ consecutive losing trades
 /// 
-/// Automatically triggers Anyday Lab Mode when conditions met and safety checks pass.
+/// MONITORING ONLY - NO AUTOMATIC TRIGGERS:
+/// This service ONLY monitors and reports performance metrics.
+/// It does NOT automatically trigger Anyday Lab Mode.
+/// User must manually decide whether to trigger Anyday Lab retraining.
 /// 
-/// MULTI-TIMEFRAME TRAINING:
-/// Anyday Lab Mode uses THE SAME training pipeline as Sunday Lab Mode:
-/// - Loads historical 5m + 1m bar data via HistoricalTrainingOrchestrator
-/// - Trains multi-branch models with cross-timeframe patterns
-/// - Can trigger any day of the week (not restricted to Wednesday or Sunday)
-/// - Uses whatever days of data exist (e.g., 54 days on Wednesday vs 90 days on Sunday)
-/// - Still applies overfitting prevention and multi-seed validation
+/// ANYDAY LAB MODE (MANUAL ONLY):
+/// - Triggered ONLY by explicit user action (FORCE_LAB_NOW=1 environment variable)
+/// - NOT automatically triggered by performance degradation
+/// - NOT automatically triggered by regime shifts or data quality issues
+/// - User reviews metrics and decides when manual intervention is warranted
+/// - Uses SAME training pipeline as Sunday Lab (multi-timeframe 5m + 1m bars)
 /// </summary>
 public sealed class PerformanceDegradationDetector
 {
@@ -49,13 +51,14 @@ public sealed class PerformanceDegradationDetector
     }
 
     /// <summary>
-    /// Monitor performance and automatically trigger Anyday Lab Mode if degradation detected
-    /// Should be called periodically (e.g., every 4 hours during trading week)
+    /// Monitor performance and report degradation status for user review.
+    /// DOES NOT automatically trigger Anyday Lab Mode - monitoring only.
+    /// User must manually decide whether to trigger retraining based on these metrics.
     /// </summary>
-    public async Task<DegradationCheckResult> CheckAndTriggerIfNeededAsync(
+    public async Task<DegradationCheckResult> CheckPerformanceAsync(
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("[DEGRADATION] Running performance degradation check...");
+        _logger.LogDebug("[DEGRADATION] Running performance degradation check (monitoring only)...");
         
         // Get recent performance metrics (last 3 days)
         var recentMetrics = await _metricsTracker.GetRecentPerformanceAsync(
@@ -72,7 +75,7 @@ public sealed class PerformanceDegradationDetector
             DegradedDaysCount = recentMetrics.DegradedDaysCount
         };
         
-        // Check for degradation
+        // Check for degradation (for reporting only - no automatic action)
         var degradationDetected = DetectDegradation(recentMetrics, result);
         
         if (!degradationDetected)
@@ -82,8 +85,8 @@ public sealed class PerformanceDegradationDetector
             return result;
         }
         
-        // Degradation detected - run safety checks
-        _logger.LogWarning("[DEGRADATION] Performance degradation detected:");
+        // Degradation detected - LOG for user review (NO automatic trigger)
+        _logger.LogWarning("[DEGRADATION] Performance degradation detected (user review recommended):");
         _logger.LogWarning("[DEGRADATION]   Sharpe: {Sharpe:F2} (threshold: {Threshold:F2})",
             recentMetrics.Sharpe, SharpeThreshold);
         _logger.LogWarning("[DEGRADATION]   Drawdown: {Drawdown:F2}% (threshold: {Threshold:F2}%)",
@@ -92,20 +95,24 @@ public sealed class PerformanceDegradationDetector
             recentMetrics.ConsecutiveLosses, ConsecutiveLossesThreshold);
         _logger.LogWarning("[DEGRADATION]   Degraded days: {Days}/{Threshold}",
             recentMetrics.DegradedDaysCount, DegradedDaysThreshold);
+        _logger.LogInformation("[DEGRADATION] 💡 To manually trigger Anyday Lab retraining, set FORCE_LAB_NOW=1 and restart bot");
         
-        // Run safety checks
+        // Run safety checks (for informational purposes)
         var safetyChecksPassed = await RunSafetyChecksAsync(result, cancellationToken).ConfigureAwait(false);
         
         if (!safetyChecksPassed)
         {
-            _logger.LogWarning("[DEGRADATION] Safety checks failed - NOT triggering Anyday Lab Mode");
+            _logger.LogWarning("[DEGRADATION] Safety checks failed - manual retraining not recommended at this time");
             result.CanTriggerAnydayLab = false;
-            return result;
+        }
+        else
+        {
+            _logger.LogInformation("[DEGRADATION] Safety checks passed - manual retraining can be safely triggered if desired");
+            result.CanTriggerAnydayLab = true;
         }
         
-        // All checks passed - trigger Anyday Lab Mode
-        _logger.LogInformation("[DEGRADATION] All safety checks passed - triggering Anyday Lab Mode");
-        result.AnydayLabTriggered = await TriggerAnydayLabModeAsync(cancellationToken).ConfigureAwait(false);
+        // NO AUTOMATIC TRIGGERING - user must manually decide
+        result.AnydayLabTriggered = false;
         
         return result;
     }
@@ -166,36 +173,9 @@ public sealed class PerformanceDegradationDetector
         return true;
     }
 
-    private async Task<bool> TriggerAnydayLabModeAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Set environment variable for Anyday Lab Mode
-            Environment.SetEnvironmentVariable("LAB_MODE_SCHEDULE", "MANUAL");
-            
-            _logger.LogInformation("[DEGRADATION] Set LAB_MODE_SCHEDULE=MANUAL");
-            
-            // Spawn Lab Mode process
-            var labModeStarted = await SpawnLabModeProcessAsync(cancellationToken).ConfigureAwait(false);
-            
-            if (labModeStarted)
-            {
-                _logger.LogInformation("[DEGRADATION] ✅ Anyday Lab Mode triggered successfully");
-                _logger.LogInformation("[DEGRADATION] Terminal Mode will continue trading with current models");
-                return true;
-            }
-            else
-            {
-                _logger.LogError("[DEGRADATION] Failed to spawn Lab Mode process");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[DEGRADATION] Error triggering Anyday Lab Mode: {Error}", ex.Message);
-            return false;
-        }
-    }
+    // REMOVED: TriggerAnydayLabModeAsync() and SpawnLabModeProcessAsync() methods
+    // Anyday Lab Mode is now MANUAL ONLY - user must set FORCE_LAB_NOW=1 themselves
+    // This service only monitors and reports - does NOT automatically trigger retraining
 
     private Task<bool> IsTrainingInProgressAsync(CancellationToken cancellationToken)
     {
@@ -270,31 +250,11 @@ public sealed class PerformanceDegradationDetector
         return Task.FromResult(true);
     }
 
-    private Task<bool> SpawnLabModeProcessAsync(CancellationToken cancellationToken)
-    {
-        // This would spawn the UnifiedOrchestrator in Lab Mode
-        // For now, just log the intent
-        _logger.LogInformation("[DEGRADATION] Would spawn: dotnet run --project UnifiedOrchestrator.csproj -- --mode lab");
-        
-        // In production, use Process.Start() to spawn the process
-        // var processInfo = new ProcessStartInfo
-        // {
-        //     FileName = "dotnet",
-        //     Arguments = "run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj -- --mode lab",
-        //     UseShellExecute = false,
-        //     RedirectStandardOutput = true,
-        //     RedirectStandardError = true
-        // };
-        // 
-        // var process = Process.Start(processInfo);
-        // return process != null;
-        
-        return Task.FromResult(true); // Simulated success for now
-    }
+    // REMOVED: SpawnLabModeProcessAsync() - no longer needed since Anyday Lab is manual-only
 }
 
 /// <summary>
-/// Result of degradation check
+/// Result of degradation check (monitoring only - no automatic triggers)
 /// </summary>
 public sealed class DegradationCheckResult
 {
