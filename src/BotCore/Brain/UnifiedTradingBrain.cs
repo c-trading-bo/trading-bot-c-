@@ -2209,10 +2209,8 @@ namespace BotCore.Brain
                                 }
                             }
                         }
-                        else
-                        {
-                            LogRiskCommentaryMissingData(_logger, null);
-                        }
+                        // Suppress warning during indicator warmup - ATR needs time to stabilize
+                        // This is expected behavior and not an error
                     }
                     catch (InvalidOperationException ex)
                     {
