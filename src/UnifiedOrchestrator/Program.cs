@@ -1780,6 +1780,8 @@ Please check the configuration and ensure all required services are registered.
         // Register multi-timeframe feature extraction and data loading
         services.AddSingleton<global::BotCore.ML.MultiTimeframeFeatureExtractor>();
         services.AddSingleton<global::BotCore.ML.MultiTimeframeDataLoader>();
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeDataAssembler>();
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeBatchCreator>();
         
         // Register live bar aggregation and tick buffer services
         services.AddSingleton<global::BotCore.Services.BarAggregationService>();
