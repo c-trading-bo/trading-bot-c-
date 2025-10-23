@@ -28,20 +28,20 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 internal sealed class MultiTimeframeDataIntegrationService : IHostedService
 {
     private readonly ILogger<MultiTimeframeDataIntegrationService> _logger;
-    private readonly TopstepXAdapterService _topstepXAdapter;
+    private readonly TopstepXAdapterService? _topstepXAdapter;
     private readonly BarAggregationService _barAggregator;
     private readonly TickBufferService _tickBuffer;
     
     public MultiTimeframeDataIntegrationService(
         ILogger<MultiTimeframeDataIntegrationService> logger,
-        TopstepXAdapterService topstepXAdapter,
         BarAggregationService barAggregator,
-        TickBufferService tickBuffer)
+        TickBufferService tickBuffer,
+        TopstepXAdapterService? topstepXAdapter = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _topstepXAdapter = topstepXAdapter ?? throw new ArgumentNullException(nameof(topstepXAdapter));
         _barAggregator = barAggregator ?? throw new ArgumentNullException(nameof(barAggregator));
         _tickBuffer = tickBuffer ?? throw new ArgumentNullException(nameof(tickBuffer));
+        _topstepXAdapter = topstepXAdapter; // Optional - not available in Lab Mode
     }
     
     public Task StartAsync(CancellationToken cancellationToken)
@@ -49,7 +49,7 @@ internal sealed class MultiTimeframeDataIntegrationService : IHostedService
         // Check if in Lab Mode (SUNDAY LAB MODE - don't subscribe to live feed during heavy training)
         // In Sunday Lab Mode, MultiTimeframeDataLoader is used instead for historical data training
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
-        if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
+        if (labMode == "1" || labMode?.ToLowerInvariant() == "true" || _topstepXAdapter == null)
         {
             _logger.LogInformation(
                 "[MTF-INTEGRATION] SUNDAY LAB MODE detected - skipping live data feed integration. " +
