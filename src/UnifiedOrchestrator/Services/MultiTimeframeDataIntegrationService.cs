@@ -13,13 +13,14 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Subscribes to TopstepX adapter and feeds data to BarAggregationService and TickBufferService.
 /// 
 /// MODE DISTINCTION (CRITICAL):
-/// - SUNDAY LAB MODE: This service is DISABLED (LAB_MODE=1 detected)
+/// - SUNDAY LAB MODE + ANYDAY LAB MODE: This service is DISABLED (LAB_MODE=1 detected)
 ///   → MultiTimeframeDataLoader used for heavy neural network training
 ///   → Full gradient descent on 90 days of synchronized 5m + 1m + tick data
 ///   → Trains multi-branch models, applies overfitting prevention
 ///   → Outputs frozen ONNX models for Terminal Mode
+///   → Works identically for scheduled Sunday training OR emergency Anyday training
 /// 
-/// - TERMINAL MODE (Mon-Sat): This service is ENABLED
+/// - TERMINAL MODE (Mon-Sat when not training): This service is ENABLED
 ///   → Subscribes to live TopstepX feed
 ///   → Feeds real-time data to BarAggregationService and TickBufferService
 ///   → Uses already-trained ONNX models for inference (NOT training)
@@ -46,14 +47,14 @@ internal sealed class MultiTimeframeDataIntegrationService : IHostedService
     
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Check if in Lab Mode (SUNDAY LAB MODE - don't subscribe to live feed during heavy training)
-        // In Sunday Lab Mode, MultiTimeframeDataLoader is used instead for historical data training
+        // Check if in Lab Mode (SUNDAY LAB MODE or ANYDAY LAB MODE - don't subscribe to live feed during heavy training)
+        // In ANY Lab Mode (Sunday scheduled or Anyday emergency), MultiTimeframeDataLoader is used instead for historical data training
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
         if (labMode == "1" || labMode?.ToLowerInvariant() == "true" || _topstepXAdapter == null)
         {
             _logger.LogInformation(
-                "[MTF-INTEGRATION] SUNDAY LAB MODE detected - skipping live data feed integration. " +
-                "MultiTimeframeDataLoader will be used for historical training instead.");
+                "[MTF-INTEGRATION] LAB MODE detected (Sunday or Anyday) - skipping live data feed integration. " +
+                "MultiTimeframeDataLoader will be used for historical multi-timeframe training instead (5m + 1m bars).");
             return Task.CompletedTask;
         }
         
@@ -62,7 +63,7 @@ internal sealed class MultiTimeframeDataIntegrationService : IHostedService
         
         _logger.LogInformation(
             "[MTF-INTEGRATION] TERMINAL MODE - Multi-timeframe data integration started. " +
-            "Feeding live bars to aggregation services for real-time inference.");
+            "Feeding live bars to aggregation services for real-time inference (using already-trained multi-timeframe models).");
         
         return Task.CompletedTask;
     }
