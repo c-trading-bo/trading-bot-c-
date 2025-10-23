@@ -938,6 +938,26 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
         
         // ================================================================================
+        // TRADING MODE COMPLIANCE CHECKERS - OWNER'S MANUAL VERIFICATION
+        // ================================================================================
+        
+        // Register Terminal Mode compliance checker
+        services.AddHostedService<global::BotCore.Services.TerminalModeComplianceChecker>();
+        Console.WriteLine("✅ [TERMINAL-COMPLIANCE] Registered Terminal Mode compliance checker");
+        
+        // Register Lab Mode compliance checker
+        services.AddHostedService<UnifiedOrchestrator.Services.LabModeComplianceChecker>();
+        Console.WriteLine("✅ [LAB-COMPLIANCE] Registered Lab Mode compliance checker");
+        
+        // Register Historical Mode compliance checker
+        services.AddHostedService<TradingBot.BotCore.Services.HistoricalModeComplianceChecker>();
+        Console.WriteLine("✅ [HISTORICAL-COMPLIANCE] Registered Historical Mode compliance checker");
+        
+        // Register Performance Target Monitor (Terminal Mode only)
+        services.AddHostedService<global::BotCore.Services.PerformanceTargetMonitor>();
+        Console.WriteLine("⚡ [PERFORMANCE-MONITOR] Registered performance target monitor (<22ms latency, 99.9% uptime, 0.5 tick slippage)");
+        
+        // ================================================================================
         // REGIME DETECTION SERVICE - MARKET CONDITION ANALYSIS
         // ================================================================================
         
