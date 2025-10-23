@@ -627,7 +627,8 @@ public class CVaRPPOTrainer
             
             // Forward pass through networks
             var actionProbs = _policyNetwork.Forward(state);
-            var value = _valueNetwork.Forward(state);
+            var valueArray = _valueNetwork.Forward(state);
+            var value = valueArray[0]; // Extract scalar value
             
             // Compute loss
             var label = batch.Labels[i];
@@ -656,7 +657,8 @@ public class CVaRPPOTrainer
                 var state = EnsureStateSize(combinedFeatures);
                 
                 var actionProbs = _policyNetwork.Forward(state);
-                var value = _policyNetwork.Forward(state);
+                var valueArray = _valueNetwork.Forward(state);
+                var value = valueArray[0]; // Extract scalar value
                 
                 var label = batch.Labels[i];
                 var loss = ComputeLoss(actionProbs, value, label);

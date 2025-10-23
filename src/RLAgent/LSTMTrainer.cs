@@ -254,29 +254,6 @@ public class LSTMTrainer
         }
         return 1.0 / (1.0 + Math.Exp(-sum)); // Sigmoid
     }
-}
-
-/// <summary>
-/// Historical bar data structure
-/// </summary>
-public class HistoricalBar
-{
-    public required string Symbol { get; init; }
-    public required DateTimeOffset Timestamp { get; init; }
-    public required decimal Open { get; init; }
-    public required decimal High { get; init; }
-    public required decimal Low { get; init; }
-    public required decimal Close { get; init; }
-    public required long Volume { get; init; }
-}
-
-/// <summary>
-/// Experience data for training (lightweight, no BotCore dependency)
-/// </summary>
-public class ExperienceData
-{
-    public required decimal Reward { get; init; }
-    public required DateTime Timestamp { get; init; }
     
     /// <summary>
     /// Train LSTM model from multi-timeframe batches with dual inputs (5m + 1m).
@@ -285,6 +262,8 @@ public class ExperienceData
         MultiTimeframeTrainingData trainingData,
         CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask; // Suppress async warning - actual training is synchronous for now
+        
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("🔧 LSTMTrainer starting MULTI-TIMEFRAME training - Train batches: {TrainBatches}, Val batches: {ValBatches}",
             trainingData.TrainBatches.Count, trainingData.ValidationBatches.Count);
@@ -422,6 +401,29 @@ public class ExperienceData
         }
         return result;
     }
+}
+
+/// <summary>
+/// Historical bar data structure
+/// </summary>
+public class HistoricalBar
+{
+    public required string Symbol { get; init; }
+    public required DateTimeOffset Timestamp { get; init; }
+    public required decimal Open { get; init; }
+    public required decimal High { get; init; }
+    public required decimal Low { get; init; }
+    public required decimal Close { get; init; }
+    public required long Volume { get; init; }
+}
+
+/// <summary>
+/// Experience data for training (lightweight, no BotCore dependency)
+/// </summary>
+public class ExperienceData
+{
+    public required decimal Reward { get; init; }
+    public required DateTime Timestamp { get; init; }
 }
 
 /// <summary>

@@ -122,7 +122,7 @@ public class MultiInputOnnxModelLoader
         // Process each sample in batch
         for (int i = 0; i < batchSize; i++)
         {
-            var features5m = Extract Row(features5mBatch, i);
+            var features5m = ExtractRow(features5mBatch, i);
             var features1m = ExtractRow(features1mBatch, i);
             var output = RunInference(features5m, features1m);
             results.Add(output);
