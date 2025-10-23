@@ -2627,6 +2627,21 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
         
+        // Overfitting Prevention Components
+        Console.WriteLine("   ✓ Registering DynamicDataSplitStrategy (train/validation/test split)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.DynamicDataSplitStrategy>();
+        
+        Console.WriteLine("   ✓ Registering EarlyStoppingTracker (validation-based early stopping)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>>();
+            var checkpointDir = Path.Combine(Directory.GetCurrentDirectory(), "artifacts", "training_checkpoints");
+            return new TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker(logger, checkpointDir);
+        });
+        
+        Console.WriteLine("   ✓ Registering MultiSeedTrainingCoordinator (multi-seed promotion logic)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MultiSeedTrainingCoordinator>();
+        
         // Register Medium Phase Training Dependencies (4 missing services)
         Console.WriteLine("   ✓ Registering ContinuousOperationService (continuous operation optimization)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ContinuousOperationService>();
