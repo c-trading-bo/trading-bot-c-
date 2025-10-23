@@ -56,6 +56,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.RLAgent.RegimeDetectorTrainer _regimeDetectorTrainer;
     private readonly TradingBot.RLAgent.SlippageLatencyTrainer _slippageLatencyTrainer;
     private readonly TradingBot.RLAgent.ModelEnsembleTrainer _modelEnsembleTrainer;
+    private readonly TradingBot.RLAgent.SACTrainer _sacTrainer;
     private readonly TrainingManifestService _manifestService;
     private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingMetricsCollector _metricsCollector;
@@ -97,6 +98,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.RLAgent.RegimeDetectorTrainer regimeDetectorTrainer,
         TradingBot.RLAgent.SlippageLatencyTrainer slippageLatencyTrainer,
         TradingBot.RLAgent.ModelEnsembleTrainer modelEnsembleTrainer,
+        TradingBot.RLAgent.SACTrainer sacTrainer,
         TrainingManifestService manifestService,
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
@@ -132,6 +134,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _regimeDetectorTrainer = regimeDetectorTrainer;
         _slippageLatencyTrainer = slippageLatencyTrainer;
         _modelEnsembleTrainer = modelEnsembleTrainer;
+        _sacTrainer = sacTrainer;
         _manifestService = manifestService;
         _dataIntegrityService = dataIntegrityService;
         _metricsCollector = metricsCollector;
