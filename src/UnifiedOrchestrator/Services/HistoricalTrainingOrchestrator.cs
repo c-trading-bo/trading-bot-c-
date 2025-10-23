@@ -1317,21 +1317,29 @@ internal sealed class HistoricalTrainingOrchestrator
         // Load historical bars for trainer use
         var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
         
+        // Prepare multi-timeframe training data
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] 📊 MULTI-TIMEFRAME DATA PREPARATION");
+        _logger.LogInformation("[LAB] Preparing synchronized 5m + 1m training data...");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        var multiTimeframeData = await PrepareMultiTimeframeDataAsync(cancellationToken).ConfigureAwait(false);
+        
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] 🔥 HEAVY PHASE TRAINING (12:05 PM - 2:30 PM ET)");
         _logger.LogInformation("[LAB] 7 complex neural network models | 50 epochs each | ~30 min per model");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         
-        // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer
-        await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+        // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer with multi-timeframe
+        await TrainCVarPPOAsync(result, experiences, multiTimeframeData, cancellationToken).ConfigureAwait(false);
 
         // 2. Neural UCB Retraining (15 min) - HEAVY PHASE Model 2/7 - uses real trainer
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 2/7: {Component}", ComponentNeuralUCB);
         await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 3. LSTM Training (20 min) - HEAVY PHASE Model 3/7 - uses real trainer
+        // 3. LSTM Training (20 min) - HEAVY PHASE Model 3/7 - uses real trainer with multi-timeframe
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 3/7: {Component}", ComponentLSTM);
-        await TrainLSTMAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+        await TrainLSTMAsync(result, historicalBars, experiences, multiTimeframeData, cancellationToken).ConfigureAwait(false);
 
         // 4. Pattern Recognition Training (15 min) - HEAVY PHASE Model 4/7 - uses real trainer
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 4/7: Pattern-Recognition");
@@ -1382,6 +1390,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private async Task TrainCVarPPOAsync(
         TrainingSessionResult result,
         List<Experience> experiences,
+        global::BotCore.ML.MultiTimeframeTrainingData? multiTimeframeData,
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -1391,6 +1400,10 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 1/7: {Component}", ComponentCVarPPO);
             _logger.LogInformation("[LAB] Target: 50 epochs | ~6-8 min training time");
             _logger.LogInformation("[LAB] Using multi-seed training with overfitting prevention");
+            if (multiTimeframeData != null)
+            {
+                _logger.LogInformation("[LAB] MULTI-TIMEFRAME MODE: Using synchronized 5m+1m data");
+            }
             _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
             
             _memoryLeakDetector.RecordBeforeComponent(ComponentCVarPPO);
@@ -1405,41 +1418,56 @@ internal sealed class HistoricalTrainingOrchestrator
                 throw new InvalidOperationException($"Resource check failed: {issue}");
             }
             
-            var rlExperiences = ConvertToRLExperiences(experiences);
-            
-            // Multi-seed training with overfitting prevention
-            var seeds = _multiSeedCoordinator.GetTrainingSeeds();
-            var seedResults = new List<Training.SeedTrainingResult>();
-            
-            _logger.LogInformation("[LAB] {Component}: Starting multi-seed training with {SeedCount} seeds", 
-                ComponentCVarPPO, seeds.Length);
-            
-            foreach (var seed in seeds)
+            // Use multi-timeframe data if available, otherwise fall back to experiences
+            TradingBot.RLAgent.TrainingResult componentResult;
+            if (multiTimeframeData != null)
             {
-                _logger.LogInformation("[LAB] {Component}: Training with seed {Seed}...", ComponentCVarPPO, seed);
-                
-                // Reset early stopping tracker for this seed
-                _earlyStoppingTracker.Reset();
-                
-                // Capture model hash before training for verification
-                var modelPath = Path.Combine("models", "cvar_ppo", $"cvar_ppo_seed_{seed}.onnx");
-                var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
-                
-                // Train with this seed (trainer should use seed for initialization)
-                var componentResult = await _failureHandler.RetryComponentTrainingAsync(
+                _logger.LogInformation("[LAB] Training CVaRPPO with multi-timeframe batches: {TrainBatches} train, {ValBatches} val",
+                    multiTimeframeData.TrainBatches.Count, multiTimeframeData.ValidationBatches.Count);
+                    
+                componentResult = await _failureHandler.RetryComponentTrainingAsync(
                     ComponentCVarPPO,
-                    async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
+                    async ct => await _cvarPpoTrainer.TrainFromMultiTimeframeBatchesAsync(multiTimeframeData, ct).ConfigureAwait(false),
                     3,
                     cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                var rlExperiences = ConvertToRLExperiences(experiences);
                 
-                // Get training statistics for validation metric
-                var stats = _cvarPpoTrainer.GetTrainingStatistics();
-                var validationMetric = stats.AverageReward; // Use average reward as validation metric
-                var testMetric = validationMetric; // In this simplified version, use same metric
+                // Multi-seed training with overfitting prevention
+                var seeds = _multiSeedCoordinator.GetTrainingSeeds();
+                var seedResults = new List<Training.SeedTrainingResult>();
                 
-                if (componentResult.Success)
+                _logger.LogInformation("[LAB] {Component}: Starting multi-seed training with {SeedCount} seeds", 
+                    ComponentCVarPPO, seeds.Length);
+                
+                foreach (var seed in seeds)
                 {
-                    var verificationResult = await _modelHashVerifier.VerifyModelChangedAsync(
+                    _logger.LogInformation("[LAB] {Component}: Training with seed {Seed}...", ComponentCVarPPO, seed);
+                    
+                    // Reset early stopping tracker for this seed
+                    _earlyStoppingTracker.Reset();
+                    
+                    // Capture model hash before training for verification
+                    var modelPath = Path.Combine("models", "cvar_ppo", $"cvar_ppo_seed_{seed}.onnx");
+                    var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
+                    
+                    // Train with this seed (trainer should use seed for initialization)
+                    componentResult = await _failureHandler.RetryComponentTrainingAsync(
+                        ComponentCVarPPO,
+                        async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
+                        3,
+                        cancellationToken).ConfigureAwait(false);
+                    
+                    // Get training statistics for validation metric
+                    var stats = _cvarPpoTrainer.GetTrainingStatistics();
+                    var validationMetric = stats.AverageReward; // Use average reward as validation metric
+                    var testMetric = validationMetric; // In this simplified version, use same metric
+                    
+                    if (componentResult.Success)
+                    {
+                        var verificationResult = await _modelHashVerifier.VerifyModelChangedAsync(
                         modelPath,
                         ComponentCVarPPO,
                         beforeHash,

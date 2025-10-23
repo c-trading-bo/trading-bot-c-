@@ -222,6 +222,55 @@ public class MultiTimeframeTrainingPipeline
             TotalFeatures = numFeatures5m + numFeatures1m
         };
     }
+    
+    /// <summary>
+    /// Convert to RLAgent types for trainer compatibility (avoids circular dependency).
+    /// </summary>
+    public TradingBot.RLAgent.MultiTimeframeTrainingData ToRLAgentFormat(MultiTimeframeTrainingData data)
+    {
+        return new TradingBot.RLAgent.MultiTimeframeTrainingData
+        {
+            TrainBatches = data.TrainBatches.Select(ConvertBatch).ToList(),
+            ValidationBatches = data.ValidationBatches.Select(ConvertBatch).ToList(),
+            TestBatches = data.TestBatches.Select(ConvertBatch).ToList(),
+            Statistics = ConvertStatistics(data.Statistics),
+            FeatureVersionHash = data.FeatureVersionHash,
+            PreparedAt = data.PreparedAt
+        };
+    }
+    
+    private TradingBot.RLAgent.MultiTimeframeBatch ConvertBatch(MultiTimeframeBatch batch)
+    {
+        return new TradingBot.RLAgent.MultiTimeframeBatch
+        {
+            BatchSize = batch.BatchSize,
+            Symbols = batch.Symbols,
+            Timestamps = batch.Timestamps,
+            Features5m = batch.Features5m,
+            Features1m = batch.Features1m,
+            Mask5m = batch.Mask5m,
+            Mask1m = batch.Mask1m,
+            Labels = batch.Labels
+        };
+    }
+    
+    private TradingBot.RLAgent.DatasetStatistics ConvertStatistics(DatasetStatistics stats)
+    {
+        return new TradingBot.RLAgent.DatasetStatistics
+        {
+            TotalSamples = stats.TotalSamples,
+            TrainSamples = stats.TrainSamples,
+            ValidationSamples = stats.ValidationSamples,
+            TestSamples = stats.TestSamples,
+            LabelDistribution = stats.LabelDistribution,
+            TrainDateRange = stats.TrainDateRange,
+            ValidationDateRange = stats.ValidationDateRange,
+            TestDateRange = stats.TestDateRange,
+            NumFeatures5m = stats.NumFeatures5m,
+            NumFeatures1m = stats.NumFeatures1m,
+            TotalFeatures = stats.TotalFeatures
+        };
+    }
 }
 
 /// <summary>
