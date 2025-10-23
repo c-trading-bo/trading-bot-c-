@@ -196,6 +196,8 @@ namespace BotCore.Brain
         private readonly BotCore.Services.INewsMonitorService? _newsMonitor; // Optional real-time news monitoring
         private readonly TradingBot.Abstractions.IS7Service? _s7Service; // Optional S7 multi-horizon coherence filter
         private readonly BotCore.Services.SafeHoldDecisionPolicy? _safeHoldPolicy; // Optional zone gate filtering
+        private readonly BotCore.Brain.MultiTimeframeBrainAdapter? _mtfAdapter; // Optional multi-timeframe feature integration
+        private readonly TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? _mtfLearning; // Optional multi-timeframe online learning
         
         // Latest market data for risk analysis (updated in MakeIntelligentDecisionAsync)
         private Env? _latestEnv;
@@ -1160,7 +1162,9 @@ namespace BotCore.Brain
             BotCore.Services.ParameterChangeTracker? parameterTracker = null,
             BotCore.Services.INewsMonitorService? newsMonitor = null,
             TradingBot.Abstractions.IS7Service? s7Service = null,
-            BotCore.Services.SafeHoldDecisionPolicy? safeHoldPolicy = null)
+            BotCore.Services.SafeHoldDecisionPolicy? safeHoldPolicy = null,
+            BotCore.Brain.MultiTimeframeBrainAdapter? mtfAdapter = null,
+            TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null)
         {
             _logger = logger;
             _memoryManager = memoryManager;
@@ -1178,6 +1182,8 @@ namespace BotCore.Brain
             _newsMonitor = newsMonitor; // Optional real-time news monitoring
             _s7Service = s7Service; // Optional S7 multi-horizon coherence filter
             _safeHoldPolicy = safeHoldPolicy; // Optional zone gate filtering
+            _mtfAdapter = mtfAdapter; // Optional multi-timeframe features
+            _mtfLearning = mtfLearning; // Optional multi-timeframe online learning
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
@@ -1219,6 +1225,16 @@ namespace BotCore.Brain
             }
             
             LogBrainInitialized(_logger, null);
+            
+            // Log multi-timeframe adapter status
+            if (_mtfAdapter != null)
+            {
+                _logger.LogInformation("✅ [MULTI-TIMEFRAME] Multi-timeframe brain adapter enabled - 5m + 1m features available");
+            }
+            if (_mtfLearning != null)
+            {
+                _logger.LogInformation("✅ [MULTI-TIMEFRAME] Multi-timeframe online learning enabled - contribution tracking active");
+            }
         }
 
         /// <summary>

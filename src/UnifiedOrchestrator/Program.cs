@@ -1687,6 +1687,113 @@ Please check the configuration and ensure all required services are registered.
         
         Console.WriteLine("✅ [BAR-INFRASTRUCTURE] BarPyramid and BarDispatcherHook registered - bar aggregation and dispatching ready");
         
+        // ================================================================================
+        // MULTI-TIMEFRAME TRADING SYSTEM SERVICES
+        // ================================================================================
+        // This section registers all multi-timeframe trading infrastructure for 5m + 1m + tick analysis.
+        // 
+        // MODE DISTINCTION (CRITICAL):
+        // 
+        // ┌─────────────────────────────────────────────────────────────────────────────┐
+        // │ SUNDAY LAB MODE (LAB_MODE=1) - Heavy Neural Network Training               │
+        // ├─────────────────────────────────────────────────────────────────────────────┤
+        // │ What happens:                                                               │
+        // │ • MultiTimeframeDataLoader loads 90 days of 5m + 1m + tick data            │
+        // │ • Python training scripts extract synchronized features                     │
+        // │ • Full gradient descent training on multi-branch models                     │
+        // │   - CVaR-PPO learns from 5m + 1m together                                  │
+        // │   - SAC learns from 5m + 1m together                                       │
+        // │   - LSTM learns from 5m + 1m together                                      │
+        // │   - Execution model learns from tick data                                  │
+        // │ • Apply overfitting prevention (early stopping, multi-seed, test holdout)  │
+        // │ • Promote models that beat champion                                        │
+        // │ • Output: Frozen ONNX models ready for Terminal Mode                       │
+        // │                                                                             │
+        // │ Services used:                                                              │
+        // │ ✅ MultiTimeframeDataLoader - Loads historical data for training           │
+        // │ ✅ MultiTimeframeFeatureExtractor - Computes features for training         │
+        // │ ❌ MultiTimeframeDataIntegrationService - DISABLED (no live feed)          │
+        // │ ❌ BarAggregationService - Not used (historical data already aggregated)   │
+        // │ ❌ LiveMultiTimeframeFeatureComputer - Not used (offline training)         │
+        // └─────────────────────────────────────────────────────────────────────────────┘
+        // 
+        // ┌─────────────────────────────────────────────────────────────────────────────┐
+        // │ TERMINAL MODE (Mon-Sat) - Live Inference with Lightweight Calibration      │
+        // ├─────────────────────────────────────────────────────────────────────────────┤
+        // │ What happens:                                                               │
+        // │ • Uses frozen ONNX models trained last Sunday                              │
+        // │ • Collects real-time 5m bars, 1m bars, tick data as market trades         │
+        // │ • Computes features using EXACT same code as training                      │
+        // │ • Runs inference (NOT training) - forward pass only                        │
+        // │ • Lightweight online calibration (NO weight updates)                       │
+        // │   - Tracks which timeframe contributed to winning trades                   │
+        // │   - Updates calibration statistics                                         │
+        // │   - Saves insights for next Sunday's training                              │
+        // │ • Collects experiences for next Sunday's training                          │
+        // │                                                                             │
+        // │ Services used:                                                              │
+        // │ ✅ MultiTimeframeDataIntegrationService - Subscribes to TopstepX feed      │
+        // │ ✅ BarAggregationService - Builds real-time 1m and 5m bars                 │
+        // │ ✅ TickBufferService - Maintains 10-second tick window                     │
+        // │ ✅ LiveMultiTimeframeFeatureComputer - Computes features in real-time      │
+        // │ ✅ MultiTimeframeBrainAdapter - Provides features to UnifiedTradingBrain   │
+        // │ ✅ ExecutionApprovalService - Validates executions with tick data          │
+        // │ ✅ MultiTimeframeOnlineLearning - Lightweight calibration tracking         │
+        // │ ❌ MultiTimeframeDataLoader - Not used (live trading, not training)        │
+        // └─────────────────────────────────────────────────────────────────────────────┘
+        // 
+        // ARCHITECTURE:
+        // 1. Data Collection (Python): fetch-and-save-historical-data.py runs daily (6 AM cron)
+        //    - Fetches 5m bars → data/historical/ES_90days.json, NQ_90days.json
+        //    - Fetches 1m bars → data/historical/ES_1m_90days.json, NQ_1m_90days.json
+        //    - Validates alignment with validate-multitimeframe-alignment.py
+        // 
+        // 2. Training (Sunday Lab Mode):
+        //    - MultiTimeframeDataLoader: Loads and synchronizes 5m + 1m historical data
+        //    - MultiTimeframeFeatureExtractor: Computes technical indicators for both timeframes
+        //    - Python training scripts use C# loaders to train multi-input models
+        //    - Outputs ONNX models ready for live deployment
+        // 
+        // 3. Live Trading (Terminal Mode):
+        //    - BarAggregationService: Builds real-time 1m and 5m bars from tick/trade data
+        //    - TickBufferService: Maintains 10-second tick window for microstructure analysis
+        //    - LiveMultiTimeframeFeatureComputer: Computes features when bars complete
+        //    - ExecutionApprovalService: Validates executions using tick-level features
+        //    - MultiTimeframeBrainAdapter: Provides synchronized features to UnifiedTradingBrain
+        //    - MultiTimeframeOnlineLearning: Tracks which timeframe contributed most to trades
+        //    - MultiTimeframeDataIntegrationService: Subscribes to TopstepX feed and distributes data
+        // 
+        // 4. Automatic Cycle:
+        //    - Daily (6 AM): Cron collects 5m + 1m bars
+        //    - Mon-Sat (Terminal Mode): Live trading with multi-timeframe models
+        //    - Sunday (Lab Mode): Automatic retraining with new week's data
+        //    - Zero manual intervention after initial setup
+        // 
+        // Register multi-timeframe feature extraction and data loading
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeFeatureExtractor>();
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeDataLoader>();
+        
+        // Register live bar aggregation and tick buffer services
+        services.AddSingleton<global::BotCore.Services.BarAggregationService>();
+        services.AddSingleton<global::BotCore.Services.TickBufferService>();
+        
+        // Register live multi-timeframe feature computation
+        services.AddSingleton<global::BotCore.Services.LiveMultiTimeframeFeatureComputer>();
+        
+        // Register execution approval service
+        services.AddSingleton<global::BotCore.Services.ExecutionApprovalService>();
+        
+        // Register multi-timeframe brain adapter for UnifiedTradingBrain integration
+        services.AddSingleton<global::BotCore.Brain.MultiTimeframeBrainAdapter>();
+        
+        // Register multi-timeframe online learning
+        services.AddSingleton<TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning>();
+        
+        // Register multi-timeframe data integration hosted service (feeds live data to multi-timeframe services)
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.MultiTimeframeDataIntegrationService>();
+        
+        Console.WriteLine("✅ [MULTI-TIMEFRAME] Multi-timeframe trading system services registered - 5m + 1m + tick analysis ready");
+        
         // Register pattern recognition and strategy DSL services - production ready pattern analysis and strategy reasoning
         services.AddPatternAndStrategyServices(configuration);
         
