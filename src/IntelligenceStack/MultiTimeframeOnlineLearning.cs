@@ -12,6 +12,19 @@ namespace TradingBot.IntelligenceStack;
 /// Multi-timeframe extension for OnlineLearningSystem.
 /// Tracks which timeframe signals contributed most to winning trades.
 /// 
+/// MODE DISTINCTION (CRITICAL):
+/// - SUNDAY LAB MODE: Heavy neural network training happens via Python scripts
+///   → MultiTimeframeDataLoader loads historical 5m + 1m + tick data
+///   → Full gradient descent training on synchronized data
+///   → Models learn cross-timeframe patterns via backpropagation
+///   → Outputs frozen ONNX models
+/// 
+/// - TERMINAL MODE: Lightweight online calibration (THIS CLASS)
+///   → Tracks which timeframe contributed to winning/losing trades
+///   → Updates calibration tables (NOT model weights)
+///   → Provides insights for next Sunday's training
+///   → NO gradient descent, NO backpropagation, NO weight updates
+/// 
 /// Phase 7: Online Learning Updates (Week 8)
 /// - Record multi-timeframe state when trades enter
 /// - Track which timeframe signals contributed most
@@ -22,6 +35,7 @@ namespace TradingBot.IntelligenceStack;
 /// - Non-invasive: Extension pattern doesn't modify existing OnlineLearningSystem
 /// - Production-ready: Thread-safe tracking and persistence
 /// - Analytical: Provides insights into timeframe contribution
+/// - Lightweight: NO model retraining, only statistical tracking
 /// </summary>
 public class MultiTimeframeOnlineLearning
 {

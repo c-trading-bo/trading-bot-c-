@@ -11,6 +11,19 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Integrates live TopstepX bar/tick data with multi-timeframe services.
 /// Subscribes to TopstepX adapter and feeds data to BarAggregationService and TickBufferService.
+/// 
+/// MODE DISTINCTION (CRITICAL):
+/// - SUNDAY LAB MODE: This service is DISABLED (LAB_MODE=1 detected)
+///   → MultiTimeframeDataLoader used for heavy neural network training
+///   → Full gradient descent on 90 days of synchronized 5m + 1m + tick data
+///   → Trains multi-branch models, applies overfitting prevention
+///   → Outputs frozen ONNX models for Terminal Mode
+/// 
+/// - TERMINAL MODE (Mon-Sat): This service is ENABLED
+///   → Subscribes to live TopstepX feed
+///   → Feeds real-time data to BarAggregationService and TickBufferService
+///   → Uses already-trained ONNX models for inference (NOT training)
+///   → Lightweight online calibration via MultiTimeframeOnlineLearning (NOT full retraining)
 /// </summary>
 internal sealed class MultiTimeframeDataIntegrationService : IHostedService
 {
@@ -33,19 +46,23 @@ internal sealed class MultiTimeframeDataIntegrationService : IHostedService
     
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Check if in Lab Mode (don't subscribe to live feed during training)
+        // Check if in Lab Mode (SUNDAY LAB MODE - don't subscribe to live feed during heavy training)
+        // In Sunday Lab Mode, MultiTimeframeDataLoader is used instead for historical data training
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
         if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
         {
-            _logger.LogInformation("[MTF-INTEGRATION] LAB_MODE detected - skipping live data feed integration");
+            _logger.LogInformation(
+                "[MTF-INTEGRATION] SUNDAY LAB MODE detected - skipping live data feed integration. " +
+                "MultiTimeframeDataLoader will be used for historical training instead.");
             return Task.CompletedTask;
         }
         
-        // Subscribe to bar events from TopstepX adapter
+        // Subscribe to bar events from TopstepX adapter (TERMINAL MODE ONLY)
         _topstepXAdapter.SubscribeToBarEvents(OnBarEventReceived);
         
         _logger.LogInformation(
-            "[MTF-INTEGRATION] Multi-timeframe data integration started - feeding live bars to aggregation services");
+            "[MTF-INTEGRATION] TERMINAL MODE - Multi-timeframe data integration started. " +
+            "Feeding live bars to aggregation services for real-time inference.");
         
         return Task.CompletedTask;
     }

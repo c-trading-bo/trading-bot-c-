@@ -1692,6 +1692,56 @@ Please check the configuration and ensure all required services are registered.
         // ================================================================================
         // This section registers all multi-timeframe trading infrastructure for 5m + 1m + tick analysis.
         // 
+        // MODE DISTINCTION (CRITICAL):
+        // 
+        // ┌─────────────────────────────────────────────────────────────────────────────┐
+        // │ SUNDAY LAB MODE (LAB_MODE=1) - Heavy Neural Network Training               │
+        // ├─────────────────────────────────────────────────────────────────────────────┤
+        // │ What happens:                                                               │
+        // │ • MultiTimeframeDataLoader loads 90 days of 5m + 1m + tick data            │
+        // │ • Python training scripts extract synchronized features                     │
+        // │ • Full gradient descent training on multi-branch models                     │
+        // │   - CVaR-PPO learns from 5m + 1m together                                  │
+        // │   - SAC learns from 5m + 1m together                                       │
+        // │   - LSTM learns from 5m + 1m together                                      │
+        // │   - Execution model learns from tick data                                  │
+        // │ • Apply overfitting prevention (early stopping, multi-seed, test holdout)  │
+        // │ • Promote models that beat champion                                        │
+        // │ • Output: Frozen ONNX models ready for Terminal Mode                       │
+        // │                                                                             │
+        // │ Services used:                                                              │
+        // │ ✅ MultiTimeframeDataLoader - Loads historical data for training           │
+        // │ ✅ MultiTimeframeFeatureExtractor - Computes features for training         │
+        // │ ❌ MultiTimeframeDataIntegrationService - DISABLED (no live feed)          │
+        // │ ❌ BarAggregationService - Not used (historical data already aggregated)   │
+        // │ ❌ LiveMultiTimeframeFeatureComputer - Not used (offline training)         │
+        // └─────────────────────────────────────────────────────────────────────────────┘
+        // 
+        // ┌─────────────────────────────────────────────────────────────────────────────┐
+        // │ TERMINAL MODE (Mon-Sat) - Live Inference with Lightweight Calibration      │
+        // ├─────────────────────────────────────────────────────────────────────────────┤
+        // │ What happens:                                                               │
+        // │ • Uses frozen ONNX models trained last Sunday                              │
+        // │ • Collects real-time 5m bars, 1m bars, tick data as market trades         │
+        // │ • Computes features using EXACT same code as training                      │
+        // │ • Runs inference (NOT training) - forward pass only                        │
+        // │ • Lightweight online calibration (NO weight updates)                       │
+        // │   - Tracks which timeframe contributed to winning trades                   │
+        // │   - Updates calibration statistics                                         │
+        // │   - Saves insights for next Sunday's training                              │
+        // │ • Collects experiences for next Sunday's training                          │
+        // │                                                                             │
+        // │ Services used:                                                              │
+        // │ ✅ MultiTimeframeDataIntegrationService - Subscribes to TopstepX feed      │
+        // │ ✅ BarAggregationService - Builds real-time 1m and 5m bars                 │
+        // │ ✅ TickBufferService - Maintains 10-second tick window                     │
+        // │ ✅ LiveMultiTimeframeFeatureComputer - Computes features in real-time      │
+        // │ ✅ MultiTimeframeBrainAdapter - Provides features to UnifiedTradingBrain   │
+        // │ ✅ ExecutionApprovalService - Validates executions with tick data          │
+        // │ ✅ MultiTimeframeOnlineLearning - Lightweight calibration tracking         │
+        // │ ❌ MultiTimeframeDataLoader - Not used (live trading, not training)        │
+        // └─────────────────────────────────────────────────────────────────────────────┘
+        // 
         // ARCHITECTURE:
         // 1. Data Collection (Python): fetch-and-save-historical-data.py runs daily (6 AM cron)
         //    - Fetches 5m bars → data/historical/ES_90days.json, NQ_90days.json
