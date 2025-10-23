@@ -3242,12 +3242,15 @@ Reason closed: {reason}
                     
                     if (mtfFeatures != null && mtfFeatures.Count > 0)
                     {
+                        // Add multi-timeframe features to context
+                        foreach (var kvp in mtfFeatures)
+                        {
+                            context.Features[kvp.Key] = kvp.Value;
+                        }
+                        
                         _logger.LogDebug(
                             "[MULTI-TIMEFRAME] Enhanced context for {Symbol} with {Count} timeframe features",
                             symbol, mtfFeatures.Count);
-                        
-                        // Store multi-timeframe data in context (will be available for decision-making)
-                        // The adapter handles coordination between timeframes
                     }
                 }
                 catch (Exception ex)

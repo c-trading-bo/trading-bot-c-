@@ -1352,6 +1352,10 @@ internal sealed class HistoricalTrainingOrchestrator
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
         await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
         
+        // 8. SAC Trainer (Soft Actor-Critic) (15 min) - HEAVY PHASE Model 8/8 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 8/8: SAC (Soft Actor-Critic)");
+        await TrainSACAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+        
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
@@ -2071,6 +2075,69 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogError(ex, "[LAB] ERROR: Model Ensemble - {Error}", ex.Message);
             result.FailedComponents.Add("Model-Ensemble");
             _debugLogger.LogAfterComponent("Model-Ensemble", false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainSACAsync(
+        TrainingSessionResult result,
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 8/8: SAC (Soft Actor-Critic)");
+            _logger.LogInformation("[LAB] Using multi-seed training with overfitting prevention");
+            
+            _memoryLeakDetector.RecordBeforeComponent("SAC");
+            _debugLogger.LogBeforeComponent("SAC", PhaseMain, 8, 8);
+            
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow
+            }).ToList();
+            
+            // Multi-seed training
+            var seeds = _multiSeedCoordinator.GetTrainingSeeds();
+            var seedResults = new List<Training.SeedTrainingResult>();
+            
+            foreach (var seed in seeds)
+            {
+                _earlyStoppingTracker.Reset();
+                var trainingResult = await _sacTrainer.TrainFromHistoricalBarsAsync(
+                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                
+                if (trainingResult.Success)
+                {
+                    seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
+                        seed, 1.0, 1.0, $"sac_seed_{seed}.onnx"));
+                }
+            }
+            
+            stopwatch.Stop();
+            
+            var decision = _multiSeedCoordinator.MakePromotionDecision(
+                "SAC", seedResults, 0.0);
+            
+            if (!decision.Approved)
+            {
+                result.FailedComponents.Add($"SAC - {decision.Reason}");
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("SAC", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("SAC", decision.Approved, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] ✅ SAC (Soft Actor-Critic) complete in {Duration:F0} min - Multi-seed: {Success}/{Total}", 
+                stopwatch.Elapsed.TotalMinutes, decision.SuccessfulSeedCount, decision.TotalSeedCount);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: SAC (Soft Actor-Critic) - {Error}", ex.Message);
+            result.FailedComponents.Add("SAC");
+            _debugLogger.LogAfterComponent("SAC", false, stopwatch.Elapsed);
         }
     }
     
