@@ -1,0 +1,31 @@
+{
+  "runId": "edc56d8b",
+  "startTimestamp": "2025-10-23T00:16:22.9753118Z",
+  "completionTimestamp": "2025-10-23T00:18:20.4917444Z",
+  "durationMinutes": 1.95860721,
+  "gitCommitHash": null,
+  "dataDateRange": {
+    "startDate": "2025-07-25T00:18:20.4934112Z",
+    "endDate": "2025-10-23T00:18:20.4934327Z",
+    "tradingDays": 90
+  },
+  "trainingParameters": {
+    "CVaRPPO_Enabled": true,
+    "NeuralUCB_Enabled": true
+  },
+  "models": [],
+  "metrics": {
+    "validationLoss": null,
+    "sharpeRatio": null,
+    "averageReward": null,
+    "winRatePercent": null,
+    "additionalMetrics": {}
+  },
+  "dataIntegrity": {
+    "totalBars": 0,
+    "totalExperiences": 0,
+    "dataHash": null,
+    "missingDays": [],
+    "completenessPercent": 100
+  }
+}
