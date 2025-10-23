@@ -1,0 +1,15 @@
+{
+  "symbol": "ES",
+  "bars_5m": [
+    {"timestamp": "2024-01-01T09:30:00Z", "open": 4700.0, "high": 4710.0, "low": 4695.0, "close": 4705.0, "volume": 1000},
+    {"timestamp": "2024-01-01T09:35:00Z", "open": 4705.0, "high": 4715.0, "low": 4700.0, "close": 4710.0, "volume": 1100}
+  ],
+  "bars_1m": [
+    {"timestamp": "2024-01-01T09:30:00Z", "open": 4700.0, "high": 4702.0, "low": 4698.0, "close": 4701.0, "volume": 200},
+    {"timestamp": "2024-01-01T09:31:00Z", "open": 4701.0, "high": 4703.0, "low": 4699.0, "close": 4702.0, "volume": 210}
+  ],
+  "ticks": [
+    {"timestamp": "2024-01-01T09:30:00.000Z", "price": 4700.0, "size": 1, "bid": 4699.75, "ask": 4700.25, "spread": 0.5},
+    {"timestamp": "2024-01-01T09:30:01.000Z", "price": 4700.5, "size": 2, "bid": 4700.0, "ask": 4700.5, "spread": 0.5}
+  ]
+}
