@@ -1782,6 +1782,7 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.ML.MultiTimeframeDataLoader>();
         services.AddSingleton<global::BotCore.ML.MultiTimeframeDataAssembler>();
         services.AddSingleton<global::BotCore.ML.MultiTimeframeBatchCreator>();
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeTrainingPipeline>();
         
         // Register live bar aggregation and tick buffer services
         services.AddSingleton<global::BotCore.Services.BarAggregationService>();
