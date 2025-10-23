@@ -424,6 +424,14 @@ public class ExperienceData
 {
     public required decimal Reward { get; init; }
     public required DateTime Timestamp { get; init; }
+    
+    // OCO Bracket Order Information (for Lab Mode training)
+    public bool UsedOcoBracket { get; init; }  // Whether OCO bracket was used
+    public double? TakeProfitDistance { get; init; }  // TP distance in ATR multiples
+    public double? StopLossDistance { get; init; }    // SL distance in ATR multiples  
+    public double? RewardRiskRatio { get; init; }     // TP/SL ratio
+    public bool? HitTakeProfit { get; init; }         // Whether TP was hit
+    public bool? HitStopLoss { get; init; }           // Whether SL was hit
 }
 
 /// <summary>

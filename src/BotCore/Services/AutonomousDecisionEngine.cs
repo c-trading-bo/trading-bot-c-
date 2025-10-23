@@ -1116,7 +1116,15 @@ public class AutonomousDecisionEngine : BackgroundService
                 Done = true, // Position is closed
                 LogProbability = 0, // Will be recalculated during training
                 ValueEstimate = 0,  // Will be calculated by value network
-                Return = 0          // Will be calculated during advantage estimation
+                Return = 0,         // Will be calculated during advantage estimation
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true, // Bot uses OCO brackets for all orders
+                TakeProfitDistance = tradeOutcome.TakeProfitAtr ?? 2.0, // Default 2.0 ATR
+                StopLossDistance = tradeOutcome.StopLossAtr ?? 1.0,     // Default 1.0 ATR
+                RewardRiskRatio = (tradeOutcome.TakeProfitAtr ?? 2.0) / (tradeOutcome.StopLossAtr ?? 1.0),
+                HitTakeProfit = tradeOutcome.PnL > 0,  // Positive PnL = TP hit
+                HitStopLoss = tradeOutcome.PnL < 0      // Negative PnL = SL hit
             };
 
             // Add experience to CVaR-PPO buffer
@@ -2165,6 +2173,10 @@ public class AutonomousTradeOutcome
     public bool IsWin => PnL > 0;
     public decimal RMultiple { get; set; }
     public TimeSpan Duration => ExitTime.HasValue ? ExitTime.Value - EntryTime : TimeSpan.Zero;
+    
+    // OCO Bracket Order Information
+    public double? TakeProfitAtr { get; set; }  // Take-profit distance in ATR multiples
+    public double? StopLossAtr { get; set; }    // Stop-loss distance in ATR multiples
 }
 
 /// <summary>

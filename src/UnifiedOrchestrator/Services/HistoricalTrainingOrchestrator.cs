@@ -56,6 +56,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.RLAgent.RegimeDetectorTrainer _regimeDetectorTrainer;
     private readonly TradingBot.RLAgent.SlippageLatencyTrainer _slippageLatencyTrainer;
     private readonly TradingBot.RLAgent.ModelEnsembleTrainer _modelEnsembleTrainer;
+    private readonly TradingBot.RLAgent.SACTrainer _sacTrainer;
     private readonly TrainingManifestService _manifestService;
     private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingMetricsCollector _metricsCollector;
@@ -97,6 +98,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.RLAgent.RegimeDetectorTrainer regimeDetectorTrainer,
         TradingBot.RLAgent.SlippageLatencyTrainer slippageLatencyTrainer,
         TradingBot.RLAgent.ModelEnsembleTrainer modelEnsembleTrainer,
+        TradingBot.RLAgent.SACTrainer sacTrainer,
         TrainingManifestService manifestService,
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
@@ -132,6 +134,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _regimeDetectorTrainer = regimeDetectorTrainer;
         _slippageLatencyTrainer = slippageLatencyTrainer;
         _modelEnsembleTrainer = modelEnsembleTrainer;
+        _sacTrainer = sacTrainer;
         _manifestService = manifestService;
         _dataIntegrityService = dataIntegrityService;
         _metricsCollector = metricsCollector;
@@ -1349,6 +1352,10 @@ internal sealed class HistoricalTrainingOrchestrator
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
         await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
         
+        // 8. SAC Trainer (Soft Actor-Critic) (15 min) - HEAVY PHASE Model 8/8 - uses real trainer
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 8/8: SAC (Soft Actor-Critic)");
+        await TrainSACAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+        
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
@@ -1723,7 +1730,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training with overfitting prevention
@@ -1838,7 +1853,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -1902,7 +1925,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -1964,7 +1995,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -2026,7 +2065,15 @@ internal sealed class HistoricalTrainingOrchestrator
             var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
             {
                 Reward = e.Reward,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
             }).ToList();
             
             // Multi-seed training
@@ -2068,6 +2115,77 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogError(ex, "[LAB] ERROR: Model Ensemble - {Error}", ex.Message);
             result.FailedComponents.Add("Model-Ensemble");
             _debugLogger.LogAfterComponent("Model-Ensemble", false, stopwatch.Elapsed);
+        }
+    }
+
+    private async Task TrainSACAsync(
+        TrainingSessionResult result,
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 8/8: SAC (Soft Actor-Critic)");
+            _logger.LogInformation("[LAB] Using multi-seed training with overfitting prevention");
+            
+            _memoryLeakDetector.RecordBeforeComponent("SAC");
+            _debugLogger.LogBeforeComponent("SAC", PhaseMain, 8, 8);
+            
+            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
+            {
+                Reward = e.Reward,
+                Timestamp = DateTime.UtcNow,
+                
+                // OCO Bracket Information (for Lab Mode training)
+                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
+                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
+                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
+                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
+                HitTakeProfit = e.Reward > 0,
+                HitStopLoss = e.Reward < 0
+            }).ToList();
+            
+            // Multi-seed training
+            var seeds = _multiSeedCoordinator.GetTrainingSeeds();
+            var seedResults = new List<Training.SeedTrainingResult>();
+            
+            foreach (var seed in seeds)
+            {
+                _earlyStoppingTracker.Reset();
+                var trainingResult = await _sacTrainer.TrainFromHistoricalBarsAsync(
+                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                
+                if (trainingResult.Success)
+                {
+                    seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
+                        seed, 1.0, 1.0, $"sac_seed_{seed}.onnx"));
+                }
+            }
+            
+            stopwatch.Stop();
+            
+            var decision = _multiSeedCoordinator.MakePromotionDecision(
+                "SAC", seedResults, 0.0);
+            
+            if (!decision.Approved)
+            {
+                result.FailedComponents.Add($"SAC - {decision.Reason}");
+            }
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync("SAC", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("SAC", decision.Approved, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] ✅ SAC (Soft Actor-Critic) complete in {Duration:F0} min - Multi-seed: {Success}/{Total}", 
+                stopwatch.Elapsed.TotalMinutes, decision.SuccessfulSeedCount, decision.TotalSeedCount);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: SAC (Soft Actor-Critic) - {Error}", ex.Message);
+            result.FailedComponents.Add("SAC");
+            _debugLogger.LogAfterComponent("SAC", false, stopwatch.Elapsed);
         }
     }
     

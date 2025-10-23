@@ -778,6 +778,15 @@ public class Experience
     public double ValueEstimate { get; set; }
     public double Return { get; set; } // Calculated during advantage estimation
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    
+    // OCO Bracket Order Information (for Lab Mode training)
+    // Bot uses OCO brackets for all orders, so RL models learn proper bracket management
+    public bool UsedOcoBracket { get; set; } // Whether OCO bracket was used
+    public double? TakeProfitDistance { get; set; } // TP distance in ATR multiples
+    public double? StopLossDistance { get; set; } // SL distance in ATR multiples
+    public double? RewardRiskRatio { get; set; } // TP/SL ratio
+    public bool? HitTakeProfit { get; set; } // Whether TP was hit (vs SL)
+    public bool? HitStopLoss { get; set; } // Whether SL was hit
 }
 
 /// <summary>
