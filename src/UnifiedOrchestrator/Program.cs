@@ -1687,6 +1687,63 @@ Please check the configuration and ensure all required services are registered.
         
         Console.WriteLine("✅ [BAR-INFRASTRUCTURE] BarPyramid and BarDispatcherHook registered - bar aggregation and dispatching ready");
         
+        // ================================================================================
+        // MULTI-TIMEFRAME TRADING SYSTEM SERVICES
+        // ================================================================================
+        // This section registers all multi-timeframe trading infrastructure for 5m + 1m + tick analysis.
+        // 
+        // ARCHITECTURE:
+        // 1. Data Collection (Python): fetch-and-save-historical-data.py runs daily (6 AM cron)
+        //    - Fetches 5m bars → data/historical/ES_90days.json, NQ_90days.json
+        //    - Fetches 1m bars → data/historical/ES_1m_90days.json, NQ_1m_90days.json
+        //    - Validates alignment with validate-multitimeframe-alignment.py
+        // 
+        // 2. Training (Sunday Lab Mode):
+        //    - MultiTimeframeDataLoader: Loads and synchronizes 5m + 1m historical data
+        //    - MultiTimeframeFeatureExtractor: Computes technical indicators for both timeframes
+        //    - Python training scripts use C# loaders to train multi-input models
+        //    - Outputs ONNX models ready for live deployment
+        // 
+        // 3. Live Trading (Terminal Mode):
+        //    - BarAggregationService: Builds real-time 1m and 5m bars from tick/trade data
+        //    - TickBufferService: Maintains 10-second tick window for microstructure analysis
+        //    - LiveMultiTimeframeFeatureComputer: Computes features when bars complete
+        //    - ExecutionApprovalService: Validates executions using tick-level features
+        //    - MultiTimeframeBrainAdapter: Provides synchronized features to UnifiedTradingBrain
+        //    - MultiTimeframeOnlineLearning: Tracks which timeframe contributed most to trades
+        //    - MultiTimeframeDataIntegrationService: Subscribes to TopstepX feed and distributes data
+        // 
+        // 4. Automatic Cycle:
+        //    - Daily (6 AM): Cron collects 5m + 1m bars
+        //    - Mon-Sat (Terminal Mode): Live trading with multi-timeframe models
+        //    - Sunday (Lab Mode): Automatic retraining with new week's data
+        //    - Zero manual intervention after initial setup
+        // 
+        // Register multi-timeframe feature extraction and data loading
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeFeatureExtractor>();
+        services.AddSingleton<global::BotCore.ML.MultiTimeframeDataLoader>();
+        
+        // Register live bar aggregation and tick buffer services
+        services.AddSingleton<global::BotCore.Services.BarAggregationService>();
+        services.AddSingleton<global::BotCore.Services.TickBufferService>();
+        
+        // Register live multi-timeframe feature computation
+        services.AddSingleton<global::BotCore.Services.LiveMultiTimeframeFeatureComputer>();
+        
+        // Register execution approval service
+        services.AddSingleton<global::BotCore.Services.ExecutionApprovalService>();
+        
+        // Register multi-timeframe brain adapter for UnifiedTradingBrain integration
+        services.AddSingleton<global::BotCore.Brain.MultiTimeframeBrainAdapter>();
+        
+        // Register multi-timeframe online learning
+        services.AddSingleton<TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning>();
+        
+        // Register multi-timeframe data integration hosted service (feeds live data to multi-timeframe services)
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.MultiTimeframeDataIntegrationService>();
+        
+        Console.WriteLine("✅ [MULTI-TIMEFRAME] Multi-timeframe trading system services registered - 5m + 1m + tick analysis ready");
+        
         // Register pattern recognition and strategy DSL services - production ready pattern analysis and strategy reasoning
         services.AddPatternAndStrategyServices(configuration);
         
