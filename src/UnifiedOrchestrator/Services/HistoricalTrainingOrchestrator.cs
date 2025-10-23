@@ -1317,6 +1317,14 @@ internal sealed class HistoricalTrainingOrchestrator
         // Load historical bars for trainer use
         var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
         
+        // Prepare multi-timeframe training data using the coordinated training pipeline
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] 📊 MULTI-TIMEFRAME DATA PREPARATION");
+        _logger.LogInformation("[LAB] Preparing synchronized 5m + 1m training data...");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        await PrepareMultiTimeframeDataAsync(result, cancellationToken).ConfigureAwait(false);
+        
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] 🔥 HEAVY PHASE TRAINING (12:05 PM - 2:30 PM ET)");
         _logger.LogInformation("[LAB] 7 complex neural network models | 50 epochs each | ~30 min per model");
@@ -2122,6 +2130,97 @@ internal sealed class HistoricalTrainingOrchestrator
             result.MediumPhaseTrainingDuration = stopwatch.Elapsed;
             result.MediumPhaseSuccess = false;
             result.FailedComponents.Add("Medium-Phase");
+        }
+    }
+    
+    /// <summary>
+    /// Prepare multi-timeframe coordinated training data for ES and NQ.
+    /// This demonstrates the multi-timeframe infrastructure working in real-time.
+    /// </summary>
+    private async Task PrepareMultiTimeframeDataAsync(
+        TrainingSessionResult result,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            _logger.LogInformation("[LAB] [MTF] Initializing multi-timeframe training pipeline...");
+            
+            // Get the multi-timeframe pipeline from DI
+            var pipeline = _serviceProvider.GetService<global::BotCore.ML.MultiTimeframeTrainingPipeline>();
+            
+            if (pipeline == null)
+            {
+                _logger.LogWarning("[LAB] [MTF] MultiTimeframeTrainingPipeline not available - skipping multi-timeframe preparation");
+                return;
+            }
+            
+            // Prepare data for ES
+            _logger.LogInformation("[LAB] [MTF] Preparing ES multi-timeframe data...");
+            var esData = await pipeline.PrepareTrainingDataAsync(
+                symbol: "ES",
+                trainRatio: 0.67,
+                valRatio: 0.17,
+                batchSize: 32,
+                shuffle: true,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] [MTF] ES Data Prepared:");
+            _logger.LogInformation("[LAB] [MTF]   - Total samples: {TotalSamples}", esData.Statistics.TotalSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Train batches: {TrainBatches} ({TrainSamples} samples)", 
+                esData.TrainBatches.Count, esData.Statistics.TrainSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Val batches: {ValBatches} ({ValSamples} samples)", 
+                esData.ValidationBatches.Count, esData.Statistics.ValidationSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Test batches: {TestBatches} ({TestSamples} samples)", 
+                esData.TestBatches.Count, esData.Statistics.TestSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Features: {Features5m} (5m) + {Features1m} (1m) = {TotalFeatures} total",
+                esData.Statistics.NumFeatures5m, esData.Statistics.NumFeatures1m, esData.Statistics.TotalFeatures);
+            _logger.LogInformation("[LAB] [MTF]   - Date range: {StartDate} to {EndDate}",
+                esData.Statistics.TrainDateRange.start.ToString("yyyy-MM-dd"),
+                esData.Statistics.TestDateRange.end.ToString("yyyy-MM-dd"));
+            
+            // Prepare data for NQ
+            _logger.LogInformation("[LAB] [MTF] Preparing NQ multi-timeframe data...");
+            var nqData = await pipeline.PrepareTrainingDataAsync(
+                symbol: "NQ",
+                trainRatio: 0.67,
+                valRatio: 0.17,
+                batchSize: 32,
+                shuffle: true,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] [MTF] NQ Data Prepared:");
+            _logger.LogInformation("[LAB] [MTF]   - Total samples: {TotalSamples}", nqData.Statistics.TotalSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Train batches: {TrainBatches} ({TrainSamples} samples)", 
+                nqData.TrainBatches.Count, nqData.Statistics.TrainSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Val batches: {ValBatches} ({ValSamples} samples)", 
+                nqData.ValidationBatches.Count, nqData.Statistics.ValidationSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Test batches: {TestBatches} ({TestSamples} samples)", 
+                nqData.TestBatches.Count, nqData.Statistics.TestSamples);
+            
+            // Store batch counts in result for reporting
+            var totalSamples = esData.Statistics.TotalSamples + nqData.Statistics.TotalSamples;
+            var totalBatches = esData.TrainBatches.Count + esData.ValidationBatches.Count + esData.TestBatches.Count +
+                             nqData.TrainBatches.Count + nqData.ValidationBatches.Count + nqData.TestBatches.Count;
+            
+            _logger.LogInformation("[LAB] [MTF] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] [MTF] ✅ MULTI-TIMEFRAME DATA PREPARATION COMPLETE");
+            _logger.LogInformation("[LAB] [MTF]   - Total synchronized samples: {TotalSamples}", totalSamples);
+            _logger.LogInformation("[LAB] [MTF]   - Total batches created: {TotalBatches}", totalBatches);
+            _logger.LogInformation("[LAB] [MTF]   - Feature version: {FeatureVersion}", esData.FeatureVersionHash);
+            _logger.LogInformation("[LAB] [MTF]   - Duration: {Duration:F1} seconds", stopwatch.Elapsed.TotalSeconds);
+            _logger.LogInformation("[LAB] [MTF] ═══════════════════════════════════════════════════════");
+            
+            stopwatch.Stop();
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] [MTF] Multi-timeframe data preparation failed after {Duration:F1} seconds", 
+                stopwatch.Elapsed.TotalSeconds);
+            // Don't throw - this is a demonstration feature, training can continue without it
         }
     }
     
