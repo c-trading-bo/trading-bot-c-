@@ -776,49 +776,87 @@ internal sealed class HistoricalTrainingOrchestrator
     {
         // Lab Mode uses Python script to fetch historical data, NOT live API connections
         // This ensures Lab Mode is completely segregated from live trading infrastructure
+        // 
+        // MULTI-TIMEFRAME SUPPORT (Sunday Lab + Anyday Lab):
+        // Loads BOTH 5-minute and 1-minute historical data for multi-timeframe learning.
+        // - 5m data: ES_90days.json, NQ_90days.json (strategic timeframe)
+        // - 1m data: ES_1m_90days.json, NQ_1m_90days.json (tactical timeframe)
         var data = new Dictionary<string, int>();
         var symbols = new[] { "ES", "NQ" };
 
         // Step 1: Invoke Python script to fetch and save historical data if needed
+        // This script fetches BOTH 5m and 1m data automatically
         await InvokePythonHistoricalDataFetchAsync(cancellationToken).ConfigureAwait(false);
 
-        // Step 2: Load the historical data from saved JSON files
+        // Step 2: Load the historical data from saved JSON files (5m + 1m for multi-timeframe)
         foreach (var symbol in symbols)
         {
             try
             {
-                // Fixed: Use correct filename format - ES_90days.json and NQ_90days.json
-                var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                // Load 5-minute bars (strategic timeframe)
+                var dataFile5m = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                var dataFile1m = Path.Combine("data", "historical", $"{symbol}_1m_90days.json");
                 
-                if (!File.Exists(dataFile))
+                if (!File.Exists(dataFile5m))
                 {
-                    _logger.LogWarning("[LAB] Historical data file not found: {File}", dataFile);
+                    _logger.LogWarning("[LAB] Historical 5m data file not found: {File}", dataFile5m);
                     data[symbol] = 0;
                     continue;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                // Load 5m bars
+                var jsonContent5m = await File.ReadAllTextAsync(dataFile5m, cancellationToken).ConfigureAwait(false);
+                using var jsonDoc5m = JsonDocument.Parse(jsonContent5m);
+                var barCount5m = 0;
                 
-                // Parse JSON structure: { "bars": [ {...}, {...}, ... ] }
-                using var jsonDoc = JsonDocument.Parse(jsonContent);
-                var barCount = 0;
-                
-                if (jsonDoc.RootElement.TryGetProperty("bars", out var barsElement) && 
-                    barsElement.ValueKind == JsonValueKind.Array)
+                if (jsonDoc5m.RootElement.TryGetProperty("bars", out var barsElement5m) && 
+                    barsElement5m.ValueKind == JsonValueKind.Array)
                 {
-                    barCount = barsElement.GetArrayLength();
+                    barCount5m = barsElement5m.GetArrayLength();
                 }
                 
-                data[symbol] = barCount;
-                _logger.LogInformation("[LAB] Loaded {Count} bars for {Symbol} from {File}", barCount, symbol, dataFile);
+                data[symbol] = barCount5m;
+                _logger.LogInformation("[LAB] Loaded {Count} 5m bars for {Symbol} from {File}", barCount5m, symbol, dataFile5m);
+
+                // Load 1-minute bars (tactical timeframe) - NEW for multi-timeframe learning
+                if (File.Exists(dataFile1m))
+                {
+                    var jsonContent1m = await File.ReadAllTextAsync(dataFile1m, cancellationToken).ConfigureAwait(false);
+                    using var jsonDoc1m = JsonDocument.Parse(jsonContent1m);
+                    var barCount1m = 0;
+                    
+                    if (jsonDoc1m.RootElement.TryGetProperty("bars", out var barsElement1m) && 
+                        barsElement1m.ValueKind == JsonValueKind.Array)
+                    {
+                        barCount1m = barsElement1m.GetArrayLength();
+                    }
+                    
+                    // Store 1m bar count with special key for tracking
+                    data[$"{symbol}_1m"] = barCount1m;
+                    _logger.LogInformation("[LAB] ✅ Multi-timeframe: Loaded {Count} 1m bars for {Symbol} from {File}", 
+                        barCount1m, symbol, dataFile1m);
+                }
+                else
+                {
+                    _logger.LogWarning("[LAB] ⚠️ Multi-timeframe: 1m data file not found: {File}. Training will proceed with 5m data only.", dataFile1m);
+                    data[$"{symbol}_1m"] = 0;
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[LAB] ERROR: Failed to load historical data - {Symbol}: {Error}", 
                     symbol, ex.Message);
                 data[symbol] = 0;
+                data[$"{symbol}_1m"] = 0;
             }
         }
+
+        // Log multi-timeframe summary
+        var total5m = symbols.Sum(s => data.ContainsKey(s) ? data[s] : 0);
+        var total1m = symbols.Sum(s => data.ContainsKey($"{s}_1m") ? data[$"{s}_1m"] : 0);
+        _logger.LogInformation(
+            "[LAB] 📊 MULTI-TIMEFRAME DATA LOADED - Total: {Count5m} 5m bars + {Count1m} 1m bars (works in Sunday Lab + Anyday Lab)",
+            total5m, total1m);
 
         return data;
     }

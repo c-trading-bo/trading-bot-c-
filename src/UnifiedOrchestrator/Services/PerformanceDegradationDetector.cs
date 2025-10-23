@@ -17,6 +17,14 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// - 5+ consecutive losing trades
 /// 
 /// Automatically triggers Anyday Lab Mode when conditions met and safety checks pass.
+/// 
+/// MULTI-TIMEFRAME TRAINING:
+/// Anyday Lab Mode uses THE SAME training pipeline as Sunday Lab Mode:
+/// - Loads historical 5m + 1m bar data via HistoricalTrainingOrchestrator
+/// - Trains multi-branch models with cross-timeframe patterns
+/// - Can trigger any day of the week (not restricted to Wednesday or Sunday)
+/// - Uses whatever days of data exist (e.g., 54 days on Wednesday vs 90 days on Sunday)
+/// - Still applies overfitting prevention and multi-seed validation
 /// </summary>
 public sealed class PerformanceDegradationDetector
 {

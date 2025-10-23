@@ -1695,12 +1695,14 @@ Please check the configuration and ensure all required services are registered.
         // MODE DISTINCTION (CRITICAL):
         // 
         // ┌─────────────────────────────────────────────────────────────────────────────┐
-        // │ SUNDAY LAB MODE (LAB_MODE=1) - Heavy Neural Network Training               │
+        // │ SUNDAY LAB MODE + ANYDAY LAB MODE (LAB_MODE=1) - Heavy Neural Training     │
         // ├─────────────────────────────────────────────────────────────────────────────┤
-        // │ What happens:                                                               │
-        // │ • MultiTimeframeDataLoader loads 90 days of 5m + 1m + tick data            │
-        // │ • Python training scripts extract synchronized features                     │
-        // │ • Full gradient descent training on multi-branch models                     │
+        // │ What happens (IDENTICAL for Sunday scheduled OR Anyday emergency):          │
+        // │ • MultiTimeframeDataLoader loads available 5m + 1m + tick data             │
+        // │   - Sunday: Full 90 days of data (if available)                            │
+        // │   - Anyday: Whatever days exist (e.g., 54 days on Wednesday)               │
+        // │ • HistoricalTrainingOrchestrator orchestrates training                     │
+        // │ • Full gradient descent training on multi-branch models:                   │
         // │   - CVaR-PPO learns from 5m + 1m together                                  │
         // │   - SAC learns from 5m + 1m together                                       │
         // │   - LSTM learns from 5m + 1m together                                      │
@@ -1708,6 +1710,12 @@ Please check the configuration and ensure all required services are registered.
         // │ • Apply overfitting prevention (early stopping, multi-seed, test holdout)  │
         // │ • Promote models that beat champion                                        │
         // │ • Output: Frozen ONNX models ready for Terminal Mode                       │
+        // │                                                                             │
+        // │ Trigger conditions:                                                         │
+        // │ - Sunday Lab: Automatic schedule (12:00 PM - 5:45 PM ET every Sunday)     │
+        // │ - Anyday Lab: Triggered by PerformanceDegradationDetector any day          │
+        // │   → Sharpe < 0.5 for 3+ days, OR Drawdown > 10%, OR 5+ losing trades      │
+        // │   → Can run on Wednesday, Thursday, Friday - NOT restricted to Wednesday   │
         // │                                                                             │
         // │ Services used:                                                              │
         // │ ✅ MultiTimeframeDataLoader - Loads historical data for training           │
@@ -1718,18 +1726,18 @@ Please check the configuration and ensure all required services are registered.
         // └─────────────────────────────────────────────────────────────────────────────┘
         // 
         // ┌─────────────────────────────────────────────────────────────────────────────┐
-        // │ TERMINAL MODE (Mon-Sat) - Live Inference with Lightweight Calibration      │
+        // │ TERMINAL MODE (Mon-Sat, when not training) - Live Inference Only           │
         // ├─────────────────────────────────────────────────────────────────────────────┤
         // │ What happens:                                                               │
-        // │ • Uses frozen ONNX models trained last Sunday                              │
+        // │ • Uses frozen ONNX models trained in last Lab session (Sunday or Anyday)   │
         // │ • Collects real-time 5m bars, 1m bars, tick data as market trades         │
         // │ • Computes features using EXACT same code as training                      │
-        // │ • Runs inference (NOT training) - forward pass only                        │
-        // │ • Lightweight online calibration (NO weight updates)                       │
+        // │ • Runs inference (NOT training) - forward pass only, NO weight updates     │
+        // │ • Lightweight online calibration (NO gradient descent)                     │
         // │   - Tracks which timeframe contributed to winning trades                   │
         // │   - Updates calibration statistics                                         │
-        // │   - Saves insights for next Sunday's training                              │
-        // │ • Collects experiences for next Sunday's training                          │
+        // │   - Saves insights for next Lab training session                           │
+        // │ • Collects experiences for next Lab training session                       │
         // │                                                                             │
         // │ Services used:                                                              │
         // │ ✅ MultiTimeframeDataIntegrationService - Subscribes to TopstepX feed      │
@@ -1748,10 +1756,10 @@ Please check the configuration and ensure all required services are registered.
         //    - Fetches 1m bars → data/historical/ES_1m_90days.json, NQ_1m_90days.json
         //    - Validates alignment with validate-multitimeframe-alignment.py
         // 
-        // 2. Training (Sunday Lab Mode):
+        // 2. Training (Sunday Lab OR Anyday Lab - SAME PIPELINE):
         //    - MultiTimeframeDataLoader: Loads and synchronizes 5m + 1m historical data
         //    - MultiTimeframeFeatureExtractor: Computes technical indicators for both timeframes
-        //    - Python training scripts use C# loaders to train multi-input models
+        //    - HistoricalTrainingOrchestrator: Coordinates full training pipeline
         //    - Outputs ONNX models ready for live deployment
         // 
         // 3. Live Trading (Terminal Mode):

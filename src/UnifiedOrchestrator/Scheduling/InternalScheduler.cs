@@ -12,6 +12,14 @@ namespace TradingBot.UnifiedOrchestrator.Scheduling;
 /// Internal Training Scheduler - Production-grade scheduling system for Lab training
 /// Runs automatically on Sunday 12:00 PM - 5:45 PM America/New_York timezone
 /// Features: DST handling, lock files, health checks, watchdog, proper event-driven architecture
+/// 
+/// MULTI-TIMEFRAME TRAINING MODES:
+/// - Sunday Lab Mode (Scheduled): Automatic weekly training with full multi-timeframe data (5m + 1m bars)
+/// - Anyday Lab Mode (Emergency): Can trigger any day when PerformanceDegradationDetector detects issues
+///   → Uses SAME training pipeline as Sunday mode (HistoricalTrainingOrchestrator)
+///   → Same multi-timeframe learning (loads 5m + 1m bars identically)
+///   → Can run on Wednesday, Thursday, or any day if performance drops
+///   → Uses FORCE_LAB_NOW=1 environment variable to bypass Sunday-only schedule
 /// </summary>
 internal sealed class InternalScheduler : BackgroundService
 {

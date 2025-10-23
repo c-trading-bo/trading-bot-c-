@@ -13,16 +13,17 @@ namespace TradingBot.IntelligenceStack;
 /// Tracks which timeframe signals contributed most to winning trades.
 /// 
 /// MODE DISTINCTION (CRITICAL):
-/// - SUNDAY LAB MODE: Heavy neural network training happens via Python scripts
-///   → MultiTimeframeDataLoader loads historical 5m + 1m + tick data
-///   → Full gradient descent training on synchronized data
+/// - SUNDAY LAB MODE + ANYDAY LAB MODE: Heavy neural network training happens via C# HistoricalTrainingOrchestrator
+///   → MultiTimeframeDataLoader loads historical 5m + 1m + tick data (both modes use same code path)
+///   → Full gradient descent training on synchronized data (Sunday scheduled OR Anyday emergency)
 ///   → Models learn cross-timeframe patterns via backpropagation
-///   → Outputs frozen ONNX models
+///   → Outputs frozen ONNX models for Terminal Mode
+///   → Anyday Lab can trigger any day (e.g., Wednesday) when performance degrades
 /// 
 /// - TERMINAL MODE: Lightweight online calibration (THIS CLASS)
 ///   → Tracks which timeframe contributed to winning/losing trades
 ///   → Updates calibration tables (NOT model weights)
-///   → Provides insights for next Sunday's training
+///   → Provides insights for next lab training session
 ///   → NO gradient descent, NO backpropagation, NO weight updates
 /// 
 /// Phase 7: Online Learning Updates (Week 8)
