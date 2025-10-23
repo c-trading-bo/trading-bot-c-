@@ -277,13 +277,53 @@ public class AutonomousDecisionEngine : BackgroundService
             // Initialize autonomous systems
             await InitializeAutonomousSystemsAsync(stoppingToken).ConfigureAwait(false);
 
-            // Start main autonomous loop
+            // Start main autonomous loop with Sunday training window check
             await RunAutonomousMainLoopAsync(stoppingToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Critical error in autonomous engine");
             throw new InvalidOperationException("Critical error in autonomous decision engine", ex);
+        }
+    }
+
+    /// <summary>
+    /// Check if current time is during Sunday Lab training window (12:00 PM - 5:45 PM ET)
+    /// Owner's Manual: Terminal Mode never trades during Sunday Lab training window
+    /// </summary>
+    private bool IsSundayLabTrainingWindow()
+    {
+        try
+        {
+            var nowEt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "America/New_York");
+            
+            if (nowEt.DayOfWeek != DayOfWeek.Sunday)
+            {
+                return false;
+            }
+            
+            // Sunday Lab training window: 12:00 PM - 5:45 PM ET
+            var trainingStart = new TimeSpan(12, 0, 0);   // 12:00 PM
+            var trainingEnd = new TimeSpan(17, 45, 0);     // 5:45 PM
+            
+            var currentTime = nowEt.TimeOfDay;
+            
+            return currentTime >= trainingStart && currentTime <= trainingEnd;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            // Fallback: use UTC offset (EST is UTC-5, but this doesn't account for DST)
+            _logger.LogWarning("[AUTONOMOUS-ENGINE] Unable to find America/New_York timezone, using UTC fallback");
+            var nowUtc = DateTime.UtcNow;
+            var nowEstApprox = nowUtc.AddHours(-5); // Approximate EST without DST handling
+            
+            if (nowEstApprox.DayOfWeek != DayOfWeek.Sunday)
+            {
+                return false;
+            }
+            
+            var currentTime = nowEstApprox.TimeOfDay;
+            return currentTime >= new TimeSpan(12, 0, 0) && currentTime <= new TimeSpan(17, 45, 0);
         }
     }
 
@@ -348,6 +388,13 @@ public class AutonomousDecisionEngine : BackgroundService
 
     private async Task<bool> ShouldTradeNowAsync(CancellationToken cancellationToken)
     {
+        // Owner's Manual: Never trade during Sunday Lab training window (12:00 PM - 5:45 PM ET)
+        if (IsSundayLabTrainingWindow())
+        {
+            _logger.LogInformation("📅 [AUTONOMOUS-ENGINE] Sunday Lab training window active - Terminal Mode paused");
+            return false;
+        }
+
         // Check compliance limits first
         if (!await _complianceManager.CanTradeAsync(_todayPnL, _currentAccountBalance, cancellationToken).ConfigureAwait(false))
         {
