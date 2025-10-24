@@ -22,10 +22,15 @@ public sealed class LabModeDashboardRenderer
 
     /// <summary>
     /// Render complete Lab Mode dashboard to console
+    /// Uses ANSI escape codes to create an in-place updating dashboard
     /// </summary>
     public void RenderDashboard(LabModeDashboardState state)
     {
         var output = new StringBuilder();
+
+        // Clear screen and move cursor to top-left (ANSI escape codes)
+        output.Append("\x1b[2J");  // Clear entire screen
+        output.Append("\x1b[H");   // Move cursor to home position (0,0)
 
         // Header
         RenderHeader(output, state);
@@ -60,7 +65,9 @@ public sealed class LabModeDashboardRenderer
         // Footer
         RenderFooter(output);
 
-        _logger.LogInformation("{Dashboard}", output.ToString());
+        // Write directly to console instead of logger to avoid scrolling
+        Console.Write(output.ToString());
+        Console.Out.Flush();
     }
 
     private void RenderHeader(StringBuilder output, LabModeDashboardState state)
