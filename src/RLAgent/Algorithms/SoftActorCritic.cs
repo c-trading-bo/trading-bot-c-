@@ -21,11 +21,11 @@ public class SoftActorCritic
     private readonly SACConfig _config;
     
     // SAC uses two critic networks (double Q-learning) and one actor network
-    private SACActorNetwork _actor = null!;
-    private SACCriticNetwork _critic1 = null!;
-    private SACCriticNetwork _critic2 = null!;
-    private SACCriticNetwork _targetCritic1 = null!;
-    private SACCriticNetwork _targetCritic2 = null!;
+    internal SACActorNetwork _actor = null!;
+    internal SACCriticNetwork _critic1 = null!;
+    internal SACCriticNetwork _critic2 = null!;
+    internal SACCriticNetwork _targetCritic1 = null!;
+    internal SACCriticNetwork _targetCritic2 = null!;
     
     // Temperature parameter for entropy regularization (learnable)
     private Tensor _logAlpha = null!;
