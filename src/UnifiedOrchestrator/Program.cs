@@ -2680,28 +2680,6 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ModelEnsembleTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.ModelEnsembleTrainer>();
         
-        Console.WriteLine("   ✓ Registering SACTrainer (Soft Actor-Critic - Lab training)");
-        services.AddSingleton<TradingBot.RLAgent.SACTrainer>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<TradingBot.RLAgent.SACTrainer>>();
-            var config = new TradingBot.RLAgent.Models.SacConfig
-            {
-                StateDimension = 10,
-                ActionDimension = 3,
-                HiddenDimension = 256,
-                LearningRateActor = 3e-4,
-                LearningRateCritic = 3e-4,
-                Gamma = 0.99,
-                Alpha = 0.2,
-                BatchSize = 256,
-                BufferSize = 1000000,
-                AutoTuneAlpha = true,
-                MinBufferSize = 1000
-            };
-            var modelPath = Path.Combine("models", "sac");
-            return new TradingBot.RLAgent.SACTrainer(logger, config, modelPath);
-        });
-        
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions

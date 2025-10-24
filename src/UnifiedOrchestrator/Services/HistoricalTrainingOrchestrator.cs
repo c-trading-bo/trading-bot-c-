@@ -1352,10 +1352,6 @@ internal sealed class HistoricalTrainingOrchestrator
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
         await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
         
-        // 8. SAC Trainer (Soft Actor-Critic) (15 min) - HEAVY PHASE Model 8/8 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 8/8: SAC (Soft Actor-Critic)");
-        await TrainSACAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
-        
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
@@ -2115,78 +2111,6 @@ internal sealed class HistoricalTrainingOrchestrator
             _logger.LogError(ex, "[LAB] ERROR: Model Ensemble - {Error}", ex.Message);
             result.FailedComponents.Add("Model-Ensemble");
             _debugLogger.LogAfterComponent("Model-Ensemble", false, stopwatch.Elapsed);
-        }
-    }
-
-    private async Task TrainSACAsync(
-        TrainingSessionResult result,
-        List<TradingBot.RLAgent.HistoricalBar> historicalBars,
-        List<Experience> experiences,
-        CancellationToken cancellationToken)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 8/8: SAC (Soft Actor-Critic)");
-            _logger.LogInformation("[LAB] Using multi-seed training with overfitting prevention");
-            
-            _memoryLeakDetector.RecordBeforeComponent("SAC");
-            _debugLogger.LogBeforeComponent("SAC", PhaseMain, 8, 8);
-            
-            var experienceData = experiences.Select(e => new TradingBot.RLAgent.ExperienceData
-            {
-                Reward = e.Reward,
-                Timestamp = DateTime.UtcNow,
-                
-                // OCO Bracket Information (for Lab Mode training)
-                UsedOcoBracket = true,      // Bot uses OCO brackets for all orders
-                TakeProfitDistance = 2.0,   // Default 2.0 ATR from BracketConfigService
-                StopLossDistance = 1.0,     // Default 1.0 ATR from BracketConfigService
-                RewardRiskRatio = 2.0,      // 2.0 ATR TP / 1.0 ATR SL = 2:1
-                HitTakeProfit = e.Reward > 0,
-                HitStopLoss = e.Reward < 0
-            }).ToList();
-            
-            // Multi-seed training for Neural UCB Bandit
-            var seeds = _multiSeedCoordinator.GetTrainingSeeds();
-            var seedResults = new List<Training.SeedTrainingResult>();
-            
-            foreach (var seed in seeds)
-            {
-                _earlyStoppingTracker.Reset();
-                // Neural UCB trains on strategy selection - use RetrainNetworkAsync
-                var trainingResult = await _neuralUcbBanditTrainer.RetrainNetworkAsync(
-                    cancellationToken).ConfigureAwait(false);
-                
-                if (trainingResult.Success)
-                {
-                    seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
-                        seed, trainingResult.Loss, trainingResult.Accuracy, $"neural_ucb_seed_{seed}.onnx"));
-                }
-            }
-            
-            stopwatch.Stop();
-            
-            var decision = _multiSeedCoordinator.MakePromotionDecision(
-                "NeuralUCB", seedResults, 0.0);
-            
-            if (!decision.Approved)
-            {
-                result.FailedComponents.Add($"NeuralUCB - {decision.Reason}");
-            }
-            
-            await _memoryLeakDetector.RecordAfterComponentAsync("NeuralUCB", cancellationToken).ConfigureAwait(false);
-            _debugLogger.LogAfterComponent("NeuralUCB", decision.Approved, stopwatch.Elapsed);
-            
-            _logger.LogInformation("[LAB] ✅ Neural UCB Bandit complete in {Duration:F0} min - Multi-seed: {Success}/{Total}", 
-                stopwatch.Elapsed.TotalMinutes, decision.SuccessfulSeedCount, decision.TotalSeedCount);
-        }
-        catch (Exception ex)
-        {
-            stopwatch.Stop();
-            _logger.LogError(ex, "[LAB] ERROR: SAC (Soft Actor-Critic) - {Error}", ex.Message);
-            result.FailedComponents.Add("SAC");
-            _debugLogger.LogAfterComponent("SAC", false, stopwatch.Elapsed);
         }
     }
     
