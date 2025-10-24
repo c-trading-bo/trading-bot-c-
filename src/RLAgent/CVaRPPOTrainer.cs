@@ -2,6 +2,10 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using TorchSharp;
+using static TorchSharp.torch;
+using static TorchSharp.torch.nn;
+using static TorchSharp.torch.optim;
 
 namespace TradingBot.RLAgent;
 
@@ -22,6 +26,11 @@ public class CVaRPPOTrainer
     private PolicyNetwork _policyNetwork = null!;
     private ValueNetwork _valueNetwork = null!;
     private CVaRNetwork _cvarNetwork = null!;
+    
+    // TorchSharp optimizers for real backpropagation
+    private TorchSharp.Modules.OptimizerHelper _policyOptimizer = null!;
+    private TorchSharp.Modules.OptimizerHelper _valueOptimizer = null!;
+    private TorchSharp.Modules.OptimizerHelper _cvarOptimizer = null!;
     
     // Training state
     private int _currentEpisode;
@@ -143,6 +152,11 @@ public class CVaRPPOTrainer
         _policyNetwork = new PolicyNetwork(_config.StateSize, _config.HiddenSize, _config.ActionSize);
         _valueNetwork = new ValueNetwork(_config.StateSize, _config.HiddenSize);
         _cvarNetwork = new CVaRNetwork(_config.StateSize, _config.HiddenSize);
+        
+        // Create Adam optimizers for real backpropagation
+        _policyOptimizer = Adam(_policyNetwork.parameters(), lr: _config.LearningRate);
+        _valueOptimizer = Adam(_valueNetwork.parameters(), lr: _config.LearningRate);
+        _cvarOptimizer = Adam(_cvarNetwork.parameters(), lr: _config.LearningRate);
     }
 
     private TrainingResult CreateInitialTrainingResult(DateTime startTime)
@@ -351,60 +365,89 @@ public class CVaRPPOTrainer
     }
 
     /// <summary>
-    /// Train mini-batch with backpropagation
-    /// Core gradient descent logic - moved from CVaRPPO.cs
+    /// Train mini-batch with TorchSharp automatic differentiation and backpropagation
+    /// Real gradient computation using chain rule - replaces uniform gradient updates
     /// </summary>
     private MiniBatchLosses TrainMiniBatch(Experience[] batch, double[] advantages, double[] cvarTargets)
     {
-        var policyLoss = 0.0;
-        var valueLoss = 0.0;
-        var cvarLoss = 0.0;
-        var entropy = 0.0;
+        // Convert batch to tensors for TorchSharp
+        var states = new float[batch.Length, _config.StateSize];
+        var actions = new long[batch.Length];
+        var returns = new float[batch.Length];
+        var advantageTensors = new float[batch.Length];
+        var cvarTargetTensors = new float[batch.Length];
+        var oldLogProbs = new float[batch.Length];
         
         for (int i = 0; i < batch.Length; i++)
         {
-            var experience = batch[i];
-            var advantage = advantages[i];
-            var cvarTarget = cvarTargets[i];
-            
-            // Policy loss (PPO clipped objective)
-            var newPolicyOutput = _policyNetwork.Forward(experience.State.ToArray());
-            var newActionProbs = SoftmaxActivation(newPolicyOutput);
-            var newLogProb = Math.Log(Math.Max(newActionProbs[experience.Action], 1e-8));
-            
-            var ratio = Math.Exp(newLogProb - experience.LogProbability);
-            var clippedRatio = Math.Max(Math.Min(ratio, 1 + _config.ClipEpsilon), 1 - _config.ClipEpsilon);
-            
-            var policyObjective = Math.Min(ratio * advantage, clippedRatio * advantage);
-            policyLoss -= policyObjective; // Negative because we want to maximize
-            
-            // Entropy bonus
-            var entropyBonus = -newActionProbs.Sum(p => p * Math.Log(Math.Max(p, 1e-8)));
-            entropy += entropyBonus;
-            policyLoss -= _config.EntropyCoeff * entropyBonus;
-            
-            // Value loss
-            var newValueEstimate = _valueNetwork.Forward(experience.State.ToArray())[0];
-            var valueDelta = experience.Return - newValueEstimate;
-            valueLoss += valueDelta * valueDelta;
-            
-            // CVaR loss
-            var newCVaREstimate = _cvarNetwork.Forward(experience.State.ToArray())[0];
-            var cvarDelta = cvarTarget - newCVaREstimate;
-            cvarLoss += cvarDelta * cvarDelta;
+            var state = batch[i].State.ToArray();
+            for (int j = 0; j < _config.StateSize; j++)
+            {
+                states[i, j] = (float)state[j];
+            }
+            actions[i] = batch[i].Action;
+            returns[i] = (float)batch[i].Return;
+            advantageTensors[i] = (float)advantages[i];
+            cvarTargetTensors[i] = (float)cvarTargets[i];
+            oldLogProbs[i] = (float)batch[i].LogProbability;
         }
         
-        // Apply gradients (UpdateWeights is the backpropagation step)
-        _policyNetwork.UpdateWeights(policyLoss / batch.Length, _config.LearningRate);
-        _valueNetwork.UpdateWeights(valueLoss / batch.Length, _config.LearningRate);
-        _cvarNetwork.UpdateWeights(cvarLoss / batch.Length, _config.LearningRate);
+        using var stateTensor = tensor(states);
+        using var actionTensor = tensor(actions);
+        using var returnTensor = tensor(returns).reshape(-1, 1);
+        using var advantageTensor = tensor(advantageTensors).reshape(-1, 1);
+        using var cvarTargetTensor = tensor(cvarTargetTensors).reshape(-1, 1);
+        using var oldLogProbTensor = tensor(oldLogProbs);
+        
+        // ==== Policy Network Training ====
+        _policyOptimizer.zero_grad();
+        using var policyOutput = _policyNetwork.forward(stateTensor);
+        using var logProbs = functional.log_softmax(policyOutput, dim: 1);
+        using var newLogProbs = logProbs.gather(1, actionTensor.reshape(-1, 1)).reshape(-1);
+        
+        // PPO clipped objective
+        using var ratio = (newLogProbs - oldLogProbTensor).exp();
+        using var clippedRatio = ratio.clamp(1 - _config.ClipEpsilon, 1 + _config.ClipEpsilon);
+        using var policyObjective1 = ratio * advantageTensor.reshape(-1);
+        using var policyObjective2 = clippedRatio * advantageTensor.reshape(-1);
+        using var policyObjective = torch.min(policyObjective1, policyObjective2);
+        
+        // Entropy bonus for exploration
+        using var probs = functional.softmax(policyOutput, dim: 1);
+        using var entropy = -(probs * logProbs).sum(dim: 1);
+        using var policyLossTensor = -(policyObjective.mean() + _config.EntropyCoeff * entropy.mean());
+        
+        policyLossTensor.backward();
+        _policyOptimizer.step();
+        
+        // ==== Value Network Training ====
+        _valueOptimizer.zero_grad();
+        using var valueOutput = _valueNetwork.forward(stateTensor);
+        using var valueLossTensor = functional.mse_loss(valueOutput, returnTensor);
+        
+        valueLossTensor.backward();
+        _valueOptimizer.step();
+        
+        // ==== CVaR Network Training ====
+        _cvarOptimizer.zero_grad();
+        using var cvarOutput = _cvarNetwork.forward(stateTensor);
+        using var cvarLossTensor = functional.mse_loss(cvarOutput, cvarTargetTensor);
+        
+        cvarLossTensor.backward();
+        _cvarOptimizer.step();
+        
+        // Extract scalar loss values for logging
+        var policyLoss = policyLossTensor.ToDouble();
+        var valueLoss = valueLossTensor.ToDouble();
+        var cvarLoss = cvarLossTensor.ToDouble();
+        var entropyValue = entropy.mean().ToDouble();
         
         return new MiniBatchLosses
         {
-            PolicyLoss = policyLoss / batch.Length,
-            ValueLoss = valueLoss / batch.Length,
-            CVaRLoss = cvarLoss / batch.Length,
-            Entropy = entropy / batch.Length
+            PolicyLoss = policyLoss,
+            ValueLoss = valueLoss,
+            CVaRLoss = cvarLoss,
+            Entropy = entropyValue
         };
     }
 
