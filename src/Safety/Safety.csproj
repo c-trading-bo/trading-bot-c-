@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);CS1998</NoWarn>
+    <NoWarn>$(NoWarn);CS1998;NU5128</NoWarn>
 
     <!-- Configure this project as an analyzer -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -13,6 +13,7 @@
     <PackageVersion>1.0.0</PackageVersion>
     <Authors>TradingBot</Authors>
     <Description>Production rule enforcement analyzer for TradingBot</Description>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
 
   <ItemGroup>
