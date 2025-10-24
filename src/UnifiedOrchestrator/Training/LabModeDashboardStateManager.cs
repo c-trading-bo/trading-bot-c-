@@ -252,7 +252,7 @@ public sealed class LabModeDashboardStateManager
                 _currentState.Resources.ActiveProcesses = Process.GetProcesses().Count(p => 
                     p.ProcessName.Contains("dotnet", StringComparison.OrdinalIgnoreCase));
                 
-                // Disk I/O is harder to measure accurately, using placeholder
+                // Disk I/O tracking is platform-specific, currently using default values
                 _currentState.Resources.DiskReadMbPerSec = 0;
                 _currentState.Resources.DiskWriteMbPerSec = 0;
             }
