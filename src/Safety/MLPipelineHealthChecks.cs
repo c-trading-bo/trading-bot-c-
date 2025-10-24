@@ -51,10 +51,6 @@ public class MLPipelineHealthChecks : IHealthCheck
             var priorsHealth = CheckEnhancedPriorsHealth();
             results.Add(("Enhanced Priors", priorsHealth.IsHealthy, priorsHealth.Message));
 
-            // 5. Walk-Forward Trainer Health
-            var trainerHealth = CheckWalkForwardTrainerHealth();
-            results.Add(("Walk-Forward Trainer", trainerHealth.IsHealthy, trainerHealth.Message));
-
             // Evaluate overall health
             var healthyCount = results.Count(r => r.IsHealthy);
             var totalCount = results.Count;
@@ -187,30 +183,6 @@ public class MLPipelineHealthChecks : IHealthCheck
         catch (Exception ex)
         {
             return (false, $"Enhanced Priors check failed: {ex.Message}");
-        }
-    }
-
-    private (bool IsHealthy, string Message) CheckWalkForwardTrainerHealth()
-    {
-        try
-        {
-            // Check if Walk-Forward Trainer exists
-            var trainerAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.GetTypes().Any(t => t.Name == "WalkForwardTrainer"));
-
-            if (trainerAssembly == null)
-                return (false, "WalkForwardTrainer class not found");
-
-            // Check training data directory
-            var trainingDataPath = Path.Combine(AppContext.BaseDirectory, "training_data");
-            if (!Directory.Exists(trainingDataPath))
-                Directory.CreateDirectory(trainingDataPath); // Create if missing
-
-            return (true, "Walk-Forward Trainer operational");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Walk-Forward Trainer check failed: {ex.Message}");
         }
     }
 }

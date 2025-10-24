@@ -83,7 +83,7 @@ public class UnifiedDecisionRouter
     private readonly DecisionFusionCoordinator? _decisionFusion;
     private readonly EnhancedTradingBrainIntegration _enhancedBrain;
     private readonly UnifiedTradingBrain _unifiedBrain;
-    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator _intelligenceOrchestrator;
+    private readonly TradingBot.Abstractions.IIntelligenceOrchestrator? _intelligenceOrchestrator;
     
     // Strategy routing configuration
     // Removed _random field - using System.Security.Cryptography.RandomNumberGenerator for secure randomness
@@ -96,13 +96,26 @@ public class UnifiedDecisionRouter
         ILogger<UnifiedDecisionRouter> logger,
         IServiceProvider serviceProvider,
         UnifiedTradingBrain unifiedBrain,
-        EnhancedTradingBrainIntegration enhancedBrain,
-        TradingBot.IntelligenceStack.IntelligenceOrchestrator intelligenceOrchestrator)
+        EnhancedTradingBrainIntegration enhancedBrain)
     {
         _logger = logger;
         _unifiedBrain = unifiedBrain;
         _enhancedBrain = enhancedBrain;
-        _intelligenceOrchestrator = intelligenceOrchestrator;
+        
+        // Try to get IntelligenceOrchestrator (optional, removed as dead code but keep for backward compatibility)
+        try
+        {
+            _intelligenceOrchestrator = serviceProvider.GetService<TradingBot.Abstractions.IIntelligenceOrchestrator>();
+            if (_intelligenceOrchestrator != null)
+            {
+                _logger.LogInformation("🤖 [INTELLIGENCE-ORCHESTRATOR] Legacy IntelligenceOrchestrator available");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "IntelligenceOrchestrator service resolution failed, continuing without it");
+            _intelligenceOrchestrator = null;
+        }
         
         // Try to get Decision Fusion Coordinator (optional, may not be registered in all environments)
         try
@@ -120,8 +133,8 @@ public class UnifiedDecisionRouter
         }
         
         _logger.LogInformation("🎯 [DECISION-ROUTER] Unified Decision Router initialized");
-        _logger.LogInformation("📊 [DECISION-ROUTER] Services wired: Fusion={FusionAvailable}, Enhanced=True, Unified=True, Intelligence=True", 
-            _decisionFusion != null);
+        _logger.LogInformation("📊 [DECISION-ROUTER] Services wired: Fusion={FusionAvailable}, Enhanced=True, Unified=True, Intelligence={IntelligenceAvailable}", 
+            _decisionFusion != null, _intelligenceOrchestrator != null);
     }
     
     /// <summary>
@@ -372,6 +385,12 @@ public class UnifiedDecisionRouter
                 TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
+        // IntelligenceOrchestrator has been removed as dead code - return null to skip this fallback
+        if (_intelligenceOrchestrator == null)
+        {
+            return null;
+        }
+        
         try
         {
             var abstractionContext = EnhanceMarketContext(marketContext);

@@ -17,7 +17,7 @@ using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Backtest;
-using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
+using UnifiedOrchestrator.Services;
 using TopstepX.Bot.Authentication;
 using TradingBot.RLAgent;  // Add this for ModelHotReloadManager
 using global::BotCore.Brain;
@@ -832,20 +832,6 @@ Please check the configuration and ensure all required services are registered.
 
         // Legacy authentication services removed - using environment credentials with TopstepX SDK adapter
 
-        // Register enhanced JWT lifecycle manager for token refresh coordination
-        // DISABLED: IJwtLifecycleManager not currently implemented
-        // services.AddSingleton<IJwtLifecycleManager, JwtLifecycleManager>();
-        // services.AddHostedService<JwtLifecycleManager>(provider => 
-        //     (JwtLifecycleManager)provider.GetRequiredService<IJwtLifecycleManager>());
-
-        // Register environment validator for startup validation
-        // DISABLED: IEnvironmentValidator not currently implemented
-        // services.AddSingleton<IEnvironmentValidator, EnvironmentValidator>();
-
-        // Register snapshot manager for state reconciliation
-        // DISABLED: ISnapshotManager not currently implemented
-        // services.AddSingleton<ISnapshotManager, SnapshotManager>();
-
         // Legacy connection manager removed - using TopstepX SDK adapter for connections
 
         // Register platform-aware Python path resolver
@@ -949,10 +935,6 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<UnifiedOrchestrator.Services.LabModeComplianceChecker>();
         Console.WriteLine("✅ [LAB-COMPLIANCE] Registered Lab Mode compliance checker");
         
-        // Register Historical Mode compliance checker
-        services.AddHostedService<TradingBot.BotCore.Services.HistoricalModeComplianceChecker>();
-        Console.WriteLine("✅ [HISTORICAL-COMPLIANCE] Registered Historical Mode compliance checker");
-        
         // Register Performance Target Monitor (Terminal Mode only)
         services.AddHostedService<global::BotCore.Services.PerformanceTargetMonitor>();
         Console.WriteLine("⚡ [PERFORMANCE-MONITOR] Registered performance target monitor (<22ms latency, 99.9% uptime, 0.5 tick slippage)");
@@ -1009,10 +991,6 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.ISessionExposureCalculator, global::BotCore.Services.PositionMonitoring.SessionExposureCalculator>();
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.IPositionTimeTracker, global::BotCore.Services.PositionMonitoring.PositionTimeTracker>();
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.SessionDetectionService>();
-        
-        // Register ES/NQ Portfolio Heat Manager with position monitoring services
-        // Note: Commented out - BotCore reference issue
-        // services.AddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
         
         Console.WriteLine("📊 [POSITION-MONITORING] Registered position monitoring services");
         Console.WriteLine("   ✅ Real-time session exposure tracking - Monitors exposure by trading session");
@@ -1204,9 +1182,6 @@ Please check the configuration and ensure all required services are registered.
         services.Configure<global::BotCore.Services.DriftMonitorConfiguration>(configuration.GetSection("DataHygiene:DriftMonitor"));
         
         services.AddSingleton<global::BotCore.Services.ModelRotationService>();
-        // S7 BREADTH REALLOCATION INTENTIONALLY DISABLED: Keep breadth adjustments switched off
-        // Commenting out S7BreadthReallocationService registration until real breadth feed is active
-        // services.AddSingleton<global::BotCore.Services.S7BreadthReallocationService>();
         services.AddSingleton<global::BotCore.Services.CorrelationAwareCapService>();
         services.AddSingleton<global::BotCore.Services.VolOfVolGuardService>();
         services.AddSingleton<global::BotCore.Services.FeatureDriftMonitorService>();
@@ -1260,10 +1235,6 @@ Please check the configuration and ensure all required services are registered.
         // PHASE 4: Execution Metrics Reporting - Hourly quality reports and alerts
         services.AddHostedService<ExecutionMetricsReportingService>();
         
-        // TopstepX Integration Test Service for validation
-        // DISABLED: Test service shuts down bot after connectivity tests
-        // services.AddHostedService<TopstepXIntegrationTestService>();
-
         // Configure AppOptions for Safety components
         var appOptions = new AppOptions
         {
@@ -1343,10 +1314,7 @@ Please check the configuration and ensure all required services are registered.
         // ITopstepXAdapterService already registered above
         
         // Register REAL sophisticated orchestrators (NO DUPLICATES)
-        // DISABLED: IntelligenceOrchestratorService - prototype service (real one exists in IntelligenceStack)
-        // services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
-        // DISABLED: DataOrchestratorService - prototype service (real data comes from elsewhere)
-        // services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
+
         
         // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
         // ONLY in LIVE/DRY-RUN modes - Not needed in HISTORICAL_MODE
@@ -1616,11 +1584,6 @@ Please check the configuration and ensure all required services are registered.
         
         // Register unified model path resolver for cross-platform ONNX loading
         services.AddSingleton<global::BotCore.Services.UnifiedModelPathResolver>();
-        
-        // REMOVED DUPLICATE: Different UnifiedDataIntegrationService implementation conflicts with primary
-        // services.AddSingleton<global::BotCore.Services.UnifiedDataIntegrationService>();
-        // services.AddHostedService<global::BotCore.Services.UnifiedDataIntegrationService>(provider => 
-        //     provider.GetRequiredService<global::BotCore.Services.UnifiedDataIntegrationService>());
         
         // Register the MASTER DECISION ORCHESTRATOR - The ONE always-learning brain with alert integration
         services.AddSingleton<global::BotCore.Services.MasterDecisionOrchestrator>(provider =>
@@ -2482,17 +2445,13 @@ Please check the configuration and ensure all required services are registered.
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
         // DISABLED: Fake prototype services - shadowing real implementations
-        // services.AddSingleton<IntelligenceOrchestratorService>();
-        // services.AddSingleton<DataOrchestratorService>();
+
         // services.AddSingleton<WorkflowSchedulerService>();
         // WorkflowOrchestrationManager already registered above
         // AdvancedSystemIntegrationService already registered above
 
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
-        
-        // Legacy BacktestLearningService removed - using EnhancedBacktestLearningService instead
-        // services.AddHostedService<BacktestLearningService>(); // REMOVED
         
         // Register AutomaticDataSchedulerService for automatic scheduling of data processing
         services.AddHostedService<AutomaticDataSchedulerService>();
@@ -2680,28 +2639,6 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ModelEnsembleTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.ModelEnsembleTrainer>();
         
-        Console.WriteLine("   ✓ Registering SACTrainer (Soft Actor-Critic - Lab training)");
-        services.AddSingleton<TradingBot.RLAgent.SACTrainer>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<TradingBot.RLAgent.SACTrainer>>();
-            var config = new TradingBot.RLAgent.Models.SacConfig
-            {
-                StateDimension = 10,
-                ActionDimension = 3,
-                HiddenDimension = 256,
-                LearningRateActor = 3e-4,
-                LearningRateCritic = 3e-4,
-                Gamma = 0.99,
-                Alpha = 0.2,
-                BatchSize = 256,
-                BufferSize = 1000000,
-                AutoTuneAlpha = true,
-                MinBufferSize = 1000
-            };
-            var modelPath = Path.Combine("models", "sac");
-            return new TradingBot.RLAgent.SACTrainer(logger, config, modelPath);
-        });
-        
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
@@ -2880,10 +2817,6 @@ Please check the configuration and ensure all required services are registered.
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
         Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
-        
-        // Optional: Daily Maintenance Scheduler (Phase 5, Task 5.3) - DISABLED by default
-        Console.WriteLine("   ✓ Registering MaintenanceScheduler (optional Mon-Thu 5:00-5:15 PM ET, DISABLED by default)");
-        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)

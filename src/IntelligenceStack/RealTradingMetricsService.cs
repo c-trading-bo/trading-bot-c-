@@ -17,7 +17,7 @@ namespace TradingBot.IntelligenceStack;
 public class RealTradingMetricsService : BackgroundService
 {
     private readonly ILogger<RealTradingMetricsService> _logger;
-    private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
+    // IntelligenceOrchestrator removed as dead code - metrics collection now handled elsewhere
     private readonly IMLConfigurationService _mlConfig;
     private readonly TimeSpan _pushInterval = TimeSpan.FromMinutes(1); // Push metrics every minute
 
@@ -92,12 +92,10 @@ public class RealTradingMetricsService : BackgroundService
 
     public RealTradingMetricsService(
         ILogger<RealTradingMetricsService> logger,
-        IMLConfigurationService mlConfig,
-        IntelligenceOrchestrator? intelligenceOrchestrator = null)
+        IMLConfigurationService mlConfig)
     {
         _logger = logger;
         _mlConfig = mlConfig ?? throw new ArgumentNullException(nameof(mlConfig));
-        _intelligenceOrchestrator = intelligenceOrchestrator;
 
         ServiceInitialized(_logger, _pushInterval, null);
     }
@@ -183,14 +181,14 @@ public class RealTradingMetricsService : BackgroundService
 
     /// <summary>
     /// Async implementation of metrics collection
+    /// IntelligenceOrchestrator removed - metrics now logged locally only
     /// </summary>
     private async Task CollectAndPushMetricsAsync()
     {
-        if (_intelligenceOrchestrator == null)
-        {
-            return;
-        }
-
+        // IntelligenceOrchestrator removed as dead code - skip metrics push
+        // Metrics are now logged locally via the logging infrastructure
+        await Task.CompletedTask.ConfigureAwait(false);
+        
         try
         {
             CloudServiceMetrics metrics;
@@ -218,8 +216,9 @@ public class RealTradingMetricsService : BackgroundService
                 metrics.CustomMetrics["sharpe_ratio"] = CalculateSharpeRatio();
             }
 
-            // Push real metrics to cloud
-            await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics).ConfigureAwait(false);
+            // Log metrics locally instead of pushing to cloud via IntelligenceOrchestrator
+            _logger.LogInformation("[REAL_METRICS] Collected metrics - P&L: {PnL:F2}, Positions: {Positions}, Fills: {Fills}, Accuracy: {Accuracy:P2}, Drift: {Drift:F3}",
+                _dailyPnL, _totalPositions, _totalFills, metrics.PredictionAccuracy, metrics.FeatureDrift);
 
             _lastMetricsPush = DateTime.UtcNow;
 

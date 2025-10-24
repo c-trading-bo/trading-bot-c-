@@ -401,38 +401,7 @@ public sealed class ProductionPpoSizer : IPpoSizer
         
         try
         {
-            // Use real RLAdvisorSystem for PPO-based position sizing
-            var rlAdvisorSystem = _serviceProvider.GetService<TradingBot.IntelligenceStack.RLAdvisorSystem>();
-            if (rlAdvisorSystem != null)
-            {
-                // Attempt to get size recommendation from RL system - fail-closed approach
-                LogAttemptMlSizing(_logger, symbol, intent.ToString(), risk, null);
-                
-                // Check if RL system has the required capability
-                if (!IsRLSystemCapableOfPositionSizing(rlAdvisorSystem))
-                {
-                    LogRlSizingMissing(_logger, null);
-                    throw new InvalidOperationException("ML position sizing unavailable - RL system lacks required capability (fail-closed)");
-                }
-                
-                // RL system lacks position sizing capability - fail-closed approach
-                var operationId = Guid.NewGuid().ToString("N")[..OperationIdPrefixLength];
-                LogRlSizingUnavailable(_logger, operationId, symbol, null);
-                
-                // Get configuration for fail-closed behavior
-                var configuration = _serviceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-                var shouldHoldOnMlUnavailable = configuration?.GetValue<bool>("ML:HoldOnPositionSizingUnavailable") ?? true;
-                
-                if (shouldHoldOnMlUnavailable)
-                {
-                    // Fail-closed: force hold when ML sizing unavailable
-                    throw new InvalidOperationException("ML position sizing unavailable - system configured to fail-closed (hold)");
-                }
-                
-                // If configuration allows fallback, proceed to heuristic sizing
-                LogFallbackAllowed(_logger, null);
-            }
-            
+            // RLAdvisorSystem removed as dead code - skip ML sizing and use fallback
             // Fallback to intelligent heuristic-based sizing with real market data
             return CalculateIntelligentFallbackSize(symbol, intent, risk);
         }
@@ -447,11 +416,12 @@ public sealed class ProductionPpoSizer : IPpoSizer
 
     /// <summary>
     /// Check if RL system has position sizing capability - fail-closed validation
+    /// RLAdvisorSystem removed as dead code - always returns false
     /// </summary>
-    private static bool IsRLSystemCapableOfPositionSizing(TradingBot.IntelligenceStack.RLAdvisorSystem rlSystem)
+    private static bool IsRLSystemCapableOfPositionSizing(object rlSystem)
     {
-        // Since GetPositionSizingRecommendationAsync doesn't exist,
-        // we know the system lacks this capability
+        // RLAdvisorSystem has been removed as dead code
+        // This method retained for backward compatibility but always returns false
         return false;
     }
 
