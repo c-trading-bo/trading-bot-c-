@@ -161,26 +161,52 @@ All 4 new trainers implement **real gradient-based learning** with the following
 
 ### Evidence of Real Backpropagation
 
-**Pattern Recognition (Line 241):**
+All 4 trainers implement real gradient-based learning with backward pass and parameter updates:
+
+**Pattern Recognition:**
 ```csharp
+// Forward pass
+optimizer.zero_grad();
+using var output = network.forward(imageTensor);
+using var loss = functional.cross_entropy(output, labelTensor);
+
+// Backward pass (REAL BACKPROPAGATION)
 loss.backward();
 optimizer.step();
 ```
 
-**Regime Detector (Line 266):**
+**Regime Detector:**
 ```csharp
+// Forward pass
+optimizer.zero_grad();
+using var output = network.forward(inputTensor);
+using var loss = functional.cross_entropy(output, labelTensor);
+
+// Backward pass (REAL BACKPROPAGATION)
 loss.backward();
 optimizer.step();
 ```
 
-**Slippage/Latency (Line 249):**
+**Slippage/Latency:**
 ```csharp
+// Forward pass
+optimizer.zero_grad();
+using var output = network.forward(inputTensor);
+using var loss = functional.mse_loss(output, targetTensor);
+
+// Backward pass (REAL BACKPROPAGATION)
 loss.backward();
 optimizer.step();
 ```
 
-**Model Ensemble (Line 262):**
+**Model Ensemble:**
 ```csharp
+// Forward pass
+optimizer.zero_grad();
+using var output = network.forward(inputTensor);
+using var loss = functional.mse_loss(output, targetTensor);
+
+// Backward pass (REAL BACKPROPAGATION)
 loss.backward();
 optimizer.step();
 ```
@@ -188,57 +214,62 @@ optimizer.step();
 ## Neural Network Weight Counts
 
 ### Pattern CNN Network
-- Conv1: 1×32×3×3 = 288 weights
-- Conv2: 32×64×3×3 = 18,432 weights
-- Conv3: 64×128×3×3 = 73,728 weights
-- FC1: (128×8×8)×256 = 2,097,152 weights
-- FC2: 256×10 = 2,560 weights
-- **Total: ~2,192,160 trainable parameters**
+- Conv1: 1×32×3×3 + 32 bias = 320 parameters
+- Conv2: 32×64×3×3 + 64 bias = 18,496 parameters
+- Conv3: 64×128×3×3 + 128 bias = 73,856 parameters
+- FC1: (128×8×8)×256 + 256 bias = 2,097,408 parameters
+- FC2: 256×10 + 10 bias = 2,570 parameters
+- **Total: ~2,192,650 trainable parameters (including biases)**
 
 ### Regime Classifier Network
-- FC1: 8×128 = 1,024 weights
-- FC2: 128×256 = 32,768 weights
-- FC3: 256×128 = 32,768 weights
-- FC4: 128×6 = 768 weights
-- Batch norm parameters: ~1,024
-- **Total: ~68,352 trainable parameters**
+- FC1: 8×128 + 128 bias = 1,152 parameters
+- FC2: 128×256 + 256 bias = 33,024 parameters
+- FC3: 256×128 + 128 bias = 32,896 parameters
+- FC4: 128×6 + 6 bias = 774 parameters
+- Batch norm parameters: ~1,024 (running stats + learnable params)
+- **Total: ~68,870 trainable parameters (including biases)**
 
 ### Execution Regression Network
-- FC1: 6×96 = 576 weights
-- FC2: 96×192 = 18,432 weights
-- FC3: 192×96 = 18,432 weights
-- FC4: 96×2 = 192 weights
-- Batch norm parameters: ~768
-- **Total: ~38,400 trainable parameters**
+- FC1: 6×96 + 96 bias = 672 parameters
+- FC2: 96×192 + 192 bias = 18,624 parameters
+- FC3: 192×96 + 96 bias = 18,528 parameters
+- FC4: 96×2 + 2 bias = 194 parameters
+- Batch norm parameters: ~768 (running stats + learnable params)
+- **Total: ~38,786 trainable parameters (including biases)**
 
 ### Meta-Learning Ensemble Network
-- FC1: 5×64 = 320 weights
-- FC2: 64×32 = 2,048 weights
-- FC3: 32×1 = 32 weights
-- Batch norm parameters: ~192
-- **Total: ~2,592 trainable parameters**
+- FC1: 5×64 + 64 bias = 384 parameters
+- FC2: 64×32 + 32 bias = 2,080 parameters
+- FC3: 32×1 + 1 bias = 33 parameters
+- Batch norm parameters: ~192 (running stats + learnable params)
+- **Total: ~2,689 trainable parameters (including biases)**
 
 ## Combined Neural Network Statistics
 
-**Total Trainable Parameters Across 4 New Networks: ~2,301,504 weights**
+**Total Trainable Parameters Across 4 New Networks: ~2,302,995 parameters (including biases)**
 
 When combined with existing networks:
-- CVaRPPO: 10,752+ weights
-- SAC: Double Q-networks with entropy
+- CVaRPPO: 10,752+ parameters
+- SAC: Double Q-networks with entropy regularization
 - LSTM: 128 hidden units × 2 layers
 
-**Estimated Total Bot Neural Network Parameters: ~3,000,000+ weights**
+**Estimated Total Bot Neural Network Parameters: ~3,000,000+ parameters**
 
 This is comparable to small-scale hedge fund AI systems!
 
 ## Security & Code Quality
 
-✅ **No Random() usage** - Uses deterministic math functions for reproducibility
+⚠️ **Data Shuffling** - Uses `Guid.NewGuid()` for epoch-level shuffling (non-deterministic but appropriate for training)
 ✅ **Proper tensor disposal** - All tensors wrapped in `using` statements
 ✅ **Memory leak prevention** - Explicit disposal of intermediate tensors
 ✅ **Batch normalization** - Improves training stability
 ✅ **Dropout regularization** - Prevents overfitting
 ✅ **Gradient clipping ready** - Can be added if needed
+
+**Note on Reproducibility:**
+- Epoch-level shuffling uses `Guid.NewGuid()` for randomization
+- For deterministic training, set TorchSharp random seed: `torch.manual_seed(42)`
+- Pattern generation uses deterministic math (no Random() class)
 
 ## Build & Test Results
 
