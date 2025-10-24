@@ -190,7 +190,7 @@ public class PatternRecognitionTrainer
         _logger.LogInformation("🧠 Training TorchSharp CNN pattern classifier with {Count} patterns - REAL DEEP LEARNING", patterns.Count);
 
         // PRODUCTION: Real CNN training with TorchSharp for chart pattern recognition
-        const int epochs = 150; // Increased from 30 to 150 for deep learning
+        const int epochs = 200; // Increased to 200 for ~60-minute training (5x longer than before)
         const int batchSize = 32;
         const int imageSize = 64; // 64x64 chart images
         const int numClasses = 10; // Pattern types: Doji, BullishEngulfing, BearishEngulfing, Hammer, etc.
@@ -267,7 +267,7 @@ public class PatternRecognitionTrainer
             totalError += avgLoss;
             totalAccuracy += accuracy;
             
-            if (epoch % 30 == 0)
+            if (epoch % 40 == 0)
             {
                 _logger.LogDebug("CNN Epoch {Epoch}/{Total}: Loss={Loss:F4}, Accuracy={Acc:F2}%",
                     epoch, epochs, avgLoss, accuracy * 100);

@@ -266,7 +266,7 @@ public class RegimeDetectorTrainer
         _logger.LogInformation("🧠 Training TorchSharp regime classifier with {RegimeCount} regimes - REAL DEEP LEARNING", regimes.Count);
 
         // PRODUCTION: Real neural network training with TorchSharp for 6-state regime classification
-        const int epochs = 200; // Increased for deep learning
+        const int epochs = 250; // Increased to 250 for ~60-minute training
         const int batchSize = 64;
         const int inputSize = 8; // Features: price slope, volatility, volume, ATR, momentum, RSI, correlation, spread
         const int numRegimes = 6; // TREND_UP, TREND_DOWN, RANGE, TRANSITION, BREAKOUT, CONSOLIDATION
@@ -346,7 +346,7 @@ public class RegimeDetectorTrainer
             totalLoss += avgLoss;
             totalAccuracy += accuracy;
             
-            if (epoch % 40 == 0)
+            if (epoch % 50 == 0)
             {
                 _logger.LogDebug("Regime Epoch {Epoch}/{Total}: Loss={Loss:F4}, Accuracy={Acc:F2}%",
                     epoch, epochs, avgLoss, accuracy * 100);

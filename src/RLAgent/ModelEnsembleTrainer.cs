@@ -207,7 +207,7 @@ public class ModelEnsembleTrainer
             predictions.Count);
 
         // PRODUCTION: Real meta-learning neural network with TorchSharp for ensemble optimization
-        const int epochs = 220; // Increased for deep meta-learning
+        const int epochs = 270; // Increased to 270 for ~60-minute training
         const int batchSize = 64;
         const int numModels = 5; // CVaR-PPO, Neural-UCB, LSTM, Pattern-Recognition, Regime-Detector
         const int outputSize = 1; // Final ensemble prediction
@@ -286,7 +286,7 @@ public class ModelEnsembleTrainer
             var r2 = CalculateR2Score(features, targets, network);
             totalR2 += r2;
             
-            if (epoch % 44 == 0)
+            if (epoch % 54 == 0)
             {
                 _logger.LogDebug("Meta-Learning Epoch {Epoch}/{Total}: MSE Loss={Loss:F4}, R²={R2:F4}",
                     epoch, epochs, avgLoss, r2);

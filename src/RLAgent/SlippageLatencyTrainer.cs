@@ -190,7 +190,7 @@ public class SlippageLatencyTrainer
             slippageMetrics.Count, latencyPatterns.Count);
 
         // PRODUCTION: Real neural network regression with TorchSharp for execution cost prediction
-        const int epochs = 180; // Increased for deep learning
+        const int epochs = 220; // Increased to 220 for ~50-minute training
         const int batchSize = 32;
         const int inputSize = 6; // Features: hour, volatility, volume, spread, position_size, market_impact
         const int outputSize = 2; // Outputs: predicted_slippage, predicted_latency
@@ -266,7 +266,7 @@ public class SlippageLatencyTrainer
             var avgLoss = epochLoss / features.Count;
             totalLoss += avgLoss;
             
-            if (epoch % 36 == 0)
+            if (epoch % 44 == 0)
             {
                 _logger.LogDebug("Regression Epoch {Epoch}/{Total}: MSE Loss={Loss:F4}",
                     epoch, epochs, avgLoss);
