@@ -832,20 +832,6 @@ Please check the configuration and ensure all required services are registered.
 
         // Legacy authentication services removed - using environment credentials with TopstepX SDK adapter
 
-        // Register enhanced JWT lifecycle manager for token refresh coordination
-        // DISABLED: IJwtLifecycleManager not currently implemented
-        // services.AddSingleton<IJwtLifecycleManager, JwtLifecycleManager>();
-        // services.AddHostedService<JwtLifecycleManager>(provider => 
-        //     (JwtLifecycleManager)provider.GetRequiredService<IJwtLifecycleManager>());
-
-        // Register environment validator for startup validation
-        // DISABLED: IEnvironmentValidator not currently implemented
-        // services.AddSingleton<IEnvironmentValidator, EnvironmentValidator>();
-
-        // Register snapshot manager for state reconciliation
-        // DISABLED: ISnapshotManager not currently implemented
-        // services.AddSingleton<ISnapshotManager, SnapshotManager>();
-
         // Legacy connection manager removed - using TopstepX SDK adapter for connections
 
         // Register platform-aware Python path resolver
@@ -1005,10 +991,6 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.ISessionExposureCalculator, global::BotCore.Services.PositionMonitoring.SessionExposureCalculator>();
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.IPositionTimeTracker, global::BotCore.Services.PositionMonitoring.PositionTimeTracker>();
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.SessionDetectionService>();
-        
-        // Register ES/NQ Portfolio Heat Manager with position monitoring services
-        // Note: Commented out - BotCore reference issue
-        // services.AddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
         
         Console.WriteLine("📊 [POSITION-MONITORING] Registered position monitoring services");
         Console.WriteLine("   ✅ Real-time session exposure tracking - Monitors exposure by trading session");
@@ -1200,9 +1182,6 @@ Please check the configuration and ensure all required services are registered.
         services.Configure<global::BotCore.Services.DriftMonitorConfiguration>(configuration.GetSection("DataHygiene:DriftMonitor"));
         
         services.AddSingleton<global::BotCore.Services.ModelRotationService>();
-        // S7 BREADTH REALLOCATION INTENTIONALLY DISABLED: Keep breadth adjustments switched off
-        // Commenting out S7BreadthReallocationService registration until real breadth feed is active
-        // services.AddSingleton<global::BotCore.Services.S7BreadthReallocationService>();
         services.AddSingleton<global::BotCore.Services.CorrelationAwareCapService>();
         services.AddSingleton<global::BotCore.Services.VolOfVolGuardService>();
         services.AddSingleton<global::BotCore.Services.FeatureDriftMonitorService>();
@@ -1256,10 +1235,6 @@ Please check the configuration and ensure all required services are registered.
         // PHASE 4: Execution Metrics Reporting - Hourly quality reports and alerts
         services.AddHostedService<ExecutionMetricsReportingService>();
         
-        // TopstepX Integration Test Service for validation
-        // DISABLED: Test service shuts down bot after connectivity tests
-        // services.AddHostedService<TopstepXIntegrationTestService>();
-
         // Configure AppOptions for Safety components
         var appOptions = new AppOptions
         {
@@ -1609,11 +1584,6 @@ Please check the configuration and ensure all required services are registered.
         
         // Register unified model path resolver for cross-platform ONNX loading
         services.AddSingleton<global::BotCore.Services.UnifiedModelPathResolver>();
-        
-        // REMOVED DUPLICATE: Different UnifiedDataIntegrationService implementation conflicts with primary
-        // services.AddSingleton<global::BotCore.Services.UnifiedDataIntegrationService>();
-        // services.AddHostedService<global::BotCore.Services.UnifiedDataIntegrationService>(provider => 
-        //     provider.GetRequiredService<global::BotCore.Services.UnifiedDataIntegrationService>());
         
         // Register the MASTER DECISION ORCHESTRATOR - The ONE always-learning brain with alert integration
         services.AddSingleton<global::BotCore.Services.MasterDecisionOrchestrator>(provider =>
