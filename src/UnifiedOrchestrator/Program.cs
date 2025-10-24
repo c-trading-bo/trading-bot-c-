@@ -17,7 +17,7 @@ using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Backtest;
-using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
+using UnifiedOrchestrator.Services;
 using TopstepX.Bot.Authentication;
 using TradingBot.RLAgent;  // Add this for ModelHotReloadManager
 using global::BotCore.Brain;
@@ -949,10 +949,6 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<UnifiedOrchestrator.Services.LabModeComplianceChecker>();
         Console.WriteLine("✅ [LAB-COMPLIANCE] Registered Lab Mode compliance checker");
         
-        // Register Historical Mode compliance checker
-        services.AddHostedService<TradingBot.BotCore.Services.HistoricalModeComplianceChecker>();
-        Console.WriteLine("✅ [HISTORICAL-COMPLIANCE] Registered Historical Mode compliance checker");
-        
         // Register Performance Target Monitor (Terminal Mode only)
         services.AddHostedService<global::BotCore.Services.PerformanceTargetMonitor>();
         Console.WriteLine("⚡ [PERFORMANCE-MONITOR] Registered performance target monitor (<22ms latency, 99.9% uptime, 0.5 tick slippage)");
@@ -1343,10 +1339,7 @@ Please check the configuration and ensure all required services are registered.
         // ITopstepXAdapterService already registered above
         
         // Register REAL sophisticated orchestrators (NO DUPLICATES)
-        // DISABLED: IntelligenceOrchestratorService - prototype service (real one exists in IntelligenceStack)
-        // services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
-        // DISABLED: DataOrchestratorService - prototype service (real data comes from elsewhere)
-        // services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
+
         
         // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
         // ONLY in LIVE/DRY-RUN modes - Not needed in HISTORICAL_MODE
@@ -2482,17 +2475,13 @@ Please check the configuration and ensure all required services are registered.
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
         // DISABLED: Fake prototype services - shadowing real implementations
-        // services.AddSingleton<IntelligenceOrchestratorService>();
-        // services.AddSingleton<DataOrchestratorService>();
+
         // services.AddSingleton<WorkflowSchedulerService>();
         // WorkflowOrchestrationManager already registered above
         // AdvancedSystemIntegrationService already registered above
 
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
-        
-        // Legacy BacktestLearningService removed - using EnhancedBacktestLearningService instead
-        // services.AddHostedService<BacktestLearningService>(); // REMOVED
         
         // Register AutomaticDataSchedulerService for automatic scheduling of data processing
         services.AddHostedService<AutomaticDataSchedulerService>();
