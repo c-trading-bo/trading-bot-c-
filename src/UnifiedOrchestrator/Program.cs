@@ -2639,6 +2639,11 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ModelEnsembleTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.ModelEnsembleTrainer>();
         
+        Console.WriteLine("   ✓ Registering SACConfig and SACTrainer (Lab training)");
+        services.AddSingleton<TradingBot.RLAgent.Algorithms.SACConfig>();
+        services.AddSingleton<TradingBot.RLAgent.Algorithms.SoftActorCritic>();
+        services.AddSingleton<TradingBot.RLAgent.Algorithms.SACTrainer>();
+        
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions

@@ -39,6 +39,7 @@ internal sealed class HistoricalTrainingOrchestrator
 {
     // String literal constants for component names
     private const string ComponentCVarPPO = "CVaR-PPO";
+    private const string ComponentSAC = "Soft Actor-Critic";
     private const string ComponentNeuralUCB = "Neural UCB";
     private const string ComponentLSTM = "LSTM";
     private const string ComponentPositionManagement = "Position Management";
@@ -51,6 +52,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService _promotionService;
     private readonly TradingBot.RLAgent.CVaRPPOTrainer _cvarPpoTrainer;
+    private readonly TradingBot.RLAgent.Algorithms.SACTrainer _sacTrainer;
     private readonly TradingBot.RLAgent.LSTMTrainer _lstmTrainer;
     private readonly TradingBot.RLAgent.PatternRecognitionTrainer _patternRecognitionTrainer;
     private readonly TradingBot.RLAgent.RegimeDetectorTrainer _regimeDetectorTrainer;
@@ -93,6 +95,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry modelRegistry,
         TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService promotionService,
         TradingBot.RLAgent.CVaRPPOTrainer cvarPpoTrainer,
+        TradingBot.RLAgent.Algorithms.SACTrainer sacTrainer,
         TradingBot.RLAgent.LSTMTrainer lstmTrainer,
         TradingBot.RLAgent.PatternRecognitionTrainer patternRecognitionTrainer,
         TradingBot.RLAgent.RegimeDetectorTrainer regimeDetectorTrainer,
@@ -129,6 +132,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _modelRegistry = modelRegistry;
         _promotionService = promotionService;
         _cvarPpoTrainer = cvarPpoTrainer;
+        _sacTrainer = sacTrainer;
         _lstmTrainer = lstmTrainer;
         _patternRecognitionTrainer = patternRecognitionTrainer;
         _regimeDetectorTrainer = regimeDetectorTrainer;
@@ -1328,6 +1332,10 @@ internal sealed class HistoricalTrainingOrchestrator
         // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer
         await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
+        // 1b. SAC Training (40 min) - HEAVY PHASE Model 1b/7 - continuous action space RL
+        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 1b/7: {Component}", ComponentSAC);
+        await TrainSACAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+
         // 2. Neural UCB Retraining (15 min) - HEAVY PHASE Model 2/7 - uses real trainer
         _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 2/7: {Component}", ComponentNeuralUCB);
         await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
@@ -1703,6 +1711,62 @@ internal sealed class HistoricalTrainingOrchestrator
         _logger.LogError("4. Check Python training script exists: python/ucb/train_neural_ucb_from_strategy_data.py");
         _logger.LogError("5. Review Python stderr output above for specific error messages");
         _logger.LogError("═══════════════════════════════════════════════════════════════════════════");
+    }
+
+    private async Task TrainSACAsync(
+        TrainingSessionResult result,
+        List<Experience> experiences,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE TRAINING - Model 1b: {Component}", ComponentSAC);
+            _logger.LogInformation("[LAB] Continuous action space for position sizing (0-5 contracts)");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            
+            _memoryLeakDetector.RecordBeforeComponent(ComponentSAC);
+            _debugLogger.LogBeforeComponent(ComponentSAC, PhaseMain, 1, 8);
+            
+            // Convert Experience to RLAgent Experience format
+            var rlExperiences = ConvertToRLExperiences(experiences);
+            
+            // Train SAC model
+            var trainingResult = await _sacTrainer.TrainAsync(rlExperiences, cancellationToken).ConfigureAwait(false);
+            
+            if (trainingResult.Success)
+            {
+                _logger.LogInformation("[LAB] {Component}: Training completed successfully", ComponentSAC);
+                result.SacSuccess = true;
+            }
+            else
+            {
+                _logger.LogWarning("[LAB] {Component}: Training failed - {Error}", 
+                    ComponentSAC, trainingResult.ErrorMessage);
+                result.SacSuccess = false;
+                result.FailedComponents.Add(ComponentSAC);
+            }
+            
+            stopwatch.Stop();
+            result.SacTrainingDuration = stopwatch.Elapsed;
+            
+            await _memoryLeakDetector.RecordAfterComponentAsync(ComponentSAC, cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent(ComponentSAC, trainingResult.Success, stopwatch.Elapsed);
+            
+            _logger.LogInformation("[LAB] {Component} complete in {Duration:F0} min - Continuous action RL learning",
+                ComponentSAC, stopwatch.Elapsed.TotalMinutes);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "[LAB] ERROR: {Component} - {Error}", ComponentSAC, ex.Message);
+            result.SacTrainingDuration = stopwatch.Elapsed;
+            result.SacSuccess = false;
+            result.FailedComponents.Add(ComponentSAC);
+            
+            _debugLogger.LogAfterComponent(ComponentSAC, false, stopwatch.Elapsed);
+        }
     }
 
     private async Task TrainLSTMAsync(
@@ -3116,6 +3180,9 @@ internal class TrainingSessionResult
     // Training results
     public bool CvarPpoSuccess { get; set; }
     public TimeSpan CvarPpoTrainingDuration { get; set; }
+    
+    public bool SacSuccess { get; set; }
+    public TimeSpan SacTrainingDuration { get; set; }
     
     public bool NeuralUcbSuccess { get; set; }
     public TimeSpan NeuralUcbTrainingDuration { get; set; }
