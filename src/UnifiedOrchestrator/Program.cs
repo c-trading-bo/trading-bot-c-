@@ -2721,6 +2721,10 @@ Please check the configuration and ensure all required services are registered.
         Console.WriteLine("   ✓ Registering ProgressTracker (progress state and ETA calculation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ProgressTracker>();
         
+        Console.WriteLine("   ✓ Registering Lab Mode Dashboard Components");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LabModeDashboardRenderer>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LabModeDashboardStateManager>();
+        
         Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
         
