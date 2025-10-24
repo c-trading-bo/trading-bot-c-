@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Reflection;
+using System.IO;
 using Xunit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,31 @@ namespace TradingBot.Tests.Unit
     public class ModelRegistryBootstrapTests
     {
         /// <summary>
+        /// Helper method to get source file path relative to solution directory
+        /// Uses reflection to find the solution root dynamically
+        /// </summary>
+        private static string GetSourceFilePath(string relativePath)
+        {
+            // Get the test assembly directory
+            var assemblyPath = Assembly.GetExecutingAssembly().Location;
+            var assemblyDir = Path.GetDirectoryName(assemblyPath)!;
+            
+            // Navigate up to find the solution root (QBot directory)
+            var currentDir = new DirectoryInfo(assemblyDir);
+            while (currentDir != null && !File.Exists(Path.Combine(currentDir.FullName, "TopstepX.Bot.sln")))
+            {
+                currentDir = currentDir.Parent;
+            }
+            
+            if (currentDir == null)
+            {
+                throw new InvalidOperationException("Could not find solution root directory");
+            }
+            
+            return Path.Combine(currentDir.FullName, relativePath);
+        }
+        
+        /// <summary>
         /// Test that ModelRegistryBootstrapService is properly registered as IHostedService
         /// and contains the algorithm names for the 3 critical components
         /// </summary>
@@ -28,17 +54,10 @@ namespace TradingBot.Tests.Unit
             // This test validates that the ModelRegistryBootstrapService source code
             // contains registrations for the 3 critical components
             
-            // Read the source file
-            var bootstrapFilePath = "../../../../../src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs";
-            if (!System.IO.File.Exists(bootstrapFilePath))
-            {
-                // Try relative path from test bin directory
-                bootstrapFilePath = "../../../../../../src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs";
-            }
+            var bootstrapFilePath = GetSourceFilePath("src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs");
+            Assert.True(File.Exists(bootstrapFilePath), "ModelRegistryBootstrapService.cs file should exist");
             
-            Assert.True(System.IO.File.Exists(bootstrapFilePath), "ModelRegistryBootstrapService.cs file should exist");
-            
-            var sourceCode = System.IO.File.ReadAllText(bootstrapFilePath);
+            var sourceCode = File.ReadAllText(bootstrapFilePath);
             
             // Verify all 3 critical components are in the source
             Assert.Contains("S15-RL-Policy", sourceCode);
@@ -57,15 +76,10 @@ namespace TradingBot.Tests.Unit
         [Fact]
         public void BootstrapService_ContainsAllNineAlgorithms()
         {
-            var bootstrapFilePath = "../../../../../src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs";
-            if (!System.IO.File.Exists(bootstrapFilePath))
-            {
-                bootstrapFilePath = "../../../../../../src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs";
-            }
+            var bootstrapFilePath = GetSourceFilePath("src/UnifiedOrchestrator/Services/ModelRegistryBootstrapService.cs");
+            Assert.True(File.Exists(bootstrapFilePath), "ModelRegistryBootstrapService.cs file should exist");
             
-            Assert.True(System.IO.File.Exists(bootstrapFilePath), "ModelRegistryBootstrapService.cs file should exist");
-            
-            var sourceCode = System.IO.File.ReadAllText(bootstrapFilePath);
+            var sourceCode = File.ReadAllText(bootstrapFilePath);
             
             // All 9 expected algorithms
             var expectedAlgorithms = new[]
@@ -93,15 +107,10 @@ namespace TradingBot.Tests.Unit
         [Fact]
         public void ProgramCs_RegistersBootstrapServiceAsHostedService()
         {
-            var programFilePath = "../../../../../src/UnifiedOrchestrator/Program.cs";
-            if (!System.IO.File.Exists(programFilePath))
-            {
-                programFilePath = "../../../../../../src/UnifiedOrchestrator/Program.cs";
-            }
+            var programFilePath = GetSourceFilePath("src/UnifiedOrchestrator/Program.cs");
+            Assert.True(File.Exists(programFilePath), "Program.cs file should exist");
             
-            Assert.True(System.IO.File.Exists(programFilePath), "Program.cs file should exist");
-            
-            var sourceCode = System.IO.File.ReadAllText(programFilePath);
+            var sourceCode = File.ReadAllText(programFilePath);
             
             // Verify bootstrap service is registered as IHostedService
             Assert.Contains("AddHostedService<ModelRegistryBootstrapService>()", sourceCode);
@@ -113,15 +122,10 @@ namespace TradingBot.Tests.Unit
         [Fact]
         public void ProgramCs_RegistersThreeCriticalServicesInDI()
         {
-            var programFilePath = "../../../../../src/UnifiedOrchestrator/Program.cs";
-            if (!System.IO.File.Exists(programFilePath))
-            {
-                programFilePath = "../../../../../../src/UnifiedOrchestrator/Program.cs";
-            }
+            var programFilePath = GetSourceFilePath("src/UnifiedOrchestrator/Program.cs");
+            Assert.True(File.Exists(programFilePath), "Program.cs file should exist");
             
-            Assert.True(System.IO.File.Exists(programFilePath), "Program.cs file should exist");
-            
-            var sourceCode = System.IO.File.ReadAllText(programFilePath);
+            var sourceCode = File.ReadAllText(programFilePath);
             
             // Verify the 3 services are registered in DI
             Assert.Contains("PositionManagementOptimizer", sourceCode);
