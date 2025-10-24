@@ -2,6 +2,9 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using TorchSharp;
+using static TorchSharp.torch;
+using static TorchSharp.torch.nn;
 
 namespace TradingBot.RLAgent;
 
@@ -657,10 +660,9 @@ public class CVaRPPO : IDisposable
             cvarLoss += cvarDelta * cvarDelta;
         }
         
-        // Apply gradients (simplified - in practice would use proper backpropagation)
-        _policyNetwork.UpdateWeights(policyLoss / batch.Length, _config.LearningRate);
-        _valueNetwork.UpdateWeights(valueLoss / batch.Length, _config.LearningRate);
-        _cvarNetwork.UpdateWeights(cvarLoss / batch.Length, _config.LearningRate);
+        // Apply gradients - DEPRECATED: Training now uses TorchSharp backpropagation in CVaRPPOTrainer.cs
+        // Real backpropagation with automatic differentiation happens in CVaRPPOTrainer.TrainMiniBatch
+        // These manual weight update calls are no longer used
         
         return new MiniBatchLosses
         {
@@ -888,299 +890,206 @@ public class PerformanceMetrics
 /// <summary>
 /// Simplified Policy Network
 /// </summary>
-public class PolicyNetwork
+/// <summary>
+/// PolicyNetwork using TorchSharp for real automatic differentiation
+/// Actor network that outputs trading actions with proper backpropagation
+/// </summary>
+public class PolicyNetwork : Module<Tensor, Tensor>
 {
-    private const double WEIGHT_RANGE_MULTIPLIER = 2.0;
-    private const double LEARNING_RATE = 0.001;
-    
+    private readonly Module<Tensor, Tensor> _network;
     private readonly int _stateSize;
     private readonly int _actionSize;
     private readonly int _hiddenSize;
-    private double[][] _weights1 = null!;
-    private double[] _bias1 = null!;
-    private double[][] _weights2 = null!;
-    private double[] _bias2 = null!;
-    public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
+    
+    public PolicyNetwork(int stateSize, int actionSize, int hiddenSize) : base("PolicyNetwork")
     {
         _stateSize = stateSize;
         _actionSize = actionSize;
         _hiddenSize = hiddenSize;
         
-        InitializeWeights();
+        // Build network: Input -> Linear(hiddenSize) -> ReLU -> Linear(actionSize)
+        _network = Sequential(
+            ("fc1", Linear(stateSize, hiddenSize)),
+            ("relu1", ReLU()),
+            ("fc2", Linear(hiddenSize, actionSize))
+        );
+        
+        RegisterComponents();
     }
 
-    private void InitializeWeights()
+    public override Tensor forward(Tensor input)
     {
-        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        
-        // Initialize jagged arrays
-        _weights1 = new double[_stateSize][];
-        for (int i = 0; i < _stateSize; i++)
-        {
-            _weights1[i] = new double[_hiddenSize];
-        }
-        
-        _weights2 = new double[_hiddenSize][];
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            _weights2[i] = new double[_actionSize];
-        }
-        
-        _bias1 = new double[_hiddenSize];
-        _bias2 = new double[_actionSize];
-        
-        // Xavier initialization with secure random
-        var limit1 = Math.Sqrt(6.0 / (_stateSize + _hiddenSize));
-        var limit2 = Math.Sqrt(6.0 / (_hiddenSize + _actionSize));
-        
-        for (int i = 0; i < _stateSize; i++)
-        {
-            for (int j = 0; j < _hiddenSize; j++)
-            {
-                var bytes = new byte[8];
-                rng.GetBytes(bytes);
-                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * WEIGHT_RANGE_MULTIPLIER - 1) * limit1;
-            }
-        }
-        
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            for (int j = 0; j < _actionSize; j++)
-            {
-                var bytes = new byte[8];
-                rng.GetBytes(bytes);
-                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights2[i][j] = (randomValue * WEIGHT_RANGE_MULTIPLIER - 1) * limit2;
-            }
-        }
+        return _network.forward(input);
     }
 
     public double[] Forward(double[] state)
     {
         ArgumentNullException.ThrowIfNull(state);
         
-        // Hidden layer
-        var hidden = new double[_hiddenSize];
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            var hiddenValue = _bias1[i];
-            for (int j = 0; j < _stateSize; j++)
-            {
-                hiddenValue += state[j] * _weights1[j][i];
-            }
-            hidden[i] = Math.Tanh(hiddenValue); // Activation
-        }
+        using var stateTensor = tensor(state, ScalarType.Float32).reshape(1, _stateSize);
+        using var output = forward(stateTensor);
         
-        // Output layer
-        var output = new double[_actionSize];
+        var result = new double[_actionSize];
         for (int i = 0; i < _actionSize; i++)
         {
-            output[i] = _bias2[i];
-            for (int j = 0; j < _hiddenSize; j++)
-            {
-                output[i] += hidden[j] * _weights2[j][i];
-            }
+            result[i] = output[0, i].ToDouble();
         }
         
-        return output;
-    }
-
-    public void UpdateWeights(double loss, double learningRate)
-    {
-        // Simplified gradient update (in practice, this would be proper backpropagation)
-        var gradient = loss * learningRate;
-        
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            for (int j = 0; j < _actionSize; j++)
-            {
-                _weights2[i][j] -= gradient * LEARNING_RATE; // Simplified gradient
-            }
-        }
+        return result;
     }
 
     public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        var data = new
-        {
-            Weights1 = _weights1,
-            Bias1 = _bias1,
-            Weights2 = _weights2,
-            Bias2 = _bias2
-        };
-        
-        var json = JsonSerializer.Serialize(data);
-        return File.WriteAllTextAsync(path, json, cancellationToken);
+        save(path);
+        return Task.CompletedTask;
     }
 
     public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        // Load weights (simplified - in practice would handle proper deserialization)
-        InitializeWeights(); // Reset to defaults for now
-        return Task.FromResult(0); // Proper async completion without async keyword
+        if (File.Exists(path))
+        {
+            load(path);
+        }
+        return Task.CompletedTask;
+    }
+    
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _network?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 
 /// <summary>
-/// Simplified Value Network
+/// ValueNetwork using TorchSharp for real automatic differentiation
+/// Critic network that estimates state values with proper backpropagation
 /// </summary>
-public class ValueNetwork
+public class ValueNetwork : Module<Tensor, Tensor>
 {
-    private const double WeightInitializationRange = 2.0;
-    private const double OutputWeightInitializationScale = 0.1;
-    private const double LearningRateDefault = 0.001;
-    
+    private readonly Module<Tensor, Tensor> _network;
     private readonly int _stateSize;
     private readonly int _hiddenSize;
-    private double[][] _weights1 = null!;
-    private double[] _bias1 = null!;
-    private double[] _weights2 = null!;
-    private double _bias2;
-    public ValueNetwork(int stateSize, int hiddenSize)
+    
+    public ValueNetwork(int stateSize, int hiddenSize) : base("ValueNetwork")
     {
         _stateSize = stateSize;
         _hiddenSize = hiddenSize;
         
-        InitializeWeights();
+        // Build network: Input -> Linear(hiddenSize) -> ReLU -> Linear(1)
+        _network = Sequential(
+            ("fc1", Linear(stateSize, hiddenSize)),
+            ("relu1", ReLU()),
+            ("fc2", Linear(hiddenSize, 1))
+        );
+        
+        RegisterComponents();
     }
 
-    private void InitializeWeights()
+    public override Tensor forward(Tensor input)
     {
-        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        
-        // Initialize jagged array
-        _weights1 = new double[_stateSize][];
-        for (int i = 0; i < _stateSize; i++)
-        {
-            _weights1[i] = new double[_hiddenSize];
-        }
-        
-        _bias1 = new double[_hiddenSize];
-        _weights2 = new double[_hiddenSize];
-        _bias2 = 0.0;
-        
-        var limit = Math.Sqrt(6.0 / (_stateSize + _hiddenSize));
-        
-        for (int i = 0; i < _stateSize; i++)
-        {
-            for (int j = 0; j < _hiddenSize; j++)
-            {
-                var bytes = new byte[8];
-                rng.GetBytes(bytes);
-                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i][j] = (randomValue * WeightInitializationRange - 1) * limit;
-            }
-        }
-        
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            var bytes = new byte[8];
-            rng.GetBytes(bytes);
-            var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-            _weights2[i] = (randomValue * WeightInitializationRange - 1) * OutputWeightInitializationScale;
-        }
+        return _network.forward(input);
     }
 
     public double[] Forward(double[] state)
     {
         ArgumentNullException.ThrowIfNull(state);
         
-        // Hidden layer
-        var hidden = new double[_hiddenSize];
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            var hiddenValue = _bias1[i];
-            for (int j = 0; j < _stateSize; j++)
-            {
-                hiddenValue += state[j] * _weights1[j][i];
-            }
-            hidden[i] = Math.Tanh(hiddenValue);
-        }
+        using var stateTensor = tensor(state, ScalarType.Float32).reshape(1, _stateSize);
+        using var output = forward(stateTensor);
         
-        // Output (single value)
-        var output = _bias2;
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            output += hidden[i] * _weights2[i];
-        }
-        
-        return new[] { output };
-    }
-
-    public void UpdateWeights(double loss, double learningRate)
-    {
-        var gradient = loss * learningRate;
-        
-        for (int i = 0; i < _hiddenSize; i++)
-        {
-            _weights2[i] -= gradient * LearningRateDefault;
-        }
+        return new[] { output[0, 0].ToDouble() };
     }
 
     public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        var data = new
-        {
-            Weights1 = _weights1,
-            Bias1 = _bias1,
-            Weights2 = _weights2,
-            Bias2 = _bias2
-        };
-        
-        var json = JsonSerializer.Serialize(data);
-        return File.WriteAllTextAsync(path, json, cancellationToken);
+        save(path);
+        return Task.CompletedTask;
     }
 
     public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        // Load weights (simplified - in practice would handle proper deserialization)
-        InitializeWeights(); // Reset to defaults for now
-        return Task.FromResult(0); // Proper async completion
+        if (File.Exists(path))
+        {
+            load(path);
+        }
+        return Task.CompletedTask;
+    }
+    
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _network?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 
 /// <summary>
-/// Simplified CVaR Network
+/// CVaRNetwork using TorchSharp for real automatic differentiation
+/// Risk network that estimates conditional value at risk with proper backpropagation
 /// </summary>
-public class CVaRNetwork : IDisposable
+public class CVaRNetwork : Module<Tensor, Tensor>
 {
-    private readonly ValueNetwork _valueNetwork;
+    private readonly Module<Tensor, Tensor> _network;
+    private readonly int _stateSize;
+    private readonly int _hiddenSize;
 
-    public CVaRNetwork(int stateSize, int hiddenSize)
+    public CVaRNetwork(int stateSize, int hiddenSize) : base("CVaRNetwork")
     {
-        _valueNetwork = new ValueNetwork(stateSize, hiddenSize);
+        _stateSize = stateSize;
+        _hiddenSize = hiddenSize;
+        
+        // Build network: Input -> Linear(hiddenSize) -> ReLU -> Linear(1)
+        _network = Sequential(
+            ("fc1", Linear(stateSize, hiddenSize)),
+            ("relu1", ReLU()),
+            ("fc2", Linear(hiddenSize, 1))
+        );
+        
+        RegisterComponents();
+    }
+
+    public override Tensor forward(Tensor input)
+    {
+        return _network.forward(input);
     }
 
     public double[] Forward(double[] state)
     {
-        return _valueNetwork.Forward(state);
-    }
-
-    public void UpdateWeights(double loss, double learningRate)
-    {
-        _valueNetwork.UpdateWeights(loss, learningRate);
+        ArgumentNullException.ThrowIfNull(state);
+        
+        using var stateTensor = tensor(state, ScalarType.Float32).reshape(1, _stateSize);
+        using var output = forward(stateTensor);
+        
+        return new[] { output[0, 0].ToDouble() };
     }
 
     public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        return _valueNetwork.SaveAsync(path, cancellationToken);
+        save(path);
+        return Task.CompletedTask;
     }
 
     public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        return _valueNetwork.LoadAsync(path, cancellationToken);
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (File.Exists(path))
+        {
+            load(path);
+        }
+        return Task.CompletedTask;
     }
     
-    protected virtual void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
-        // ValueNetwork no longer implements IDisposable since it has no resources to dispose
+        if (disposing)
+        {
+            _network?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 

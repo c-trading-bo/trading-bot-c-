@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TorchSharp;
+using static TorchSharp.torch;
+using static TorchSharp.torch.nn;
 
 namespace TradingBot.RLAgent;
 
@@ -168,14 +171,18 @@ public class LSTMTrainer
         List<double> targets,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Training LSTM with gradient descent - Features: {Count}, HiddenSize: {Hidden}, Layers: {Layers}",
+        _logger.LogInformation("Training LSTM with TorchSharp - Features: {Count}, HiddenSize: {Hidden}, Layers: {Layers}",
             features.Count, _hiddenSize, _numLayers);
 
-        // PRODUCTION: Simplified gradient descent training simulation
-        // In full production, this would use ML.NET, TensorFlow.NET, or ONNX Runtime Training
-        
         const int epochs = 50;
         const int batchSize = 32;
+        const int inputSize = 4; // OHLC features per bar
+        const int outputSize = 1; // Binary direction prediction
+        
+        // Create LSTM network
+        using var network = new LSTMNetwork(inputSize, _hiddenSize, _numLayers, outputSize);
+        using var optimizer = optim.Adam(network.parameters(), lr: _learningRate);
+        
         double currentLoss = 1.0;
         double totalAccuracy = 0.0;
         
@@ -195,24 +202,52 @@ public class LSTMTrainer
             for (int i = 0; i < indices.Count; i += batchSize)
             {
                 var batchIndices = indices.Skip(i).Take(batchSize).ToList();
+                var currentBatchSize = batchIndices.Count;
                 
-                // Compute batch loss and accuracy
-                foreach (var idx in batchIndices)
+                // Prepare batch tensors
+                // Shape: [batch, sequence_length, input_size]
+                var batchFeatures = new float[currentBatchSize, _sequenceLength, inputSize];
+                var batchTargets = new float[currentBatchSize];
+                
+                for (int b = 0; b < currentBatchSize; b++)
                 {
+                    var idx = batchIndices[b];
                     var feature = features[idx];
-                    var target = targets[idx];
                     
-                    // Simplified forward pass (would be actual LSTM in production)
-                    var prediction = ComputeSimplifiedPrediction(feature);
-                    var loss = Math.Pow(prediction - target, 2); // MSE loss
+                    // Reshape features into sequence format
+                    for (int seq = 0; seq < _sequenceLength; seq++)
+                    {
+                        for (int feat = 0; feat < inputSize; feat++)
+                        {
+                            batchFeatures[b, seq, feat] = (float)feature[seq * inputSize + feat];
+                        }
+                    }
                     
-                    epochLoss += loss;
-                    if (Math.Abs(prediction - target) < 0.5) correctPredictions++;
+                    batchTargets[b] = (float)targets[idx];
                 }
+                
+                using var inputTensor = tensor(batchFeatures);
+                using var targetTensor = tensor(batchTargets).reshape(-1, 1);
+                
+                // Forward pass
+                optimizer.zero_grad();
+                using var output = network.forward(inputTensor);
+                using var loss = functional.mse_loss(output, targetTensor);
+                
+                // Backward pass
+                loss.backward();
+                optimizer.step();
+                
+                // Track metrics
+                epochLoss += loss.ToDouble() * currentBatchSize;
+                
+                using var predictions = output.greater(0.5f);
+                using var targetsComp = targetTensor.greater(0.5f);
+                correctPredictions += predictions.eq(targetsComp).sum().ToInt32();
                 
                 batches++;
                 
-                // Simulate backpropagation delay
+                // Simulate realistic training time
                 if (batches % 10 == 0)
                 {
                     await Task.Delay(10, cancellationToken).ConfigureAwait(false);
@@ -241,18 +276,6 @@ public class LSTMTrainer
             AverageAccuracy = avgAccuracy,
             Epochs = epochs
         };
-    }
-
-    private double ComputeSimplifiedPrediction(double[] features)
-    {
-        // Simplified prediction function (would be actual LSTM forward pass in production)
-        // Uses weighted sum with sigmoid activation
-        var sum = 0.0;
-        for (int i = 0; i < Math.Min(features.Length, 20); i++)
-        {
-            sum += features[i] * (0.1 + (i % 3) * 0.05);
-        }
-        return 1.0 / (1.0 + Math.Exp(-sum)); // Sigmoid
     }
     
     /// <summary>
@@ -400,6 +423,67 @@ public class LSTMTrainer
             result[j] = matrix[row, j];
         }
         return result;
+    }
+}
+
+/// <summary>
+/// LSTM Network using TorchSharp for real sequence learning
+/// Predicts market direction from price sequences
+/// </summary>
+internal class LSTMNetwork : Module<Tensor, Tensor>
+{
+    private readonly TorchSharp.Modules.LSTM _lstm;
+    private readonly Module<Tensor, Tensor> _fc;
+    private readonly int _inputSize;
+    private readonly int _hiddenSize;
+    private readonly int _numLayers;
+    
+    public LSTMNetwork(int inputSize, int hiddenSize, int numLayers, int outputSize) : base("LSTMNetwork")
+    {
+        _inputSize = inputSize;
+        _hiddenSize = hiddenSize;
+        _numLayers = numLayers;
+        
+        // LSTM layer: processes sequences
+        _lstm = LSTM(inputSize, hiddenSize, numLayers, batchFirst: true);
+        
+        // Fully connected layer: maps LSTM output to predictions
+        _fc = Linear(hiddenSize, outputSize);
+        
+        RegisterComponents();
+    }
+    
+    public override Tensor forward(Tensor input)
+    {
+        // input shape: [batch, sequence, features]
+        // LSTM returns (output, hidden, cell)
+        var (output, hidden, cell) = _lstm.forward(input);
+        
+        try
+        {
+            // Get last time step output: [batch, hidden_size]
+            using var lastOutput = output.select(1, -1);
+            
+            // Pass through fully connected layer: [batch, output_size]
+            return _fc.forward(lastOutput);
+        }
+        finally
+        {
+            // Cleanup LSTM state tensors
+            output.Dispose();
+            hidden.Dispose();
+            cell.Dispose();
+        }
+    }
+    
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _lstm?.Dispose();
+            _fc?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 
