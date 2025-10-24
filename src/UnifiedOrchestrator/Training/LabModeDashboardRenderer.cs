@@ -56,6 +56,12 @@ public sealed class LabModeDashboardRenderer
         // Model Promotion Status
         RenderModelPromotionStatus(output, state);
         
+        // Alerts (if any)
+        if (state.ActiveAlerts.Any())
+        {
+            RenderAlerts(output, state.ActiveAlerts);
+        }
+        
         // System Resources
         RenderSystemResources(output, state.Resources);
         
@@ -241,6 +247,51 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine($"│ CPU: {cpuBar} {resources.CpuUsagePercent,2:F0}% | Memory: {memoryBar} {resources.CpuUsagePercent,2:F0}% ({memoryGb:F1} GB / {memoryTotalGb:F1} GB)│");
         output.AppendLine($"│ Disk I/O: {resources.DiskReadMbPerSec,3:F0} MB/s read, {resources.DiskWriteMbPerSec,2:F0} MB/s write | GPU: N/A (CPU training)              │");
         output.AppendLine($"│ Training Processes: {resources.ActiveProcesses} active | Memory Leak: ✓ None detected                   │");
+        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
+        output.AppendLine();
+    }
+
+    private void RenderAlerts(StringBuilder output, System.Collections.Generic.List<DashboardAlert> alerts)
+    {
+        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
+        output.AppendLine("│ ⚠️  ALERTS & NOTIFICATIONS                                                      │");
+        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
+        
+        if (!alerts.Any())
+        {
+            output.AppendLine("│ No active alerts                                                                │");
+        }
+        else
+        {
+            foreach (var alert in alerts.Take(5))
+            {
+                var icon = alert.Level switch
+                {
+                    AlertLevel.Critical => "🔴",
+                    AlertLevel.Error => "❌",
+                    AlertLevel.Warning => "⚠️ ",
+                    _ => "ℹ️ "
+                };
+                
+                var timeStr = alert.Timestamp.ToOffset(TimeSpan.FromHours(-5)).ToString("HH:mm");
+                var levelStr = alert.Level.ToString().ToUpper();
+                var sourceStr = alert.Source.Length > 20 ? alert.Source.Substring(0, 17) + "..." : alert.Source;
+                
+                // First line: icon, level, source, time
+                output.AppendLine($"│ {icon} {levelStr,-8} [{timeStr}] {sourceStr,-40}│");
+                
+                // Second line: message (wrapped if needed)
+                var message = alert.Message.Length > 75 ? alert.Message.Substring(0, 72) + "..." : alert.Message;
+                output.AppendLine($"│    {message,-76} │");
+                
+                // Blank line between alerts if there are multiple
+                if (alerts.Count > 1 && alert != alerts.Last())
+                {
+                    output.AppendLine("│                                                                                 │");
+                }
+            }
+        }
+        
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
         output.AppendLine();
     }

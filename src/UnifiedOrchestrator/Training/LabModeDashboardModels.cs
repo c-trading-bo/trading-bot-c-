@@ -81,6 +81,9 @@ public sealed class LabModeDashboardState
     
     // Recent activity
     public List<ActivityLogEntry> RecentActivity { get; set; } = new();
+    
+    // Alerts (warnings/errors)
+    public List<DashboardAlert> ActiveAlerts { get; set; } = new();
 }
 
 /// <summary>
@@ -133,4 +136,26 @@ public sealed class ActivityLogEntry
     public string LogLevel { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Alert entry for warnings and errors (displayed in dashboard)
+/// </summary>
+public sealed class DashboardAlert
+{
+    public DateTimeOffset Timestamp { get; set; }
+    public AlertLevel Level { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public bool IsDismissed { get; set; }
+}
+
+/// <summary>
+/// Alert severity level
+/// </summary>
+public enum AlertLevel
+{
+    Warning,
+    Error,
+    Critical
 }

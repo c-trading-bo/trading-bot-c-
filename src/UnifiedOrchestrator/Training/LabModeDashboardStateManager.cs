@@ -17,12 +17,14 @@ public sealed class LabModeDashboardStateManager
     private readonly ILogger<LabModeDashboardStateManager> _logger;
     private readonly ConcurrentDictionary<string, StrategyTrainingMetrics> _strategyMetrics = new();
     private readonly ConcurrentQueue<ActivityLogEntry> _activityLog = new();
+    private readonly ConcurrentBag<DashboardAlert> _alerts = new();
     private readonly object _stateLock = new();
     
     private LabModeDashboardState _currentState;
     private Process? _currentProcess;
     
     private const int MaxActivityLogEntries = 50;
+    private const int MaxActiveAlerts = 5;
 
     public LabModeDashboardStateManager(ILogger<LabModeDashboardStateManager> logger)
     {
@@ -300,6 +302,78 @@ public sealed class LabModeDashboardStateManager
         {
             _currentState.RecentActivity = _activityLog.ToList();
         }
+        
+        // If it's a warning or error, also add as alert
+        if (logLevel.Equals("warning", StringComparison.OrdinalIgnoreCase) ||
+            logLevel.Equals("error", StringComparison.OrdinalIgnoreCase) ||
+            logLevel.Equals("critical", StringComparison.OrdinalIgnoreCase))
+        {
+            AddAlert(logLevel, source, message);
+        }
+    }
+
+    /// <summary>
+    /// Add an alert (warning/error) to the dashboard
+    /// </summary>
+    public void AddAlert(string level, string source, string message)
+    {
+        var alertLevel = level.ToLowerInvariant() switch
+        {
+            "critical" => AlertLevel.Critical,
+            "error" => AlertLevel.Error,
+            _ => AlertLevel.Warning
+        };
+        
+        var alert = new DashboardAlert
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            Level = alertLevel,
+            Source = source,
+            Message = message,
+            IsDismissed = false
+        };
+        
+        _alerts.Add(alert);
+        
+        lock (_stateLock)
+        {
+            // Keep only the most recent non-dismissed alerts
+            _currentState.ActiveAlerts = _alerts
+                .Where(a => !a.IsDismissed)
+                .OrderByDescending(a => a.Timestamp)
+                .Take(MaxActiveAlerts)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Dismiss an alert by message
+    /// </summary>
+    public void DismissAlert(string message)
+    {
+        lock (_stateLock)
+        {
+            var alert = _currentState.ActiveAlerts.FirstOrDefault(a => a.Message == message);
+            if (alert != null)
+            {
+                alert.IsDismissed = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear all alerts
+    /// </summary>
+    public void ClearAlerts()
+    {
+        lock (_stateLock)
+        {
+            foreach (var alert in _currentState.ActiveAlerts)
+            {
+                alert.IsDismissed = true;
+            }
+            _currentState.ActiveAlerts.Clear();
+        }
     }
 
     /// <summary>
@@ -327,7 +401,8 @@ public sealed class LabModeDashboardStateManager
                 StrategyMetrics = _currentState.StrategyMetrics.Select(CloneStrategyMetrics).ToList(),
                 CurrentComponent = _currentState.CurrentComponent,
                 Resources = CloneResourceMetrics(_currentState.Resources),
-                RecentActivity = _currentState.RecentActivity.ToList()
+                RecentActivity = _currentState.RecentActivity.ToList(),
+                ActiveAlerts = _currentState.ActiveAlerts.ToList()
             };
         }
     }
@@ -341,7 +416,8 @@ public sealed class LabModeDashboardStateManager
             LightPhase = new PhaseDetails { PhaseName = "Light" },
             Resources = new ResourceMetrics(),
             StrategyMetrics = new List<StrategyTrainingMetrics>(),
-            RecentActivity = new List<ActivityLogEntry>()
+            RecentActivity = new List<ActivityLogEntry>(),
+            ActiveAlerts = new List<DashboardAlert>()
         };
     }
 
