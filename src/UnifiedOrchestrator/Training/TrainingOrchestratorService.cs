@@ -31,6 +31,7 @@ internal sealed class TrainingOrchestratorService
     private readonly TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? _baselineManager;
     private readonly MediumPhaseTrainerService? _mediumPhaseTrainer;
     private readonly LightPhaseTrainerService? _lightPhaseTrainer;
+    private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
     private readonly string _lockFilePath;
     private readonly string _checkpointDirectory;
     private readonly System.Timers.Timer? _dashboardUpdateTimer;
@@ -50,7 +51,8 @@ internal sealed class TrainingOrchestratorService
         TradingBot.UnifiedOrchestrator.Services.BaselineModelManager? baselineManager = null,
         MediumPhaseTrainerService? mediumPhaseTrainer = null,
         LightPhaseTrainerService? lightPhaseTrainer = null,
-        LabModeDashboardStateManager? dashboardStateManager = null)
+        LabModeDashboardStateManager? dashboardStateManager = null,
+        global::BotCore.Data.ExperienceRepository? experienceRepository = null)
     {
         _logger = logger;
         _historicalOrchestrator = historicalOrchestrator;
@@ -67,6 +69,7 @@ internal sealed class TrainingOrchestratorService
         _baselineManager = baselineManager;
         _mediumPhaseTrainer = mediumPhaseTrainer;
         _lightPhaseTrainer = lightPhaseTrainer;
+        _experienceRepository = experienceRepository;
 
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         _checkpointDirectory = Path.Combine(Directory.GetCurrentDirectory(), "state", "training");
@@ -496,8 +499,8 @@ internal sealed class TrainingOrchestratorService
                 phaseResult.SuccessfulComponents,
                 phaseResult.FailedComponents);
             
-            // Update strategy metrics after phase completes
-            UpdateStrategyMetrics();
+            // Update strategy metrics from real trading experiences in database
+            await UpdateStrategyMetricsFromExperiencesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return phaseResult;
@@ -770,51 +773,68 @@ internal sealed class TrainingOrchestratorService
     }
     
     /// <summary>
-    /// Update strategy performance metrics in dashboard
-    /// This simulates collecting metrics from backtest results
-    /// In production, this would be called after actual backtesting
+    /// Update strategy performance metrics in dashboard from actual trading experiences
+    /// This method queries the experience database and calculates real performance per strategy
     /// </summary>
-    private void UpdateStrategyMetrics()
+    private async Task UpdateStrategyMetricsFromExperiencesAsync(CancellationToken cancellationToken = default)
     {
-        if (_dashboardStateManager == null)
+        if (_dashboardStateManager == null || _experienceRepository == null)
             return;
         
-        // Simulate strategy metrics from training results
-        // In production, these would come from actual backtest results
-        var strategies = new[] { "S2", "S3", "S6", "S11" };
-        var baseWinRates = new[] { 58.5m, 45.2m, 52.0m, 48.5m };
-        var baseTotalTrades = new[] { 200, 200, 200, 200 };
-        
-        for (int i = 0; i < strategies.Length; i++)
+        try
         {
-            var strategy = strategies[i];
-            var winRate = baseWinRates[i];
-            var totalTrades = baseTotalTrades[i];
-            var winningTrades = (int)(totalTrades * (double)winRate / 100);
-            var losingTrades = totalTrades - winningTrades;
+            // Get experiences from last 30 days (covers training period)
+            var experiences = await _experienceRepository.LoadRecentExperiencesAsync(30).ConfigureAwait(false);
             
-            // Use strategy-specific average win/loss based on strategy characteristics
-            var avgWin = 60m + (i * 5m); // $60, $65, $70, $75
-            var avgLoss = -35m - (i * 3m); // -$35, -$38, -$41, -$44
+            if (experiences == null || !experiences.Any())
+            {
+                _logger.LogDebug("[DASHBOARD] No experiences found for strategy metrics");
+                return;
+            }
             
-            var totalWon = avgWin * winningTrades;
-            var totalLost = avgLoss * losingTrades;
-            var totalPnL = totalWon + totalLost;
+            // Group by strategy and calculate metrics
+            var strategies = new[] { "S2", "S3", "S6", "S11" };
             
-            _dashboardStateManager.UpdateStrategyMetrics(
-                strategy,
-                winRate,
-                totalPnL,
-                totalWon,
-                totalLost,
-                winningTrades,
-                losingTrades
-            );
-            
-            _dashboardStateManager.CompleteStrategyTraining(strategy, $"v1.2.{i}");
-            
-            _logger.LogDebug("[DASHBOARD] Updated strategy {Strategy}: WR={WinRate:F1}%, PnL=${PnL:F2}", 
-                strategy, winRate, totalPnL);
+            foreach (var strategy in strategies)
+            {
+                var strategyExperiences = experiences.Where(e => e.Strategy == strategy).ToList();
+                
+                if (!strategyExperiences.Any())
+                {
+                    _logger.LogDebug("[DASHBOARD] No experiences found for strategy {Strategy}", strategy);
+                    continue;
+                }
+                
+                // Calculate real metrics from actual trading experiences
+                var totalTrades = strategyExperiences.Count;
+                var winningTrades = strategyExperiences.Count(e => e.PnL > 0);
+                var losingTrades = strategyExperiences.Count(e => e.PnL <= 0);
+                var winRate = totalTrades > 0 ? (decimal)winningTrades / totalTrades * 100m : 0m;
+                
+                var totalWon = strategyExperiences.Where(e => e.PnL > 0).Sum(e => e.PnL);
+                var totalLost = strategyExperiences.Where(e => e.PnL <= 0).Sum(e => e.PnL);
+                var totalPnL = totalWon + totalLost;
+                
+                // Update dashboard with real metrics
+                _dashboardStateManager.UpdateStrategyMetrics(
+                    strategy,
+                    winRate,
+                    totalPnL,
+                    totalWon,
+                    totalLost,
+                    winningTrades,
+                    losingTrades
+                );
+                
+                _dashboardStateManager.CompleteStrategyTraining(strategy, "v1.2.0");
+                
+                _logger.LogInformation("[DASHBOARD] Updated strategy {Strategy} from {Count} real experiences: WR={WinRate:F1}%, PnL=${PnL:F2}", 
+                    strategy, totalTrades, winRate, totalPnL);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[DASHBOARD] Failed to collect strategy metrics from experiences");
         }
     }
 }
