@@ -56,7 +56,7 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly TradingBot.RLAgent.RegimeDetectorTrainer _regimeDetectorTrainer;
     private readonly TradingBot.RLAgent.SlippageLatencyTrainer _slippageLatencyTrainer;
     private readonly TradingBot.RLAgent.ModelEnsembleTrainer _modelEnsembleTrainer;
-    private readonly TradingBot.RLAgent.SACTrainer _sacTrainer;
+    private readonly global::BotCore.Bandits.NeuralUcbBanditTrainer _neuralUcbBanditTrainer;
     private readonly TrainingManifestService _manifestService;
     private readonly DataIntegrityService _dataIntegrityService;
     private readonly TrainingMetricsCollector _metricsCollector;
@@ -98,7 +98,7 @@ internal sealed class HistoricalTrainingOrchestrator
         TradingBot.RLAgent.RegimeDetectorTrainer regimeDetectorTrainer,
         TradingBot.RLAgent.SlippageLatencyTrainer slippageLatencyTrainer,
         TradingBot.RLAgent.ModelEnsembleTrainer modelEnsembleTrainer,
-        TradingBot.RLAgent.SACTrainer sacTrainer,
+        global::BotCore.Bandits.NeuralUcbBanditTrainer neuralUcbBanditTrainer,
         TrainingManifestService manifestService,
         DataIntegrityService dataIntegrityService,
         TrainingMetricsCollector metricsCollector,
@@ -134,7 +134,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _regimeDetectorTrainer = regimeDetectorTrainer;
         _slippageLatencyTrainer = slippageLatencyTrainer;
         _modelEnsembleTrainer = modelEnsembleTrainer;
-        _sacTrainer = sacTrainer;
+        _neuralUcbBanditTrainer = neuralUcbBanditTrainer;
         _manifestService = manifestService;
         _dataIntegrityService = dataIntegrityService;
         _metricsCollector = metricsCollector;
@@ -2147,37 +2147,38 @@ internal sealed class HistoricalTrainingOrchestrator
                 HitStopLoss = e.Reward < 0
             }).ToList();
             
-            // Multi-seed training
+            // Multi-seed training for Neural UCB Bandit
             var seeds = _multiSeedCoordinator.GetTrainingSeeds();
             var seedResults = new List<Training.SeedTrainingResult>();
             
             foreach (var seed in seeds)
             {
                 _earlyStoppingTracker.Reset();
-                var trainingResult = await _sacTrainer.TrainFromHistoricalBarsAsync(
-                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                // Neural UCB trains on strategy selection - use RetrainNetworkAsync
+                var trainingResult = await _neuralUcbBanditTrainer.RetrainNetworkAsync(
+                    cancellationToken).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {
                     seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
-                        seed, 1.0, 1.0, $"sac_seed_{seed}.onnx"));
+                        seed, trainingResult.Loss, trainingResult.Accuracy, $"neural_ucb_seed_{seed}.onnx"));
                 }
             }
             
             stopwatch.Stop();
             
             var decision = _multiSeedCoordinator.MakePromotionDecision(
-                "SAC", seedResults, 0.0);
+                "NeuralUCB", seedResults, 0.0);
             
             if (!decision.Approved)
             {
-                result.FailedComponents.Add($"SAC - {decision.Reason}");
+                result.FailedComponents.Add($"NeuralUCB - {decision.Reason}");
             }
             
-            await _memoryLeakDetector.RecordAfterComponentAsync("SAC", cancellationToken).ConfigureAwait(false);
-            _debugLogger.LogAfterComponent("SAC", decision.Approved, stopwatch.Elapsed);
+            await _memoryLeakDetector.RecordAfterComponentAsync("NeuralUCB", cancellationToken).ConfigureAwait(false);
+            _debugLogger.LogAfterComponent("NeuralUCB", decision.Approved, stopwatch.Elapsed);
             
-            _logger.LogInformation("[LAB] ✅ SAC (Soft Actor-Critic) complete in {Duration:F0} min - Multi-seed: {Success}/{Total}", 
+            _logger.LogInformation("[LAB] ✅ Neural UCB Bandit complete in {Duration:F0} min - Multi-seed: {Success}/{Total}", 
                 stopwatch.Elapsed.TotalMinutes, decision.SuccessfulSeedCount, decision.TotalSeedCount);
         }
         catch (Exception ex)

@@ -109,17 +109,7 @@ public static class IntelligenceStackServiceExtensions
         // Register advanced intelligence services - ALL PRODUCTION IMPLEMENTATIONS
         services.AddSingleton<EnsembleMetaLearner>();
         services.AddSingleton<ModelQuarantineManager>();
-        services.AddSingleton<HistoricalTrainerWithCV>();
         services.AddSingleton<MamlLiveIntegration>();
-        services.AddSingleton<NightlyParameterTuner>();
-        services.AddSingleton<RLAdvisorSystem>();
-        services.AddSingleton<ObservabilityDashboard>();
-        services.AddSingleton<LineageTrackingSystem>();
-
-        // Register main orchestrator - PRODUCTION IMPLEMENTATION
-        services.AddSingleton<IntelligenceOrchestrator>();
-        services.AddSingleton<IIntelligenceOrchestrator>(provider => 
-            provider.GetRequiredService<IntelligenceOrchestrator>());
 
         // Register monitoring services - PRODUCTION IMPLEMENTATIONS
         services.AddSingleton<SloMonitor>();
