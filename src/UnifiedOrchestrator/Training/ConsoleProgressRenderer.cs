@@ -7,26 +7,48 @@ namespace TradingBot.UnifiedOrchestrator.Training;
 /// <summary>
 /// Renders progress bars and training status to console
 /// Provides real-time visual feedback during training sessions
+/// Supports both legacy progress display and new Lab Mode dashboard
 /// </summary>
 public sealed class ConsoleProgressRenderer
 {
     private readonly ILogger<ConsoleProgressRenderer> _logger;
     private readonly ProgressTracker _progressTracker;
+    private readonly LabModeDashboardRenderer? _dashboardRenderer;
+    private readonly LabModeDashboardStateManager? _dashboardStateManager;
     private int _lastRenderedLineCount = 0;
+    private readonly bool _useLabModeDashboard;
 
     public ConsoleProgressRenderer(
         ILogger<ConsoleProgressRenderer> logger,
-        ProgressTracker progressTracker)
+        ProgressTracker progressTracker,
+        LabModeDashboardRenderer? dashboardRenderer = null,
+        LabModeDashboardStateManager? dashboardStateManager = null)
     {
         _logger = logger;
         _progressTracker = progressTracker;
+        _dashboardRenderer = dashboardRenderer;
+        _dashboardStateManager = dashboardStateManager;
+        
+        // Use Lab Mode dashboard if enabled and components are available
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        _useLabModeDashboard = labMode == "1" && _dashboardRenderer != null && _dashboardStateManager != null;
     }
 
     /// <summary>
     /// Render full progress display to console
+    /// Uses Lab Mode dashboard if enabled, otherwise uses legacy display
     /// </summary>
     public void RenderProgress()
     {
+        // Use Lab Mode dashboard if enabled
+        if (_useLabModeDashboard && _dashboardRenderer != null && _dashboardStateManager != null)
+        {
+            var dashboardState = _dashboardStateManager.GetCurrentState();
+            _dashboardRenderer.RenderDashboard(dashboardState);
+            return;
+        }
+        
+        // Fallback to legacy display
         var summary = _progressTracker.GetSummary();
         var output = new StringBuilder();
 
