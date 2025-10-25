@@ -3286,11 +3286,16 @@ Reason closed: {reason}
             var priceChange = bars.Count > 1 ? latestBar.Close - bars[^2].Close : 0m;
             var volatility = latestBar.Close > 0 ? Math.Abs(latestBar.High - latestBar.Low) / latestBar.Close : 0;
             
-            Console.WriteLine($"[MARKET-CONTEXT] {symbol} | Price={latestBar.Close:F2} Vol={latestBar.Volume:N0} " +
-                             $"ATR={env.atr:F2} RSI={rsi:F1} Volatility={volatility:F4} " +
-                             $"VolRatio={volumeRatio:F2}x Trend={trendStrength:F2} Momentum={momentum:F2} " +
-                             $"PriceChange={priceChange:F2} VolRank={volatilityRank:F2} " +
-                             $"Time={latestBar.Start:HH:mm:ss} {latestBar.Start.DayOfWeek}");
+            // Suppress verbose console output during Lab mode training (shows only dashboard)
+            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+            if (!isLabMode)
+            {
+                Console.WriteLine($"[MARKET-CONTEXT] {symbol} | Price={latestBar.Close:F2} Vol={latestBar.Volume:N0} " +
+                                 $"ATR={env.atr:F2} RSI={rsi:F1} Volatility={volatility:F4} " +
+                                 $"VolRatio={volumeRatio:F2}x Trend={trendStrength:F2} Momentum={momentum:F2} " +
+                                 $"PriceChange={priceChange:F2} VolRank={volatilityRank:F2} " +
+                                 $"Time={latestBar.Start:HH:mm:ss} {latestBar.Start.DayOfWeek}");
+            }
             
             var context = new MarketContext
             {
