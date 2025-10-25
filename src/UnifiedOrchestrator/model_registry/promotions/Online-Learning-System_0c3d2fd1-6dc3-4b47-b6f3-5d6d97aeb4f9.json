@@ -1,0 +1,19 @@
+{
+  "id": "0c3d2fd1-6dc3-4b47-b6f3-5d6d97aeb4f9",
+  "algorithm": "",
+  "fromVersionId": "none",
+  "toVersionId": "v1.0.0-bootstrap-onlinelearningsystem",
+  "promotedAt": "2025-10-25T09:19:35.1426298Z",
+  "promotedBy": "",
+  "reason": "Bootstrap: Initial champion registration",
+  "validationReportPath": "",
+  "passedValidation": false,
+  "performanceImprovement": 0,
+  "riskReduction": 0,
+  "wasRolledBack": false,
+  "rolledBackAt": null,
+  "rollbackReason": "",
+  "wasFlat": false,
+  "marketSession": "",
+  "contextData": {}
+}

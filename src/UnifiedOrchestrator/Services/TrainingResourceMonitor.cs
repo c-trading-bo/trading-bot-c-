@@ -335,21 +335,21 @@ internal sealed class TrainingResourceMonitor
             
             if (File.Exists(lockFilePath))
             {
-                // Lock file exists - check if it's stale (older than 6 hours)
+                // Lock file exists - check if it's stale (older than 30 minutes)
                 var lockFileInfo = new FileInfo(lockFilePath);
                 var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
                 
-                if (lockAge.TotalHours < 6)
+                if (lockAge.TotalMinutes < 30)
                 {
-                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} hours) - another training session may be running",
-                        lockAge.TotalHours);
-                    return (false, $"Training lock file exists (created {lockAge.TotalHours:F1} hours ago) - another session may be running");
+                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} minutes) - another training session may be running",
+                        lockAge.TotalMinutes);
+                    return (false, $"Training lock file exists (created {lockAge.TotalMinutes:F1} minutes ago) - another session may be running");
                 }
                 else
                 {
                     // Stale lock file - delete it
-                    _logger.LogWarning("[PRE-FLIGHT] Stale training lock file detected (age: {Age:F1} hours) - deleting",
-                        lockAge.TotalHours);
+                    _logger.LogWarning("[PRE-FLIGHT] Stale training lock file detected (age: {Age:F1} minutes) - deleting",
+                        lockAge.TotalMinutes);
                     File.Delete(lockFilePath);
                 }
             }

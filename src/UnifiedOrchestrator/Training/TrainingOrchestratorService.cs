@@ -100,12 +100,25 @@ internal sealed class TrainingOrchestratorService
     public async Task<TrainingSession> StartTrainingSessionAsync(
         CancellationToken cancellationToken = default)
     {
-        // Check for existing lock file
+        // Check for existing lock file with stale detection
         if (File.Exists(_lockFilePath))
         {
-            var lockContent = await File.ReadAllTextAsync(_lockFilePath, cancellationToken).ConfigureAwait(false);
-            throw new InvalidOperationException(
-                $"Another training session is active. Lock file exists: {_lockFilePath}. Content: {lockContent}");
+            var lockFileInfo = new FileInfo(_lockFilePath);
+            var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
+            
+            // If lock is older than 30 minutes, consider it stale and delete it
+            if (lockAge.TotalMinutes > 30)
+            {
+                _logger.LogWarning("[LAB] Stale training lock file detected (age: {Age:F1} minutes) - deleting and proceeding",
+                    lockAge.TotalMinutes);
+                File.Delete(_lockFilePath);
+            }
+            else
+            {
+                var lockContent = await File.ReadAllTextAsync(_lockFilePath, cancellationToken).ConfigureAwait(false);
+                throw new InvalidOperationException(
+                    $"Another training session is active. Lock file exists: {_lockFilePath}. Content: {lockContent}");
+            }
         }
 
         // Create new session

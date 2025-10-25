@@ -1,0 +1,378 @@
+================================================================================
+QBOT LAB MODE - PLAIN TERMINAL OUTPUT (SUNDAY ONLY)
+================================================================================
+This is EXACTLY what you'll see in your PowerShell terminal on Sunday
+when Lab Mode runs automatically from 12:00 PM - 5:45 PM ET.
+
+Plain text output from ILogger (no colors, no fancy formatting).
+================================================================================
+
+[2024-12-15 11:55:00] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Pre-warming systems (5 minutes before training window)...
+
+[2024-12-15 11:55:02] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] ✓ Data directory warmed
+
+[2024-12-15 11:55:04] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] ✓ Experience database paths cached
+
+[2024-12-15 11:55:06] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] ✓ Model registry warmed
+
+[2024-12-15 11:55:08] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] ✓ Memory compacted and ready
+
+[2024-12-15 11:55:10] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] System pre-warming complete - ready for training
+
+[2024-12-15 11:55:15] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Next Training: 12/15/2024 12:00:00 PM (in 4m 45s) - Current: 12/15/2024 11:55:15 AM
+
+================================================================================
+TRAINING WINDOW OPENS - 12:00 PM
+================================================================================
+
+[2024-12-15 12:00:00] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Training window OPEN - Starting training with watchdog
+
+[2024-12-15 12:00:01] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Starting enhanced training session with progress tracking
+
+[2024-12-15 12:00:02] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] TRAINING SESSION INITIATED - SessionId: train-20241215-120002
+
+[2024-12-15 12:00:03] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Loading training components from JSON...
+
+[2024-12-15 12:00:04] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Loaded 273 total components
+
+================================================================================
+PRE-TRAINING HEALTH CHECKS
+================================================================================
+
+[2024-12-15 12:00:05] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ═══════════════════════════════════════════════════════
+
+[2024-12-15 12:00:05] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] PRE-TRAINING HEALTH CHECKS
+
+[2024-12-15 12:00:05] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ═══════════════════════════════════════════════════════
+
+[2024-12-15 12:00:06] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] [1/5] Checking system resources...
+
+[2024-12-15 12:00:07] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB]   ✓ System resources sufficient
+
+[2024-12-15 12:00:08] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] [2/5] Checking historical data...
+
+[2024-12-15 12:00:09] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] 📊 Loading historical data for training session...
+
+[2024-12-15 12:00:10] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] ✅ Data directory exists: C:\trading-bot\data\historical
+
+[2024-12-15 12:00:11] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] 📄 File found: 4,250 KB, modified 12/14/2024 11:30:00 PM
+
+[2024-12-15 12:00:12] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] ✅ Loaded 15,840 bars for ES
+
+[2024-12-15 12:00:13] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] ✅ Loaded 15,840 bars for NQ
+
+[2024-12-15 12:00:14] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] 📊 Total bars loaded: 31,680 (ES: 15,840, NQ: 15,840)
+
+[2024-12-15 12:00:15] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB]   ✓ Historical data files validated
+      [LAB]     - ES: 15,840 bars
+      [LAB]     - NQ: 15,840 bars
+
+[2024-12-15 12:00:16] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] [3/5] Checking experience database...
+
+[2024-12-15 12:00:17] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB]   ✓ Experience database accessible (12,450 experiences)
+
+[2024-12-15 12:00:18] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] [4/5] Checking model registry...
+
+[2024-12-15 12:00:19] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB]   ✓ Model registry writable
+
+[2024-12-15 12:00:20] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] [5/5] Checking for concurrent sessions...
+
+[2024-12-15 12:00:21] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB]   ✓ Lock file owned by current session: train-20241215-120002
+
+[2024-12-15 12:00:22] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ═══════════════════════════════════════════════════════
+
+[2024-12-15 12:00:23] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✅ ALL HEALTH CHECKS PASSED
+
+[2024-12-15 12:00:24] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ═══════════════════════════════════════════════════════
+
+================================================================================
+HEAVY PHASE TRAINING (7 major trainers)
+================================================================================
+
+[2024-12-15 12:00:25] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: HEAVY TRAINING (Deep Learning Models)                        ║
+      ║  Components: 7                                                       ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+[2024-12-15 12:00:30] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [1/7] Starting: CVaRPPOTrainer
+
+[2024-12-15 12:02:45] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: CVaRPPOTrainer (2m 15s)
+
+[2024-12-15 12:02:46] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [2/7] Starting: NeuralUcbBanditTrainer
+
+[2024-12-15 12:05:30] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: NeuralUcbBanditTrainer (2m 44s)
+
+[2024-12-15 12:05:31] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [3/7] Starting: LSTMTrainer
+
+[2024-12-15 12:08:15] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: LSTMTrainer (2m 44s)
+
+[2024-12-15 12:08:16] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [4/7] Starting: PatternRecognitionTrainer
+
+[2024-12-15 12:10:45] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: PatternRecognitionTrainer (2m 29s)
+
+[2024-12-15 12:10:46] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [5/7] Starting: RegimeDetectorTrainer
+
+[2024-12-15 12:13:20] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: RegimeDetectorTrainer (2m 34s)
+
+[2024-12-15 12:13:21] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [6/7] Starting: SlippageLatencyTrainer
+
+[2024-12-15 12:15:50] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: SlippageLatencyTrainer (2m 29s)
+
+[2024-12-15 12:15:51] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+      [7/7] Starting: ModelEnsembleTrainer
+
+[2024-12-15 12:18:30] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+        ✓ Completed: ModelEnsembleTrainer (2m 39s)
+
+[2024-12-15 12:18:31] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: HEAVY TRAINING - COMPLETE                                    ║
+      ║  ✓ Successful: 7  ✗ Failed: 0  Duration: 18m 6s                     ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+MEDIUM PHASE TRAINING (Calibration/Optimization)
+================================================================================
+
+[2024-12-15 12:18:35] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: MEDIUM TRAINING (Calibration & Optimization)                 ║
+      ║  Components: 3                                                       ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+[2024-12-15 12:18:40] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Medium phase: Training 3 calibration/optimization components
+
+[2024-12-15 12:22:15] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✅ Medium phase training completed - 3/3 successful
+
+[2024-12-15 12:22:16] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: MEDIUM TRAINING - COMPLETE                                   ║
+      ║  ✓ Successful: 3  ✗ Failed: 0  Duration: 3m 36s                     ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+LIGHT PHASE TRAINING (Online Learning)
+================================================================================
+
+[2024-12-15 12:22:20] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: LIGHT TRAINING (Online Learning & Fine-Tuning)               ║
+      ║  Components: 2                                                       ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+[2024-12-15 12:22:25] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Light phase: Training 2 online learning/fine-tuning components
+
+[2024-12-15 12:23:40] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✅ Light phase training completed - 2/2 successful
+
+[2024-12-15 12:23:41] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║  PHASE: LIGHT TRAINING - COMPLETE                                    ║
+      ║  ✓ Successful: 2  ✗ Failed: 0  Duration: 1m 15s                     ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+POST-TRAINING VALIDATION
+================================================================================
+
+[2024-12-15 12:23:45] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Running Phase 4 post-training validation...
+
+[2024-12-15 12:24:30] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✓ Phase 4 validation passed - all checks successful
+      [LAB]   Inference tests: PASS
+      [LAB]   Baseline comparison: PASS
+      [LAB]   Catastrophic forgetting: PASS
+      [LAB]   Model integrity: PASS
+
+================================================================================
+MODEL PROMOTION (ATOMIC DEPLOYMENT)
+================================================================================
+
+[2024-12-15 12:24:35] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Running Phase 5 model promotion evaluation...
+
+[2024-12-15 12:24:40] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✓ Promotion criteria passed - all categories successful
+      [LAB]   Training success: PASS
+      [LAB]   Validation success: PASS
+      [LAB]   Performance: PASS
+      [LAB]   Technical: PASS
+      [LAB]   Operational: PASS
+
+[2024-12-15 12:24:45] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Using Phase 7 AtomicPromotionCoordinator for bulletproof deployment
+
+[2024-12-15 12:25:10] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] Capturing baseline after successful promotion...
+
+[2024-12-15 12:25:15] info: TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService[0]
+      [LAB] ✅ Phase 7 atomic promotion successful:
+      [LAB]   Models promoted: 12
+      [LAB]   Duration: 24,512.5ms
+      [LAB]   Version: v20241215-120002
+      [LAB]   Backup created: C:\trading-bot\backups\20241215-120002
+      [LAB]   Rollback available: YES
+
+================================================================================
+OPTIONAL GITHUB SYNC (CLOUD BACKUP)
+================================================================================
+
+[2024-12-15 12:25:20] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] GITHUB SYNC (Optional Cloud Backup) - started
+
+[2024-12-15 12:25:35] info: TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator[0]
+      [LAB] Note: Terminal Mode will use local registry (no GitHub dependency)
+
+================================================================================
+SESSION SUMMARY
+================================================================================
+
+[2024-12-15 12:25:40] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]
+
+      ╔══════════════════════════════════════════════════════════════════════╗
+      ║                    TRAINING SESSION SUMMARY                          ║
+      ╚══════════════════════════════════════════════════════════════════════╝
+
+      Session ID:       train-20241215-120002
+      Status:           Completed
+      Duration:         25m 38s
+
+      Components:
+        Total:          12
+        Completed:      12
+        Failed:         0
+        Success Rate:   100.0%
+
+      Promotion:        ✓ Success
+
+      ═══════════════════════════════════════════════════════════════════════
+
+[2024-12-15 12:25:45] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Enhanced training session completed successfully
+
+================================================================================
+IDLE STATE (UNTIL NEXT SUNDAY)
+================================================================================
+
+[2024-12-15 12:25:50] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+
+      ╔═══════════════════════════════════════════════════════════════════╗
+      ║                                                                   ║
+      ║  Status: IDLE - Waiting for Next Training Window                 ║
+      ║                                                                   ║
+      ║  Training Window:   Sunday 12:00 PM - 5:45 PM Eastern Time       ║
+      ║  Next Session:      Sunday, December 22, 2024 12:00:00 PM        ║
+      ║                                                                   ║
+      ║  System Status:     READY                                        ║
+      ║  Health Checks:     Every 1 hour                                 ║
+      ║  Watchdog:          ACTIVE                                       ║
+      ║                                                                   ║
+      ╚═══════════════════════════════════════════════════════════════════╝
+
+[2024-12-15 12:25:55] info: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Next Training: 12/22/2024 12:00:00 PM (in 6d 23h 34m 5s) - Current: 12/15/2024 12:25:55 PM
+
+[2024-12-15 12:26:00] debug: TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler[0]
+      [LAB] Watchdog monitoring active - System ready for next session
+
+================================================================================
+SUMMARY - WHAT HAPPENS ON SUNDAY
+================================================================================
+
+11:55 AM  → Pre-warming (5 minutes before training)
+12:00 PM  → Training window opens
+12:00-12:01 → Session initialization
+12:01-12:24 → Health checks (10 checks)
+12:00-12:18 → HEAVY Phase (7 trainers, ~18 minutes)
+12:18-12:22 → MEDIUM Phase (3 components, ~4 minutes)
+12:22-12:23 → LIGHT Phase (2 components, ~1 minute)
+12:23-12:24 → Post-training validation (4 checks)
+12:24-12:25 → Model promotion (Phase 5 & 7 atomic deployment)
+12:25-12:26 → GitHub sync (optional cloud backup)
+12:26 PM   → Training complete, enter IDLE state
+12:26-5:45 → Idle monitoring (hourly health checks)
+5:45 PM    → Training window closes for the week
+
+NEXT SUNDAY → Repeat automatically (zero human intervention)
+
+================================================================================
+KEY FEATURES YOU HAVE
+================================================================================
+
+✓ InternalScheduler - Sunday detection, DST-aware, lock files
+✓ HistoricalTrainingOrchestrator - Main training coordinator (2,049 lines)
+✓ TrainingOrchestratorService - Session management (664 lines)
+✓ ConsoleProgressRenderer - Progress visualization (267 lines)
+✓ ProgressTracker - ETA calculations (332 lines)
+✓ ResourcePreCheckService - 10 pre-training health checks
+✓ TrainingAlertService - Slack/Discord notifications
+✓ AtomicPromotionCoordinator - Phase 7 bulletproof deployment
+✓ BaselineModelManager - Post-promotion baseline capture
+✓ Lock File Management - Prevents concurrent sessions
+✓ Checkpoint Recovery - Resume from failures
+✓ GitHub Artifact Sync - Optional cloud backup
+✓ 7 Heavy Trainers - CVaR PPO, Neural UCB, LSTM, Pattern, Regime, Slippage, Ensemble
+✓ 3 Medium Trainers - Calibration/Optimization
+✓ 2 Light Trainers - Online learning/fine-tuning
+✓ 273 Total Components (target from training-components.json)
+
+ZERO HUMAN INTERVENTION - FULLY AUTOMATED EVERY SUNDAY
+
+================================================================================
