@@ -335,35 +335,86 @@ internal sealed class TrainingResourceMonitor
             
             if (File.Exists(lockFilePath))
             {
-                // Lock file exists - check if it's stale (older than 5 minutes for Lab Mode quick retries)
+                // Lock file exists - check if it's stale or belongs to a dead process
                 var lockFileInfo = new FileInfo(lockFilePath);
                 var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
                 
-                // If lock is VERY fresh (< 1 minute), it's from the current session startup - allow it
-                if (lockAge.TotalMinutes < 1)
+                // Read lock file content to check for process ID
+                string lockContent = string.Empty;
+                try
                 {
-                    _logger.LogDebug("[PRE-FLIGHT] Training lock file is fresh ({Age:F1} minutes) - belongs to current session",
-                        lockAge.TotalMinutes);
-                    return (true, null);
+                    lockContent = File.ReadAllText(lockFilePath);
                 }
-                else if (lockAge.TotalMinutes < 5)
+                catch
                 {
-                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} minutes) - another training session may be running",
-                        lockAge.TotalMinutes);
-                    return (false, $"Training lock file exists (created {lockAge.TotalMinutes:F1} minutes ago) - another session may be running");
+                    // If we can't read the lock file, it's corrupt - delete it
+                    _logger.LogWarning("[PRE-FLIGHT] Corrupt training lock file detected - deleting");
+                    File.Delete(lockFilePath);
+                    lockContent = string.Empty;
+                }
+                
+                // Check if lock belongs to a running process
+                var currentPid = Environment.ProcessId;
+                if (!string.IsNullOrEmpty(lockContent))
+                {
+                    // Parse PID from lock file content (format: "PID:<pid>|Started:<timestamp>")
+                    if (lockContent.StartsWith("PID:", StringComparison.Ordinal))
+                    {
+                        var parts = lockContent.Split('|');
+                        if (parts.Length > 0)
+                        {
+                            var pidPart = parts[0].Substring(4); // Remove "PID:" prefix
+                            if (int.TryParse(pidPart, out var lockPid))
+                            {
+                                // Check if this is the current process
+                                if (lockPid == currentPid)
+                                {
+                                    _logger.LogDebug("[PRE-FLIGHT] Training lock belongs to current process (PID: {PID}) - allowing", currentPid);
+                                    return (true, null);
+                                }
+                                
+                                // Check if the process is still running
+                                try
+                                {
+                                    var lockProcess = Process.GetProcessById(lockPid);
+                                    if (lockProcess != null && !lockProcess.HasExited)
+                                    {
+                                        _logger.LogWarning("[PRE-FLIGHT] Training lock held by running process (PID: {PID}, age: {Age:F1} minutes)",
+                                            lockPid, lockAge.TotalMinutes);
+                                        return (false, $"Training lock held by another running process (PID: {lockPid}, started {lockAge.TotalMinutes:F1} minutes ago)");
+                                    }
+                                }
+                                catch (ArgumentException)
+                                {
+                                    // Process doesn't exist - lock is stale
+                                    _logger.LogWarning("[PRE-FLIGHT] Stale training lock from dead process (PID: {PID}) - deleting", lockPid);
+                                    File.Delete(lockFilePath);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If lock is older than 6 hours, it's definitely stale (training should never take this long)
+                if (lockAge.TotalHours >= 6)
+                {
+                    _logger.LogWarning("[PRE-FLIGHT] Very stale training lock file detected (age: {Age:F1} hours) - deleting",
+                        lockAge.TotalHours);
+                    File.Delete(lockFilePath);
                 }
                 else
                 {
-                    // Stale lock file - delete it
-                    _logger.LogWarning("[PRE-FLIGHT] Stale training lock file detected (age: {Age:F1} minutes) - deleting",
+                    // Unknown lock format or couldn't determine owner - be conservative
+                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} minutes) - another session may be running",
                         lockAge.TotalMinutes);
-                    File.Delete(lockFilePath);
+                    return (false, $"Training lock file exists (age: {lockAge.TotalMinutes:F1} minutes)");
                 }
             }
             
-            // Create new lock file
-            File.WriteAllText(lockFilePath, $"Training started at {DateTime.UtcNow:O}");
-            _logger.LogInformation("[PRE-FLIGHT] ✓ Training lock file created: {Path}", lockFilePath);
+            // Create new lock file with PID and timestamp
+            var lockData = $"PID:{Environment.ProcessId}|Started:{DateTime.UtcNow:O}";
+            File.WriteAllText(lockFilePath, lockData);
+            _logger.LogInformation("[PRE-FLIGHT] ✓ Training lock file created: {Path} (PID: {PID})", lockFilePath, Environment.ProcessId);
             
             return (true, null);
         }

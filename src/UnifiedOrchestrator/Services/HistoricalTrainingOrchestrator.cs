@@ -1459,77 +1459,134 @@ internal sealed class HistoricalTrainingOrchestrator
         // STEP 0: Replay historical bars through UnifiedTradingBrain to activate time-gated strategies
         // This allows each strategy to run on bars that fall within their designated time windows
         _logger.LogInformation("[LAB] 📊 Phase 0: Replaying historical bars through trading brain for strategy activation...");
-        await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("[LAB] ✅ Phase 0 complete: {BarsProcessed} bars replayed, strategies activated at appropriate times", 
-            result.HistoricalBarsProcessed);
+        
+        try
+        {
+            await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("[LAB] ✅ Phase 0 complete: {BarsProcessed} bars replayed, strategies activated at appropriate times", 
+                result.HistoricalBarsProcessed);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[LAB] ⚠️ Phase 0 (bar replay) failed but continuing with training: {Error}", ex.Message);
+        }
         
         // Load historical bars for trainer use
-        var historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
+        List<TradingBot.RLAgent.HistoricalBar> historicalBars;
+        try
+        {
+            historicalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ CRITICAL: Failed to load historical bars for training: {Error}", ex.Message);
+            throw; // Cannot proceed without historical data
+        }
         
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // HEAVY PHASE TRAINING (12:05 PM - 2:30 PM ET)
+        // ═══════════════════════════════════════════════════════════════════════════════
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] 🔥 HEAVY PHASE TRAINING (12:05 PM - 2:30 PM ET)");
         _logger.LogInformation("[LAB] 7 complex neural network models | 50 epochs each | ~30 min per model");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         
-        // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer
-        await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // 1. CVaR-PPO Training (30 min) - HEAVY PHASE Model 1/7 - uses real trainer
+            await TrainCVarPPOAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 1b. SAC Training (40 min) - HEAVY PHASE Model 1b/7 - continuous action space RL
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 1b/7: {Component}", ComponentSAC);
-        await TrainSACAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+            // 1b. SAC Training (40 min) - HEAVY PHASE Model 1b/7 - continuous action space RL
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 1b/7: {Component}", ComponentSAC);
+            await TrainSACAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 2. Neural UCB Retraining (15 min) - HEAVY PHASE Model 2/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 2/7: {Component}", ComponentNeuralUCB);
-        await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+            // 2. Neural UCB Retraining (15 min) - HEAVY PHASE Model 2/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 2/7: {Component}", ComponentNeuralUCB);
+            await TrainNeuralUCBAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 3. LSTM Training (20 min) - HEAVY PHASE Model 3/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 3/7: {Component}", ComponentLSTM);
-        await TrainLSTMAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+            // 3. LSTM Training (20 min) - HEAVY PHASE Model 3/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 3/7: {Component}", ComponentLSTM);
+            await TrainLSTMAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 4. Pattern Recognition Training (15 min) - HEAVY PHASE Model 4/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 4/7: Pattern-Recognition");
-        await TrainPatternRecognitionAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+            // 4. Pattern Recognition Training (15 min) - HEAVY PHASE Model 4/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 4/7: Pattern-Recognition");
+            await TrainPatternRecognitionAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 5. Regime Detector Training (15 min) - HEAVY PHASE Model 5/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 5/7: Regime-Detector");
-        await TrainRegimeDetectorAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+            // 5. Regime Detector Training (15 min) - HEAVY PHASE Model 5/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 5/7: Regime-Detector");
+            await TrainRegimeDetectorAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 6. Slippage/Latency Model Training (10 min) - HEAVY PHASE Model 6/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 6/7: Slippage-Latency");
-        await TrainSlippageLatencyAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+            // 6. Slippage/Latency Model Training (10 min) - HEAVY PHASE Model 6/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 6/7: Slippage-Latency");
+            await TrainSlippageLatencyAsync(result, experiences, cancellationToken).ConfigureAwait(false);
 
-        // 7. Model Ensemble Training (15 min) - HEAVY PHASE Model 7/7 - uses real trainer
-        _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
-        await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+            // 7. Model Ensemble Training (15 min) - HEAVY PHASE Model 7/7 - uses real trainer
+            _logger.LogInformation("[LAB] 📚 HEAVY PHASE - Model 7/7: Model-Ensemble");
+            await TrainModelEnsembleAsync(result, experiences, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ HEAVY PHASE encountered critical error: {Error}", ex.Message);
+            _logger.LogWarning("[LAB] ⚠️ Continuing with Medium and Light phases despite Heavy phase failure");
+            result.FailedComponents.Add("Heavy-Phase-Critical");
+        }
         
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] ✅ HEAVY PHASE COMPLETE");
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        
-        // Medium Phase Training (2:30 PM - 4:00 PM ET)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // MEDIUM PHASE TRAINING (2:30 PM - 4:00 PM ET)
+        // ═══════════════════════════════════════════════════════════════════════════════
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] 🔶 MEDIUM PHASE TRAINING (2:30 PM - 4:00 PM ET)");
         _logger.LogInformation("[LAB] 15 calibration models | 30 epochs each | ~6 min per model");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         
-        await TrainMediumPhaseAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await TrainMediumPhaseAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] ✅ MEDIUM PHASE COMPLETE");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ MEDIUM PHASE encountered critical error: {Error}", ex.Message);
+            _logger.LogWarning("[LAB] ⚠️ Continuing with Light phase despite Medium phase failure");
+            result.FailedComponents.Add("Medium-Phase-Critical");
+        }
         
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] ✅ MEDIUM PHASE COMPLETE");
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        
-        // Light Phase Training (4:00 PM - 5:15 PM ET)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // LIGHT PHASE TRAINING (4:00 PM - 5:15 PM ET)
+        // ═══════════════════════════════════════════════════════════════════════════════
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] 🔷 LIGHT PHASE TRAINING (4:00 PM - 5:15 PM ET)");
         _logger.LogInformation("[LAB] 15 lightweight models | 20 epochs each | ~5 min per model");
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         
-        await TrainLightPhaseAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await TrainLightPhaseAsync(result, historicalBars, experiences, cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] ✅ LIGHT PHASE COMPLETE");
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ❌ LIGHT PHASE encountered critical error: {Error}", ex.Message);
+            result.FailedComponents.Add("Light-Phase-Critical");
+        }
         
         _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
-        _logger.LogInformation("[LAB] ✅ LIGHT PHASE COMPLETE");
-        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
         _logger.LogInformation("[LAB] ✅ All training phases complete - Models ready for canary testing");
+        _logger.LogInformation("[LAB] Successful phases: Heavy={Heavy}, Medium={Medium}, Light={Light}",
+            !result.FailedComponents.Contains("Heavy-Phase-Critical"),
+            !result.FailedComponents.Contains("Medium-Phase-Critical"),
+            !result.FailedComponents.Contains("Light-Phase-Critical"));
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
     }
 
     private async Task TrainCVarPPOAsync(
