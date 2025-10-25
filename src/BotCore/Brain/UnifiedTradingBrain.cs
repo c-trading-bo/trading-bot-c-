@@ -2922,8 +2922,13 @@ Reason closed: {reason}
                     
                     contracts = Math.Max(0, Math.Min(riskAdjustedContracts, maxContracts));
                     
-                    LogCvarPpoAction(_logger, actionResult.Action, actionResult.ActionProbability, 
-                        actionResult.ValueEstimate, actionResult.CVaREstimate, contracts, null);
+                    // Suppress verbose CVaR-PPO logging during Lab mode training (dashboard only)
+                    var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                    if (!isLabMode)
+                    {
+                        LogCvarPpoAction(_logger, actionResult.Action, actionResult.ActionProbability, 
+                            actionResult.ValueEstimate, actionResult.CVaREstimate, contracts, null);
+                    }
                 }
                 catch (InvalidOperationException ex)
                 {
