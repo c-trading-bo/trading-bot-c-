@@ -156,7 +156,10 @@ public class DailyRetrainingScheduler : BackgroundService, IDailyRetrainingSched
 
             // In production, this would trigger the actual retraining pipeline
             // For now, we'll create a trigger file that Python training scripts can detect
-            var triggerFile = "./state/trigger_retraining.txt";
+            var stateDir = "./state";
+            Directory.CreateDirectory(stateDir);
+            
+            var triggerFile = Path.Combine(stateDir, "trigger_retraining.txt");
             await System.IO.File.WriteAllTextAsync(
                 triggerFile,
                 DateTime.UtcNow.ToString("O"),

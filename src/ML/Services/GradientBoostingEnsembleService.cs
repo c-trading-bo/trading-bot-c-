@@ -6,8 +6,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.ML.Interfaces;
 using TradingBot.ML.Models;
+using MLRegistry = TradingBot.ML.Interfaces.IModelRegistry;
 
 namespace TradingBot.ML.Services;
 
@@ -56,13 +56,13 @@ public interface IGradientBoostingEnsembleService
 public class GradientBoostingEnsembleService : IGradientBoostingEnsembleService
 {
     private readonly ILogger<GradientBoostingEnsembleService> _logger;
-    private readonly IModelRegistry _modelRegistry;
+    private readonly MLRegistry _modelRegistry;
     private readonly string _modelStoragePath;
     private readonly bool _enabled;
 
     public GradientBoostingEnsembleService(
         ILogger<GradientBoostingEnsembleService> logger,
-        IModelRegistry modelRegistry)
+        MLRegistry modelRegistry)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _modelRegistry = modelRegistry ?? throw new ArgumentNullException(nameof(modelRegistry));

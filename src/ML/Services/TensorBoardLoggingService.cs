@@ -72,6 +72,7 @@ public class TensorBoardLoggingService : ITensorBoardLoggingService
     private readonly string _logDirectory;
     private readonly bool _enabled;
     private readonly string _runName;
+    private readonly SemaphoreSlim _fileLock;
 
     public TensorBoardLoggingService(
         ILogger<TensorBoardLoggingService> logger)
@@ -87,6 +88,7 @@ public class TensorBoardLoggingService : ITensorBoardLoggingService
             ?? $"run_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
         
         _logDirectory = Path.Combine(baseLogDir, _runName);
+        _fileLock = new SemaphoreSlim(1, 1);
 
         if (_enabled)
         {
@@ -112,6 +114,7 @@ public class TensorBoardLoggingService : ITensorBoardLoggingService
             return;
         }
 
+        await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var logEntry = new
@@ -127,6 +130,10 @@ public class TensorBoardLoggingService : ITensorBoardLoggingService
 
             await File.AppendAllTextAsync(logFile, jsonLine, cancellationToken)
                 .ConfigureAwait(false);
+        }
+        finally
+        {
+            _fileLock.Release();
         }
         catch (Exception ex)
         {
