@@ -791,28 +791,81 @@ internal sealed class HistoricalTrainingOrchestrator
         var data = new Dictionary<string, int>();
         var symbols = new[] { "ES", "NQ" };
 
-        // Step 1: Invoke Python script to fetch and save historical data if needed
-        // This script fetches BOTH 5m and 1m data automatically
-        await InvokePythonHistoricalDataFetchAsync(cancellationToken).ConfigureAwait(false);
+        // Step 1: Check if historical data files exist BEFORE attempting to load
+        var dataDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data", "historical");
+        var requiredFiles = symbols.SelectMany(s => new[] 
+        { 
+            Path.Combine(dataDirectory, $"{s}_90days.json"),
+            Path.Combine(dataDirectory, $"{s}_1m_90days.json")
+        }).ToList();
 
-        // Step 2: Load the historical data from saved JSON files (5m + 1m for multi-timeframe)
+        var missingFiles = requiredFiles.Where(f => !File.Exists(f)).ToList();
+        var hasMissing5mFiles = symbols.Any(s => !File.Exists(Path.Combine(dataDirectory, $"{s}_90days.json")));
+
+        // Step 2: If critical 5m files are missing, try to fetch data using Python script
+        if (hasMissing5mFiles)
+        {
+            _logger.LogWarning("[LAB] ⚠️ Critical historical data files are missing. Attempting to fetch data...");
+            _logger.LogWarning("[LAB] Missing files: {Files}", string.Join(", ", missingFiles.Select(Path.GetFileName)));
+            
+            // Try to fetch data with retry (max 3 attempts)
+            var fetchSuccess = await TryFetchHistoricalDataWithRetryAsync(cancellationToken, maxAttempts: 3).ConfigureAwait(false);
+            
+            if (!fetchSuccess)
+            {
+                // Final check - if 5m files still don't exist, cannot proceed
+                if (symbols.Any(s => !File.Exists(Path.Combine(dataDirectory, $"{s}_90days.json"))))
+                {
+                    var errorMessage = 
+                        $"[LAB] ❌ CRITICAL ERROR: Historical data files are missing and could not be fetched.\n" +
+                        $"[LAB] Required files: {string.Join(", ", symbols.Select(s => $"{s}_90days.json"))}\n" +
+                        $"[LAB] Location: {dataDirectory}\n" +
+                        $"[LAB] \n" +
+                        $"[LAB] 🔧 To fix this issue:\n" +
+                        $"[LAB] 1. Ensure Python is installed and available in PATH\n" +
+                        $"[LAB] 2. Run: python fetch-and-save-historical-data.py\n" +
+                        $"[LAB] 3. Or manually place historical data JSON files in data/historical/\n" +
+                        $"[LAB] 4. Files must contain 'bars' array with OHLCV data\n" +
+                        $"[LAB] \n" +
+                        $"[LAB] Training cannot proceed without historical data.";
+                    
+                    _logger.LogError(errorMessage);
+                    throw new InvalidOperationException(
+                        "Historical data files are missing. " +
+                        "Run 'python fetch-and-save-historical-data.py' or place data files in data/historical/ directory.");
+                }
+            }
+            else
+            {
+                _logger.LogInformation("[LAB] ✅ Historical data fetched successfully");
+            }
+        }
+
+        // Step 3: Load the historical data from saved JSON files (5m + 1m for multi-timeframe)
         foreach (var symbol in symbols)
         {
             try
             {
                 // Load 5-minute bars (strategic timeframe)
-                var dataFile5m = Path.Combine("data", "historical", $"{symbol}_90days.json");
-                var dataFile1m = Path.Combine("data", "historical", $"{symbol}_1m_90days.json");
+                var dataFile5m = Path.Combine(dataDirectory, $"{symbol}_90days.json");
+                var dataFile1m = Path.Combine(dataDirectory, $"{symbol}_1m_90days.json");
                 
                 if (!File.Exists(dataFile5m))
                 {
-                    _logger.LogWarning("[LAB] Historical 5m data file not found: {File}", dataFile5m);
-                    data[symbol] = 0;
-                    continue;
+                    _logger.LogError("[LAB] ❌ Critical: Historical 5m data file not found: {File}", dataFile5m);
+                    throw new FileNotFoundException($"Required historical data file not found: {dataFile5m}");
                 }
 
                 // Load 5m bars
                 var jsonContent5m = await File.ReadAllTextAsync(dataFile5m, cancellationToken).ConfigureAwait(false);
+                
+                // Validate JSON is not empty or corrupted
+                if (string.IsNullOrWhiteSpace(jsonContent5m))
+                {
+                    _logger.LogError("[LAB] ❌ Historical data file is empty: {File}", dataFile5m);
+                    throw new InvalidDataException($"Historical data file is empty: {dataFile5m}");
+                }
+                
                 using var jsonDoc5m = JsonDocument.Parse(jsonContent5m);
                 var barCount5m = 0;
                 
@@ -822,26 +875,42 @@ internal sealed class HistoricalTrainingOrchestrator
                     barCount5m = barsElement5m.GetArrayLength();
                 }
                 
+                // Validate that we have actual data
+                if (barCount5m == 0)
+                {
+                    _logger.LogError("[LAB] ❌ Historical data file contains no bars: {File}", dataFile5m);
+                    throw new InvalidDataException($"Historical data file contains no bars: {dataFile5m}");
+                }
+                
                 data[symbol] = barCount5m;
-                _logger.LogInformation("[LAB] Loaded {Count} 5m bars for {Symbol} from {File}", barCount5m, symbol, dataFile5m);
+                _logger.LogInformation("[LAB] ✅ Loaded {Count} 5m bars for {Symbol} from {File}", barCount5m, symbol, Path.GetFileName(dataFile5m));
 
                 // Load 1-minute bars (tactical timeframe) - NEW for multi-timeframe learning
                 if (File.Exists(dataFile1m))
                 {
                     var jsonContent1m = await File.ReadAllTextAsync(dataFile1m, cancellationToken).ConfigureAwait(false);
-                    using var jsonDoc1m = JsonDocument.Parse(jsonContent1m);
-                    var barCount1m = 0;
                     
-                    if (jsonDoc1m.RootElement.TryGetProperty("bars", out var barsElement1m) && 
-                        barsElement1m.ValueKind == JsonValueKind.Array)
+                    if (!string.IsNullOrWhiteSpace(jsonContent1m))
                     {
-                        barCount1m = barsElement1m.GetArrayLength();
+                        using var jsonDoc1m = JsonDocument.Parse(jsonContent1m);
+                        var barCount1m = 0;
+                        
+                        if (jsonDoc1m.RootElement.TryGetProperty("bars", out var barsElement1m) && 
+                            barsElement1m.ValueKind == JsonValueKind.Array)
+                        {
+                            barCount1m = barsElement1m.GetArrayLength();
+                        }
+                        
+                        // Store 1m bar count with special key for tracking
+                        data[$"{symbol}_1m"] = barCount1m;
+                        _logger.LogInformation("[LAB] ✅ Multi-timeframe: Loaded {Count} 1m bars for {Symbol} from {File}", 
+                            barCount1m, symbol, Path.GetFileName(dataFile1m));
                     }
-                    
-                    // Store 1m bar count with special key for tracking
-                    data[$"{symbol}_1m"] = barCount1m;
-                    _logger.LogInformation("[LAB] ✅ Multi-timeframe: Loaded {Count} 1m bars for {Symbol} from {File}", 
-                        barCount1m, symbol, dataFile1m);
+                    else
+                    {
+                        _logger.LogWarning("[LAB] ⚠️ 1m data file is empty: {File}. Training will use 5m data only.", dataFile1m);
+                        data[$"{symbol}_1m"] = 0;
+                    }
                 }
                 else
                 {
@@ -851,16 +920,27 @@ internal sealed class HistoricalTrainingOrchestrator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB] ERROR: Failed to load historical data - {Symbol}: {Error}", 
+                _logger.LogError(ex, "[LAB] ❌ CRITICAL ERROR: Failed to load historical data - {Symbol}: {Error}", 
                     symbol, ex.Message);
-                data[symbol] = 0;
-                data[$"{symbol}_1m"] = 0;
+                throw; // Fail fast - cannot proceed without data
             }
         }
 
-        // Log multi-timeframe summary
+        // Step 4: Validate that we loaded sufficient data for training
         var total5m = symbols.Sum(s => data.ContainsKey(s) ? data[s] : 0);
         var total1m = symbols.Sum(s => data.ContainsKey($"{s}_1m") ? data[$"{s}_1m"] : 0);
+        
+        if (total5m == 0)
+        {
+            _logger.LogError("[LAB] ❌ CRITICAL ERROR: No historical data loaded. Cannot proceed with training.");
+            throw new InvalidOperationException("No historical data loaded. Training cannot proceed without data.");
+        }
+        
+        if (total5m < 1000) // Minimum threshold - at least ~3 days of 5m bars
+        {
+            _logger.LogWarning("[LAB] ⚠️ WARNING: Low bar count ({Count} bars). Recommend at least 1000 bars for quality training.", total5m);
+        }
+        
         _logger.LogInformation(
             "[LAB] 📊 MULTI-TIMEFRAME DATA LOADED - Total: {Count5m} 5m bars + {Count1m} 1m bars (works in Sunday Lab + Anyday Lab)",
             total5m, total1m);
@@ -909,6 +989,13 @@ internal sealed class HistoricalTrainingOrchestrator
                 try
                 {
                     var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                    
+                    if (!File.Exists(dataFile))
+                    {
+                        _logger.LogError("[LAB] ❌ Data file not found for replay: {File}", dataFile);
+                        throw new FileNotFoundException($"Historical data file not found: {dataFile}");
+                    }
+                    
                     var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
                     
                     using var jsonDoc = JsonDocument.Parse(jsonContent);
@@ -929,13 +1016,21 @@ internal sealed class HistoricalTrainingOrchestrator
                         allBars.Add(bar);
                     }
                     
-                    _logger.LogInformation("[LAB] Loaded {Count} bars from {Symbol}", barCount, symbol);
+                    _logger.LogInformation("[LAB] ✅ Loaded {Count} bars from {Symbol} for replay", barCount, symbol);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[LAB] ERROR: Failed to load bars for replay - {Symbol}: {Error}", 
+                    _logger.LogError(ex, "[LAB] ❌ CRITICAL ERROR: Failed to load bars for replay - {Symbol}: {Error}", 
                         symbol, ex.Message);
+                    throw; // Fail fast - cannot replay without data
                 }
+            }
+            
+            // Validate that we have data to replay
+            if (allBars.Count == 0)
+            {
+                _logger.LogError("[LAB] ❌ CRITICAL ERROR: No bars available for replay");
+                throw new InvalidOperationException("No historical bars available for replay");
             }
             
             // Sort all bars chronologically
@@ -1118,24 +1213,62 @@ internal sealed class HistoricalTrainingOrchestrator
         public required long Volume { get; init; }
     }
 
+    /// <summary>
+    /// Try to fetch historical data using Python script with retry logic.
+    /// Returns true if successful, false otherwise.
+    /// </summary>
+    private async Task<bool> TryFetchHistoricalDataWithRetryAsync(CancellationToken cancellationToken, int maxAttempts = 3)
+    {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            _logger.LogInformation("[LAB] 🔄 Attempt {Attempt}/{Max}: Fetching historical data...", attempt, maxAttempts);
+            
+            try
+            {
+                await InvokePythonHistoricalDataFetchAsync(cancellationToken).ConfigureAwait(false);
+                
+                // Wait a moment for files to be written
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
+                
+                // Verify that files were created
+                var dataDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data", "historical");
+                var symbols = new[] { "ES", "NQ" };
+                var allFilesExist = symbols.All(s => File.Exists(Path.Combine(dataDirectory, $"{s}_90days.json")));
+                
+                if (allFilesExist)
+                {
+                    _logger.LogInformation("[LAB] ✅ Historical data fetch successful on attempt {Attempt}", attempt);
+                    return true;
+                }
+                
+                _logger.LogWarning("[LAB] ⚠️ Attempt {Attempt}: Files not created yet", attempt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[LAB] ⚠️ Attempt {Attempt} failed: {Error}", attempt, ex.Message);
+            }
+            
+            if (attempt < maxAttempts)
+            {
+                var delaySeconds = attempt * 2; // Exponential backoff: 2s, 4s, 6s
+                _logger.LogInformation("[LAB] Waiting {Delay}s before retry...", delaySeconds);
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken).ConfigureAwait(false);
+            }
+        }
+        
+        _logger.LogError("[LAB] ❌ Failed to fetch historical data after {Max} attempts", maxAttempts);
+        return false;
+    }
+
     private async Task InvokePythonHistoricalDataFetchAsync(CancellationToken cancellationToken)
     {
-        // CRITICAL FIX: In Lab Mode, NEVER invoke Python script - it makes live API calls
-        // Lab Mode should only use pre-existing JSON files
-        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
-        if (labMode == "1")
-        {
-            _logger.LogInformation("[LAB] 📊 Loading historical data for training session...");
-            _logger.LogDebug("[LAB] Skipping Python data fetch - LAB_MODE=1 (using existing JSON files)");
-            return;
-        }
-
         try
         {
             var pythonPath = FindPythonExecutable();
             if (string.IsNullOrEmpty(pythonPath))
             {
                 _logger.LogWarning("[LAB] Python executable not found - historical data fetch skipped");
+                _logger.LogWarning("[LAB] If you need to fetch data, ensure Python is installed and available in PATH");
                 return;
             }
 
@@ -1143,6 +1276,7 @@ internal sealed class HistoricalTrainingOrchestrator
             if (!File.Exists(scriptPath))
             {
                 _logger.LogWarning("[LAB] Historical data fetch script not found: {Path}", scriptPath);
+                _logger.LogWarning("[LAB] Expected script at: {Path}", scriptPath);
                 return;
             }
 
@@ -1236,13 +1370,21 @@ internal sealed class HistoricalTrainingOrchestrator
                     allBars.Add(bar);
                 }
                 
-                _logger.LogInformation("[LAB] Loaded {Count} bars from {Symbol} for training", barCount, symbol);
+                _logger.LogInformation("[LAB] ✅ Loaded {Count} bars from {Symbol} for training", barCount, symbol);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB] ERROR: Failed to load bars for training - {Symbol}: {Error}", 
+                _logger.LogError(ex, "[LAB] ❌ CRITICAL ERROR: Failed to load bars for training - {Symbol}: {Error}", 
                     symbol, ex.Message);
+                throw; // Fail fast - cannot proceed without data
             }
+        }
+        
+        // Validate that we loaded sufficient data
+        if (allBars.Count == 0)
+        {
+            _logger.LogError("[LAB] ❌ CRITICAL ERROR: No bars loaded for training. Cannot proceed.");
+            throw new InvalidOperationException("No historical bars loaded for training. Training cannot proceed without data.");
         }
         
         // Sort all bars chronologically
