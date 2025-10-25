@@ -1639,9 +1639,27 @@ internal sealed class HistoricalTrainingOrchestrator
                 var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
                 
                 // Train with this seed (trainer should use seed for initialization)
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            ComponentCVarPPO,
+                            "Heavy",
+                            1, // Component number (1 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var componentResult = await _failureHandler.RetryComponentTrainingAsync(
                     ComponentCVarPPO,
-                    async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
+                    async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct, progressCallback).ConfigureAwait(false),
                     3,
                     cancellationToken).ConfigureAwait(false);
                 
@@ -1970,8 +1988,26 @@ internal sealed class HistoricalTrainingOrchestrator
             // Convert Experience to RLAgent Experience format
             var rlExperiences = ConvertToRLExperiences(experiences);
             
+            // Setup progress callback to update dashboard during training
+            Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+            {
+                if (_dashboardStateManager != null)
+                {
+                    var progress = (double)currentEpoch / totalEpochs;
+                    _dashboardStateManager.UpdateComponentProgress(
+                        ComponentSAC,
+                        "Heavy",
+                        2, // Component number (2 out of 7 Heavy components)
+                        currentEpoch,
+                        totalEpochs,
+                        loss,
+                        progress);
+                    _dashboardStateManager.UpdateResources();
+                }
+            };
+            
             // Train SAC model
-            var trainingResult = await _sacTrainer.TrainAsync(rlExperiences, cancellationToken).ConfigureAwait(false);
+            var trainingResult = await _sacTrainer.TrainAsync(rlExperiences, cancellationToken, progressCallback).ConfigureAwait(false);
             
             if (trainingResult.Success)
             {

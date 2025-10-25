@@ -86,7 +86,13 @@ public class CVaRPPOTrainer
     /// Train from collected experiences (Lab entry point)
     /// This is called by HistoricalTrainingOrchestrator during Sunday training
     /// </summary>
-    public async Task<TrainingResult> TrainFromExperiencesAsync(Experience[] experiences, CancellationToken cancellationToken = default)
+    /// <param name="experiences">Training experiences</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="progressCallback">Optional callback for reporting epoch progress (epoch, totalEpochs, loss)</param>
+    public async Task<TrainingResult> TrainFromExperiencesAsync(
+        Experience[] experiences, 
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 CVaRPPOTrainer starting training from {Count} experiences", experiences.Length);
 
@@ -104,7 +110,7 @@ public class CVaRPPOTrainer
         var experiencesList = new List<Experience>(experiences);
         
         // Perform training iterations
-        PerformTrainingIteration(experiencesList, result);
+        PerformTrainingIteration(experiencesList, result, progressCallback);
 
         // Finalize result
         await FinalizeTrainingResultAsync(experiencesList, result, cancellationToken).ConfigureAwait(false);
@@ -118,7 +124,13 @@ public class CVaRPPOTrainer
     /// <summary>
     /// Main training loop - separated from inference for Lab-only execution
     /// </summary>
-    public async Task<TrainingResult> TrainAsync(ConcurrentQueue<Experience> experienceBuffer, CancellationToken cancellationToken = default)
+    /// <param name="experienceBuffer">Concurrent queue of experiences</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="progressCallback">Optional callback for reporting epoch progress (epoch, totalEpochs, loss)</param>
+    public async Task<TrainingResult> TrainAsync(
+        ConcurrentQueue<Experience> experienceBuffer, 
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("CVaRPPOTrainer starting training - Episode: {Episode}, BufferSize: {BufferSize}",
             _currentEpisode, experienceBuffer.Count);
@@ -142,7 +154,7 @@ public class CVaRPPOTrainer
         }
 
         // Perform training iterations
-        PerformTrainingIteration(experiences, result);
+        PerformTrainingIteration(experiences, result, progressCallback);
 
         // Finalize result
         await FinalizeTrainingResultAsync(experiences, result, cancellationToken).ConfigureAwait(false);
@@ -210,7 +222,7 @@ public class CVaRPPOTrainer
         return experiences;
     }
 
-    private void PerformTrainingIteration(List<Experience> experiences, TrainingResult result)
+    private void PerformTrainingIteration(List<Experience> experiences, TrainingResult result, Action<int, int, double>? progressCallback = null)
     {
         // Calculate advantages and CVaR targets
         var (advantages, cvarTargets) = CalculateAdvantagesAndCVaR(experiences);
@@ -228,9 +240,15 @@ public class CVaRPPOTrainer
         var totalCVaRLoss = 0.0;
         var totalEntropy = 0.0;
         var batchCount = 0;
+        var epochLosses = new List<double>();
         
         for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
         {
+            var epochPolicyLoss = 0.0;
+            var epochValueLoss = 0.0;
+            var epochCVaRLoss = 0.0;
+            var epochBatchCount = 0;
+            
             // Shuffle experiences for each epoch
             var shuffled = experiences.OrderBy(_ => Guid.NewGuid()).ToList();
             
@@ -248,7 +266,19 @@ public class CVaRPPOTrainer
                 totalCVaRLoss += losses.CVaRLoss;
                 totalEntropy += losses.Entropy;
                 batchCount++;
+                
+                epochPolicyLoss += losses.PolicyLoss;
+                epochValueLoss += losses.ValueLoss;
+                epochCVaRLoss += losses.CVaRLoss;
+                epochBatchCount++;
             }
+            
+            // Calculate epoch average loss and report progress
+            var epochAvgLoss = (epochPolicyLoss + epochValueLoss + epochCVaRLoss) / epochBatchCount;
+            epochLosses.Add(epochAvgLoss);
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, _config.PPOEpochs, epochAvgLoss);
         }
         
         // Update training statistics
