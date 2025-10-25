@@ -98,6 +98,7 @@ public sealed class PhaseDetails
     public int CompletedComponents { get; set; }
     public int FailedComponents { get; set; }
     public List<ComponentSummary> Components { get; set; } = new();
+    public List<string> QueuedComponentNames { get; set; } = new(); // For pending phases
 }
 
 /// <summary>

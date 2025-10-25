@@ -46,6 +46,47 @@ public sealed class LabModeDashboardStateManager
             _currentState.TotalComponents = totalComponents;
             _currentState.ComponentsRemaining = totalComponents;
             
+            // Initialize phase component counts and names (from training-components.json structure)
+            _currentState.HeavyPhase.TotalComponents = 11;
+            _currentState.HeavyPhase.QueuedComponentNames = new List<string>
+            {
+                "CVaRPPOTrainer",
+                "NeuralUcbBanditTrainer",
+                "LSTMTrainer",
+                "PatternRecognitionTrainer",
+                "RegimeDetectorTrainer",
+                "SlippageLatencyTrainer",
+                "ModelEnsembleTrainer",
+                "VolatilityForecasterTrainer",
+                "OrderFlowImbalanceTrainer",
+                "MicrostructureTrainer",
+                "AdversarialRobustnessTrainer"
+            };
+            
+            _currentState.MediumPhase.TotalComponents = 7;
+            _currentState.MediumPhase.QueuedComponentNames = new List<string>
+            {
+                "CalibratorTrainer",
+                "HyperparameterOptimizerTrainer",
+                "EnsembleWeightOptimizerTrainer",
+                "AdaptiveLearningRateScheduler",
+                "FeatureImportanceAnalyzer",
+                "ModelPruningOptimizer",
+                "TransferLearningCoordinator"
+            };
+            
+            _currentState.LightPhase.TotalComponents = 7;
+            _currentState.LightPhase.QueuedComponentNames = new List<string>
+            {
+                "OnlineLearningAgent",
+                "MetaLearningCoordinator",
+                "FineTuningOrchestrator",
+                "ContinualLearningManager",
+                "ExperienceReplayOptimizer",
+                "PolicyDistillationService",
+                "KnowledgeTransferService"
+            };
+            
             // Initialize strategies (S2, S3, S6, S11)
             var strategies = new[] { "S2", "S3", "S6", "S11" };
             foreach (var strategy in strategies)
@@ -495,14 +536,18 @@ public sealed class LabModeDashboardStateManager
             TotalComponents = source.TotalComponents,
             CompletedComponents = source.CompletedComponents,
             FailedComponents = source.FailedComponents,
+            QueuedComponentNames = new List<string>(source.QueuedComponentNames),
             Components = source.Components.Select(c => new ComponentSummary
             {
                 ComponentName = c.ComponentName,
+                ComponentNumber = c.ComponentNumber,
                 ProgressPercentage = c.ProgressPercentage,
                 EpochsCompleted = c.EpochsCompleted,
                 TotalEpochs = c.TotalEpochs,
                 FinalLoss = c.FinalLoss,
                 Status = c.Status,
+                Duration = c.Duration,
+                ExperienceCount = c.ExperienceCount,
                 Metrics = new Dictionary<string, string>(c.Metrics)
             }).ToList()
         };

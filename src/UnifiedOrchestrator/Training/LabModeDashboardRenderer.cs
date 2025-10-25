@@ -165,14 +165,13 @@ public sealed class LabModeDashboardRenderer
                 RenderComponentSummary(output, component, phase.TotalComponents);
             }
         }
-        else if (phase.Status == TrainingPhaseStatus.Pending && phase.TotalComponents > 0)
+        else if (phase.Status == TrainingPhaseStatus.Pending && phase.QueuedComponentNames.Count > 0)
         {
             // Show queued components list for pending phases
             output.AppendLine("│ Queued Components:                                                              │");
-            // Component names will be populated when phase details are initialized
-            for (int i = 1; i <= Math.Min(phase.TotalComponents, 7); i++)
+            foreach (var componentName in phase.QueuedComponentNames)
             {
-                output.AppendLine($"│  • Component {i}                                                                       │");
+                output.AppendLine($"│  • {componentName,-76} │");
             }
         }
         
