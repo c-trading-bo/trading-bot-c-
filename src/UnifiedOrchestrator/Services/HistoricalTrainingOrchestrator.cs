@@ -1639,9 +1639,27 @@ internal sealed class HistoricalTrainingOrchestrator
                 var beforeHash = await _modelHashVerifier.CaptureModelStateBeforeTrainingAsync(modelPath, cancellationToken).ConfigureAwait(false);
                 
                 // Train with this seed (trainer should use seed for initialization)
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            ComponentCVarPPO,
+                            "Heavy",
+                            1, // Component number (1 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var componentResult = await _failureHandler.RetryComponentTrainingAsync(
                     ComponentCVarPPO,
-                    async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct).ConfigureAwait(false),
+                    async ct => await _cvarPpoTrainer.TrainFromExperiencesAsync(rlExperiences, ct, progressCallback).ConfigureAwait(false),
                     3,
                     cancellationToken).ConfigureAwait(false);
                 
@@ -1970,8 +1988,26 @@ internal sealed class HistoricalTrainingOrchestrator
             // Convert Experience to RLAgent Experience format
             var rlExperiences = ConvertToRLExperiences(experiences);
             
+            // Setup progress callback to update dashboard during training
+            Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+            {
+                if (_dashboardStateManager != null)
+                {
+                    var progress = (double)currentEpoch / totalEpochs;
+                    _dashboardStateManager.UpdateComponentProgress(
+                        ComponentSAC,
+                        "Heavy",
+                        2, // Component number (2 out of 7 Heavy components)
+                        currentEpoch,
+                        totalEpochs,
+                        loss,
+                        progress);
+                    _dashboardStateManager.UpdateResources();
+                }
+            };
+            
             // Train SAC model
-            var trainingResult = await _sacTrainer.TrainAsync(rlExperiences, cancellationToken).ConfigureAwait(false);
+            var trainingResult = await _sacTrainer.TrainAsync(rlExperiences, cancellationToken, progressCallback).ConfigureAwait(false);
             
             if (trainingResult.Success)
             {
@@ -2055,9 +2091,27 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 var modelPath = Path.Combine("models", "lstm", $"lstm_seed_{seed}.onnx");
                 
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            ComponentLSTM,
+                            "Heavy",
+                            3, // Component number (3 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 // Call actual LSTM trainer with production implementation
                 var trainingResult = await _lstmTrainer.TrainFromHistoricalBarsAsync(
-                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                    historicalBars, experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {
@@ -2169,8 +2223,27 @@ internal sealed class HistoricalTrainingOrchestrator
             foreach (var seed in seeds)
             {
                 _earlyStoppingTracker.Reset();
+                
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            "Pattern-Recognition",
+                            "Heavy",
+                            4, // Component number (4 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var trainingResult = await _patternRecognitionTrainer.TrainFromHistoricalBarsAsync(
-                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                    historicalBars, experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {
@@ -2241,8 +2314,27 @@ internal sealed class HistoricalTrainingOrchestrator
             foreach (var seed in seeds)
             {
                 _earlyStoppingTracker.Reset();
+                
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            "Regime-Detector",
+                            "Heavy",
+                            5, // Component number (5 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var trainingResult = await _regimeDetectorTrainer.TrainFromHistoricalBarsAsync(
-                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                    historicalBars, experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {
@@ -2311,8 +2403,27 @@ internal sealed class HistoricalTrainingOrchestrator
             foreach (var seed in seeds)
             {
                 _earlyStoppingTracker.Reset();
+                
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            "Slippage-Latency",
+                            "Heavy",
+                            6, // Component number (6 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var trainingResult = await _slippageLatencyTrainer.TrainFromExperiencesAsync(
-                    experienceData, cancellationToken).ConfigureAwait(false);
+                    experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {
@@ -2381,8 +2492,27 @@ internal sealed class HistoricalTrainingOrchestrator
             foreach (var seed in seeds)
             {
                 _earlyStoppingTracker.Reset();
+                
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            "Model-Ensemble",
+                            "Heavy",
+                            7, // Component number (7 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 var trainingResult = await _modelEnsembleTrainer.TrainFromExperiencesAsync(
-                    experienceData, cancellationToken).ConfigureAwait(false);
+                    experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {

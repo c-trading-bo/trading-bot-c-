@@ -44,7 +44,13 @@ public class SACTrainer
     /// <summary>
     /// Train SAC from collected experiences (Lab entry point)
     /// </summary>
-    public async Task<TrainingResult> TrainAsync(Experience[] experiences, CancellationToken cancellationToken = default)
+    /// <param name="experiences">Training experiences</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="progressCallback">Optional callback for reporting epoch progress (epoch, totalEpochs, loss)</param>
+    public async Task<TrainingResult> TrainAsync(
+        Experience[] experiences, 
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 SACTrainer starting training from {Count} experiences", experiences.Length);
         
@@ -87,6 +93,10 @@ public class SACTrainer
                 totalCriticLoss += criticLoss;
                 totalActorLoss += actorLoss;
                 totalAlphaLoss += alphaLoss;
+                
+                // Report progress if callback provided
+                var currentLoss = (criticLoss + actorLoss) / 2.0;
+                progressCallback?.Invoke(epoch + 1, epochs, currentLoss);
                 
                 if (epoch % 10 == 0)
                 {

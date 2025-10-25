@@ -37,7 +37,8 @@ public class PatternRecognitionTrainer
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("🔧 PatternRecognitionTrainer PRODUCTION training from {BarCount} bars",
@@ -68,7 +69,7 @@ public class PatternRecognitionTrainer
             _logger.LogInformation("Detected {Count} candlestick patterns", patterns.Count);
 
             // Train pattern classifier
-            var metrics = await TrainPatternClassifierAsync(patterns, cancellationToken).ConfigureAwait(false);
+            var metrics = await TrainPatternClassifierAsync(patterns, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -185,7 +186,8 @@ public class PatternRecognitionTrainer
 
     private async Task<PatternClassifierMetrics> TrainPatternClassifierAsync(
         List<DetectedPattern> patterns,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🧠 Training TorchSharp CNN pattern classifier with {Count} patterns - REAL DEEP LEARNING", patterns.Count);
 
@@ -266,6 +268,9 @@ public class PatternRecognitionTrainer
             var accuracy = (double)correctPredictions / patterns.Count;
             totalError += avgLoss;
             totalAccuracy += accuracy;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 40 == 0)
             {

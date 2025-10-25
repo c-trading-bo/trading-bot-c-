@@ -43,7 +43,8 @@ public class RegimeDetectorTrainer
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 RegimeDetectorTrainer starting training from {BarCount} bars and {ExpCount} experiences",
             bars.Count, experiences.Count);
@@ -83,7 +84,7 @@ public class RegimeDetectorTrainer
             _logger.LogInformation("Analyzed performance across {Count} regime types", regimePerformance.Count);
 
             // Train regime classifier
-            await TrainRegimeClassifierAsync(regimes, regimePerformance, cancellationToken).ConfigureAwait(false);
+            await TrainRegimeClassifierAsync(regimes, regimePerformance, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -261,7 +262,8 @@ public class RegimeDetectorTrainer
     private async Task TrainRegimeClassifierAsync(
         List<MarketRegime> regimes,
         Dictionary<string, double> performance,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🧠 Training TorchSharp regime classifier with {RegimeCount} regimes - REAL DEEP LEARNING", regimes.Count);
 
@@ -345,6 +347,9 @@ public class RegimeDetectorTrainer
             var accuracy = (double)correctPredictions / features.Count;
             totalLoss += avgLoss;
             totalAccuracy += accuracy;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 50 == 0)
             {
