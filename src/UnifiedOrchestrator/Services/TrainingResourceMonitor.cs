@@ -402,12 +402,21 @@ internal sealed class TrainingResourceMonitor
                         lockAge.TotalHours);
                     File.Delete(lockFilePath);
                 }
+                else if (lockAge.TotalMinutes < 0.1)
+                {
+                    // Lock file is VERY fresh (< 6 seconds old) - likely just created, allow it
+                    // This handles the race condition where we check the lock right after creating it
+                    _logger.LogDebug("[PRE-FLIGHT] Lock file is very fresh ({Age:F2} seconds old) - allowing current session",
+                        lockAge.TotalSeconds);
+                    // Don't return yet - will create/update lock below
+                }
                 else
                 {
-                    // Unknown lock format or couldn't determine owner - be conservative
-                    _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} minutes) - another session may be running",
+                    // Unknown lock format or couldn't determine owner
+                    // If we can't validate the owner, assume it's stale and delete it
+                    _logger.LogWarning("[PRE-FLIGHT] Training lock file has unknown format (age: {Age:F1} minutes) - deleting as potentially stale",
                         lockAge.TotalMinutes);
-                    return (false, $"Training lock file exists (age: {lockAge.TotalMinutes:F1} minutes)");
+                    File.Delete(lockFilePath);
                 }
             }
             
