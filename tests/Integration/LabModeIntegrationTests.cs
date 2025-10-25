@@ -342,9 +342,10 @@ public class LabModeIntegrationTests : IDisposable
     /// Regression test for: "lock file issues every time i launch"
     /// </summary>
     [Fact]
-    public async Task TrainingLockFile_PreventsConcurrentTraining()
+    public void TrainingLockFile_PreventsConcurrentTraining()
     {
         // Arrange
+        const int fakeDeadProcessId = 99999999; // PID that doesn't exist on any system
         var monitor = _serviceProvider.GetRequiredService<TrainingResourceMonitor>();
         var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         
@@ -373,7 +374,7 @@ public class LabModeIntegrationTests : IDisposable
         Assert.True(secondCanProceed, "Same process should be able to re-acquire lock");
         
         // Act - Simulate lock from different (dead) process
-        File.WriteAllText(lockFilePath, "PID:99999999|Started:" + DateTime.UtcNow.ToString("O"));
+        File.WriteAllText(lockFilePath, $"PID:{fakeDeadProcessId}|Started:{DateTime.UtcNow:O}");
         var (thirdCanProceed, thirdIssue) = monitor.CheckTrainingLock();
         
         // Assert - Dead process lock should be cleaned up and new lock acquired
@@ -382,8 +383,6 @@ public class LabModeIntegrationTests : IDisposable
         // Clean up
         monitor.ReleaseTrainingLock();
         Assert.False(File.Exists(lockFilePath), "Lock file should be deleted after release");
-        
-        await Task.CompletedTask;
     }
     
     /// <summary>
@@ -393,6 +392,7 @@ public class LabModeIntegrationTests : IDisposable
     public void TrainingLockFile_HandlesStaleLocks()
     {
         // Arrange
+        const int fakeOldProcessId = 12345; // PID from a process that finished hours ago
         var monitor = _serviceProvider.GetRequiredService<TrainingResourceMonitor>();
         var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
         
@@ -403,7 +403,7 @@ public class LabModeIntegrationTests : IDisposable
         }
         
         // Act - Create a very old stale lock (7 hours old)
-        File.WriteAllText(lockFilePath, "PID:12345|Started:" + DateTime.UtcNow.AddHours(-7).ToString("O"));
+        File.WriteAllText(lockFilePath, $"PID:{fakeOldProcessId}|Started:{DateTime.UtcNow.AddHours(-7):O}");
         File.SetLastWriteTimeUtc(lockFilePath, DateTime.UtcNow.AddHours(-7));
         
         var (canProceed, issue) = monitor.CheckTrainingLock();
