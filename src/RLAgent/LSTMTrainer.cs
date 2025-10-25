@@ -46,10 +46,15 @@ public class LSTMTrainer
     /// Train LSTM model from historical bar data (Lab entry point)
     /// PRODUCTION: Full training implementation with sequence generation and model optimization
     /// </summary>
+    /// <param name="bars">Historical bar data</param>
+    /// <param name="experiences">Experience data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="progressCallback">Optional callback for reporting epoch progress (epoch, totalEpochs, loss)</param>
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("🔧 LSTMTrainer starting PRODUCTION training from {BarCount} bars and {ExpCount} experiences",
@@ -86,7 +91,7 @@ public class LSTMTrainer
             _logger.LogInformation("Prepared {FeatureCount} normalized feature sequences", features.Count);
 
             // Train LSTM model with gradient descent
-            var metrics = await TrainLSTMWithGradientDescentAsync(features, targets, cancellationToken).ConfigureAwait(false);
+            var metrics = await TrainLSTMWithGradientDescentAsync(features, targets, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -169,7 +174,8 @@ public class LSTMTrainer
     private async Task<LSTMTrainingMetrics> TrainLSTMWithGradientDescentAsync(
         List<double[]> features,
         List<double> targets,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("Training LSTM with TorchSharp - Features: {Count}, HiddenSize: {Hidden}, Layers: {Layers}",
             features.Count, _hiddenSize, _numLayers);
@@ -257,6 +263,9 @@ public class LSTMTrainer
             currentLoss = epochLoss / features.Count;
             var accuracy = (double)correctPredictions / features.Count;
             totalAccuracy += accuracy;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, currentLoss);
             
             if (epoch % 10 == 0)
             {

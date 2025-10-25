@@ -2091,9 +2091,27 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 var modelPath = Path.Combine("models", "lstm", $"lstm_seed_{seed}.onnx");
                 
+                // Setup progress callback to update dashboard during training
+                Action<int, int, double> progressCallback = (currentEpoch, totalEpochs, loss) =>
+                {
+                    if (_dashboardStateManager != null)
+                    {
+                        var progress = (double)currentEpoch / totalEpochs;
+                        _dashboardStateManager.UpdateComponentProgress(
+                            ComponentLSTM,
+                            "Heavy",
+                            3, // Component number (3 out of 7 Heavy components)
+                            currentEpoch,
+                            totalEpochs,
+                            loss,
+                            progress);
+                        _dashboardStateManager.UpdateResources();
+                    }
+                };
+                
                 // Call actual LSTM trainer with production implementation
                 var trainingResult = await _lstmTrainer.TrainFromHistoricalBarsAsync(
-                    historicalBars, experienceData, cancellationToken).ConfigureAwait(false);
+                    historicalBars, experienceData, cancellationToken, progressCallback).ConfigureAwait(false);
                 
                 if (trainingResult.Success)
                 {

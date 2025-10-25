@@ -43,7 +43,8 @@ public class RegimeDetectorTrainer
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 RegimeDetectorTrainer starting training from {BarCount} bars and {ExpCount} experiences",
             bars.Count, experiences.Count);
@@ -345,6 +346,9 @@ public class RegimeDetectorTrainer
             var accuracy = (double)correctPredictions / features.Count;
             totalLoss += avgLoss;
             totalAccuracy += accuracy;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 50 == 0)
             {

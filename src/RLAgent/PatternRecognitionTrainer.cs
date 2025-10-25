@@ -37,7 +37,8 @@ public class PatternRecognitionTrainer
     public async Task<TrainingResult> TrainFromHistoricalBarsAsync(
         List<HistoricalBar> bars,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("🔧 PatternRecognitionTrainer PRODUCTION training from {BarCount} bars",
@@ -266,6 +267,9 @@ public class PatternRecognitionTrainer
             var accuracy = (double)correctPredictions / patterns.Count;
             totalError += avgLoss;
             totalAccuracy += accuracy;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 40 == 0)
             {
