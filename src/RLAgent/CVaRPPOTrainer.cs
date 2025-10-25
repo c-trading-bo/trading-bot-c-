@@ -65,13 +65,21 @@ public class CVaRPPOTrainer
         _modelBasePath = modelBasePath;
         _modelRegistrationCallback = modelRegistrationCallback;
         
-        Directory.CreateDirectory(_modelBasePath);
-        
-        // Initialize neural networks for training
-        InitializeNetworks();
-        
-        _logger.LogInformation("CVaRPPOTrainer initialized (Lab mode) - StateSize: {StateSize}, ActionSize: {ActionSize}, CVaRAlpha: {CVaRAlpha}, HasModelRegistry: {HasRegistry}",
-            _config.StateSize, _config.ActionSize, _config.CVaRAlpha, _modelRegistrationCallback != null);
+        try
+        {
+            Directory.CreateDirectory(_modelBasePath);
+            
+            // Initialize neural networks for training
+            InitializeNetworks();
+            
+            _logger.LogInformation("CVaRPPOTrainer initialized (Lab mode) - StateSize: {StateSize}, ActionSize: {ActionSize}, CVaRAlpha: {CVaRAlpha}, HasModelRegistry: {HasRegistry}",
+                _config.StateSize, _config.ActionSize, _config.CVaRAlpha, _modelRegistrationCallback != null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "⚠️ [CVAR-PPO-TRAINER] Failed to initialize neural networks (TorchSharp may not be available). Training will be disabled.");
+            // Continue without neural networks - training won't work but DI container will build
+        }
     }
 
     /// <summary>

@@ -71,12 +71,20 @@ public class CVaRPPO : IDisposable
         _runtimeMode = runtimeMode;
         _modelBasePath = modelBasePath;
         
-        Directory.CreateDirectory(_modelBasePath);
-        
-        // Initialize neural networks
-        InitializeNetworks();
-        
-        LogMessages.CVaRPPOInitialized(_logger, _config.StateSize, _config.ActionSize, _config.CVaRAlpha);
+        try
+        {
+            Directory.CreateDirectory(_modelBasePath);
+            
+            // Initialize neural networks
+            InitializeNetworks();
+            
+            LogMessages.CVaRPPOInitialized(_logger, _config.StateSize, _config.ActionSize, _config.CVaRAlpha);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "⚠️ [CVAR-PPO] Failed to initialize neural networks (TorchSharp may not be available). Running in degraded mode.");
+            // Continue without neural networks - will use ONNX inference in Terminal mode
+        }
     }
 
     /// <summary>

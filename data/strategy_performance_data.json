@@ -1,9 +1,13 @@
 {
   "S2": {
-    "win_rate": 0.5035125641718454471764388003,
-    "total_trades": 7402,
-    "total_pnl": -405.5,
+    "win_rate": 0.7,
+    "total_trades": 20,
+    "total_pnl": -90.5,
     "avg_hold_time": 10,
-    "optimal_conditions": []
+    "optimal_conditions": [
+      "oversold",
+      "ranging",
+      "low_volatility"
+    ]
   }
 }
