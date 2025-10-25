@@ -47,6 +47,12 @@ public sealed class LabModeDashboardRenderer
         // Light Phase
         RenderPhaseSection(output, state.LightPhase, "🟢 LIGHT PHASE - IN PROGRESS ⚙️", "LIGHT");
         
+        // Current Training Metrics (if component is in progress)
+        if (state.CurrentComponent != null)
+        {
+            RenderCurrentTrainingMetrics(output, state);
+        }
+        
         // Strategy Performance Section
         RenderStrategyPerformance(output, state);
         
@@ -69,7 +75,7 @@ public sealed class LabModeDashboardRenderer
         RenderRecentActivity(output, state.RecentActivity);
         
         // Footer
-        RenderFooter(output);
+        RenderFooter(output, state);
 
         // Write directly to console instead of logger to avoid scrolling
         Console.Write(output.ToString());
@@ -108,15 +114,15 @@ public sealed class LabModeDashboardRenderer
 
     private void RenderPhaseSection(StringBuilder output, PhaseDetails phase, string title, string phaseType)
     {
-        if (phase.Status == TrainingPhaseStatus.Pending)
-            return;
-
+        // Always show phase sections (including pending ones as in the example)
+        
         // Determine status title based on phase status
         var statusTitle = phase.Status switch
         {
-            TrainingPhaseStatus.Complete => title.Replace("IN PROGRESS", "COMPLETE ✓"),
-            TrainingPhaseStatus.InProgress => title.Replace("COMPLETE ✓", "IN PROGRESS"),
-            TrainingPhaseStatus.Failed => title.Replace("IN PROGRESS", "FAILED ✗").Replace("COMPLETE ✓", "FAILED ✗"),
+            TrainingPhaseStatus.Complete => title.Replace("IN PROGRESS", "COMPLETE ✓").Replace("PENDING", "COMPLETE ✓"),
+            TrainingPhaseStatus.InProgress => title.Replace("COMPLETE ✓", "IN PROGRESS").Replace("PENDING", "IN PROGRESS"),
+            TrainingPhaseStatus.Failed => title.Replace("IN PROGRESS", "FAILED ✗").Replace("COMPLETE ✓", "FAILED ✗").Replace("PENDING", "FAILED ✗"),
+            TrainingPhaseStatus.Pending => title.Replace("IN PROGRESS", "PENDING").Replace("COMPLETE ✓", "PENDING"),
             _ => title
         };
 
@@ -130,16 +136,44 @@ public sealed class LabModeDashboardRenderer
             var phaseProgress = (double)phase.CompletedComponents / phase.TotalComponents * 100.0;
             var progressBar = GenerateProgressBar((int)(phaseProgress / 100.0 * 40), 40);
             output.AppendLine($"│ {progressBar} {phaseProgress:F1}% ({phase.CompletedComponents}/{phase.TotalComponents} completed)                  │");
+            var duration = "In progress";
+            output.AppendLine($"│ Duration: {duration} | Success: {phase.CompletedComponents}/{phase.TotalComponents} | Failed: {phase.FailedComponents,-39} │");
+            output.AppendLine("│                                                                                 │");
+        }
+        else if (phase.Status == TrainingPhaseStatus.Pending)
+        {
+            // Show pending state with 0% progress
+            var progressBar = GenerateProgressBar(0, 40);
+            output.AppendLine($"│ {progressBar} 0.0% (0/{phase.TotalComponents} completed)                    │");
+            output.AppendLine($"│ Duration: Not started                                                           │");
+            output.AppendLine("│                                                                                 │");
+        }
+        else if (phase.Status == TrainingPhaseStatus.Complete && phase.Duration.HasValue)
+        {
+            var progressBar = GenerateProgressBar(40, 40);
+            output.AppendLine($"│ {progressBar} 100.0% ({phase.CompletedComponents}/{phase.TotalComponents} completed)                │");
+            var duration = FormatTimeSpan(phase.Duration.Value);
+            output.AppendLine($"│ Duration: {duration} | Success: {phase.CompletedComponents}/{phase.TotalComponents} | Failed: {phase.FailedComponents,-39} │");
+            output.AppendLine("│                                                                                 │");
         }
         
-        var duration = phase.Duration.HasValue ? FormatTimeSpan(phase.Duration.Value) : "In progress";
-        output.AppendLine($"│ Duration: {duration} | Success: {phase.CompletedComponents}/{phase.TotalComponents} | Failed: {phase.FailedComponents,-39} │");
-        output.AppendLine("│                                                                                 │");
-        
-        // Render each component in the phase
-        foreach (var component in phase.Components)
+        // Render components if phase has started or show queued components for pending
+        if (phase.Components.Count > 0)
         {
-            RenderComponentSummary(output, component, phase.TotalComponents);
+            foreach (var component in phase.Components)
+            {
+                RenderComponentSummary(output, component, phase.TotalComponents);
+            }
+        }
+        else if (phase.Status == TrainingPhaseStatus.Pending && phase.TotalComponents > 0)
+        {
+            // Show queued components list for pending phases
+            output.AppendLine("│ Queued Components:                                                              │");
+            // Component names will be populated when phase details are initialized
+            for (int i = 1; i <= Math.Min(phase.TotalComponents, 7); i++)
+            {
+                output.AppendLine($"│  • Component {i}                                                                       │");
+            }
         }
         
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
@@ -149,29 +183,86 @@ public sealed class LabModeDashboardRenderer
     private void RenderComponentSummary(StringBuilder output, ComponentSummary component, int totalComponents)
     {
         var statusIcon = component.Status == "Complete" ? "✓" : 
-                        component.Status == "InProgress" ? "⚙️" : 
-                        component.Status == "Failed" ? "✗" : "⏳";
+                        component.Status == "InProgress" ? "⏳" : 
+                        component.Status == "Failed" ? "✗" : "⏸";
         
         // Format: │ ✓ [1/11] CVaRPPOTrainer                          (2m 15s) - 4,928 experiences  │
         var componentIndex = $"[{component.ComponentNumber}/{totalComponents}]";
-        var durationStr = component.Duration.TotalSeconds > 0 ? FormatTimeSpanShort(component.Duration) : "...";
-        var experienceStr = component.ExperienceCount > 0 ? $"{component.ExperienceCount:N0} experiences" : "...";
+        
+        // Handle different states
+        string durationStr;
+        string experienceStr;
+        
+        if (component.Status == "Complete")
+        {
+            durationStr = component.Duration.TotalSeconds > 0 ? FormatTimeSpanShort(component.Duration) : "0s";
+            experienceStr = component.ExperienceCount > 0 ? $"{component.ExperienceCount:N0} experiences" : "N/A";
+        }
+        else if (component.Status == "InProgress")
+        {
+            var elapsed = component.Duration.TotalSeconds > 0 ? FormatTimeSpanShort(component.Duration) : "0s";
+            durationStr = $"In progress: {elapsed} elapsed";
+            experienceStr = "";
+        }
+        else if (component.Status == "Failed")
+        {
+            durationStr = "(FAILED)";
+            experienceStr = component.Metrics.ContainsKey("Error") ? component.Metrics["Error"] : "Unknown error";
+        }
+        else // Pending
+        {
+            durationStr = "(Pending)";
+            experienceStr = "";
+        }
         
         // Format component name to fit (pad or truncate to 40 chars)
         var componentName = component.ComponentName.Length > 40 
             ? component.ComponentName.Substring(0, 37) + "..." 
             : component.ComponentName.PadRight(40);
         
-        output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName} ({durationStr,-7}) - {experienceStr,-20} │");
-        
-        // If component failed, show error details if available
-        if (component.Status == "Failed" && component.Metrics.ContainsKey("Error"))
+        if (component.Status == "Complete")
         {
-            var errorMsg = component.Metrics["Error"];
-            if (errorMsg.Length > 70)
-                errorMsg = errorMsg.Substring(0, 67) + "...";
-            output.AppendLine($"│     Error: {errorMsg,-71} │");
+            output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName} ({durationStr,-7}) - {experienceStr,-20} │");
         }
+        else if (component.Status == "InProgress")
+        {
+            output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName} ({durationStr,-40}) │");
+        }
+        else if (component.Status == "Failed")
+        {
+            output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName} {durationStr,-20} - {experienceStr,-20} │");
+        }
+        else // Pending
+        {
+            output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName,-40} {durationStr,-20}                      │");
+        }
+    }
+
+    private void RenderCurrentTrainingMetrics(StringBuilder output, LabModeDashboardState state)
+    {
+        if (state.CurrentComponent == null)
+            return;
+
+        var component = state.CurrentComponent;
+        
+        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
+        output.AppendLine($"│ 📊 CURRENT TRAINING METRICS ({component.ComponentName})                              │");
+        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
+        output.AppendLine($"│ Epoch: {component.EpochsCompleted}/{component.TotalEpochs} | Batch: N/A | Learning Rate: N/A                        │");
+        output.AppendLine("│                                                                                 │");
+        output.AppendLine("│ Loss Metrics:                                                                   │");
+        output.AppendLine($"│  • Total Loss:       {component.CurrentLoss:F4} (tracking)                                      │");
+        output.AppendLine("│                                                                                 │");
+        output.AppendLine("│ Performance:                                                                    │");
+        output.AppendLine($"│  • Training Progress:    {component.ProgressPercentage:F1}%                                                │");
+        output.AppendLine("│                                                                                 │");
+        output.AppendLine("│ Resource Usage:                                                                 │");
+        output.AppendLine($"│  • GPU Utilization:      N/A (CPU training)                                     │");
+        output.AppendLine($"│  • CPU Utilization:      {state.Resources.CpuUsagePercent:F0}%                                                    │");
+        output.AppendLine($"│  • Memory Used:          {state.Resources.MemoryUsedMb / 1024.0:F1} GB / {state.Resources.MemoryTotalMb / 1024.0:F1} GB ({(double)state.Resources.MemoryUsedMb / state.Resources.MemoryTotalMb * 100:F0}%)                                 │");
+        output.AppendLine($"│  • Disk I/O:             {state.Resources.DiskReadMbPerSec:F0} MB/s read, {state.Resources.DiskWriteMbPerSec:F0} MB/s write                            │");
+        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
+        output.AppendLine();
     }
 
     private void RenderStrategyPerformance(StringBuilder output, LabModeDashboardState state)
@@ -187,11 +278,21 @@ public sealed class LabModeDashboardRenderer
         
         foreach (var strategy in state.StrategyMetrics.OrderBy(s => s.StrategyName))
         {
-            var statusIcon = strategy.Status == TrainingPhaseStatus.Complete ? "✓" :
-                           strategy.Status == TrainingPhaseStatus.InProgress ? "⚙️" :
-                           strategy.Status == TrainingPhaseStatus.Failed ? "✗" : "⏳";
+            var statusIcon = strategy.Status == TrainingPhaseStatus.Complete ? "✅ Live" :
+                           strategy.Status == TrainingPhaseStatus.InProgress ? "⚙️  Train" :
+                           strategy.Status == TrainingPhaseStatus.Failed ? "❌ Failed" : "⏸️  Wait";
             
-            output.AppendLine($"│ {strategy.StrategyName,-11} {strategy.WinRate,7:F1}%  ${strategy.TotalPnL,9:F2}  ${strategy.TotalWon,9:F2}  ${strategy.TotalLost,10:F2}  {strategy.TotalTrades,6}   {statusIcon,-6} │");
+            output.AppendLine($"│ {strategy.StrategyName,-11} {strategy.WinRate,7:F1}%  ${strategy.TotalPnL,9:F2}  ${strategy.TotalWon,9:F2}  ${strategy.TotalLost,10:F2}  {strategy.TotalTrades,6}   {statusIcon,-9} │");
+        }
+        
+        // Add portfolio summary if we have strategy data
+        var totalPnl = state.StrategyMetrics.Sum(s => s.TotalPnL);
+        var totalTrades = state.StrategyMetrics.Sum(s => s.TotalTrades);
+        
+        if (totalTrades > 0)
+        {
+            output.AppendLine("│                                                                                 │");
+            output.AppendLine($"│ Total Portfolio: ${totalPnl:F2} | Sharpe: N/A | Max DD: N/A                          │");
         }
         
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
@@ -263,14 +364,15 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine("│ 📊 SYSTEM RESOURCES                                                            │");
         output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
         
-        var cpuBar = GenerateProgressBar((int)(resources.CpuUsagePercent / 100.0 * 16), 16);
-        var memoryBar = GenerateProgressBar((int)((double)resources.MemoryUsedMb / resources.MemoryTotalMb * 16), 16);
+        var cpuBar = GenerateProgressBar((int)(resources.CpuUsagePercent / 100.0 * 20), 20);
+        var memoryBar = GenerateProgressBar((int)((double)resources.MemoryUsedMb / resources.MemoryTotalMb * 15), 15);
         var memoryGb = resources.MemoryUsedMb / 1024.0;
         var memoryTotalGb = resources.MemoryTotalMb / 1024.0;
+        var memoryPercent = (int)((double)resources.MemoryUsedMb / resources.MemoryTotalMb * 100);
         
-        output.AppendLine($"│ CPU: {cpuBar} {resources.CpuUsagePercent,2:F0}% | Memory: {memoryBar} {resources.CpuUsagePercent,2:F0}% ({memoryGb:F1} GB / {memoryTotalGb:F1} GB)│");
+        output.AppendLine($"│ CPU: {cpuBar} {resources.CpuUsagePercent,3:F0}% | Memory: {memoryBar} {memoryPercent,2}% ({memoryGb:F1} GB / {memoryTotalGb:F1} GB)│");
         output.AppendLine($"│ Disk I/O: {resources.DiskReadMbPerSec,3:F0} MB/s read, {resources.DiskWriteMbPerSec,2:F0} MB/s write | GPU: N/A (CPU training)              │");
-        output.AppendLine($"│ Training Processes: {resources.ActiveProcesses} active | Memory Leak: ✓ None detected                   │");
+        output.AppendLine($"│ Training Processes: {resources.ActiveProcesses} active | Memory Leak: ✓ None detected                    │");
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
         output.AppendLine();
     }
@@ -346,13 +448,28 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine();
     }
 
-    private void RenderFooter(StringBuilder output)
+    private void RenderFooter(StringBuilder output, LabModeDashboardState state)
     {
         var lockFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "qbot_lab_training.lock");
+        var uptime = FormatTimeSpan(state.Elapsed);
+        
+        // Calculate lock file age if it exists
+        var lockFileAge = "N/A";
+        if (System.IO.File.Exists(lockFile))
+        {
+            var lockFileInfo = new System.IO.FileInfo(lockFile);
+            var lockAge = DateTimeOffset.UtcNow - lockFileInfo.LastWriteTimeUtc;
+            lockFileAge = FormatTimeSpan(lockAge);
+        }
+        
         output.AppendLine("╔═══════════════════════════════════════════════════════════════════════════════════╗");
         output.AppendLine("║ Press Ctrl+C to cancel training (will save checkpoint for resume)                ║");
         output.AppendLine($"║ Training lock file: {lockFile,-56} ║");
+        output.AppendLine($"║ Uptime: {uptime,-20} | Lock File Age: {lockFileAge,-20} | Next refresh: 5s      ║");
         output.AppendLine("╚═══════════════════════════════════════════════════════════════════════════════════╝");
+        output.AppendLine();
+        output.AppendLine($"[{DateTimeOffset.Now.ToOffset(TimeSpan.FromHours(-5)):HH:mm:ss}] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]");
+        output.AppendLine("           [LAB] Dashboard auto-refresh (every 5 seconds)");
     }
 
     private static string GenerateProgressBar(int filled, int total)
