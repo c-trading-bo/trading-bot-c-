@@ -36,15 +36,21 @@ foreach ($symbol in @("ES", "NQ")) {
             # Check if file contains expected JSON structure
             $content = Get-Content $file -Raw
             if ($content -match '"bars"' -and $content -match '"timestamp"') {
-                $sizeKB = [math]::Round($size / 1024, 0)
-                Write-Host "✓ PASS (${sizeKB} KB)" -ForegroundColor Green
+                # Consistent size formatting
+                if ($size -ge 1MB) {
+                    $sizeFormatted = "{0:N1} MB" -f ($size / 1MB)
+                } else {
+                    $sizeFormatted = "{0:N0} KB" -f ($size / 1KB)
+                }
+                Write-Host "✓ PASS ($sizeFormatted)" -ForegroundColor Green
                 $pass++
             } else {
                 Write-Host "✗ FAIL (Invalid JSON structure)" -ForegroundColor Red
                 $fail++
             }
         } else {
-            Write-Host "✗ FAIL (File too small: $size bytes)" -ForegroundColor Red
+            $sizeFormatted = "{0:N0} bytes" -f $size
+            Write-Host "✗ FAIL (File too small: $sizeFormatted)" -ForegroundColor Red
             Write-Host "     Expected > 100 KB" -ForegroundColor Yellow
             $fail++
         }
@@ -64,8 +70,13 @@ foreach ($symbol in @("ES", "NQ")) {
     if (Test-Path $file) {
         $size = (Get-Item $file).Length
         if ($size -gt 102400) {
-            $sizeMB = [math]::Round($size / 1MB, 1)
-            Write-Host "✓ PRESENT (${sizeMB} MB)" -ForegroundColor Green
+            # Consistent size formatting
+            if ($size -ge 1MB) {
+                $sizeFormatted = "{0:N1} MB" -f ($size / 1MB)
+            } else {
+                $sizeFormatted = "{0:N0} KB" -f ($size / 1KB)
+            }
+            Write-Host "✓ PRESENT ($sizeFormatted)" -ForegroundColor Green
             $pass++
         } else {
             Write-Host "⚠ WARNING (File too small)" -ForegroundColor Yellow

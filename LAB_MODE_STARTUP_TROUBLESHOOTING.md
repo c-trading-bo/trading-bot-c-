@@ -157,9 +157,6 @@ Before launching Lab Mode, verify:
 ```bash
 # Force immediate training (any day)
 FORCE_LAB_NOW=1 dotnet run --project src/UnifiedOrchestrator
-
-# Or use launch script
-./launch-lab-auto.ps1
 ```
 
 ### Windows PowerShell
@@ -168,7 +165,7 @@ FORCE_LAB_NOW=1 dotnet run --project src/UnifiedOrchestrator
 $env:FORCE_LAB_NOW="1"
 dotnet run --project src/UnifiedOrchestrator
 
-# Or use launch script
+# Or use PowerShell launch script
 .\launch-lab-auto.ps1
 ```
 

@@ -20,6 +20,24 @@ PASS=0
 WARN=0
 FAIL=0
 
+# Helper function to get file size in bytes (portable across Linux/macOS)
+get_file_size() {
+    local file="$1"
+    wc -c < "$file" | tr -d ' '
+}
+
+# Helper function to format bytes to human readable (portable)
+format_size() {
+    local bytes="$1"
+    if [ "$bytes" -ge 1048576 ]; then
+        echo "$((bytes / 1048576)) MB"
+    elif [ "$bytes" -ge 1024 ]; then
+        echo "$((bytes / 1024)) KB"
+    else
+        echo "$bytes bytes"
+    fi
+}
+
 # Check 1: Data directory exists
 echo -n "Checking data directory... "
 if [ -d "data/historical" ]; then
@@ -41,18 +59,18 @@ for symbol in ES NQ; do
     echo -n "  ${symbol}_90days.json... "
     
     if [ -f "$FILE" ]; then
-        SIZE=$(stat -f%z "$FILE" 2>/dev/null || stat -c%s "$FILE" 2>/dev/null || echo "0")
+        SIZE=$(get_file_size "$FILE")
         if [ "$SIZE" -gt 102400 ]; then # > 100 KB
             # Check if file contains expected JSON structure
             if grep -q '"bars"' "$FILE" && grep -q '"timestamp"' "$FILE"; then
-                echo -e "${GREEN}✓ PASS${NC} ($(numfmt --to=iec $SIZE 2>/dev/null || echo "${SIZE} bytes"))"
+                echo -e "${GREEN}✓ PASS${NC} ($(format_size $SIZE))"
                 ((PASS++))
             else
                 echo -e "${RED}✗ FAIL${NC} (Invalid JSON structure)"
                 ((FAIL++))
             fi
         else
-            echo -e "${RED}✗ FAIL${NC} (File too small: ${SIZE} bytes)"
+            echo -e "${RED}✗ FAIL${NC} (File too small: $(format_size $SIZE))"
             echo "     Expected > 100 KB"
             ((FAIL++))
         fi
@@ -70,9 +88,9 @@ for symbol in ES NQ; do
     echo -n "  ${symbol}_1m_90days.json... "
     
     if [ -f "$FILE" ]; then
-        SIZE=$(stat -f%z "$FILE" 2>/dev/null || stat -c%s "$FILE" 2>/dev/null || echo "0")
+        SIZE=$(get_file_size "$FILE")
         if [ "$SIZE" -gt 102400 ]; then
-            echo -e "${GREEN}✓ PRESENT${NC} ($(numfmt --to=iec $SIZE 2>/dev/null || echo "${SIZE} bytes"))"
+            echo -e "${GREEN}✓ PRESENT${NC} ($(format_size $SIZE))"
             ((PASS++))
         else
             echo -e "${YELLOW}⚠ WARNING${NC} (File too small)"
