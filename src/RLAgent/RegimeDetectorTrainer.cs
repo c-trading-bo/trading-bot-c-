@@ -84,7 +84,7 @@ public class RegimeDetectorTrainer
             _logger.LogInformation("Analyzed performance across {Count} regime types", regimePerformance.Count);
 
             // Train regime classifier
-            await TrainRegimeClassifierAsync(regimes, regimePerformance, cancellationToken).ConfigureAwait(false);
+            await TrainRegimeClassifierAsync(regimes, regimePerformance, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -262,7 +262,8 @@ public class RegimeDetectorTrainer
     private async Task TrainRegimeClassifierAsync(
         List<MarketRegime> regimes,
         Dictionary<string, double> performance,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🧠 Training TorchSharp regime classifier with {RegimeCount} regimes - REAL DEEP LEARNING", regimes.Count);
 

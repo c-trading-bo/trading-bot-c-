@@ -41,7 +41,8 @@ public class ModelEnsembleTrainer
     /// </summary>
     public async Task<TrainingResult> TrainFromExperiencesAsync(
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 ModelEnsembleTrainer starting training from {ExpCount} experiences",
             experiences.Count);
@@ -75,7 +76,7 @@ public class ModelEnsembleTrainer
             LogModelPerformance(modelPerformance);
 
             // Train ensemble weights using meta-learning
-            await TrainEnsembleWeightsAsync(predictions, experiences, cancellationToken).ConfigureAwait(false);
+            await TrainEnsembleWeightsAsync(predictions, experiences, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -201,7 +202,8 @@ public class ModelEnsembleTrainer
     private async Task TrainEnsembleWeightsAsync(
         List<EnsembleTrainingPrediction> predictions,
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🧠 Training TorchSharp meta-learning ensemble with {PredictionCount} prediction sets - REAL DEEP LEARNING",
             predictions.Count);
@@ -285,6 +287,9 @@ public class ModelEnsembleTrainer
             // Calculate R² for model quality assessment
             var r2 = CalculateR2Score(features, targets, network);
             totalR2 += r2;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 54 == 0)
             {

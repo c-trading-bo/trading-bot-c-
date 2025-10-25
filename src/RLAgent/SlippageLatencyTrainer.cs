@@ -39,7 +39,8 @@ public class SlippageLatencyTrainer
     /// </summary>
     public async Task<TrainingResult> TrainFromExperiencesAsync(
         List<ExperienceData> experiences,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🔧 SlippageLatencyTrainer starting training from {ExpCount} experiences",
             experiences.Count);
@@ -72,7 +73,7 @@ public class SlippageLatencyTrainer
             _logger.LogInformation("Identified {Count} latency patterns", latencyPatterns.Count);
 
             // Train prediction model
-            await TrainPredictionModelAsync(slippageMetrics, latencyPatterns, cancellationToken).ConfigureAwait(false);
+            await TrainPredictionModelAsync(slippageMetrics, latencyPatterns, cancellationToken, progressCallback).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -184,7 +185,8 @@ public class SlippageLatencyTrainer
     private async Task TrainPredictionModelAsync(
         List<SlippageMetric> slippageMetrics,
         List<LatencyPattern> latencyPatterns,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int, int, double>? progressCallback = null)
     {
         _logger.LogInformation("🧠 Training TorchSharp regression models for {SlippageCount} slippage metrics and {LatencyCount} latency patterns - REAL DEEP LEARNING",
             slippageMetrics.Count, latencyPatterns.Count);
@@ -265,6 +267,9 @@ public class SlippageLatencyTrainer
             
             var avgLoss = epochLoss / features.Count;
             totalLoss += avgLoss;
+            
+            // Report progress if callback provided
+            progressCallback?.Invoke(epoch + 1, epochs, avgLoss);
             
             if (epoch % 44 == 0)
             {
