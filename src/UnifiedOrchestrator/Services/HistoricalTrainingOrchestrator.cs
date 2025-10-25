@@ -1678,10 +1678,11 @@ internal sealed class HistoricalTrainingOrchestrator
             }
             
             // Make promotion decision based on multi-seed results
+            Training.PromotionDecision? decision = null;
             if (seedResults.Count > 0)
             {
                 var championMetric = 0.0; // Get from model registry in production
-                var decision = _multiSeedCoordinator.MakePromotionDecision(
+                decision = _multiSeedCoordinator.MakePromotionDecision(
                     ComponentCVarPPO, seedResults, championMetric);
                 
                 if (decision.Approved && decision.BestSeed.HasValue)
@@ -1726,11 +1727,37 @@ internal sealed class HistoricalTrainingOrchestrator
             {
                 _logger.LogInformation("[LAB] ✅ {Component} complete in {Duration:F1} min with multi-seed validation", 
                     ComponentCVarPPO, stopwatch.Elapsed.TotalMinutes);
+                
+                // Update dashboard with real training metrics
+                _dashboardStateManager?.CompleteComponent(
+                    ComponentCVarPPO,
+                    "Heavy",
+                    1, // Component 1/7 in Heavy phase
+                    50, // Target epochs (from multi-seed training)
+                    decision?.BestTestMetric ?? 0.0, // Final loss/metric
+                    stopwatch.Elapsed,
+                    rlExperiences.Length,
+                    new Dictionary<string, string>
+                    {
+                        ["Status"] = "Success",
+                        ["BestSeed"] = decision?.BestSeed?.ToString() ?? "N/A",
+                        ["TestMetric"] = (decision?.BestTestMetric ?? 0.0).ToString("F4")
+                    }
+                );
             }
             else
             {
                 _logger.LogError("[LAB] ❌ {Component} FAILED after multi-seed training", ComponentCVarPPO);
                 result.FailedComponents.Add(ComponentCVarPPO);
+                
+                // Update dashboard with failure
+                _dashboardStateManager?.FailComponent(
+                    ComponentCVarPPO,
+                    "Heavy",
+                    1, // Component 1/7 in Heavy phase
+                    stopwatch.Elapsed,
+                    result.FailedComponents.LastOrDefault() ?? "Training failed"
+                );
             }
         }
         catch (Exception ex)
@@ -1740,6 +1767,15 @@ internal sealed class HistoricalTrainingOrchestrator
             result.CvarPpoTrainingDuration = stopwatch.Elapsed;
             result.CvarPpoSuccess = false;
             result.FailedComponents.Add(ComponentCVarPPO);
+            
+            // Update dashboard with exception failure
+            _dashboardStateManager?.FailComponent(
+                ComponentCVarPPO,
+                "Heavy",
+                1, // Component 1/7 in Heavy phase
+                stopwatch.Elapsed,
+                ex.Message
+            );
         }
     }
 

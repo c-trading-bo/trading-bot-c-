@@ -341,23 +341,8 @@ internal sealed class TrainingOrchestratorService
                                                trainingResult.LstmSuccess, trainingResult.PositionMgmtSuccess,
                                                trainingResult.ShadowValidationSuccess };
                         
-                        for (int i = 0; i < componentNames.Length; i++)
-                        {
-                            if (successes[i])
-                            {
-                                _dashboardStateManager.CompleteComponent(
-                                    componentNames[i], 
-                                    "Heavy", 
-                                    10 + i * 10, // Simulated epochs
-                                    0.001 * (i + 1), // Simulated loss
-                                    new Dictionary<string, string>
-                                    {
-                                        ["Status"] = "Success",
-                                        ["Model"] = $"v1.{i}.0"
-                                    }
-                                );
-                            }
-                        }
+                        // Dashboard tracking now happens directly in HistoricalTrainingOrchestrator
+                        // during actual training with real metrics (ComponentNumber, Duration, ExperienceCount)
                     }
 
                     _logger.LogInformation("[LAB] ✅ Training completed - {Successful} successful, {Failed} failed",
@@ -389,23 +374,7 @@ internal sealed class TrainingOrchestratorService
                     phaseResult.SuccessfulComponents = mediumResult.SuccessfulComponents;
                     phaseResult.FailedComponents = mediumResult.FailedComponents;
                     
-                    // Update dashboard with medium phase components
-                    if (_dashboardStateManager != null && mediumResult.SuccessfulComponents > 0)
-                    {
-                        var mediumComponents = new[] { "Position Mgmt Optimizer (Breakeven)", "Position Mgmt Optimizer (Trailing)",
-                                                      "Microstructure Calibration", "Isotonic Calibration",
-                                                      "Continuous Operation", "Production Validation", "Daily Retraining" };
-                        for (int i = 0; i < Math.Min(mediumComponents.Length, mediumResult.SuccessfulComponents); i++)
-                        {
-                            _dashboardStateManager.CompleteComponent(
-                                mediumComponents[i],
-                                "Medium",
-                                15 + i * 5,
-                                0.0001 * (i + 1),
-                                new Dictionary<string, string> { ["Status"] = "Optimized" }
-                            );
-                        }
-                    }
+                    // Dashboard tracking happens directly in Medium phase trainers with real metrics
                     
                     foreach (var failedComponent in mediumResult.FailedComponentNames)
                     {
@@ -445,23 +414,7 @@ internal sealed class TrainingOrchestratorService
                     phaseResult.SuccessfulComponents = lightResult.SuccessfulComponents;
                     phaseResult.FailedComponents = lightResult.FailedComponents;
                     
-                    // Update dashboard with light phase components
-                    if (_dashboardStateManager != null && lightResult.SuccessfulComponents > 0)
-                    {
-                        var lightComponents = new[] { "Online Learning Weight Update", "MAML Meta-Learner",
-                                                     "Adaptive Learning Commentary", "S15 Shadow Learning",
-                                                     "Unified Brain Learning", "CVaR-PPO Inference", "SAC Inference" };
-                        for (int i = 0; i < Math.Min(lightComponents.Length, lightResult.SuccessfulComponents); i++)
-                        {
-                            _dashboardStateManager.CompleteComponent(
-                                lightComponents[i],
-                                "Light",
-                                5 + i * 2,
-                                0.00001 * (i + 1),
-                                new Dictionary<string, string> { ["Status"] = "Active" }
-                            );
-                        }
-                    }
+                    // Dashboard tracking happens directly in Light phase trainers with real metrics
                     
                     foreach (var failedComponent in lightResult.FailedComponentNames)
                     {

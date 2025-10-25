@@ -147,7 +147,7 @@ public sealed class LabModeDashboardStateManager
     /// <summary>
     /// Mark component as complete
     /// </summary>
-    public void CompleteComponent(string componentName, string phase, int epochsCompleted, double finalLoss, Dictionary<string, string>? metrics = null)
+    public void CompleteComponent(string componentName, string phase, int componentNumber, int epochsCompleted, double finalLoss, TimeSpan duration, int experienceCount, Dictionary<string, string>? metrics = null)
     {
         lock (_stateLock)
         {
@@ -166,11 +166,14 @@ public sealed class LabModeDashboardStateManager
                     phaseDetails.Components.Add(component);
                 }
                 
+                component.ComponentNumber = componentNumber;
                 component.EpochsCompleted = epochsCompleted;
                 component.TotalEpochs = epochsCompleted;
                 component.FinalLoss = finalLoss;
                 component.ProgressPercentage = 100.0;
                 component.Status = "Complete";
+                component.Duration = duration;
+                component.ExperienceCount = experienceCount;
                 
                 if (metrics != null)
                 {
@@ -183,7 +186,45 @@ public sealed class LabModeDashboardStateManager
             _currentState.CurrentComponent = null;
             
             LogActivity("info", componentName, 
-                $"✓ Training complete - {epochsCompleted} epochs, loss: {finalLoss:F4}");
+                $"✓ Training complete - {epochsCompleted} epochs, loss: {finalLoss:F4}, duration: {duration.TotalSeconds:F1}s, experiences: {experienceCount}");
+        }
+    }
+
+    /// <summary>
+    /// Mark component as failed
+    /// </summary>
+    public void FailComponent(string componentName, string phase, int componentNumber, TimeSpan duration, string errorMessage)
+    {
+        lock (_stateLock)
+        {
+            _currentState.ComponentsCompleted++;
+            _currentState.ComponentsRemaining = _currentState.TotalComponents - _currentState.ComponentsCompleted;
+            _currentState.OverallProgress = (_currentState.ComponentsCompleted / (double)_currentState.TotalComponents) * 100.0;
+            
+            // Update phase-specific component
+            var phaseDetails = GetPhaseDetails(phase);
+            if (phaseDetails != null)
+            {
+                var component = phaseDetails.Components.FirstOrDefault(c => c.ComponentName == componentName);
+                if (component == null)
+                {
+                    component = new ComponentSummary { ComponentName = componentName };
+                    phaseDetails.Components.Add(component);
+                }
+                
+                component.ComponentNumber = componentNumber;
+                component.ProgressPercentage = 0.0;
+                component.Status = "Failed";
+                component.Duration = duration;
+                component.Metrics["Error"] = errorMessage.Length > 100 ? errorMessage.Substring(0, 97) + "..." : errorMessage;
+                
+                phaseDetails.FailedComponents++;
+            }
+            
+            _currentState.CurrentComponent = null;
+            
+            LogActivity("error", componentName, 
+                $"✗ Training failed - {errorMessage}");
         }
     }
 
