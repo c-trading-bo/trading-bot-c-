@@ -82,9 +82,10 @@ internal sealed class HistoricalTrainingOrchestrator
     private readonly Training.DynamicDataSplitStrategy _dataSplitStrategy;
     private readonly Training.EarlyStoppingTracker _earlyStoppingTracker;
     private readonly Training.MultiSeedTrainingCoordinator _multiSeedCoordinator;
+    private readonly Training.LabModeDashboardStateManager? _dashboardStateManager;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
 
-    // Note: 24 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
+    // Note: 25 constructor parameters is necessary for this orchestration class which coordinates multiple training subsystems.
     // This class is the central coordinator for Lab Mode training and needs access to all specialized services.
     // Future refactoring could split this into LabModeDataLoader, ModelManagementService, and TrainingCoordinator,
     // but that would require significant changes to the DI container registration and service architecture.
@@ -124,6 +125,7 @@ internal sealed class HistoricalTrainingOrchestrator
         Training.DynamicDataSplitStrategy dataSplitStrategy,
         Training.EarlyStoppingTracker earlyStoppingTracker,
         Training.MultiSeedTrainingCoordinator multiSeedCoordinator,
+        Training.LabModeDashboardStateManager? dashboardStateManager = null,
         GitHubBackupService? githubBackupService = null)
 #pragma warning restore S107
     {
@@ -161,6 +163,7 @@ internal sealed class HistoricalTrainingOrchestrator
         _dataSplitStrategy = dataSplitStrategy;
         _earlyStoppingTracker = earlyStoppingTracker;
         _multiSeedCoordinator = multiSeedCoordinator;
+        _dashboardStateManager = dashboardStateManager;
         _githubBackupService = githubBackupService;
         
         _logger.LogInformation("HistoricalTrainingOrchestrator initialized - Lab Mode uses Python scripts for data (NO API connections)");
