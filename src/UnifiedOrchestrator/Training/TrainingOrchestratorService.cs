@@ -106,8 +106,8 @@ internal sealed class TrainingOrchestratorService
             var lockFileInfo = new FileInfo(_lockFilePath);
             var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
             
-            // If lock is older than 30 minutes, consider it stale and delete it
-            if (lockAge.TotalMinutes > 30)
+            // If lock is older than 5 minutes, consider it stale and delete it (Lab Mode quick retries)
+            if (lockAge.TotalMinutes > 5)
             {
                 _logger.LogWarning("[LAB] Stale training lock file detected (age: {Age:F1} minutes) - deleting and proceeding",
                     lockAge.TotalMinutes);

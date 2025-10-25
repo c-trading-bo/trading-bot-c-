@@ -331,15 +331,22 @@ internal sealed class TrainingResourceMonitor
     {
         try
         {
-            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_training.lock");
+            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
             
             if (File.Exists(lockFilePath))
             {
-                // Lock file exists - check if it's stale (older than 30 minutes)
+                // Lock file exists - check if it's stale (older than 5 minutes for Lab Mode quick retries)
                 var lockFileInfo = new FileInfo(lockFilePath);
                 var lockAge = DateTime.UtcNow - lockFileInfo.LastWriteTimeUtc;
                 
-                if (lockAge.TotalMinutes < 30)
+                // If lock is VERY fresh (< 1 minute), it's from the current session startup - allow it
+                if (lockAge.TotalMinutes < 1)
+                {
+                    _logger.LogDebug("[PRE-FLIGHT] Training lock file is fresh ({Age:F1} minutes) - belongs to current session",
+                        lockAge.TotalMinutes);
+                    return (true, null);
+                }
+                else if (lockAge.TotalMinutes < 5)
                 {
                     _logger.LogWarning("[PRE-FLIGHT] Training lock file exists (age: {Age:F1} minutes) - another training session may be running",
                         lockAge.TotalMinutes);
@@ -374,7 +381,7 @@ internal sealed class TrainingResourceMonitor
     {
         try
         {
-            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_training.lock");
+            var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
             
             if (File.Exists(lockFilePath))
             {

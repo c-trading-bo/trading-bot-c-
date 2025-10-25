@@ -1,0 +1,19 @@
+{
+  "id": "45e32f2b-4928-4c2a-a3f8-c0bcdb2e4e21",
+  "algorithm": "",
+  "fromVersionId": "none",
+  "toVersionId": "v1.0.0-bootstrap-slippagelatencymodel",
+  "promotedAt": "2025-10-25T17:00:32.3205781Z",
+  "promotedBy": "",
+  "reason": "Bootstrap: Initial champion registration",
+  "validationReportPath": "",
+  "passedValidation": false,
+  "performanceImprovement": 0,
+  "riskReduction": 0,
+  "wasRolledBack": false,
+  "rolledBackAt": null,
+  "rollbackReason": "",
+  "wasFlat": false,
+  "marketSession": "",
+  "contextData": {}
+}
