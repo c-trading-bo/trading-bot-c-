@@ -151,7 +151,7 @@ public sealed class LabModeDashboardStateManager
     /// <summary>
     /// Update component training progress
     /// </summary>
-    public void UpdateComponentProgress(string componentName, string phase, int currentEpoch, int totalEpochs, double currentLoss, double progress)
+    public void UpdateComponentProgress(string componentName, string phase, int componentNumber, int currentEpoch, int totalEpochs, double currentLoss, double progress)
     {
         lock (_stateLock)
         {
@@ -176,6 +176,7 @@ public sealed class LabModeDashboardStateManager
                     phaseDetails.Components.Add(component);
                 }
                 
+                component.ComponentNumber = componentNumber;
                 component.EpochsCompleted = currentEpoch;
                 component.TotalEpochs = totalEpochs;
                 component.FinalLoss = currentLoss;

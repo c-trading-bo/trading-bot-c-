@@ -95,6 +95,16 @@ public class LabModeDashboardIntegrationExample
     {
         _logger.LogInformation("Starting {Component} training", componentName);
         
+        // Get component number (approximate based on phase components already completed)
+        var phaseDetails = phase switch
+        {
+            "Heavy" => _stateManager.GetCurrentState().HeavyPhase,
+            "Medium" => _stateManager.GetCurrentState().MediumPhase,
+            "Light" => _stateManager.GetCurrentState().LightPhase,
+            _ => null
+        };
+        var componentNumber = phaseDetails != null ? phaseDetails.Components.Count + 1 : 1;
+        
         for (int epoch = 1; epoch <= totalEpochs; epoch++)
         {
             // Simulate epoch training
@@ -105,7 +115,7 @@ public class LabModeDashboardIntegrationExample
             var loss = 0.5 * Math.Exp(-epoch * 0.1); // Decreasing loss
             
             // Update dashboard
-            _stateManager.UpdateComponentProgress(componentName, phase, epoch, totalEpochs, loss, progress);
+            _stateManager.UpdateComponentProgress(componentName, phase, componentNumber, epoch, totalEpochs, loss, progress);
             _stateManager.UpdateResources();
             _stateManager.UpdateTiming(TimeSpan.FromMinutes((totalEpochs - epoch) * 2));
             
