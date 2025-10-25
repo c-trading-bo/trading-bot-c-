@@ -1614,9 +1614,14 @@ namespace BotCore.Brain
 
                 DecisionsToday++;
                 
-                LogBrainDecision(_logger, symbol, optimalStrategy.SelectedStrategy, (double)optimalStrategy.Confidence,
-                    priceDirection.Direction.ToString(), (double)priceDirection.Probability, null);
-                LogDecisionDetails(_logger, (double)optimalSize, marketRegime.ToString(), decision.ProcessingTimeMs, null);
+                // Suppress verbose logging during Lab mode training (dashboard only)
+                var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                if (!isLabMode)
+                {
+                    LogBrainDecision(_logger, symbol, optimalStrategy.SelectedStrategy, (double)optimalStrategy.Confidence,
+                        priceDirection.Direction.ToString(), (double)priceDirection.Probability, null);
+                    LogDecisionDetails(_logger, (double)optimalSize, marketRegime.ToString(), decision.ProcessingTimeMs, null);
+                }
 
                 // AI bot thinking - explain decision before taking trade
                 if (_ollamaClient != null && (Environment.GetEnvironmentVariable("BOT_THINKING_ENABLED") == "true"))
@@ -2873,8 +2878,14 @@ Reason closed: {reason}
             if (contracts == 0 && riskAmount > 0 && confidence >= (decimal)TopStepConfig.ConfidenceThreshold)
             {
                 contracts = 1; // Allow 1 contract for learning purposes with real risk
-                _logger.LogInformation("[POSITION-SIZING] 📊 Calculated risk ${Risk:F2} below per-contract risk ${PerContract:F2}, using minimum 1 contract (real money at risk)", 
-                    riskAmount, perContractRisk);
+                
+                // Suppress verbose logging during Lab mode training (dashboard only)
+                var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                if (!isLabMode)
+                {
+                    _logger.LogInformation("[POSITION-SIZING] 📊 Calculated risk ${Risk:F2} below per-contract risk ${PerContract:F2}, using minimum 1 contract (real money at risk)", 
+                        riskAmount, perContractRisk);
+                }
             }
 
             // Apply TopStep position limits based on current drawdown
@@ -2911,8 +2922,13 @@ Reason closed: {reason}
                     
                     contracts = Math.Max(0, Math.Min(riskAdjustedContracts, maxContracts));
                     
-                    LogCvarPpoAction(_logger, actionResult.Action, actionResult.ActionProbability, 
-                        actionResult.ValueEstimate, actionResult.CVaREstimate, contracts, null);
+                    // Suppress verbose CVaR-PPO logging during Lab mode training (dashboard only)
+                    var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                    if (!isLabMode)
+                    {
+                        LogCvarPpoAction(_logger, actionResult.Action, actionResult.ActionProbability, 
+                            actionResult.ValueEstimate, actionResult.CVaREstimate, contracts, null);
+                    }
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -2959,13 +2975,24 @@ Reason closed: {reason}
                 {
                     // Override with 1 contract bootstrap trade to build real experience
                     contracts = 1;
-                    _logger.LogInformation("[BOOTSTRAP] 🌱 Taking 1-contract learning trade: Action={Action}, Value={Value:F3}, Confidence={Conf:P1}", 
-                        _lastCVaRAction, _lastCVaRValue, confidence);
+                    
+                    // Suppress verbose logging during Lab mode training (dashboard only)
+                    var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                    if (!isLabMode)
+                    {
+                        _logger.LogInformation("[BOOTSTRAP] 🌱 Taking 1-contract learning trade: Action={Action}, Value={Value:F3}, Confidence={Conf:P1}", 
+                            _lastCVaRAction, _lastCVaRValue, confidence);
+                    }
                 }
                 else
                 {
-                    _logger.LogInformation("[CVAR-PPO] ⏸️ No trade: CVaR-PPO returned 0 contracts (confidence={Conf:P1}, risk=${Risk:F2})", 
-                        confidence, riskAmount);
+                    // Suppress verbose logging during Lab mode training (dashboard only)
+                    var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+                    if (!isLabMode)
+                    {
+                        _logger.LogInformation("[CVAR-PPO] ⏸️ No trade: CVaR-PPO returned 0 contracts (confidence={Conf:P1}, risk=${Risk:F2})", 
+                            confidence, riskAmount);
+                    }
                 }
             }
 
@@ -3286,11 +3313,16 @@ Reason closed: {reason}
             var priceChange = bars.Count > 1 ? latestBar.Close - bars[^2].Close : 0m;
             var volatility = latestBar.Close > 0 ? Math.Abs(latestBar.High - latestBar.Low) / latestBar.Close : 0;
             
-            Console.WriteLine($"[MARKET-CONTEXT] {symbol} | Price={latestBar.Close:F2} Vol={latestBar.Volume:N0} " +
-                             $"ATR={env.atr:F2} RSI={rsi:F1} Volatility={volatility:F4} " +
-                             $"VolRatio={volumeRatio:F2}x Trend={trendStrength:F2} Momentum={momentum:F2} " +
-                             $"PriceChange={priceChange:F2} VolRank={volatilityRank:F2} " +
-                             $"Time={latestBar.Start:HH:mm:ss} {latestBar.Start.DayOfWeek}");
+            // Suppress verbose console output during Lab mode training (shows only dashboard)
+            var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+            if (!isLabMode)
+            {
+                Console.WriteLine($"[MARKET-CONTEXT] {symbol} | Price={latestBar.Close:F2} Vol={latestBar.Volume:N0} " +
+                                 $"ATR={env.atr:F2} RSI={rsi:F1} Volatility={volatility:F4} " +
+                                 $"VolRatio={volumeRatio:F2}x Trend={trendStrength:F2} Momentum={momentum:F2} " +
+                                 $"PriceChange={priceChange:F2} VolRank={volatilityRank:F2} " +
+                                 $"Time={latestBar.Start:HH:mm:ss} {latestBar.Start.DayOfWeek}");
+            }
             
             var context = new MarketContext
             {

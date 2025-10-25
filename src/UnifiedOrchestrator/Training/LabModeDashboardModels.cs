@@ -106,11 +106,14 @@ public sealed class PhaseDetails
 public sealed class ComponentSummary
 {
     public string ComponentName { get; set; } = string.Empty;
+    public int ComponentNumber { get; set; } // 1-based index (1/11, 2/11, etc.)
     public double ProgressPercentage { get; set; }
     public int EpochsCompleted { get; set; }
     public int TotalEpochs { get; set; }
     public double FinalLoss { get; set; }
     public string Status { get; set; } = string.Empty;
+    public TimeSpan Duration { get; set; } // Time taken to train this component
+    public int ExperienceCount { get; set; } // Number of experiences used for training
     public Dictionary<string, string> Metrics { get; set; } = new();
 }
 

@@ -124,7 +124,7 @@ public class LabModeDashboardIntegrationExample
             ["Samples"] = samples.ToString(),
             ["Accuracy"] = "94.2%"
         };
-        _stateManager.CompleteComponent(componentName, phase, totalEpochs, finalLoss, metrics);
+        _stateManager.CompleteComponent(componentName, phase, 1, totalEpochs, finalLoss, TimeSpan.FromMinutes(2), samples, metrics);
         
         _logger.LogInformation("Completed {Component} training", componentName);
     }

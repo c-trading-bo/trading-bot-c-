@@ -337,8 +337,101 @@ public class LabModeIntegrationTests : IDisposable
         return sharpeImproved && winRateImproved && drawdownImproved && returnImproved;
     }
 
+    /// <summary>
+    /// Test that lock file mechanism works correctly and prevents concurrent training
+    /// Regression test for: "lock file issues every time i launch"
+    /// </summary>
+    [Fact]
+    public void TrainingLockFile_PreventsConcurrentTraining()
+    {
+        // Arrange
+        const int fakeDeadProcessId = 99999999; // PID that doesn't exist on any system
+        var monitor = _serviceProvider.GetRequiredService<TrainingResourceMonitor>();
+        var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
+        
+        // Clean up any existing lock file
+        if (File.Exists(lockFilePath))
+        {
+            File.Delete(lockFilePath);
+        }
+        
+        // Act - First lock should succeed
+        var (firstCanProceed, firstIssue) = monitor.CheckTrainingLock();
+        
+        // Assert - First lock succeeds
+        Assert.True(firstCanProceed, $"First lock should succeed but got: {firstIssue}");
+        Assert.Null(firstIssue);
+        Assert.True(File.Exists(lockFilePath), "Lock file should exist");
+        
+        // Verify lock file contains current process ID
+        var lockContent = File.ReadAllText(lockFilePath);
+        Assert.Contains($"PID:{Environment.ProcessId}", lockContent);
+        
+        // Act - Second lock from same process should succeed (allows current process)
+        var (secondCanProceed, secondIssue) = monitor.CheckTrainingLock();
+        
+        // Assert - Same process can re-acquire lock
+        Assert.True(secondCanProceed, "Same process should be able to re-acquire lock");
+        
+        // Act - Simulate lock from different (dead) process
+        File.WriteAllText(lockFilePath, $"PID:{fakeDeadProcessId}|Started:{DateTime.UtcNow:O}");
+        var (thirdCanProceed, thirdIssue) = monitor.CheckTrainingLock();
+        
+        // Assert - Dead process lock should be cleaned up and new lock acquired
+        Assert.True(thirdCanProceed, "Lock from dead process should be cleaned up");
+        
+        // Clean up
+        monitor.ReleaseTrainingLock();
+        Assert.False(File.Exists(lockFilePath), "Lock file should be deleted after release");
+    }
+    
+    /// <summary>
+    /// Test that lock file is properly cleaned up when process terminates
+    /// </summary>
+    [Fact]
+    public void TrainingLockFile_HandlesStaleLocks()
+    {
+        // Arrange
+        const int fakeOldProcessId = 12345; // PID from a process that finished hours ago
+        var monitor = _serviceProvider.GetRequiredService<TrainingResourceMonitor>();
+        var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
+        
+        // Clean up any existing lock file
+        if (File.Exists(lockFilePath))
+        {
+            File.Delete(lockFilePath);
+        }
+        
+        // Act - Create a very old stale lock (7 hours old)
+        File.WriteAllText(lockFilePath, $"PID:{fakeOldProcessId}|Started:{DateTime.UtcNow.AddHours(-7):O}");
+        File.SetLastWriteTimeUtc(lockFilePath, DateTime.UtcNow.AddHours(-7));
+        
+        var (canProceed, issue) = monitor.CheckTrainingLock();
+        
+        // Assert - Stale lock should be cleaned up
+        Assert.True(canProceed, "Very old stale lock (>6 hours) should be cleaned up automatically");
+        Assert.Null(issue);
+        
+        // Clean up
+        monitor.ReleaseTrainingLock();
+    }
+
     public void Dispose()
     {
+        // Clean up any test lock files
+        var lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
+        try
+        {
+            if (File.Exists(lockFilePath))
+            {
+                File.Delete(lockFilePath);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+        
         // Cleanup test directories
         try
         {

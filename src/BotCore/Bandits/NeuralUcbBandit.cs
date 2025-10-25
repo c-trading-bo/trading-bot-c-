@@ -88,7 +88,12 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         {
             var randomIndex = (int)(GetSecureRandomDouble() * availableArms.Count);
             var randomArm = availableArms[randomIndex];
-            Console.WriteLine($"[NEURAL-UCB] LAB_MODE: Random exploration selected {randomArm} (30% epsilon)");
+            
+            // Suppress verbose console output during Lab mode training (shows only dashboard)
+            if (!isLabMode)
+            {
+                Console.WriteLine($"[NEURAL-UCB] LAB_MODE: Random exploration selected {randomArm} (30% epsilon)");
+            }
             
             return new BanditSelection
             {
@@ -115,9 +120,13 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
         // Select arm with highest UCB value
         var bestSelection = selections.OrderByDescending(s => s.ucbValue).First();
 
-        Console.WriteLine($"[NEURAL-UCB] Selected {bestSelection.armId}: " +
-                        $"pred={bestSelection.prediction:F3} unc={bestSelection.uncertainty:F3} " +
-                        $"ucb={bestSelection.ucbValue:F3}");
+        // Suppress verbose console output during Lab mode training (shows only dashboard)
+        if (!isLabMode)
+        {
+            Console.WriteLine($"[NEURAL-UCB] Selected {bestSelection.armId}: " +
+                            $"pred={bestSelection.prediction:F3} unc={bestSelection.uncertainty:F3} " +
+                            $"ucb={bestSelection.ucbValue:F3}");
+        }
 
         return new BanditSelection
         {
@@ -154,8 +163,13 @@ public class NeuralUcbBandit : IFunctionApproximationBandit, IDisposable
 
         await arm.UpdateAsync(context, reward, ct).ConfigureAwait(false);
 
-        Console.WriteLine($"[NEURAL-UCB] Updated {selectedArm}: reward={reward:F3} " +
-                        $"updates={arm.UpdateCount}");
+        // Suppress verbose console output during Lab mode training (shows only dashboard)
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1";
+        if (!isLabMode)
+        {
+            Console.WriteLine($"[NEURAL-UCB] Updated {selectedArm}: reward={reward:F3} " +
+                            $"updates={arm.UpdateCount}");
+        }
     }
 
     /// <summary>
