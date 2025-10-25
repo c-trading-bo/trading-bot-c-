@@ -111,9 +111,26 @@ public sealed class LabModeDashboardRenderer
         if (phase.Status == TrainingPhaseStatus.Pending)
             return;
 
+        // Determine status title based on phase status
+        var statusTitle = phase.Status switch
+        {
+            TrainingPhaseStatus.Complete => title.Replace("IN PROGRESS", "COMPLETE ✓"),
+            TrainingPhaseStatus.InProgress => title.Replace("COMPLETE ✓", "IN PROGRESS"),
+            TrainingPhaseStatus.Failed => title.Replace("IN PROGRESS", "FAILED ✗").Replace("COMPLETE ✓", "FAILED ✗"),
+            _ => title
+        };
+
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
-        output.AppendLine($"│ {title,-79} │");
+        output.AppendLine($"│ {statusTitle,-79} │");
         output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
+        
+        // Show progress bar if in progress
+        if (phase.Status == TrainingPhaseStatus.InProgress && phase.TotalComponents > 0)
+        {
+            var phaseProgress = (double)phase.CompletedComponents / phase.TotalComponents * 100.0;
+            var progressBar = GenerateProgressBar((int)(phaseProgress / 100.0 * 40), 40);
+            output.AppendLine($"│ {progressBar} {phaseProgress:F1}% ({phase.CompletedComponents}/{phase.TotalComponents} completed)                  │");
+        }
         
         var duration = phase.Duration.HasValue ? FormatTimeSpan(phase.Duration.Value) : "In progress";
         output.AppendLine($"│ Duration: {duration} | Success: {phase.CompletedComponents}/{phase.TotalComponents} | Failed: {phase.FailedComponents,-39} │");
@@ -122,32 +139,39 @@ public sealed class LabModeDashboardRenderer
         // Render each component in the phase
         foreach (var component in phase.Components)
         {
-            RenderComponentSummary(output, component);
+            RenderComponentSummary(output, component, phase.TotalComponents);
         }
         
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
         output.AppendLine();
     }
 
-    private void RenderComponentSummary(StringBuilder output, ComponentSummary component)
+    private void RenderComponentSummary(StringBuilder output, ComponentSummary component, int totalComponents)
     {
         var statusIcon = component.Status == "Complete" ? "✓" : 
                         component.Status == "InProgress" ? "⚙️" : 
                         component.Status == "Failed" ? "✗" : "⏳";
         
-        var progressBar = GenerateProgressBar((int)(component.ProgressPercentage / 100.0 * 8), 8);
-        output.AppendLine($"│ {statusIcon} {component.ComponentName,-25} {progressBar} {component.ProgressPercentage:F0}% | Epochs: {component.EpochsCompleted}/{component.TotalEpochs} | Loss: {component.FinalLoss:F4}    │");
+        // Format: │ ✓ [1/11] CVaRPPOTrainer                          (2m 15s) - 4,928 experiences  │
+        var componentIndex = $"[{component.ComponentNumber}/{totalComponents}]";
+        var durationStr = component.Duration.TotalSeconds > 0 ? FormatTimeSpanShort(component.Duration) : "...";
+        var experienceStr = component.ExperienceCount > 0 ? $"{component.ExperienceCount:N0} experiences" : "...";
         
-        // Additional metrics if available
-        if (component.Metrics.Count > 0)
+        // Format component name to fit (pad or truncate to 40 chars)
+        var componentName = component.ComponentName.Length > 40 
+            ? component.ComponentName.Substring(0, 37) + "..." 
+            : component.ComponentName.PadRight(40);
+        
+        output.AppendLine($"│ {statusIcon} {componentIndex,-7} {componentName} ({durationStr,-7}) - {experienceStr,-20} │");
+        
+        // If component failed, show error details if available
+        if (component.Status == "Failed" && component.Metrics.ContainsKey("Error"))
         {
-            var metricsLine = string.Join(" | ", component.Metrics.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
-            if (metricsLine.Length > 75)
-                metricsLine = metricsLine.Substring(0, 75);
-            output.AppendLine($"│   - {metricsLine,-75} │");
+            var errorMsg = component.Metrics["Error"];
+            if (errorMsg.Length > 70)
+                errorMsg = errorMsg.Substring(0, 67) + "...";
+            output.AppendLine($"│     Error: {errorMsg,-71} │");
         }
-        
-        output.AppendLine("│                                                                                 │");
     }
 
     private void RenderStrategyPerformance(StringBuilder output, LabModeDashboardState state)
@@ -355,6 +379,23 @@ public sealed class LabModeDashboardRenderer
         if (ts.TotalHours >= 1)
         {
             return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
+        }
+        else if (ts.TotalMinutes >= 1)
+        {
+            return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        }
+        else
+        {
+            return $"{ts.Seconds}s";
+        }
+    }
+    
+    private static string FormatTimeSpanShort(TimeSpan ts)
+    {
+        // Format as "2m 15s" for component duration display
+        if (ts.TotalHours >= 1)
+        {
+            return $"{(int)ts.TotalHours}h {ts.Minutes}m";
         }
         else if (ts.TotalMinutes >= 1)
         {
