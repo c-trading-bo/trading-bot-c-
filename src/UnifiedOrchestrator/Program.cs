@@ -673,7 +673,7 @@ Please check the configuration and ensure all required services are registered.
             {
                 logging.ClearProviders();
                 
-                // Check if Lab Mode is enabled - if so, suppress console logging to allow dashboard to work
+                // Check if Lab Mode is enabled
                 var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
                 var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
                 
@@ -686,8 +686,17 @@ Please check the configuration and ensure all required services are registered.
                     });
                     logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
                 }
-                // Lab Mode: Console logging disabled - dashboard uses direct Console.Write with ANSI codes
-                // Logs still go to files if configured separately
+                else
+                {
+                    // Lab Mode: Console logging disabled - dashboard uses direct Console.Write with ANSI codes
+                    // Add file logging so users can tail logs to see training progress
+                    var logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", $"lab-training-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
+                    Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
+                    
+                    logging.AddProvider(new SimpleFileLoggerProvider(logFilePath));
+                    Console.WriteLine($"📝 [LAB-MODE] Training logs are being written to: {logFilePath}");
+                    Console.WriteLine($"💡 [LAB-MODE] Run 'tail -f {logFilePath}' in another terminal to see training progress");
+                }
                 
                 logging.SetMinimumLevel(LogLevel.Information);
                 // REDUCE NOISE - Override Microsoft and System logging to warnings only
@@ -3477,6 +3486,93 @@ Respond conversationally AS ME (the bot). Be helpful and explain my thinking.";
                     }
                 });
             });
+        }
+    }
+}
+
+/// <summary>
+/// Simple file logger provider for Lab Mode
+/// Writes all logs to a file that can be tailed to see training progress
+/// </summary>
+internal sealed class SimpleFileLoggerProvider : ILoggerProvider
+{
+    private readonly string _logFilePath;
+    private readonly object _lock = new object();
+
+    public SimpleFileLoggerProvider(string logFilePath)
+    {
+        _logFilePath = logFilePath;
+    }
+
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new SimpleFileLogger(_logFilePath, categoryName, _lock);
+    }
+
+    public void Dispose()
+    {
+        // No resources to dispose
+    }
+
+    private sealed class SimpleFileLogger : ILogger
+    {
+        private readonly string _logFilePath;
+        private readonly string _categoryName;
+        private readonly object _lock;
+
+        public SimpleFileLogger(string logFilePath, string categoryName, object lockObj)
+        {
+            _logFilePath = logFilePath;
+            _categoryName = categoryName;
+            _lock = lockObj;
+        }
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return logLevel >= LogLevel.Information;
+        }
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (!IsEnabled(logLevel))
+                return;
+
+            var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var level = logLevel.ToString().ToUpperInvariant();
+            var message = formatter(state, exception);
+            
+            // Extract short category name (last part)
+            var categoryParts = _categoryName.Split('.');
+            var shortCategory = categoryParts.Length > 0 ? categoryParts[^1] : _categoryName;
+            
+            var logLine = $"[{timestamp}] {level,-11} [{shortCategory}] {message}";
+            
+            if (exception != null)
+            {
+                logLine += Environment.NewLine + $"    Exception: {exception}";
+            }
+            
+            lock (_lock)
+            {
+                try
+                {
+                    File.AppendAllText(_logFilePath, logLine + Environment.NewLine);
+                }
+                catch
+                {
+                    // Ignore file write errors to avoid breaking the application
+                }
+            }
         }
     }
 }

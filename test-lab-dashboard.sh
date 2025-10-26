@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test Lab Mode Dashboard - Verify console logging is suppressed
+# Test Lab Mode Dashboard - Verify console logging is suppressed and file logging works
 
 set -e
 
@@ -24,12 +24,23 @@ dotnet build src/UnifiedOrchestrator/UnifiedOrchestrator.csproj --no-restore > /
 echo "✅ Build succeeded"
 echo ""
 
-# Run for 10 seconds to verify console logging behavior
-echo "🧪 Starting Lab Mode (will run for 10 seconds to test console output)..."
-echo "Expected: Dashboard updates in place (ANSI escape codes)"
-echo "Not Expected: Scrolling log messages"
+echo "╔══════════════════════════════════════════════════════════════════╗"
+echo "║  Lab Mode will write logs to a file for monitoring              ║"
+echo "╠══════════════════════════════════════════════════════════════════╣"
+echo "║                                                                  ║"
+echo "║  📝 Training logs: logs/lab-training-*.log                      ║"
+echo "║                                                                  ║"
+echo "║  💡 To monitor training progress, open another terminal and:    ║"
+echo "║     tail -f logs/lab-training-*.log                             ║"
+echo "║                                                                  ║"
+echo "║  Dashboard will update in place (main terminal)                 ║"
+echo "║  Training logs will stream to file (second terminal)            ║"
+echo "║                                                                  ║"
+echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "Press Ctrl+C after observing behavior..."
+
+# Run for 10 seconds to verify console logging behavior
+echo "🧪 Starting Lab Mode (will run for 10 seconds to test)..."
 echo ""
 
 # Run with timeout
@@ -41,5 +52,10 @@ echo "╔═══════════════════════�
 echo "║                    Test Complete                                 ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "✅ If you saw a stable dashboard updating in place, the fix works!"
-echo "❌ If you saw scrolling logs, the fix didn't work."
+echo "✅ Dashboard should have updated in place without scrolling"
+echo "📝 Training logs should be in logs/lab-training-*.log"
+echo ""
+echo "💡 View the log file:"
+echo "   ls -lh logs/lab-training-*.log"
+echo "   tail -20 logs/lab-training-*.log"
+
