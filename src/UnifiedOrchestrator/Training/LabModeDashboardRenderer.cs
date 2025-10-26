@@ -40,14 +40,14 @@ public sealed class LabModeDashboardRenderer
         // Time and overall progress
         RenderTimeAndProgress(output, state);
         
-        // Heavy Phase
-        RenderPhaseSection(output, state.HeavyPhase, "🔴 HEAVY PHASE - COMPLETE ✓", "HEAVY");
+        // Heavy Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.HeavyPhase, "🔴 HEAVY PHASE", "HEAVY");
         
-        // Medium Phase
-        RenderPhaseSection(output, state.MediumPhase, "🟡 MEDIUM PHASE - COMPLETE ✓", "MEDIUM");
+        // Medium Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.MediumPhase, "🟡 MEDIUM PHASE", "MEDIUM");
         
-        // Light Phase
-        RenderPhaseSection(output, state.LightPhase, "🟢 LIGHT PHASE - IN PROGRESS ⚙️", "LIGHT");
+        // Light Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.LightPhase, "🟢 LIGHT PHASE", "LIGHT");
         
         // Current Training Metrics (if component is in progress)
         if (state.CurrentComponent != null)
@@ -114,18 +114,18 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine();
     }
 
-    private void RenderPhaseSection(StringBuilder output, PhaseDetails phase, string title, string phaseType)
+    private void RenderPhaseSection(StringBuilder output, PhaseDetails phase, string baseTitle, string phaseType)
     {
         // Always show phase sections (including pending ones as in the example)
         
-        // Determine status title based on phase status
+        // Append status to base title based on actual phase status
         var statusTitle = phase.Status switch
         {
-            TrainingPhaseStatus.Complete => title.Replace("IN PROGRESS", "COMPLETE ✓").Replace("PENDING", "COMPLETE ✓"),
-            TrainingPhaseStatus.InProgress => title.Replace("COMPLETE ✓", "IN PROGRESS").Replace("PENDING", "IN PROGRESS"),
-            TrainingPhaseStatus.Failed => title.Replace("IN PROGRESS", "FAILED ✗").Replace("COMPLETE ✓", "FAILED ✗").Replace("PENDING", "FAILED ✗"),
-            TrainingPhaseStatus.Pending => title.Replace("IN PROGRESS", "PENDING").Replace("COMPLETE ✓", "PENDING"),
-            _ => title
+            TrainingPhaseStatus.Complete => $"{baseTitle} - COMPLETE ✓",
+            TrainingPhaseStatus.InProgress => $"{baseTitle} - IN PROGRESS ⚙️",
+            TrainingPhaseStatus.Failed => $"{baseTitle} - FAILED ✗",
+            TrainingPhaseStatus.Pending => $"{baseTitle} - PENDING",
+            _ => baseTitle
         };
 
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
