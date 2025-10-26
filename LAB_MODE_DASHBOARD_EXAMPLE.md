@@ -16,7 +16,7 @@ This document shows what the Lab Mode dashboard looks like during a training ses
 │ 📈 OVERALL PROGRESS                                                             │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │ [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0.0%                      │
-│ Components: 0/250 completed (250 remaining)                                     │
+│ Components: 0/25 completed (25 remaining)                                       │
 │ Phase: 🟢 LIGHT PHASE (Online Learning & Fine-Tuning)                           │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
@@ -150,7 +150,7 @@ This document shows what the Lab Mode dashboard looks like during a training ses
 
 ╔═══════════════════════════════════════════════════════════════════════════════════╗
 ║ Press Ctrl+C to cancel training (will save checkpoint for resume)                ║
-║ Training lock file: /tmp/qbot_lab_training.lock                              ║
+║ Training lock file: /tmp/qbot_lab_training.lock (Linux/Unix)                     ║
 ║ Uptime: 3h 12m 45s       | Lock File Age: 3h 15m           | Next refresh: 5s      ║
 ╚═══════════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -243,5 +243,11 @@ dotnet run --project src/UnifiedOrchestrator/UnifiedOrchestrator.csproj
 - Real-time updates every 5 seconds
 - All training phases visible
 - Complete metrics and monitoring
+
+### Platform Notes
+- Lock file path is platform-specific:
+  - Linux/Unix: `/tmp/qbot_lab_training.lock`
+  - Windows: `%TEMP%\qbot_lab_training.lock`
+- The code uses `Path.GetTempPath()` for cross-platform compatibility
 
 🚀 Ready for production use!
