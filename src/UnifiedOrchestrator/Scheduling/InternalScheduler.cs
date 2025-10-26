@@ -678,15 +678,15 @@ internal sealed class InternalScheduler : BackgroundService
 
         try
         {
-            // Check 1: Sufficient disk space (require at least 10GB free)
+            // Check 1: Sufficient disk space (require at least 5GB free for lab mode)
             var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
             if (Directory.Exists(dataPath))
             {
                 var drive = new DriveInfo(Path.GetPathRoot(dataPath) ?? "/");
                 var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
-                if (freeSpaceGB < 10)
+                if (freeSpaceGB < 5)
                 {
-                    _logger.LogError("[LAB] Health check FAILED: Insufficient disk space ({Free:F1} GB < 10 GB required)", freeSpaceGB);
+                    _logger.LogError("[LAB] Health check FAILED: Insufficient disk space ({Free:F1} GB < 5 GB required)", freeSpaceGB);
                     return false;
                 }
                 _logger.LogInformation("[LAB] ✓ Disk space: {Free:F1} GB available", freeSpaceGB);

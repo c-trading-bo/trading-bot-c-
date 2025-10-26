@@ -58,10 +58,10 @@ internal sealed class TrainingResourceMonitor
             
             var issues = new List<string>();
             
-            // Check 1: Disk Space (minimum 10 GB required)
-            if (CurrentDiskSpaceGB < 10)
+            // Check 1: Disk Space (minimum 5 GB required for lab mode)
+            if (CurrentDiskSpaceGB < 5)
             {
-                issues.Add($"Insufficient disk space: {CurrentDiskSpaceGB:F1} GB (need 10+ GB)");
+                issues.Add($"Insufficient disk space: {CurrentDiskSpaceGB:F1} GB (need 5+ GB)");
             }
             else
             {
@@ -146,8 +146,8 @@ internal sealed class TrainingResourceMonitor
             // Update resource snapshot
             await UpdateResourceSnapshotAsync(cancellationToken).ConfigureAwait(false);
 
-            // Check disk space - critical below 10GB
-            if (CurrentDiskSpaceGB < 10)
+            // Check disk space - critical below 5GB for lab mode
+            if (CurrentDiskSpaceGB < 5)
             {
                 var issue = $"Critical disk space: {CurrentDiskSpaceGB:F1} GB remaining";
                 _logger.LogError("[RESOURCE-MONITOR] {Issue}", issue);
