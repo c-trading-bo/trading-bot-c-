@@ -14,12 +14,14 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Phase 10: Comprehensive Data Retention Service
 /// Prevents bloat by cleaning up old data across all system components
 /// Runs daily at 3 AM with configurable retention policies
+/// Phase 6 Day 22: Integrated with MaintenanceScheduler for monitoring
 /// </summary>
 internal sealed class DataRetentionService : BackgroundService
 {
     private readonly ILogger<DataRetentionService> _logger;
     private readonly FileModelRegistry _modelRegistry;
     private readonly Timer _dailyCleanupTimer;
+    private Scheduling.MaintenanceScheduler? _maintenanceScheduler;
 
     // Retention policies (configurable via environment variables)
     private readonly int _promotionRetentionDays;
@@ -66,6 +68,14 @@ internal sealed class DataRetentionService : BackgroundService
         _logger.LogInformation(
             "[DATA-RETENTION] Service initialized - Next cleanup at {NextRun}",
             next3AM);
+    }
+
+    /// <summary>
+    /// Set the MaintenanceScheduler for reporting (called after DI construction)
+    /// </summary>
+    public void SetMaintenanceScheduler(Scheduling.MaintenanceScheduler scheduler)
+    {
+        _maintenanceScheduler = scheduler;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -130,10 +140,19 @@ internal sealed class DataRetentionService : BackgroundService
                 "[DATA-RETENTION] ========== Daily Cleanup Complete ========== " +
                 "Duration: {Duration:F1}s | Files Removed: {FilesRemoved} | Space Freed: {SpaceMB:F2} MB",
                 duration.TotalSeconds, stats.FilesRemoved, stats.BytesFreed / (1024.0 * 1024.0));
+
+            // Report success to MaintenanceScheduler for monitoring
+            _maintenanceScheduler?.ReportDataRetentionSuccess();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DATA-RETENTION] Daily cleanup failed");
+
+            // Report failure to MaintenanceScheduler for monitoring
+            if (_maintenanceScheduler != null)
+            {
+                await _maintenanceScheduler.ReportDataRetentionFailureAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+            }
         }
     }
 

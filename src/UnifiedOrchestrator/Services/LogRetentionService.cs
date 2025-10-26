@@ -13,6 +13,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// File cleanup service implementing log retention policies
 /// Automatically removes old log files based on configured retention periods
+/// Phase 6 Day 22: Integrated with MaintenanceScheduler for monitoring
 /// </summary>
 internal class LogRetentionService : IHostedService
 {
@@ -20,6 +21,7 @@ internal class LogRetentionService : IHostedService
     private readonly ITradingLogger _tradingLogger;
     private readonly TradingLoggerOptions _options;
     private readonly Timer _cleanupTimer;
+    private Scheduling.MaintenanceScheduler? _maintenanceScheduler;
 
     public LogRetentionService(
         ILogger<LogRetentionService> logger,
@@ -40,6 +42,14 @@ internal class LogRetentionService : IHostedService
             state: null,
             dueTime: (int)timeUntil2AM.TotalMilliseconds,
             period: (int)TimeSpan.FromDays(1).TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Set the MaintenanceScheduler for reporting (called after DI construction)
+    /// </summary>
+    public void SetMaintenanceScheduler(Scheduling.MaintenanceScheduler scheduler)
+    {
+        _maintenanceScheduler = scheduler;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -105,12 +115,21 @@ internal class LogRetentionService : IHostedService
                     filesRemoved = totalFilesRemoved,
                     sizeFreeBytes = totalSizeFreed
                 }).ConfigureAwait(false);
+
+            // Report success to MaintenanceScheduler for monitoring
+            _maintenanceScheduler?.ReportLogRetentionSuccess();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during log cleanup");
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "LogRetention", 
                 $"Log cleanup failed: {ex.Message}").ConfigureAwait(false);
+
+            // Report failure to MaintenanceScheduler for monitoring
+            if (_maintenanceScheduler != null)
+            {
+                await _maintenanceScheduler.ReportLogRetentionFailureAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+            }
         }
     }
 

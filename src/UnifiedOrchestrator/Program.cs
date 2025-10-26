@@ -1303,7 +1303,12 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<TradingActivityLogger>();
 
         // Register log retention service for automatic cleanup
-        services.AddHostedService<LogRetentionService>();
+        services.AddSingleton<LogRetentionService>();
+        services.AddHostedService<LogRetentionService>(provider => provider.GetRequiredService<LogRetentionService>());
+
+        // Register data retention service for comprehensive data cleanup (Phase 6 Day 22)
+        services.AddSingleton<DataRetentionService>();
+        services.AddHostedService<DataRetentionService>(provider => provider.GetRequiredService<DataRetentionService>());
 
         // Register error handling service with fallback logging mechanisms
         services.AddSingleton<ErrorHandlingService>();
@@ -2955,7 +2960,22 @@ Please check the configuration and ensure all required services are registered.
         
         // Maintenance Scheduler (Phase 6 Day 22) - Coordinates all cleanup services
         Program.WriteLineIfNotLabMode("   ✓ Registering MaintenanceScheduler (coordinates LogRetention + DataRetention)");
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>>();
+            var logRetention = provider.GetRequiredService<LogRetentionService>();
+            var dataRetention = provider.GetRequiredService<DataRetentionService>();
+            var alertService = provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
+            
+            var maintenanceScheduler = new TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler(
+                logger, logRetention, dataRetention, alertService);
+            
+            // Wire the MaintenanceScheduler to the cleanup services for monitoring (Phase 6 Day 22)
+            logRetention.SetMaintenanceScheduler(maintenanceScheduler);
+            dataRetention.SetMaintenanceScheduler(maintenanceScheduler);
+            
+            return maintenanceScheduler;
+        });
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>(provider =>
             provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>());
         
