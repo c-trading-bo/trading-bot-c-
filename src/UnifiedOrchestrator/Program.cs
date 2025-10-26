@@ -3016,49 +3016,6 @@ Please check the configuration and ensure all required services are registered.
     }
 
     /// <summary>
-    /// Old conditional registration logic - replaced by Phase 3 mode-specific registration
-    /// Keeping for reference during transition
-    /// </summary>
-    private static void LegacyConditionalRegistration(
-        IServiceCollection services,
-        TradingBot.Abstractions.RlRuntimeMode rlMode,
-        HostBuilderContext hostContext)
-    {
-        // This method is no longer called - replaced by RegisterModeSpecificServices
-        // Kept for reference during Phase 3 implementation
-        
-        var enableHistoricalLearning = Environment.GetEnvironmentVariable("ENABLE_HISTORICAL_LEARNING");
-        var historicalLearningEnabled = enableHistoricalLearning == "1" || enableHistoricalLearning?.ToLowerInvariant() == "true";
-        
-        var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
-        var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
-        
-        if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
-        {
-            // PHASE 1 REFACTOR: Register as Singleton only (not as HostedService)
-            // This prevents the service from exiting early and causing ASP.NET Core shutdown
-            services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
-            // REMOVED: services.AddHostedService - this was causing premature shutdown when service exited
-        }
-        else
-        {
-            Program.WriteLineIfNotLabMode("⚠️ [HISTORICAL-LEARNING] Historical backtest learning DISABLED");
-            Program.WriteLineIfNotLabMode("   💡 Set ENABLE_HISTORICAL_LEARNING=1 to enable continuous learning from historical data");
-        }
-        
-        // ================================================================================
-        // PHASE 6: PARAMETER PERFORMANCE MONITORING & AUTOMATIC ROLLBACK
-        // ================================================================================
-        // Monitors live parameter performance and triggers automatic rollback if degradation detected
-        // - Runs hourly during market hours
-        // - Calculates rolling 3-day Sharpe ratio
-        // - Rolls back if >20% degradation for 3 consecutive days
-        // - Archives failed parameters and logs rollback events
-        // Note: ParameterPerformanceMonitor is planned for future implementation
-
-    }
-
-    /// <summary>
     /// Register Intelligence Stack services with real implementations
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
