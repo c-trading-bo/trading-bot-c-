@@ -621,17 +621,17 @@ public class FeatureEngineering : IDisposable
         // Momentum and rate of change features (7 features)
         // These are approximated from current data since we don't have historical buffer in this context
         var priceAcceleration = bodySize; // Price change as proxy for acceleration
-        var relativeVolume = (double)currentData.Volume / Math.Max(1.0, (double)currentData.Volume); // Normalized to 1.0 (would need historical average)
+        var relativeVolume = -1.0; // Sentinel value - would need historical average volume for proper calculation
         var priceVelocity = bodySize; // Price velocity approximated from body size
-        var priceRange = highLowRange; // Price range as volatility proxy
-        var momentumScore = Math.Abs(bodySize); // Absolute price momentum
-        var trendStrength = Math.Abs(bodySize); // Trend strength from price change
+        var priceRangeNormalized = currentData.Close > 0 ? (double)((currentData.High - currentData.Low) / currentData.Close) : 0.0; // Range as percentage of close
+        var momentumScore = bodySize * (closePosition - 0.5); // Price momentum weighted by position in range (directional)
+        var trendStrength = Math.Abs(bodySize) * highLowRange; // Trend strength as price change scaled by volatility
         var meanReversion = 1.0 - closePosition; // Distance from range midpoint (mean reversion signal)
         
-        features.AddRange(new[] { priceAcceleration, relativeVolume, priceVelocity, priceRange, momentumScore, trendStrength, meanReversion });
+        features.AddRange(new[] { priceAcceleration, relativeVolume, priceVelocity, priceRangeNormalized, momentumScore, trendStrength, meanReversion });
         featureNames.AddRange(new[] { 
             "price_acceleration", "relative_volume", "price_velocity", 
-            "price_range", "momentum_score", "trend_strength", "mean_reversion_indicator" 
+            "price_range_normalized", "momentum_score", "trend_strength", "mean_reversion_indicator" 
         });
         
         // Market structure features (7 features)
