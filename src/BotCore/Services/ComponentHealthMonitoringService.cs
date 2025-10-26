@@ -54,6 +54,8 @@ public sealed class ComponentHealthMonitoringService : BackgroundService
             if (components.Count == 0)
             {
                 _logger.LogWarning("⚠️ [HEALTH-MONITOR] No components discovered - monitoring disabled");
+                // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
                 return;
             }
 

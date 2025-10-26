@@ -55,8 +55,13 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// - Line 1221: Online learning service integration (IOnlineLearningSystem)
 ///
 /// ⚠️ NO DUAL SYSTEMS: This is the ONLY learning path - no separate historical/live brains
+/// 
+/// PHASE 1 REFACTOR: Changed from BackgroundService to regular Singleton service
+/// - No longer auto-starts in background (was causing premature ASP.NET Core shutdown)
+/// - Exposes public RunBacktestAsync() method for on-demand execution
+/// - Called by InternalScheduler or other coordinators when backtest needed
 /// </summary>
-internal class EnhancedBacktestLearningService : BackgroundService
+internal class EnhancedBacktestLearningService
 {
     private readonly ILogger<EnhancedBacktestLearningService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -117,7 +122,12 @@ internal class EnhancedBacktestLearningService : BackgroundService
         }
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    /// <summary>
+    /// Run backtest learning on-demand (called by InternalScheduler or other coordinators)
+    /// PHASE 1 REFACTOR: Changed from protected override ExecuteAsync to public RunBacktestAsync
+    /// This prevents the service from running automatically in the background
+    /// </summary>
+    public async Task RunBacktestAsync(CancellationToken stoppingToken = default)
     {
         // CRITICAL FIX: Only run in BACKTEST mode, NOT in LAB mode
         // Lab Mode = Real ONNX training (HistoricalTrainingOrchestrator)

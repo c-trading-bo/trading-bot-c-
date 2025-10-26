@@ -55,6 +55,8 @@ public class PerformanceTargetMonitor : BackgroundService
         if (labMode == "1" || historicalMode == "1")
         {
             _logger.LogInformation("[PERF-MONITOR] Skipping performance monitoring (not in Terminal Mode)");
+            // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             return;
         }
 

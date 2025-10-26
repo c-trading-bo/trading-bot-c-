@@ -75,6 +75,8 @@ public sealed class BotSelfAwarenessService : BackgroundService
             if (!_selfAwarenessEnabled)
             {
                 _logger.LogInformation("🤖 [SELF-AWARENESS] Self-awareness system is disabled. Set BOT_SELF_AWARENESS_ENABLED=true to enable.");
+                // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
                 return;
             }
             
