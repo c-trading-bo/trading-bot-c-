@@ -679,6 +679,8 @@ internal sealed class InternalScheduler : BackgroundService
         try
         {
             // Check 1: Sufficient disk space (require at least 5GB free for lab mode)
+            // Lab mode needs: ~2 GB for model checkpoints, ~1 GB for training logs,
+            // ~1 GB for historical data cache, ~1 GB operating buffer = 5 GB total
             var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
             if (Directory.Exists(dataPath))
             {

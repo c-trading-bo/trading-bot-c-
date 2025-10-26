@@ -27,7 +27,13 @@ Reduced disk space requirement from 10 GB to 5 GB in two files:
 1. `src/UnifiedOrchestrator/Scheduling/InternalScheduler.cs` (line 687)
 2. `src/UnifiedOrchestrator/Services/TrainingResourceMonitor.cs` (lines 62, 150)
 
-**Rationale:** 5 GB is sufficient for lab mode training with historical data, and allows testing on resource-constrained CI/CD environments.
+**Rationale:** Lab mode requires approximately 5 GB:
+- **~2 GB** for model checkpoints (CVaR-PPO, Neural-UCB, LSTM, etc.)
+- **~1 GB** for training logs and epoch data
+- **~1 GB** for historical data cache and temporary files
+- **~1 GB** operating buffer for system stability
+
+This reduction allows lab mode to run on resource-constrained CI/CD environments while maintaining sufficient space for all training operations.
 
 ---
 
