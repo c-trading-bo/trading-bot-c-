@@ -23,18 +23,18 @@ namespace BotCore.Services
     /// - Time-based exits (closes stale positions)
     /// - Max excursion tracking (for ML/RL optimization)
     /// 
-    /// Runs every 5 seconds to monitor and update all open positions.
-    /// Works with ParameterBundle for strategy-specific settings.
-    /// Integrates with PositionTracker for real-time market prices.
-    /// Integrates with IOrderService for stop modifications and position closes.
+    /// Converted to event-driven IHostedService with Timer (Phase 5 refactoring)
+    /// Monitors positions every 5 seconds using Timer instead of polling loop.
     /// </summary>
-    public sealed class UnifiedPositionManagementService : BackgroundService
+    public sealed class UnifiedPositionManagementService : IHostedService, IDisposable
     {
         private readonly ILogger<UnifiedPositionManagementService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly OllamaClient? _ollamaClient;
         private readonly bool _commentaryEnabled;
         private readonly ConcurrentDictionary<string, PositionManagementState> _activePositions = new();
+        private Timer? _monitoringTimer;
+        private bool _disposed;
         
         // Monitoring interval
         private const int MonitoringIntervalSeconds = 5;
@@ -296,25 +296,43 @@ namespace BotCore.Services
             }
         }
         
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🎯 [POSITION-MGMT] Unified Position Management Service starting...");
+            _logger.LogInformation("🎯 [POSITION-MGMT] Unified Position Management Service starting (event-driven mode)...");
             
-            while (!stoppingToken.IsCancellationRequested)
+            // Start timer for position monitoring
+            var interval = TimeSpan.FromSeconds(MonitoringIntervalSeconds);
+            _monitoringTimer = new Timer(MonitorPositionsCallback, null, TimeSpan.Zero, interval);
+            
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("🛑 [POSITION-MGMT] Unified Position Management Service stopping");
+            _monitoringTimer?.Change(Timeout.Infinite, 0);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Timer callback for position monitoring - uses fire-and-forget pattern
+        /// </summary>
+        private void MonitorPositionsCallback(object? state)
+        {
+            if (_disposed) return;
+
+            // Fire-and-forget pattern for async operation in timer callback
+            _ = Task.Run(async () =>
             {
                 try
                 {
-                    await MonitorAndManagePositionsAsync(stoppingToken).ConfigureAwait(false);
+                    await MonitorAndManagePositionsAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ [POSITION-MGMT] Error in position management loop");
+                    _logger.LogError(ex, "❌ [POSITION-MGMT] Error in position management");
                 }
-                
-                await Task.Delay(TimeSpan.FromSeconds(MonitoringIntervalSeconds), stoppingToken).ConfigureAwait(false);
-            }
-            
-            _logger.LogInformation("🛑 [POSITION-MGMT] Unified Position Management Service stopping");
+            });
         }
         
         /// <summary>
@@ -2870,6 +2888,16 @@ Explain in 2-3 sentences what this MAE warning means about my stop placement and
                     _logger.LogError(ex, "❌ [POSITION-AI] Error generating MAE warning commentary");
                 }
             });
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _monitoringTimer?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
         }
     }
     

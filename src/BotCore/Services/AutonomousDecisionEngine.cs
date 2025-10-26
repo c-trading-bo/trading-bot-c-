@@ -61,17 +61,12 @@ public class OrderBook
 /// - Learns optimal entry/exit timing for each strategy
 /// - Adapts to changing market cycles without human intervention
 ///
-/// PHASE 1 REFACTOR: BackgroundService architecture improvement
-/// - Keeping as BackgroundService but improving shutdown behavior
-/// - Service properly exits in LAB_MODE (training only, no live trading)
-/// - Registered as Singleton + HostedService for proper lifecycle management
-/// 
-/// FULL REFACTOR: Converted to conditional BackgroundService
-/// - Only runs ExecuteAsync in Terminal mode (not LAB_MODE)
-/// - Prevents premature host shutdown by staying registered but inactive in LAB_MODE
-/// - Maintains proper lifecycle without signaling completion
+/// PHASE 5 REFACTOR: Converted to event-driven IHostedService with Timer
+/// - Uses Timer for autonomous decision cycles with adaptive delays
+/// - Only runs in Terminal mode (not LAB_MODE which is for training only)
+/// - Maintains proper lifecycle without polling loops
 /// </summary>
-public class AutonomousDecisionEngine : BackgroundService
+public class AutonomousDecisionEngine : IHostedService, IDisposable
 {
     private readonly ILogger<AutonomousDecisionEngine> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -101,6 +96,11 @@ public class AutonomousDecisionEngine : BackgroundService
     private readonly Dictionary<string, AutonomousStrategyMetrics> _strategyMetrics = new();
     private readonly Queue<AutonomousTradeOutcome> _recentTrades = new();
     private readonly object _stateLock = new();
+    
+    // Timer and lifecycle management
+    private Timer? _decisionCycleTimer;
+    private bool _disposed;
+    private bool _isLabMode;
 
     // Current autonomous state
     private string _currentStrategy = "S11";
@@ -268,35 +268,85 @@ public class AutonomousDecisionEngine : BackgroundService
         return configuredBalance;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         // LAB_MODE guard: Autonomous engine requires live market data from TopstepX
         // In Lab mode, we train models offline using historical data only
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
-        if (labMode == "1")
+        _isLabMode = labMode == "1";
+        
+        if (_isLabMode)
         {
             _logger.LogInformation("🔬 [AUTONOMOUS-ENGINE] Disabled in Lab Mode - Lab uses historical data for training only");
             _logger.LogInformation("   ℹ️ Autonomous engine requires live TopstepX connection (Terminal mode)");
-            // FIXED: Instead of returning immediately, wait indefinitely to prevent shutdown signal
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             return;
         }
 
-        _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Starting autonomous profit-maximizing trading system...");
+        _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Starting autonomous profit-maximizing trading system (event-driven mode)...");
 
         try
         {
             // Initialize autonomous systems
-            await InitializeAutonomousSystemsAsync(stoppingToken).ConfigureAwait(false);
+            await InitializeAutonomousSystemsAsync(cancellationToken).ConfigureAwait(false);
 
-            // Start main autonomous loop with Sunday training window check
-            await RunAutonomousMainLoopAsync(stoppingToken).ConfigureAwait(false);
+            // Start the autonomous decision cycle timer
+            // Initial delay is 1 minute, then adaptive delays are used
+            _decisionCycleTimer = new Timer(AutonomousDecisionCallback, null, TimeSpan.FromMinutes(1), Timeout.InfiniteTimeSpan);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Critical error in autonomous engine");
-            throw new InvalidOperationException("Critical error in autonomous decision engine", ex);
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Critical error starting autonomous engine");
+            throw new InvalidOperationException("Critical error starting autonomous decision engine", ex);
         }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🛑 [AUTONOMOUS-ENGINE] Autonomous engine stopping...");
+        _decisionCycleTimer?.Change(Timeout.Infinite, 0);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Timer callback for autonomous decision cycles - uses fire-and-forget pattern with adaptive delays
+    /// </summary>
+    private void AutonomousDecisionCallback(object? state)
+    {
+        if (_disposed || _isLabMode) return;
+
+        // Fire-and-forget pattern for async operation in timer callback
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Check if we should be trading at this time (including Sunday Lab window check)
+                var shouldTrade = await ShouldTradeNowAsync(CancellationToken.None).ConfigureAwait(false);
+                if (!shouldTrade)
+                {
+                    // Reschedule for 1 minute later
+                    _decisionCycleTimer?.Change(TimeSpan.FromMinutes(1), Timeout.InfiniteTimeSpan);
+                    return;
+                }
+
+                // Main autonomous decision cycle
+                await ExecuteAutonomousDecisionCycleAsync(CancellationToken.None).ConfigureAwait(false);
+
+                // Update performance and learning
+                await UpdatePerformanceAndLearningAsync(CancellationToken.None).ConfigureAwait(false);
+
+                // Get adaptive delay for next cycle based on market conditions
+                var delay = await GetAdaptiveDelayAsync(CancellationToken.None).ConfigureAwait(false);
+                
+                // Reschedule with adaptive delay
+                _decisionCycleTimer?.Change(delay, Timeout.InfiniteTimeSpan);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "⚠️ [AUTONOMOUS-ENGINE] Error in autonomous cycle, continuing...");
+                // Reschedule after 30 seconds on error
+                _decisionCycleTimer?.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+            }
+        });
     }
 
     /// <summary>
@@ -2182,6 +2232,16 @@ public class AutonomousDecisionEngine : BackgroundService
     }
 
     private DateTime _lastPerformanceReport = DateTime.MinValue;
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _decisionCycleTimer?.Dispose();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+    }
 }
 
 /// <summary>

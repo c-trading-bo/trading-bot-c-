@@ -14,13 +14,16 @@ namespace BotCore.Services;
 /// <summary>
 /// Gate 3: S15 Shadow Learning Promotion Validation
 /// Monitors S15 RL strategy performance in shadow mode and promotes to live when validated.
+/// Converted to event-driven IHostedService with Timer (Phase 4 refactoring)
 /// </summary>
-public class S15ShadowLearningService : BackgroundService
+public class S15ShadowLearningService : IHostedService, IDisposable
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
 
     private readonly ILogger<S15ShadowLearningService> _logger;
     private readonly ConcurrentQueue<ShadowDecision> _shadowDecisions = new();
+    private Timer? _evaluationTimer;
+    private bool _disposed;
     
     // Gate 3 validation thresholds
     private const int MIN_SHADOW_DECISIONS = 1000;
@@ -31,6 +34,7 @@ public class S15ShadowLearningService : BackgroundService
     private const double BOOTSTRAP_P_VALUE_THRESHOLD = 0.05;
     private const double CANARY_TRAFFIC_PERCENTAGE = 0.05;  // 5% traffic for canary
     private const int MaxRecentDecisionsToKeep = 100; // Keep last 100 decisions when resetting
+    private const int EvaluationIntervalMinutes = 5; // Check every 5 minutes
     
     private int _totalShadowDecisions;
     private bool _isPromotedToCanary;
@@ -40,29 +44,47 @@ public class S15ShadowLearningService : BackgroundService
         _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("🔬 S15 Shadow Learning Service started");
+        _logger.LogInformation("🔬 S15 Shadow Learning Service started (event-driven mode)");
         
-        while (!stoppingToken.IsCancellationRequested)
+        // Start timer for periodic evaluation
+        var interval = TimeSpan.FromMinutes(EvaluationIntervalMinutes);
+        _evaluationTimer = new Timer(EvaluationCallback, null, interval, interval);
+        
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🔬 S15 Shadow Learning Service stopped");
+        _evaluationTimer?.Change(Timeout.Infinite, 0);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Timer callback for shadow decision evaluation - uses fire-and-forget pattern
+    /// </summary>
+    private void EvaluationCallback(object? state)
+    {
+        if (_disposed) return;
+
+        // Fire-and-forget pattern for async operation in timer callback
+        _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
-                
                 // Check if we have enough shadow decisions to evaluate
                 if (_totalShadowDecisions >= MIN_SHADOW_DECISIONS && !_isPromotedToCanary)
                 {
-                    await EvaluatePromotionAsync(stoppingToken).ConfigureAwait(false);
+                    await EvaluatePromotionAsync(CancellationToken.None).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in S15 shadow learning service");
+                _logger.LogError(ex, "Error in S15 shadow learning evaluation");
             }
-        }
-        
-        _logger.LogInformation("🔬 S15 Shadow Learning Service stopped");
+        });
     }
 
     /// <summary>
@@ -278,6 +300,16 @@ public class S15ShadowLearningService : BackgroundService
         
         _logger.LogInformation("✓ S15 promoted to canary mode with {Pct:P1} traffic", CANARY_TRAFFIC_PERCENTAGE);
         _logger.LogInformation("  Config written to: {Path}", configPath);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _evaluationTimer?.Dispose();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 }
 
