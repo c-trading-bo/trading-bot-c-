@@ -1303,7 +1303,12 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<TradingActivityLogger>();
 
         // Register log retention service for automatic cleanup
-        services.AddHostedService<LogRetentionService>();
+        services.AddSingleton<LogRetentionService>();
+        services.AddHostedService<LogRetentionService>(provider => provider.GetRequiredService<LogRetentionService>());
+
+        // Register data retention service for comprehensive data cleanup (Phase 6 Day 22)
+        services.AddSingleton<DataRetentionService>();
+        services.AddHostedService<DataRetentionService>(provider => provider.GetRequiredService<DataRetentionService>());
 
         // Register error handling service with fallback logging mechanisms
         services.AddSingleton<ErrorHandlingService>();
@@ -1564,7 +1569,9 @@ Please check the configuration and ensure all required services are registered.
         // ================================================================================
         
         // Register Model Registry for versioned, immutable artifacts
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry, TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry>(provider => 
+            provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>());
         
         // TASK 4.1: Register Experience Repository for Terminal experience collection
         // Both Terminal and Lab use this: Terminal writes, Lab reads
@@ -2953,6 +2960,27 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>(provider => 
             provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>());
         
+        // Maintenance Scheduler (Phase 6 Day 22) - Coordinates all cleanup services
+        Program.WriteLineIfNotLabMode("   ✓ Registering MaintenanceScheduler (coordinates LogRetention + DataRetention)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>>();
+            var logRetention = provider.GetRequiredService<LogRetentionService>();
+            var dataRetention = provider.GetRequiredService<DataRetentionService>();
+            var alertService = provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
+            
+            var maintenanceScheduler = new TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler(
+                logger, logRetention, dataRetention, alertService);
+            
+            // Wire the MaintenanceScheduler to the cleanup services for monitoring (Phase 6 Day 22)
+            logRetention.SetMaintenanceScheduler(maintenanceScheduler);
+            dataRetention.SetMaintenanceScheduler(maintenanceScheduler);
+            
+            return maintenanceScheduler;
+        });
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>(provider =>
+            provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>());
+        
         // Promotion Evaluator is already registered via PromotionService
         // Model Registry is shared (both modes)
         
@@ -3007,49 +3035,6 @@ Please check the configuration and ensure all required services are registered.
         Program.WriteLineIfNotLabMode("   ℹ️  Uses existing TopstepX SDK (IHistoricalDataBridgeService) - no parallel systems");
         
         Program.WriteLineIfNotLabMode("✅ [TERMINAL] Terminal services registration complete\n");
-    }
-
-    /// <summary>
-    /// Old conditional registration logic - replaced by Phase 3 mode-specific registration
-    /// Keeping for reference during transition
-    /// </summary>
-    private static void LegacyConditionalRegistration(
-        IServiceCollection services,
-        TradingBot.Abstractions.RlRuntimeMode rlMode,
-        HostBuilderContext hostContext)
-    {
-        // This method is no longer called - replaced by RegisterModeSpecificServices
-        // Kept for reference during Phase 3 implementation
-        
-        var enableHistoricalLearning = Environment.GetEnvironmentVariable("ENABLE_HISTORICAL_LEARNING");
-        var historicalLearningEnabled = enableHistoricalLearning == "1" || enableHistoricalLearning?.ToLowerInvariant() == "true";
-        
-        var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
-        var isHistoricalMode = historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true";
-        
-        if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
-        {
-            // PHASE 1 REFACTOR: Register as Singleton only (not as HostedService)
-            // This prevents the service from exiting early and causing ASP.NET Core shutdown
-            services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
-            // REMOVED: services.AddHostedService - this was causing premature shutdown when service exited
-        }
-        else
-        {
-            Program.WriteLineIfNotLabMode("⚠️ [HISTORICAL-LEARNING] Historical backtest learning DISABLED");
-            Program.WriteLineIfNotLabMode("   💡 Set ENABLE_HISTORICAL_LEARNING=1 to enable continuous learning from historical data");
-        }
-        
-        // ================================================================================
-        // PHASE 6: PARAMETER PERFORMANCE MONITORING & AUTOMATIC ROLLBACK
-        // ================================================================================
-        // Monitors live parameter performance and triggers automatic rollback if degradation detected
-        // - Runs hourly during market hours
-        // - Calculates rolling 3-day Sharpe ratio
-        // - Rolls back if >20% degradation for 3 consecutive days
-        // - Archives failed parameters and logs rollback events
-        // Note: ParameterPerformanceMonitor is planned for future implementation
-
     }
 
     /// <summary>
