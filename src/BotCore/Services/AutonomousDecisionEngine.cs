@@ -60,6 +60,11 @@ public class OrderBook
 /// - Automatically compounds gains by increasing position sizes
 /// - Learns optimal entry/exit timing for each strategy
 /// - Adapts to changing market cycles without human intervention
+///
+/// PHASE 1 REFACTOR: BackgroundService architecture improvement
+/// - Keeping as BackgroundService but improving shutdown behavior
+/// - Service properly exits in LAB_MODE (training only, no live trading)
+/// - Registered as Singleton + HostedService for proper lifecycle management
 /// </summary>
 public class AutonomousDecisionEngine : BackgroundService
 {
