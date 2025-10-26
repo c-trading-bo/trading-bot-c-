@@ -759,7 +759,7 @@ public class CVaRPPO : IDisposable
 [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S101:Types should be named in PascalCase", Justification = "CVaR (Conditional Value at Risk) and PPO (Proximal Policy Optimization) are standard financial/ML acronyms")]
 public class CVaRPPOConfig
 {
-    public int StateSize { get; set; } = 50;
+    public int StateSize { get; set; } = 50; // Matches FeatureEngineering output: 29 base features + 21 additional domain features
     public int ActionSize { get; set; } = 4;
     public int HiddenSize { get; set; } = 128;
     public double LearningRate { get; set; } = 3e-4;
