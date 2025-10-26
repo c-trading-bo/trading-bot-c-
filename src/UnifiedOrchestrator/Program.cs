@@ -182,6 +182,15 @@ internal static class Program
                         Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
         _isLabMode = isLabMode;
         
+        // In Lab Mode, suppress all console output during host startup
+        // We'll restore it after the host is built so the dashboard can write
+        TextWriter? originalOut = null;
+        if (isLabMode)
+        {
+            originalOut = Console.Out;
+            Console.SetOut(TextWriter.Null);
+        }
+        
         if (!isLabMode)
         {
             Program.WriteLineIfNotLabMode(@"
@@ -215,6 +224,13 @@ internal static class Program
             try
             {
                 host = CreateHostBuilder(args).Build();
+                
+                // Restore console output for Lab Mode dashboard
+                if (isLabMode && originalOut != null)
+                {
+                    Console.SetOut(originalOut);
+                }
+                
                 if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
             }
             catch (Exception diEx)
@@ -711,6 +727,12 @@ Please check the configuration and ensure all required services are registered.
                         options.FormatterName = "Production";
                     });
                     logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+                    
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    // REDUCE NOISE - Override Microsoft and System logging to warnings only
+                    logging.AddFilter("Microsoft", LogLevel.Warning);
+                    logging.AddFilter("System", LogLevel.Warning);
+                    logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
                 }
                 else
                 {
@@ -721,19 +743,19 @@ Please check the configuration and ensure all required services are registered.
                     
                     logging.AddProvider(new SimpleFileLoggerProvider(logFilePath));
                     
-                    // Filter out TopstepX/API errors in Lab Mode (doesn't need API connection)
+                    // Set minimum level but filter everything to file only
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    
+                    // Filter out ALL console output in Lab Mode - only dashboard should write to console
+                    logging.AddFilter("Microsoft", LogLevel.None);
+                    logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+                    logging.AddFilter("System", LogLevel.None);
                     logging.AddFilter("TopstepX", LogLevel.None);
                     logging.AddFilter("TopstepXAdapterService", LogLevel.None);
                     logging.AddFilter("TopstepXWebSocketClient", LogLevel.None);
                     logging.AddFilter("TopstepXHttpClient", LogLevel.None);
                     logging.AddFilter("OrderExecutionService", LogLevel.None);
                 }
-                
-                logging.SetMinimumLevel(LogLevel.Information);
-                // REDUCE NOISE - Override Microsoft and System logging to warnings only
-                logging.AddFilter("Microsoft", LogLevel.Warning);
-                logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
             })
             .ConfigureServices((context, services) =>
             {
@@ -903,8 +925,12 @@ Please check the configuration and ensure all required services are registered.
         // Register platform-aware Python path resolver
         services.AddSingleton<IPythonPathResolver, PlatformAwarePythonPathResolver>();
 
-        // Register monitoring integration for metrics and log querying
-        services.AddHostedService<MonitoringIntegrationService>();
+        // Register monitoring integration for metrics and log querying (Terminal Mode only)
+        // Lab Mode doesn't need the web server - dashboard is console-based
+        if (mode != BotMode.Lab)
+        {
+            services.AddHostedService<MonitoringIntegrationService>();
+        }
 
         // Legacy authentication and login services removed - using TopstepX SDK adapter
 
