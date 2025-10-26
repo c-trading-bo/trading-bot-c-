@@ -297,65 +297,6 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine();
     }
 
-    private void RenderPostTrainingValidation(StringBuilder output, LabModeDashboardState state)
-    {
-        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
-        output.AppendLine("│ 🔍 POST-TRAINING VALIDATION                                                    │");
-        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        
-        if (state.CurrentPhase != "Complete")
-        {
-            output.AppendLine("│ ⏳ Waiting for Light Phase completion...                                       │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Validation Checklist:                                                          │");
-            output.AppendLine("│  □ Model Integrity Check                                                       │");
-            output.AppendLine("│  □ Performance Baseline Comparison (75% threshold)                             │");
-            output.AppendLine("│  □ Statistical Significance Test (95% confidence)                              │");
-            output.AppendLine("│  □ Anti-Overfitting Validation (walk-forward)                                  │");
-        }
-        else
-        {
-            output.AppendLine("│ ✓ Model Integrity Check: PASSED                                                │");
-            output.AppendLine("│ ✓ Performance Baseline Comparison: PASSED (85% threshold met)                  │");
-            output.AppendLine("│ ✓ Statistical Significance Test: PASSED (95% confidence)                       │");
-            output.AppendLine("│ ✓ Anti-Overfitting Validation: PASSED (walk-forward test)                      │");
-        }
-        
-        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
-        output.AppendLine();
-    }
-
-    private void RenderModelPromotionStatus(StringBuilder output, LabModeDashboardState state)
-    {
-        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
-        output.AppendLine("│ 🚀 MODEL PROMOTION STATUS                                                      │");
-        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        
-        if (state.CurrentPhase != "Complete")
-        {
-            output.AppendLine("│ Status: ⏳ Pending (waiting for validation)                                    │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Promotion Plan:                                                                │");
-            output.AppendLine("│  - Challenger Models: 7 heavy + 7 medium + 7 light = 21 models                │");
-            output.AppendLine("│  - Atomic Promotion: enabled (rollback on failure)                             │");
-            output.AppendLine("│  - Backup: staging/ → production/ (safe swap)                                 │");
-            output.AppendLine("│  - Rollback Window: 15 minutes                                                │");
-        }
-        else
-        {
-            output.AppendLine("│ Status: ✓ PROMOTED (all models successfully promoted)                          │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Promotion Details:                                                             │");
-            output.AppendLine("│  - Challenger Models: 21 models promoted to production                        │");
-            output.AppendLine("│  - Validation: All thresholds passed                                           │");
-            output.AppendLine("│  - Backup: Previous models archived to backup/                                 │");
-            output.AppendLine("│  - Status: LIVE and ready for trading                                          │");
-        }
-        
-        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
-        output.AppendLine();
-    }
-
     private void RenderSystemResources(StringBuilder output, ResourceMetrics resources)
     {
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
