@@ -2953,6 +2953,12 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>(provider => 
             provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>());
         
+        // Maintenance Scheduler (Phase 6 Day 22) - Coordinates all cleanup services
+        Program.WriteLineIfNotLabMode("   ✓ Registering MaintenanceScheduler (coordinates LogRetention + DataRetention)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>();
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>(provider =>
+            provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.MaintenanceScheduler>());
+        
         // Promotion Evaluator is already registered via PromotionService
         // Model Registry is shared (both modes)
         
