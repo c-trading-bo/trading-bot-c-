@@ -159,7 +159,13 @@ internal static class Program
         // All validation happens through production readiness checks
         
         
-        Console.WriteLine(@"
+        // Lab Mode suppresses all startup output - dashboard only
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" ||
+                        Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
+        
+        if (!isLabMode)
+        {
+            Console.WriteLine(@"
 ================================================================================
                     🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀                       
                                                                                
@@ -179,17 +185,18 @@ internal static class Program
   💡 Run with --production-demo to generate runtime proof artifacts         
 ================================================================================
         ");
+        }
 
         try
         {
-            Console.WriteLine("🔧 [STARTUP] Building dependency injection container...");
+            if (!isLabMode) Console.WriteLine("🔧 [STARTUP] Building dependency injection container...");
             
             // Build the unified host with all services
             IHost? host = null;
             try
             {
                 host = CreateHostBuilder(args).Build();
-                Console.WriteLine("✅ [STARTUP] DI container built successfully");
+                if (!isLabMode) Console.WriteLine("✅ [STARTUP] DI container built successfully");
             }
             catch (Exception diEx)
             {
@@ -212,23 +219,23 @@ internal static class Program
                 throw;
             }
             
-            Console.WriteLine("🔍 [STARTUP] Validating service registration...");
+            if (!isLabMode) Console.WriteLine("🔍 [STARTUP] Validating service registration...");
             
             // Validate service registration and configuration on startup
             await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
-            Console.WriteLine("✅ [STARTUP] Service validation completed");
-            Console.WriteLine("⚙️ [STARTUP] Initializing ML parameter provider...");
+            if (!isLabMode) Console.WriteLine("✅ [STARTUP] Service validation completed");
+            if (!isLabMode) Console.WriteLine("⚙️ [STARTUP] Initializing ML parameter provider...");
             
             // Initialize ML parameter provider for TradingBot classes
             TradingBot.BotCore.Services.TradingBotParameterProvider.Initialize(host.Services);
             
-            Console.WriteLine("✅ [STARTUP] ML parameter provider initialized");
+            if (!isLabMode) Console.WriteLine("✅ [STARTUP] ML parameter provider initialized");
             
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
             
-            Console.WriteLine("🚀 [STARTUP] Starting unified orchestrator...");
+            if (!isLabMode) Console.WriteLine("🚀 [STARTUP] Starting unified orchestrator...");
             
             // Run the unified orchestrator
             await host.RunAsync().ConfigureAwait(false);
@@ -798,19 +805,29 @@ Please check the configuration and ensure all required services are registered.
         // ================================================================================
         var mode = DetectBotMode();
         
-        Console.WriteLine("\n" + new string('=', 80));
-        Console.WriteLine($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
-        Console.WriteLine(new string('=', 80));
+        // Check if Lab Mode - suppress mode display if so (dashboard-only view)
+        var labModeEnv = Environment.GetEnvironmentVariable("LAB_MODE");
+        var suppressStartupOutput = labModeEnv == "1" || labModeEnv?.ToLowerInvariant() == "true";
+        
+        if (!suppressStartupOutput)
+        {
+            Console.WriteLine("\n" + new string('=', 80));
+            Console.WriteLine($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
+            Console.WriteLine(new string('=', 80));
+        }
         
         if (mode == BotMode.Lab)
         {
-            Console.WriteLine("📊 LAB MODE - Training Pipeline");
-            Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
-            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses Python scripts - NO API connections)");
-            Console.WriteLine("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
-            Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
-            Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
-            Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+            if (!suppressStartupOutput)
+            {
+                Console.WriteLine("📊 LAB MODE - Training Pipeline");
+                Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
+                Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses Python scripts - NO API connections)");
+                Console.WriteLine("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
+                Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
+                Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
+                Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+            }
         }
         else
         {
@@ -821,7 +838,11 @@ Please check the configuration and ensure all required services are registered.
             Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
             Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
         }
-        Console.WriteLine(new string('=', 80) + "\n");
+        
+        if (!suppressStartupOutput)
+        {
+            Console.WriteLine(new string('=', 80) + "\n");
+        }
         
         // Register login completion state for TopstepX SDK connection management
         services.AddSingleton<Services.ILoginCompletionState, Services.EnterpriseLoginCompletionState>();
