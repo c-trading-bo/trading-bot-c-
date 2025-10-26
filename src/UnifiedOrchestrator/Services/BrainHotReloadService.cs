@@ -12,14 +12,17 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Brain hot-reload service that subscribes to model registry updates
 /// Implements double-buffered ONNX session swapping for zero-downtime model updates
+/// Converted to event-driven IHostedService - no polling loops (Phase 4 refactoring)
 /// </summary>
-internal sealed class BrainHotReloadService : BackgroundService
+internal sealed class BrainHotReloadService : IHostedService, IDisposable
 {
     private readonly ILogger<BrainHotReloadService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly OnnxModelLoader _modelLoader;
     private volatile bool _reloadInProgress;
     private readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
+    private IOnnxModelRegistry? _modelRegistry;
+    private bool _disposed;
 
     public BrainHotReloadService(
         ILogger<BrainHotReloadService> logger,
@@ -31,44 +34,30 @@ internal sealed class BrainHotReloadService : BackgroundService
         _modelLoader = modelLoader;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("🧠 Brain hot-reload service starting...");
+        _logger.LogInformation("🧠 Brain hot-reload service starting (event-driven mode)...");
 
         // Subscribe to model registry updates
-        var modelRegistry = _serviceProvider.GetService<IOnnxModelRegistry>();
-        if (modelRegistry != null)
+        _modelRegistry = _serviceProvider.GetService<IOnnxModelRegistry>();
+        if (_modelRegistry != null)
         {
-            modelRegistry.OnModelsUpdated += HandleModelUpdate;
-            _logger.LogInformation("✅ Subscribed to model registry updates");
+            _modelRegistry.OnModelsUpdated += HandleModelUpdate;
+            _logger.LogInformation("✅ Subscribed to model registry updates - will reload on model change events");
         }
         else
         {
             _logger.LogWarning("⚠️ ModelRegistry not available - hot-reload disabled");
         }
 
-        // Keep service running
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
-                
-                // Periodic health check
-                await PerformHealthCheckAsync().ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error in brain hot-reload service");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
-            }
-        }
+        return Task.CompletedTask;
+    }
 
-        _logger.LogInformation("Brain hot-reload service stopped");
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Brain hot-reload service stopping...");
+        Dispose();
+        return Task.CompletedTask;
     }
 
     private async void HandleModelUpdate(string sha)
@@ -149,34 +138,6 @@ internal sealed class BrainHotReloadService : BackgroundService
         EmitHotReloadTelemetry(sha, reloadedCount, modelFiles.Length);
     }
 
-    private async Task PerformHealthCheckAsync()
-    {
-        try
-        {
-            // Check if model loader is healthy
-            var modelsPath = "artifacts/current";
-            if (System.IO.Directory.Exists(modelsPath))
-            {
-                var modelCount = System.IO.Directory.GetFiles(modelsPath, "*.onnx", System.IO.SearchOption.AllDirectories).Length;
-                
-                if (modelCount == 0)
-                {
-                    _logger.LogWarning("⚠️ No ONNX models found in {ModelsPath}", modelsPath);
-                }
-                else
-                {
-                    _logger.LogDebug("💓 Health check: {ModelCount} models available", modelCount);
-                }
-            }
-
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ Health check failed");
-        }
-    }
-
     private void EmitHotReloadTelemetry(string sha, int reloadedCount, int totalCount)
     {
         try
@@ -191,23 +152,25 @@ internal sealed class BrainHotReloadService : BackgroundService
         }
     }
 
-    public override void Dispose()
+    public void Dispose()
     {
-        // Unsubscribe from model registry updates
-        try
+        if (!_disposed)
         {
-            var modelRegistry = _serviceProvider.GetService<IOnnxModelRegistry>();
-            if (modelRegistry != null)
+            // Unsubscribe from model registry updates
+            try
             {
-                modelRegistry.OnModelsUpdated -= HandleModelUpdate;
+                if (_modelRegistry != null)
+                {
+                    _modelRegistry.OnModelsUpdated -= HandleModelUpdate;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Error unsubscribing from model registry");
-        }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error unsubscribing from model registry");
+            }
 
-        _reloadSemaphore?.Dispose();
-        base.Dispose();
+            _reloadSemaphore?.Dispose();
+            _disposed = true;
+        }
     }
 }

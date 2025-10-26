@@ -2651,9 +2651,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService(provider => provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.ModelRegistry>());
         services.AddHostedService<CanaryWatchdog>();
         
-        // Brain hot-reload service for ONNX session swapping
+        // Brain hot-reload service for ONNX session swapping (converted to event-driven - Phase 4)
         services.AddSingleton<global::BotCore.ML.OnnxModelLoader>();
-        services.AddHostedService<BrainHotReloadService>();
+        services.AddSingleton<BrainHotReloadService>();
+        services.AddHostedService<BrainHotReloadService>(provider => 
+            provider.GetRequiredService<BrainHotReloadService>());
         
         // Cloud model integration service removed - CloudRlTrainerV2 infrastructure no longer exists
 
