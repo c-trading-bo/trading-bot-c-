@@ -224,17 +224,16 @@ internal static class Program
             try
             {
                 host = CreateHostBuilder(args).Build();
-                
-                // Restore console output for Lab Mode dashboard
+                if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
+            }
+            catch (Exception diEx)
+            {
+                // Restore console output in case of error so we can see the error messages
                 if (isLabMode && originalOut != null)
                 {
                     Console.SetOut(originalOut);
                 }
                 
-                if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
-            }
-            catch (Exception diEx)
-            {
                 Console.WriteLine($"❌ [STARTUP] FATAL: Failed to build DI container");
                 Console.WriteLine($"   Error: {diEx.Message}");
                 Program.WriteLineIfNotLabMode($"   Type: {diEx.GetType().Name}");
@@ -252,6 +251,14 @@ internal static class Program
                 
                 Console.WriteLine($"\nStack Trace:\n{diEx.StackTrace}");
                 throw;
+            }
+            finally
+            {
+                // Always restore console output for Lab Mode dashboard
+                if (isLabMode && originalOut != null)
+                {
+                    Console.SetOut(originalOut);
+                }
             }
             
             if (!isLabMode) Program.WriteLineIfNotLabMode("🔍 [STARTUP] Validating service registration...");
@@ -747,8 +754,7 @@ Please check the configuration and ensure all required services are registered.
                     logging.SetMinimumLevel(LogLevel.Information);
                     
                     // Filter out ALL console output in Lab Mode - only dashboard should write to console
-                    logging.AddFilter("Microsoft", LogLevel.None);
-                    logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+                    logging.AddFilter("Microsoft", LogLevel.None);  // Covers all Microsoft.* including Microsoft.Hosting.Lifetime
                     logging.AddFilter("System", LogLevel.None);
                     logging.AddFilter("TopstepX", LogLevel.None);
                     logging.AddFilter("TopstepXAdapterService", LogLevel.None);
