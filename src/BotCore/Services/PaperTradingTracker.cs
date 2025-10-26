@@ -12,13 +12,15 @@ namespace BotCore.Services;
 /// <summary>
 /// Tracks simulated trades in DRY_RUN mode using REAL market data.
 /// NOT random - monitors actual price movements to determine fills and P&L.
+/// Converted to IHostedService - purely reactive to trade and market data events (Phase 5 refactoring).
 /// </summary>
-public class PaperTradingTracker : BackgroundService
+public class PaperTradingTracker : IHostedService, IDisposable
 {
     private readonly ILogger<PaperTradingTracker> _logger;
     private readonly ConcurrentDictionary<string, SimulatedPosition> _activePositions = new();
     private readonly List<SimulatedTradeResult> _completedTrades = new();
     private readonly object _statsLock = new();
+    private bool _disposed;
     
     // Event fired when simulated trade closes - allows learning from paper trades
     public event EventHandler<SimulatedTradeResult>? SimulatedTradeCompleted;
@@ -34,6 +36,19 @@ public class PaperTradingTracker : BackgroundService
     {
         _logger = logger;
         _peakEquity = 0m;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("📊 [PAPER-TRADE] Paper Trading Tracker initialized - monitoring real market data for simulated fills (event-driven mode)");
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("📊 [PAPER-TRADE] Paper Trading Tracker stopped - Total P&L: ${PnL:F2}, Wins: {Wins}, Losses: {Losses}", 
+            _totalPnL, _wins, _losses);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -321,10 +336,12 @@ public class PaperTradingTracker : BackgroundService
         return $"{duration.TotalHours:F1}h";
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    public void Dispose()
     {
-        _logger.LogInformation("📊 [PAPER-TRADE] Paper Trading Tracker initialized - monitoring real market data for simulated fills");
-        return Task.CompletedTask;
+        if (!_disposed)
+        {
+            _disposed = true;
+        }
     }
 }
 
