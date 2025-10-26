@@ -28,9 +28,11 @@ public sealed class LabModeDashboardRenderer
     {
         var output = new StringBuilder();
 
-        // Clear screen and move cursor to top-left (ANSI escape codes)
-        output.Append("\x1b[2J");  // Clear entire screen
+        // Move cursor to top-left and clear screen (ANSI escape codes)
+        // Using \x1b[H first, then clear to avoid flicker
         output.Append("\x1b[H");   // Move cursor to home position (0,0)
+        output.Append("\x1b[2J");  // Clear entire screen
+        output.Append("\x1b[3J");  // Clear scrollback buffer (prevents scrolling)
 
         // Header
         RenderHeader(output, state);
@@ -38,14 +40,14 @@ public sealed class LabModeDashboardRenderer
         // Time and overall progress
         RenderTimeAndProgress(output, state);
         
-        // Heavy Phase
-        RenderPhaseSection(output, state.HeavyPhase, "🔴 HEAVY PHASE - COMPLETE ✓", "HEAVY");
+        // Heavy Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.HeavyPhase, "🔴 HEAVY PHASE", "HEAVY");
         
-        // Medium Phase
-        RenderPhaseSection(output, state.MediumPhase, "🟡 MEDIUM PHASE - COMPLETE ✓", "MEDIUM");
+        // Medium Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.MediumPhase, "🟡 MEDIUM PHASE", "MEDIUM");
         
-        // Light Phase
-        RenderPhaseSection(output, state.LightPhase, "🟢 LIGHT PHASE - IN PROGRESS ⚙️", "LIGHT");
+        // Light Phase - title dynamically updates based on actual status
+        RenderPhaseSection(output, state.LightPhase, "🟢 LIGHT PHASE", "LIGHT");
         
         // Current Training Metrics (if component is in progress)
         if (state.CurrentComponent != null)
@@ -56,11 +58,9 @@ public sealed class LabModeDashboardRenderer
         // Strategy Performance Section
         RenderStrategyPerformance(output, state);
         
-        // Post-Training Validation
-        RenderPostTrainingValidation(output, state);
-        
-        // Model Promotion Status
-        RenderModelPromotionStatus(output, state);
+        // Post-Training Validation and Model Promotion Status removed
+        // These sections were displaying static data instead of actual training state
+        // They should only be shown when real validation/promotion results are available
         
         // Alerts (if any)
         if (state.ActiveAlerts.Any())
@@ -112,18 +112,18 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine();
     }
 
-    private void RenderPhaseSection(StringBuilder output, PhaseDetails phase, string title, string phaseType)
+    private void RenderPhaseSection(StringBuilder output, PhaseDetails phase, string baseTitle, string phaseType)
     {
         // Always show phase sections (including pending ones as in the example)
         
-        // Determine status title based on phase status
+        // Append status to base title based on actual phase status
         var statusTitle = phase.Status switch
         {
-            TrainingPhaseStatus.Complete => title.Replace("IN PROGRESS", "COMPLETE ✓").Replace("PENDING", "COMPLETE ✓"),
-            TrainingPhaseStatus.InProgress => title.Replace("COMPLETE ✓", "IN PROGRESS").Replace("PENDING", "IN PROGRESS"),
-            TrainingPhaseStatus.Failed => title.Replace("IN PROGRESS", "FAILED ✗").Replace("COMPLETE ✓", "FAILED ✗").Replace("PENDING", "FAILED ✗"),
-            TrainingPhaseStatus.Pending => title.Replace("IN PROGRESS", "PENDING").Replace("COMPLETE ✓", "PENDING"),
-            _ => title
+            TrainingPhaseStatus.Complete => $"{baseTitle} - COMPLETE ✓",
+            TrainingPhaseStatus.InProgress => $"{baseTitle} - IN PROGRESS ⚙️",
+            TrainingPhaseStatus.Failed => $"{baseTitle} - FAILED ✗",
+            TrainingPhaseStatus.Pending => $"{baseTitle} - PENDING",
+            _ => baseTitle
         };
 
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
@@ -247,16 +247,15 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
         output.AppendLine($"│ 📊 CURRENT TRAINING METRICS ({component.ComponentName})                              │");
         output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        output.AppendLine($"│ Epoch: {component.EpochsCompleted}/{component.TotalEpochs} | Batch: N/A | Learning Rate: N/A                        │");
+        output.AppendLine($"│ Epoch: {component.EpochsCompleted}/{component.TotalEpochs}                                                                │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Loss Metrics:                                                                   │");
-        output.AppendLine($"│  • Total Loss:       {component.CurrentLoss:F4} (tracking)                                      │");
+        output.AppendLine($"│  • Total Loss:       {component.CurrentLoss:F4}                                                 │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Performance:                                                                    │");
         output.AppendLine($"│  • Training Progress:    {component.ProgressPercentage:F1}%                                                │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Resource Usage:                                                                 │");
-        output.AppendLine($"│  • GPU Utilization:      N/A (CPU training)                                     │");
         output.AppendLine($"│  • CPU Utilization:      {state.Resources.CpuUsagePercent:F0}%                                                    │");
         output.AppendLine($"│  • Memory Used:          {state.Resources.MemoryUsedMb / 1024.0:F1} GB / {state.Resources.MemoryTotalMb / 1024.0:F1} GB ({(double)state.Resources.MemoryUsedMb / state.Resources.MemoryTotalMb * 100:F0}%)                                 │");
         output.AppendLine($"│  • Disk I/O:             {state.Resources.DiskReadMbPerSec:F0} MB/s read, {state.Resources.DiskWriteMbPerSec:F0} MB/s write                            │");
@@ -291,66 +290,7 @@ public sealed class LabModeDashboardRenderer
         if (totalTrades > 0)
         {
             output.AppendLine("│                                                                                 │");
-            output.AppendLine($"│ Total Portfolio: ${totalPnl:F2} | Sharpe: N/A | Max DD: N/A                          │");
-        }
-        
-        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
-        output.AppendLine();
-    }
-
-    private void RenderPostTrainingValidation(StringBuilder output, LabModeDashboardState state)
-    {
-        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
-        output.AppendLine("│ 🔍 POST-TRAINING VALIDATION                                                    │");
-        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        
-        if (state.CurrentPhase != "Complete")
-        {
-            output.AppendLine("│ ⏳ Waiting for Light Phase completion...                                       │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Validation Checklist:                                                          │");
-            output.AppendLine("│  □ Model Integrity Check                                                       │");
-            output.AppendLine("│  □ Performance Baseline Comparison (75% threshold)                             │");
-            output.AppendLine("│  □ Statistical Significance Test (95% confidence)                              │");
-            output.AppendLine("│  □ Anti-Overfitting Validation (walk-forward)                                  │");
-        }
-        else
-        {
-            output.AppendLine("│ ✓ Model Integrity Check: PASSED                                                │");
-            output.AppendLine("│ ✓ Performance Baseline Comparison: PASSED (85% threshold met)                  │");
-            output.AppendLine("│ ✓ Statistical Significance Test: PASSED (95% confidence)                       │");
-            output.AppendLine("│ ✓ Anti-Overfitting Validation: PASSED (walk-forward test)                      │");
-        }
-        
-        output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
-        output.AppendLine();
-    }
-
-    private void RenderModelPromotionStatus(StringBuilder output, LabModeDashboardState state)
-    {
-        output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
-        output.AppendLine("│ 🚀 MODEL PROMOTION STATUS                                                      │");
-        output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        
-        if (state.CurrentPhase != "Complete")
-        {
-            output.AppendLine("│ Status: ⏳ Pending (waiting for validation)                                    │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Promotion Plan:                                                                │");
-            output.AppendLine("│  - Challenger Models: 7 heavy + 7 medium + 7 light = 21 models                │");
-            output.AppendLine("│  - Atomic Promotion: enabled (rollback on failure)                             │");
-            output.AppendLine("│  - Backup: staging/ → production/ (safe swap)                                 │");
-            output.AppendLine("│  - Rollback Window: 15 minutes                                                │");
-        }
-        else
-        {
-            output.AppendLine("│ Status: ✓ PROMOTED (all models successfully promoted)                          │");
-            output.AppendLine("│                                                                                 │");
-            output.AppendLine("│ Promotion Details:                                                             │");
-            output.AppendLine("│  - Challenger Models: 21 models promoted to production                        │");
-            output.AppendLine("│  - Validation: All thresholds passed                                           │");
-            output.AppendLine("│  - Backup: Previous models archived to backup/                                 │");
-            output.AppendLine("│  - Status: LIVE and ready for trading                                          │");
+            output.AppendLine($"│ Total Portfolio PnL: ${totalPnl:F2} | Total Trades: {totalTrades}                                │");
         }
         
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
@@ -388,6 +328,7 @@ public sealed class LabModeDashboardRenderer
         }
         else
         {
+            // Take up to 5 alerts, render each on a single line
             foreach (var alert in alerts.Take(5))
             {
                 var icon = alert.Level switch
@@ -399,21 +340,18 @@ public sealed class LabModeDashboardRenderer
                 };
                 
                 var timeStr = alert.Timestamp.ToOffset(TimeSpan.FromHours(-5)).ToString("HH:mm");
-                var levelStr = alert.Level.ToString().ToUpper();
-                var sourceStr = alert.Source.Length > 20 ? alert.Source.Substring(0, 17) + "..." : alert.Source;
+                var levelStr = alert.Level.ToString().ToUpper().PadRight(8);
+                var sourceStr = alert.Source.Length > 15 ? alert.Source.Substring(0, 12) + "..." : alert.Source.PadRight(15);
                 
-                // First line: icon, level, source, time
-                output.AppendLine($"│ {icon} {levelStr,-8} [{timeStr}] {sourceStr,-40}│");
-                
-                // Second line: message (wrapped if needed)
-                var message = alert.Message.Length > 75 ? alert.Message.Substring(0, 72) + "..." : alert.Message;
-                output.AppendLine($"│    {message,-76} │");
-                
-                // Blank line between alerts if there are multiple
-                if (alerts.Count > 1 && alert != alerts.Last())
-                {
-                    output.AppendLine("│                                                                                 │");
-                }
+                // Single line format: icon level [time] source: message
+                var message = alert.Message.Length > 40 ? alert.Message.Substring(0, 37) + "..." : alert.Message;
+                output.AppendLine($"│ {icon} {levelStr} [{timeStr}] {sourceStr}: {message,-40} │");
+            }
+            
+            // Fill remaining lines to keep dashboard stable (always show 5 alert slots)
+            for (int i = alerts.Count; i < 5; i++)
+            {
+                output.AppendLine("│                                                                                 │");
             }
         }
         

@@ -362,9 +362,24 @@ public sealed class LabModeDashboardStateManager
 
     /// <summary>
     /// Log activity entry
+    /// Deduplicates identical messages within a 30-second window to prevent spam
     /// </summary>
     public void LogActivity(string logLevel, string source, string message)
     {
+        // Check if we already have the same activity message recently (within 30 seconds)
+        var cutoffTime = DateTimeOffset.UtcNow.AddSeconds(-30);
+        var recentActivities = _activityLog.Where(a => a.Timestamp >= cutoffTime).ToList();
+        var isDuplicate = recentActivities.Any(a => 
+            a.LogLevel == logLevel && 
+            a.Source == source && 
+            a.Message == message);
+        
+        // If this is a duplicate within 30 seconds, skip it
+        if (isDuplicate)
+        {
+            return;
+        }
+        
         var entry = new ActivityLogEntry
         {
             Timestamp = DateTimeOffset.UtcNow,
@@ -397,6 +412,7 @@ public sealed class LabModeDashboardStateManager
 
     /// <summary>
     /// Add an alert (warning/error) to the dashboard
+    /// Deduplicates alerts with the same message within a 5-minute window
     /// </summary>
     public void AddAlert(string level, string source, string message)
     {
@@ -406,6 +422,20 @@ public sealed class LabModeDashboardStateManager
             "error" => AlertLevel.Error,
             _ => AlertLevel.Warning
         };
+        
+        // Check if we already have a recent alert with the same message (within 5 minutes)
+        var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var existingAlert = _alerts.FirstOrDefault(a => 
+            a.Message == message && 
+            a.Level == alertLevel && 
+            a.Timestamp >= cutoffTime &&
+            !a.IsDismissed);
+        
+        // If we already have this alert recently, don't add a duplicate
+        if (existingAlert != null)
+        {
+            return;
+        }
         
         var alert = new DashboardAlert
         {
