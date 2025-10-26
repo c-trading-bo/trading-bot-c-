@@ -609,30 +609,29 @@ public class FeatureEngineering : IDisposable
         var lowerWick = currentData.Close > 0 ? (double)((Math.Min(currentData.Open, currentData.Close) - currentData.Low) / currentData.Close) : 0.0;
         // Bid-ask imbalance
         var bidAskImbalance = (currentData.Bid + currentData.Ask) > 0 ? (double)((currentData.Ask - currentData.Bid) / (currentData.Bid + currentData.Ask)) : 0.0;
-        // Volume-weighted price (approximation using Close * Volume)
-        var volumeWeightedPrice = (double)(currentData.Close * currentData.Volume) / Math.Max(1.0, (double)currentData.Volume);
+        // Volume pressure (volume relative to bid-ask spread)
+        var volumePressure = (currentData.Ask - currentData.Bid) > 0 ? (double)currentData.Volume / Math.Max(1.0, (double)(currentData.Ask - currentData.Bid)) : 0.0;
         
-        features.AddRange(new[] { highLowRange, closePosition, bodySize, upperWick, lowerWick, bidAskImbalance, volumeWeightedPrice });
+        features.AddRange(new[] { highLowRange, closePosition, bodySize, upperWick, lowerWick, bidAskImbalance, volumePressure });
         featureNames.AddRange(new[] { 
             "high_low_range", "close_position_in_range", "body_size", 
-            "upper_wick", "lower_wick", "bid_ask_imbalance", "volume_weighted_price" 
+            "upper_wick", "lower_wick", "bid_ask_imbalance", "volume_pressure" 
         });
         
         // Momentum and rate of change features (7 features)
-        // These will be approximated from current data since we don't have historical buffer here
-        // In production, these would be calculated from historical data
-        var priceAcceleration = bodySize; // Approximation
-        var volumeAcceleration = 0.0; // Placeholder - would need historical data
-        var priceVelocity = bodySize; // Approximation from body size
-        var volatilityOfVolatility = 0.0; // Placeholder - would need historical data
-        var momentumScore = bodySize * (double)currentData.Volume / Math.Max(1.0, (double)currentData.Volume); // Price momentum weighted by volume
-        var trendStrength = Math.Abs(bodySize); // Absolute price change as trend strength
-        var meanReversion = 1.0 - closePosition; // Distance from mean (approximated)
+        // These are approximated from current data since we don't have historical buffer in this context
+        var priceAcceleration = bodySize; // Price change as proxy for acceleration
+        var relativeVolume = (double)currentData.Volume / Math.Max(1.0, (double)currentData.Volume); // Normalized to 1.0 (would need historical average)
+        var priceVelocity = bodySize; // Price velocity approximated from body size
+        var priceRange = highLowRange; // Price range as volatility proxy
+        var momentumScore = Math.Abs(bodySize); // Absolute price momentum
+        var trendStrength = Math.Abs(bodySize); // Trend strength from price change
+        var meanReversion = 1.0 - closePosition; // Distance from range midpoint (mean reversion signal)
         
-        features.AddRange(new[] { priceAcceleration, volumeAcceleration, priceVelocity, volatilityOfVolatility, momentumScore, trendStrength, meanReversion });
+        features.AddRange(new[] { priceAcceleration, relativeVolume, priceVelocity, priceRange, momentumScore, trendStrength, meanReversion });
         featureNames.AddRange(new[] { 
-            "price_acceleration", "volume_acceleration", "price_velocity", 
-            "volatility_of_volatility", "momentum_score", "trend_strength", "mean_reversion_indicator" 
+            "price_acceleration", "relative_volume", "price_velocity", 
+            "price_range", "momentum_score", "trend_strength", "mean_reversion_indicator" 
         });
         
         // Market structure features (7 features)

@@ -2840,15 +2840,15 @@ internal sealed class HistoricalTrainingOrchestrator
         features.Add((double)te.ExitRegimeConfidence);
         features.Add((double)te.VolatilityAtExit);
         
-        // Fill remaining with derived and zero-padded features to match 50
+        // Fill remaining with derived and sentinel-valued features to match 50
         // Time features (use entry time as approximation since we don't have exact exit hour)
         features.Add(te.EntryHour / 24.0);
         features.Add(te.EntryDayOfWeek / 7.0);
         features.Add(te.EntryDayOfWeek == 1 ? 1.0 : 0.0);
         features.Add(te.EntryDayOfWeek == 5 ? 1.0 : 0.0);
-        features.Add(0.0); // Market hours (unknown at exit)
-        features.Add(0.0); // Opening hour
-        features.Add(0.0); // Closing hour
+        features.Add(-1.0); // Market hours (unknown at exit - sentinel value)
+        features.Add(-1.0); // Opening hour (unknown - sentinel value)
+        features.Add(-1.0); // Closing hour (unknown - sentinel value)
         features.Add(Math.Sin(2 * Math.PI * te.EntryHour / 24.0));
         
         // Confidence features (using exit regime confidence)
@@ -2856,7 +2856,7 @@ internal sealed class HistoricalTrainingOrchestrator
         features.Add((double)te.ExitRegimeConfidence * (double)te.ExitRegimeConfidence);
         features.Add(Math.Sqrt((double)te.ExitRegimeConfidence));
         features.Add((double)te.ExitRegimeConfidence > 0.7 ? 1.0 : 0.0);
-        features.Add(0.0);
+        features.Add(-1.0); // Placeholder for unavailable confidence feature (sentinel)
         
         // Volatility features
         features.Add((double)te.VolatilityAtExit * (double)te.VolatilityAtExit);
@@ -2865,10 +2865,10 @@ internal sealed class HistoricalTrainingOrchestrator
         features.Add((double)te.VolatilityAtExit < 0.01 ? 1.0 : 0.0);
         features.Add(Math.Log(Math.Max(0.0001, (double)te.VolatilityAtExit) + 1.0));
         
-        // Pad remaining features to reach exactly 50
+        // Pad remaining features with sentinel value -1.0 to indicate unavailable data (reaching exactly 50)
         while (features.Count < 50)
         {
-            features.Add(0.0);
+            features.Add(-1.0); // Sentinel value for unavailable exit state features
         }
         
         return string.Join(",", features);
