@@ -466,9 +466,6 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine($"║ Training lock file: {lockFile,-56} ║");
         output.AppendLine($"║ Uptime: {uptime,-20} | Lock File Age: {lockFileAge,-20} | Next refresh: 5s      ║");
         output.AppendLine("╚═══════════════════════════════════════════════════════════════════════════════════╝");
-        output.AppendLine();
-        output.AppendLine($"[{DateTimeOffset.Now.ToOffset(TimeSpan.FromHours(-5)):HH:mm:ss}] info: TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer[0]");
-        output.AppendLine("           [LAB] Dashboard auto-refresh (every 5 seconds)");
     }
 
     private static string GenerateProgressBar(int filled, int total)

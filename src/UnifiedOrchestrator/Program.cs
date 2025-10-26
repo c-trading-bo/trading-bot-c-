@@ -58,6 +58,20 @@ internal static class Program
     // API Configuration Constants
     private const string TopstepXApiBaseUrl = "https://api.topstepx.com";
     private const string TopstepXUserAgent = "TopstepX-TradingBot/1.0";
+    
+    // Lab Mode flag - set once at startup
+    private static bool _isLabMode = false;
+
+    /// <summary>
+    /// Console.WriteLine wrapper that suppresses output in Lab Mode (dashboard-only view)
+    /// </summary>
+    internal static void WriteLineIfNotLabMode(string message = "")
+    {
+        if (!_isLabMode)
+        {
+            Console.WriteLine(message);
+        }
+    }
 
     /// <summary>
     /// Helper method to safely parse boolean values from configuration that may be in 1/0 or true/false format
@@ -143,6 +157,10 @@ internal static class Program
         // Pre-host bootstrap - create required directories and files before building host
         Bootstrap();
         
+        // Set Lab Mode flag early to suppress all startup output
+        var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+        _isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+        
         // Load .env files in priority order for auto TopstepX configuration
         EnvironmentLoader.LoadEnvironmentFiles();
         
@@ -159,7 +177,14 @@ internal static class Program
         // All validation happens through production readiness checks
         
         
-        Console.WriteLine(@"
+        // Lab Mode suppresses all startup output - dashboard only
+        var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" ||
+                        Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
+        _isLabMode = isLabMode;
+        
+        if (!isLabMode)
+        {
+            Program.WriteLineIfNotLabMode(@"
 ================================================================================
                     🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀                       
                                                                                
@@ -179,23 +204,24 @@ internal static class Program
   💡 Run with --production-demo to generate runtime proof artifacts         
 ================================================================================
         ");
+        }
 
         try
         {
-            Console.WriteLine("🔧 [STARTUP] Building dependency injection container...");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("🔧 [STARTUP] Building dependency injection container...");
             
             // Build the unified host with all services
             IHost? host = null;
             try
             {
                 host = CreateHostBuilder(args).Build();
-                Console.WriteLine("✅ [STARTUP] DI container built successfully");
+                if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
             }
             catch (Exception diEx)
             {
                 Console.WriteLine($"❌ [STARTUP] FATAL: Failed to build DI container");
                 Console.WriteLine($"   Error: {diEx.Message}");
-                Console.WriteLine($"   Type: {diEx.GetType().Name}");
+                Program.WriteLineIfNotLabMode($"   Type: {diEx.GetType().Name}");
                 
                 // Check for inner exceptions
                 var innerEx = diEx.InnerException;
@@ -203,7 +229,7 @@ internal static class Program
                 while (innerEx != null && depth <= 5)
                 {
                     Console.WriteLine($"   Inner Exception [{depth}]: {innerEx.Message}");
-                    Console.WriteLine($"   Type: {innerEx.GetType().Name}");
+                    Program.WriteLineIfNotLabMode($"   Type: {innerEx.GetType().Name}");
                     innerEx = innerEx.InnerException;
                     depth++;
                 }
@@ -212,23 +238,23 @@ internal static class Program
                 throw;
             }
             
-            Console.WriteLine("🔍 [STARTUP] Validating service registration...");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("🔍 [STARTUP] Validating service registration...");
             
             // Validate service registration and configuration on startup
             await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
-            Console.WriteLine("✅ [STARTUP] Service validation completed");
-            Console.WriteLine("⚙️ [STARTUP] Initializing ML parameter provider...");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] Service validation completed");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("⚙️ [STARTUP] Initializing ML parameter provider...");
             
             // Initialize ML parameter provider for TradingBot classes
             TradingBot.BotCore.Services.TradingBotParameterProvider.Initialize(host.Services);
             
-            Console.WriteLine("✅ [STARTUP] ML parameter provider initialized");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] ML parameter provider initialized");
             
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
             
-            Console.WriteLine("🚀 [STARTUP] Starting unified orchestrator...");
+            if (!isLabMode) Program.WriteLineIfNotLabMode("🚀 [STARTUP] Starting unified orchestrator...");
             
             // Run the unified orchestrator
             await host.RunAsync().ConfigureAwait(false);
@@ -236,9 +262,9 @@ internal static class Program
         catch (Exception ex)
         {
             var errorMsg = $"❌ CRITICAL ERROR: {ex.Message}";
-            Console.WriteLine("\n" + new string('=', 80));
-            Console.WriteLine(errorMsg);
-            Console.WriteLine(new string('=', 80));
+            Program.WriteLineIfNotLabMode("\n" + new string('=', 80));
+            Program.WriteLineIfNotLabMode(errorMsg);
+            Program.WriteLineIfNotLabMode(new string('=', 80));
             Console.WriteLine($"Exception Type: {ex.GetType().FullName}");
             Console.WriteLine($"Stack Trace:\n{ex.StackTrace}");
             
@@ -248,13 +274,13 @@ internal static class Program
             while (innerEx != null && depth <= 5)
             {
                 Console.WriteLine($"\n--- Inner Exception [{depth}] ---");
-                Console.WriteLine($"Message: {innerEx.Message}");
-                Console.WriteLine($"Type: {innerEx.GetType().FullName}");
-                Console.WriteLine($"Stack: {innerEx.StackTrace}");
+                Program.WriteLineIfNotLabMode($"Message: {innerEx.Message}");
+                Program.WriteLineIfNotLabMode($"Type: {innerEx.GetType().FullName}");
+                Program.WriteLineIfNotLabMode($"Stack: {innerEx.StackTrace}");
                 innerEx = innerEx.InnerException;
                 depth++;
             }
-            Console.WriteLine(new string('=', 80));
+            Program.WriteLineIfNotLabMode(new string('=', 80));
             
             // Log to file for debugging and monitoring
             try
@@ -262,17 +288,17 @@ internal static class Program
                 var logPath = Path.Combine(Directory.GetCurrentDirectory(), "critical_errors.log");
                 var logEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}] {errorMsg}\n{ex.ToString()}\n\n";
                 File.AppendAllText(logPath, logEntry);
-                Console.WriteLine($"\n📝 Error logged to: {logPath}");
+                Program.WriteLineIfNotLabMode($"\n📝 Error logged to: {logPath}");
             }
             catch (Exception logEx)
             {
                 // If logging fails, we still want to continue - just output to console
-                Console.WriteLine($"⚠️ Warning: Failed to write to error log: {logEx.Message}");
+                Program.WriteLineIfNotLabMode($"⚠️ Warning: Failed to write to error log: {logEx.Message}");
             }
             
-            Console.WriteLine("\n💡 Hint: Check environment variables (PYTHON_EXECUTABLE, TOPSTEPX_*, etc.)");
-            Console.WriteLine("💡 Hint: Verify appsettings.json configuration is valid");
-            Console.WriteLine("💡 Hint: Review critical_errors.log for full details");
+            Program.WriteLineIfNotLabMode("\n💡 Hint: Check environment variables (PYTHON_EXECUTABLE, TOPSTEPX_*, etc.)");
+            Program.WriteLineIfNotLabMode("💡 Hint: Verify appsettings.json configuration is valid");
+            Program.WriteLineIfNotLabMode("💡 Hint: Review critical_errors.log for full details");
             
             Environment.Exit(1);
         }
@@ -284,7 +310,7 @@ internal static class Program
     /// </summary>
     private static async Task PromptForLabModeScheduleAsync()
     {
-        Console.WriteLine(@"
+        Program.WriteLineIfNotLabMode(@"
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║                      Lab Mode - Training Schedule Options                     ║
 ╠════════════════════════════════════════════════════════════════════════════════╣
@@ -313,7 +339,7 @@ internal static class Program
         {
             case "1":
                 // Scheduled Training (Sunday only)
-                Console.WriteLine(@"
+                Program.WriteLineIfNotLabMode(@"
 ╔═══════════════════════════════════════════════════════════════════════════╗
 ║                   🧪 LAB MODE - SCHEDULED TRAINING 🧪                     ║
 ╠═══════════════════════════════════════════════════════════════════════════╣
@@ -340,12 +366,12 @@ internal static class Program
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
                 Environment.SetEnvironmentVariable("FORCE_LAB_NOW", "0"); // Use Sunday schedule
-                Console.WriteLine("🧪 Lab scheduler will activate and wait for Sunday training window");
+                Program.WriteLineIfNotLabMode("🧪 Lab scheduler will activate and wait for Sunday training window");
                 break;
                 
             case "2":
                 // Manual Training (Run now)
-                Console.WriteLine(@"
+                Program.WriteLineIfNotLabMode(@"
 ╔═══════════════════════════════════════════════════════════════════════════╗
 ║                     🧪 LAB MODE - MANUAL TRAINING 🧪                      ║
 ╠═══════════════════════════════════════════════════════════════════════════╣
@@ -370,14 +396,14 @@ internal static class Program
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1"); // Safety: ensure no live orders
                 Environment.SetEnvironmentVariable("FORCE_LAB_NOW", "1"); // Bypass Sunday schedule
-                Console.WriteLine("🧪 Manual training mode activated - Training will start IMMEDIATELY");
-                Console.WriteLine("⚡ Bypassing Sunday schedule restriction");
+                Program.WriteLineIfNotLabMode("🧪 Manual training mode activated - Training will start IMMEDIATELY");
+                Program.WriteLineIfNotLabMode("⚡ Bypassing Sunday schedule restriction");
                 break;
                 
             case "3":
                 // Back to Main Menu
-                Console.WriteLine("\n🔄 Returning to main menu...");
-                Console.WriteLine();
+                Program.WriteLineIfNotLabMode("\n🔄 Returning to main menu...");
+                Program.WriteLineIfNotLabMode();
                 await PromptForTradingModeAsync().ConfigureAwait(false);
                 return;
                 
@@ -387,8 +413,8 @@ internal static class Program
                 return;
         }
         
-        Console.WriteLine();
-        Console.WriteLine("Press Enter to continue...");
+        Program.WriteLineIfNotLabMode();
+        Program.WriteLineIfNotLabMode("Press Enter to continue...");
         Console.ReadLine();
         
         await Task.CompletedTask.ConfigureAwait(false);
@@ -400,7 +426,7 @@ internal static class Program
     /// </summary>
     private static async Task PromptForTradingModeAsync()
     {
-        Console.WriteLine(@"
+        Program.WriteLineIfNotLabMode(@"
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║                    TopstepX Trading Bot - Mode Selection                      ║
 ╠════════════════════════════════════════════════════════════════════════════════╣
@@ -432,26 +458,26 @@ internal static class Program
         {
             case "1":
                 // Terminal Mode (Live Trading)
-                Console.WriteLine("\n⚠️  WARNING: You are about to enable LIVE TRADING with REAL MONEY");
-                Console.WriteLine("⚠️  Real orders will be sent to TopstepX");
-                Console.WriteLine("⚠️  You can lose real money");
-                Console.WriteLine();
+                Program.WriteLineIfNotLabMode("\n⚠️  WARNING: You are about to enable LIVE TRADING with REAL MONEY");
+                Program.WriteLineIfNotLabMode("⚠️  Real orders will be sent to TopstepX");
+                Program.WriteLineIfNotLabMode("⚠️  You can lose real money");
+                Program.WriteLineIfNotLabMode();
                 Console.Write("Type YES in all capitals to confirm live trading: ");
                 var confirm = Console.ReadLine()?.Trim();
                 if (confirm == "YES")
                 {
-                    Console.WriteLine("\n✅ Terminal Mode (Live Trading) activated");
+                    Program.WriteLineIfNotLabMode("\n✅ Terminal Mode (Live Trading) activated");
                     Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                     Environment.SetEnvironmentVariable("LAB_MODE", "0");
                     Environment.SetEnvironmentVariable("DRY_RUN", "0");
-                    Console.WriteLine("🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
-                    Console.WriteLine("💰 Real orders will be placed");
+                    Program.WriteLineIfNotLabMode("🚨 LIVE TRADING ENABLED - REAL MONEY AT RISK 🚨");
+                    Program.WriteLineIfNotLabMode("💰 Real orders will be placed");
                 }
                 else
                 {
                     Console.WriteLine("\n❌ Live trading NOT enabled (you must type YES exactly)");
-                    Console.WriteLine("🔄 Returning to menu...");
-                    Console.WriteLine();
+                    Program.WriteLineIfNotLabMode("🔄 Returning to menu...");
+                    Program.WriteLineIfNotLabMode();
                     await PromptForTradingModeAsync().ConfigureAwait(false); // Return to menu
                     return;
                 }
@@ -464,12 +490,12 @@ internal static class Program
 
             case "3":
                 // Backtest Mode (Strategy Testing)
-                Console.WriteLine("\n✅ Backtest Mode (Strategy Testing) selected");
+                Program.WriteLineIfNotLabMode("\n✅ Backtest Mode (Strategy Testing) selected");
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
                 Environment.SetEnvironmentVariable("LAB_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1");
-                Console.WriteLine("📊 Bot will replay historical data for strategy validation");
-                Console.WriteLine("📈 Performance metrics will be calculated");
+                Program.WriteLineIfNotLabMode("📊 Bot will replay historical data for strategy validation");
+                Program.WriteLineIfNotLabMode("📈 Performance metrics will be calculated");
                 break;
                 
             default:
@@ -478,8 +504,8 @@ internal static class Program
                 return;
         }
         
-        Console.WriteLine();
-        Console.WriteLine("Press Enter to continue...");
+        Program.WriteLineIfNotLabMode();
+        Program.WriteLineIfNotLabMode("Press Enter to continue...");
         Console.ReadLine();
         
         await Task.CompletedTask.ConfigureAwait(false);
@@ -490,7 +516,7 @@ internal static class Program
     /// </summary>
     private static Task RunProductionDemonstrationAsync(string[] args)
     {
-        Console.WriteLine(@"
+        Program.WriteLineIfNotLabMode(@"
 🚀 PRODUCTION READINESS DEMONSTRATION
 ================================================================================
 Generating runtime proof of all champion/challenger architecture capabilities:
@@ -519,7 +545,7 @@ Artifacts will be saved to: artifacts/production-demo/
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in production demonstration: {ex.Message}");
+            Program.WriteLineIfNotLabMode($"Error in production demonstration: {ex.Message}");
             Environment.Exit(1);
             return Task.CompletedTask;
         }
@@ -531,7 +557,7 @@ Artifacts will be saved to: artifacts/production-demo/
     /// </summary>
     private static async Task RunSmokeTestAsync(string[] args)
     {
-        Console.WriteLine(@"
+        Program.WriteLineIfNotLabMode(@"
 🧪 UNIFIED ORCHESTRATOR SMOKE TEST
 ================================================================================
 Running lightweight smoke test to validate core system functionality:
@@ -628,7 +654,7 @@ This replaces individual SimpleBot/MinimalDemo/TradingBot smoke tests
                 logger.LogWarning("🧪 [SMOKE] ⚠️ Startup cycle timeout (expected for smoke test)");
             }
             
-            Console.WriteLine(@"
+            Program.WriteLineIfNotLabMode(@"
 🎉 SMOKE TEST COMPLETED SUCCESSFULLY!
 ================================================================================
 All core UnifiedOrchestrator services validated:
@@ -650,7 +676,7 @@ Use this unified smoke test going forward for validation.
         }
         catch (Exception ex)
         {
-            Console.WriteLine($@"
+            Program.WriteLineIfNotLabMode($@"
 ❌ SMOKE TEST FAILED
 ================================================================================
 Error: {ex.Message}
@@ -672,16 +698,41 @@ Please check the configuration and ensure all required services are registered.
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
-                logging.AddConsole(options => 
+                
+                // Check if Lab Mode is enabled
+                var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+                var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+                
+                if (!isLabMode)
                 {
-                    options.FormatterName = "Production";
-                });
-                logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+                    // Terminal Mode: Add console logging as normal
+                    logging.AddConsole(options => 
+                    {
+                        options.FormatterName = "Production";
+                    });
+                    logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+                }
+                else
+                {
+                    // Lab Mode: Console logging disabled - dashboard uses direct Console.Write with ANSI codes
+                    // Add file logging for diagnostics (user doesn't need to monitor this)
+                    var logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", $"lab-training-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
+                    Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
+                    
+                    logging.AddProvider(new SimpleFileLoggerProvider(logFilePath));
+                    
+                    // Filter out TopstepX/API errors in Lab Mode (doesn't need API connection)
+                    logging.AddFilter("TopstepX", LogLevel.None);
+                    logging.AddFilter("TopstepXAdapterService", LogLevel.None);
+                    logging.AddFilter("TopstepXWebSocketClient", LogLevel.None);
+                    logging.AddFilter("TopstepXHttpClient", LogLevel.None);
+                    logging.AddFilter("OrderExecutionService", LogLevel.None);
+                }
+                
                 logging.SetMinimumLevel(LogLevel.Information);
                 // REDUCE NOISE - Override Microsoft and System logging to warnings only
                 logging.AddFilter("Microsoft", LogLevel.Warning);
                 logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
                 logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
             })
             .ConfigureServices((context, services) =>
@@ -744,8 +795,8 @@ Please check the configuration and ensure all required services are registered.
         var now = DateTime.Now;
         if (now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 12 && now.Hour < 18)
         {
-            Console.WriteLine("🕐 [MODE-DETECTION] Sunday afternoon detected - suggesting Lab mode");
-            Console.WriteLine("   Set BOT_MODE=Terminal to override");
+            Program.WriteLineIfNotLabMode("🕐 [MODE-DETECTION] Sunday afternoon detected - suggesting Lab mode");
+            Program.WriteLineIfNotLabMode("   Set BOT_MODE=Terminal to override");
             return BotMode.Lab;
         }
 
@@ -773,30 +824,45 @@ Please check the configuration and ensure all required services are registered.
         // ================================================================================
         var mode = DetectBotMode();
         
-        Console.WriteLine("\n" + new string('=', 80));
-        Console.WriteLine($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
-        Console.WriteLine(new string('=', 80));
+        // Check if Lab Mode - suppress mode display if so (dashboard-only view)
+        var labModeEnv = Environment.GetEnvironmentVariable("LAB_MODE");
+        var suppressStartupOutput = labModeEnv == "1" || labModeEnv?.ToLowerInvariant() == "true";
+        _isLabMode = suppressStartupOutput; // Set global flag
+        
+        if (!suppressStartupOutput)
+        {
+            Program.WriteLineIfNotLabMode("\n" + new string('=', 80));
+            Program.WriteLineIfNotLabMode($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
+            Program.WriteLineIfNotLabMode(new string('=', 80));
+        }
         
         if (mode == BotMode.Lab)
         {
-            Console.WriteLine("📊 LAB MODE - Training Pipeline");
-            Console.WriteLine("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
-            Console.WriteLine("   ✓ HistoricalTrainingOrchestrator registered (uses Python scripts - NO API connections)");
-            Console.WriteLine("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
-            Console.WriteLine("   ✓ EnhancedBacktestLearningService registered");
-            Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
-            Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+            if (!suppressStartupOutput)
+            {
+                Program.WriteLineIfNotLabMode("📊 LAB MODE - Training Pipeline");
+                Program.WriteLineIfNotLabMode("   ✓ CVaRPPOTrainer, NeuralUcbBanditTrainer registered");
+                Program.WriteLineIfNotLabMode("   ✓ HistoricalTrainingOrchestrator registered (uses Python scripts - NO API connections)");
+                Program.WriteLineIfNotLabMode("   ✓ InternalScheduler registered (Sunday 12:00 PM - 5:45 PM ET auto-training)");
+                Program.WriteLineIfNotLabMode("   ✓ EnhancedBacktestLearningService registered");
+                Program.WriteLineIfNotLabMode("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
+                Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+            }
         }
         else
         {
-            Console.WriteLine("🚀 TERMINAL MODE - Live Trading");
-            Console.WriteLine("   ✓ CVaRPPO (inference), NeuralUcbBandit (inference) registered");
-            Console.WriteLine("   ✓ OrderExecutionService, TopstepXWebSocketClient registered");
-            Console.WriteLine("   ✓ All 350+ safety systems registered");
-            Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
-            Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
+            Program.WriteLineIfNotLabMode("🚀 TERMINAL MODE - Live Trading");
+            Program.WriteLineIfNotLabMode("   ✓ CVaRPPO (inference), NeuralUcbBandit (inference) registered");
+            Program.WriteLineIfNotLabMode("   ✓ OrderExecutionService, TopstepXWebSocketClient registered");
+            Program.WriteLineIfNotLabMode("   ✓ All 350+ safety systems registered");
+            Program.WriteLineIfNotLabMode("   ✗ Trainer classes NOT registered (Terminal = inference only)");
+            Program.WriteLineIfNotLabMode("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
         }
-        Console.WriteLine(new string('=', 80) + "\n");
+        
+        if (!suppressStartupOutput)
+        {
+            Program.WriteLineIfNotLabMode(new string('=', 80) + "\n");
+        }
         
         // Register login completion state for TopstepX SDK connection management
         services.AddSingleton<Services.ILoginCompletionState, Services.EnterpriseLoginCompletionState>();
@@ -913,15 +979,15 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.PaperTradingTracker>(provider => 
             provider.GetRequiredService<global::BotCore.Services.PaperTradingTracker>());
         
-        Console.WriteLine("📊 [PAPER-TRADING] Registered paper trading tracker - tracks REAL price movements in DRY_RUN mode");
+        Program.WriteLineIfNotLabMode("📊 [PAPER-TRADING] Registered paper trading tracker - tracks REAL price movements in DRY_RUN mode");
         
         // Register the main autonomous decision engine as hosted service
         services.AddSingleton<AutonomousDecisionEngine>();
         services.AddHostedService<AutonomousDecisionEngine>(provider => 
             provider.GetRequiredService<AutonomousDecisionEngine>());
         
-        Console.WriteLine("🚀 [AUTONOMOUS-ENGINE] Registered autonomous trading engine - Profit-maximizing TopStep bot ready!");
-        Console.WriteLine("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
+        Program.WriteLineIfNotLabMode("🚀 [AUTONOMOUS-ENGINE] Registered autonomous trading engine - Profit-maximizing TopStep bot ready!");
+        Program.WriteLineIfNotLabMode("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
         
         // ================================================================================
         // TRADING MODE COMPLIANCE CHECKERS - OWNER'S MANUAL VERIFICATION
@@ -929,15 +995,15 @@ Please check the configuration and ensure all required services are registered.
         
         // Register Terminal Mode compliance checker
         services.AddHostedService<global::BotCore.Services.TerminalModeComplianceChecker>();
-        Console.WriteLine("✅ [TERMINAL-COMPLIANCE] Registered Terminal Mode compliance checker");
+        Program.WriteLineIfNotLabMode("✅ [TERMINAL-COMPLIANCE] Registered Terminal Mode compliance checker");
         
         // Register Lab Mode compliance checker
         services.AddHostedService<UnifiedOrchestrator.Services.LabModeComplianceChecker>();
-        Console.WriteLine("✅ [LAB-COMPLIANCE] Registered Lab Mode compliance checker");
+        Program.WriteLineIfNotLabMode("✅ [LAB-COMPLIANCE] Registered Lab Mode compliance checker");
         
         // Register Performance Target Monitor (Terminal Mode only)
         services.AddHostedService<global::BotCore.Services.PerformanceTargetMonitor>();
-        Console.WriteLine("⚡ [PERFORMANCE-MONITOR] Registered performance target monitor (<22ms latency, 99.9% uptime, 0.5 tick slippage)");
+        Program.WriteLineIfNotLabMode("⚡ [PERFORMANCE-MONITOR] Registered performance target monitor (<22ms latency, 99.9% uptime, 0.5 tick slippage)");
         
         // ================================================================================
         // REGIME DETECTION SERVICE - MARKET CONDITION ANALYSIS
@@ -946,11 +1012,11 @@ Please check the configuration and ensure all required services are registered.
         // Register Regime Detection Service for market regime classification (required by UnifiedPositionManagementService)
         services.AddSingleton<global::BotCore.Services.RegimeDetectionService>();
         
-        Console.WriteLine("📊 [REGIME-DETECTION] Registered regime detection service");
-        Console.WriteLine("   ✅ Market regime classification - Detects Trending, Ranging, and Transition regimes");
-        Console.WriteLine("   ✅ Dynamic R-multiple targeting - Adjusts profit targets based on market conditions (Feature 1)");
-        Console.WriteLine("   ✅ Regime change exit detection - Exits positions when regime shifts unfavorably (Feature 3)");
-        Console.WriteLine("   ✅ Adaptive position management - Enables regime-aware trading decisions");
+        Program.WriteLineIfNotLabMode("📊 [REGIME-DETECTION] Registered regime detection service");
+        Program.WriteLineIfNotLabMode("   ✅ Market regime classification - Detects Trending, Ranging, and Transition regimes");
+        Program.WriteLineIfNotLabMode("   ✅ Dynamic R-multiple targeting - Adjusts profit targets based on market conditions (Feature 1)");
+        Program.WriteLineIfNotLabMode("   ✅ Regime change exit detection - Exits positions when regime shifts unfavorably (Feature 3)");
+        Program.WriteLineIfNotLabMode("   ✅ Adaptive position management - Enables regime-aware trading decisions");
         
         // ================================================================================
         // UNIFIED POSITION MANAGEMENT SERVICE - BREAKEVEN, TRAILING, TIME EXITS
@@ -961,11 +1027,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.UnifiedPositionManagementService>(provider => 
             provider.GetRequiredService<global::BotCore.Services.UnifiedPositionManagementService>());
         
-        Console.WriteLine("🎯 [POSITION-MGMT] Registered unified position management service");
-        Console.WriteLine("   ✅ Breakeven protection - Moves stop to entry + 1 tick when profitable");
-        Console.WriteLine("   ✅ Trailing stops - Locks in profits as price moves favorably");
-        Console.WriteLine("   ✅ Time-based exits - Closes stale positions (S2=60m, S3=90m, S6=45m, S11=60m)");
-        Console.WriteLine("   ✅ Max excursion tracking - Captures data for ML/RL optimization");
+        Program.WriteLineIfNotLabMode("🎯 [POSITION-MGMT] Registered unified position management service");
+        Program.WriteLineIfNotLabMode("   ✅ Breakeven protection - Moves stop to entry + 1 tick when profitable");
+        Program.WriteLineIfNotLabMode("   ✅ Trailing stops - Locks in profits as price moves favorably");
+        Program.WriteLineIfNotLabMode("   ✅ Time-based exits - Closes stale positions (S2=60m, S3=90m, S6=45m, S11=60m)");
+        Program.WriteLineIfNotLabMode("   ✅ Max excursion tracking - Captures data for ML/RL optimization");
         
         // ================================================================================
         // ZONE BREAK MONITORING SERVICE - PHASE 2 IMPLEMENTATION
@@ -976,11 +1042,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.ZoneBreakMonitoringService>(provider => 
             provider.GetRequiredService<global::BotCore.Services.ZoneBreakMonitoringService>());
         
-        Console.WriteLine("🔍 [ZONE-BREAK] Registered zone break monitoring service (PHASE 2)");
-        Console.WriteLine("   ✅ Real-time zone break detection - Monitors supply/demand zone violations");
-        Console.WriteLine("   ✅ Position exit warnings - Alert on critical support/resistance breaks");
-        Console.WriteLine("   ✅ Zone-based stop placement - Moves stops behind broken zones");
-        Console.WriteLine("   ✅ Aggressive entry signals - Boosts confidence on strong zone breaks");
+        Program.WriteLineIfNotLabMode("🔍 [ZONE-BREAK] Registered zone break monitoring service (PHASE 2)");
+        Program.WriteLineIfNotLabMode("   ✅ Real-time zone break detection - Monitors supply/demand zone violations");
+        Program.WriteLineIfNotLabMode("   ✅ Position exit warnings - Alert on critical support/resistance breaks");
+        Program.WriteLineIfNotLabMode("   ✅ Zone-based stop placement - Moves stops behind broken zones");
+        Program.WriteLineIfNotLabMode("   ✅ Aggressive entry signals - Boosts confidence on strong zone breaks");
         
         // ================================================================================
         // POSITION MONITORING SERVICES - SESSION-AWARE EXPOSURE TRACKING
@@ -992,12 +1058,12 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.IPositionTimeTracker, global::BotCore.Services.PositionMonitoring.PositionTimeTracker>();
         services.AddSingleton<global::BotCore.Services.PositionMonitoring.SessionDetectionService>();
         
-        Console.WriteLine("📊 [POSITION-MONITORING] Registered position monitoring services");
-        Console.WriteLine("   ✅ Real-time session exposure tracking - Monitors exposure by trading session");
-        Console.WriteLine("   ✅ Risk-adjusted exposure calculation - Volatility, correlation, liquidity factors");
-        Console.WriteLine("   ✅ Position lifecycle tracking - Complete history across sessions");
-        Console.WriteLine("   ✅ Time-decay weighting - Fresh (1.0x) to Stale (0.3x) positions");
-        Console.WriteLine("   ✅ ES/NQ Portfolio Heat Manager - Integrated with real-time monitoring");
+        Program.WriteLineIfNotLabMode("📊 [POSITION-MONITORING] Registered position monitoring services");
+        Program.WriteLineIfNotLabMode("   ✅ Real-time session exposure tracking - Monitors exposure by trading session");
+        Program.WriteLineIfNotLabMode("   ✅ Risk-adjusted exposure calculation - Volatility, correlation, liquidity factors");
+        Program.WriteLineIfNotLabMode("   ✅ Position lifecycle tracking - Complete history across sessions");
+        Program.WriteLineIfNotLabMode("   ✅ Time-decay weighting - Fresh (1.0x) to Stale (0.3x) positions");
+        Program.WriteLineIfNotLabMode("   ✅ ES/NQ Portfolio Heat Manager - Integrated with real-time monitoring");
         
         // ================================================================================
         // POSITION MANAGEMENT OPTIMIZER - PHASE 3 ML/RL LEARNING
@@ -1008,11 +1074,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.PositionManagementOptimizer>(provider => 
             provider.GetRequiredService<global::BotCore.Services.PositionManagementOptimizer>());
         
-        Console.WriteLine("🧠 [PM-OPTIMIZER] Registered position management optimizer (PHASE 3)");
-        Console.WriteLine("   ✅ Breakeven timing optimization - Learn optimal BE trigger (6 vs 8 vs 10 ticks)");
-        Console.WriteLine("   ✅ Trailing stop optimization - Learn optimal trail distance (1.0x vs 1.5x ATR)");
-        Console.WriteLine("   ✅ Time exit optimization - Learn optimal timeout per strategy + regime");
-        Console.WriteLine("   ✅ Outcome tracking - 'BE at 8 ticks → stopped out, would have hit target'");
+        Program.WriteLineIfNotLabMode("🧠 [PM-OPTIMIZER] Registered position management optimizer (PHASE 3)");
+        Program.WriteLineIfNotLabMode("   ✅ Breakeven timing optimization - Learn optimal BE trigger (6 vs 8 vs 10 ticks)");
+        Program.WriteLineIfNotLabMode("   ✅ Trailing stop optimization - Learn optimal trail distance (1.0x vs 1.5x ATR)");
+        Program.WriteLineIfNotLabMode("   ✅ Time exit optimization - Learn optimal timeout per strategy + regime");
+        Program.WriteLineIfNotLabMode("   ✅ Outcome tracking - 'BE at 8 ticks → stopped out, would have hit target'");
         
         // ================================================================================
         // SESSION-END POSITION FLATTENER - PHASE 2 IMPLEMENTATION
@@ -1023,13 +1089,13 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.SessionEndPositionFlattener>(provider => 
             provider.GetRequiredService<global::BotCore.Services.SessionEndPositionFlattener>());
         
-        Console.WriteLine("✅ [STARTUP] SessionEndPositionFlattener registered");
-        Console.WriteLine("🔄 [SESSION-FLATTEN] Automatic position flatten before market close (PHASE 2)");
-        Console.WriteLine("   ✅ Daily position flatten - Closes all positions at 4:55 PM ET (configurable)");
-        Console.WriteLine("   ✅ Monday-Thursday - Always flatten (daily maintenance)");
-        Console.WriteLine("   ✅ Friday - Configurable (BOT_SESSION_FLATTEN_FRIDAY_ENABLED)");
-        Console.WriteLine("   ✅ Weekend safety - Prevents overnight position holds");
-        Console.WriteLine("   ✅ ML/RL integration - SessionEnd exits feed into optimizer for learning");
+        Program.WriteLineIfNotLabMode("✅ [STARTUP] SessionEndPositionFlattener registered");
+        Program.WriteLineIfNotLabMode("🔄 [SESSION-FLATTEN] Automatic position flatten before market close (PHASE 2)");
+        Program.WriteLineIfNotLabMode("   ✅ Daily position flatten - Closes all positions at 4:55 PM ET (configurable)");
+        Program.WriteLineIfNotLabMode("   ✅ Monday-Thursday - Always flatten (daily maintenance)");
+        Program.WriteLineIfNotLabMode("   ✅ Friday - Configurable (BOT_SESSION_FLATTEN_FRIDAY_ENABLED)");
+        Program.WriteLineIfNotLabMode("   ✅ Weekend safety - Prevents overnight position holds");
+        Program.WriteLineIfNotLabMode("   ✅ ML/RL integration - SessionEnd exits feed into optimizer for learning");
         
         // ================================================================================
         // STUCK POSITION RECOVERY SYSTEM - THREE-LAYER DEFENSE
@@ -1052,15 +1118,15 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.StuckPositionMonitor>(provider => 
             provider.GetRequiredService<global::BotCore.Services.StuckPositionMonitor>());
         
-        Console.WriteLine("🛡️ [STUCK-POSITION-RECOVERY] Three-layer defense system registered");
-        Console.WriteLine("   🔄 Layer 1: Position Reconciliation - Compares bot vs broker every 60s");
-        Console.WriteLine("   👁️ Layer 2: Stuck Position Monitor - Detects stuck/aged/runaway positions every 30s");
-        Console.WriteLine("   🚨 Layer 3: Emergency Exit Executor - 5-level escalation for position recovery");
-        Console.WriteLine("   ⚡ Level 1 (T+0s): Smart Retry with improved pricing");
-        Console.WriteLine("   🔄 Level 2 (T+30s): Fresh Start with market-based pricing");
-        Console.WriteLine("   🚨 Level 3 (T+60s): Market Order for guaranteed fill");
-        Console.WriteLine("   🚨🚨 Level 4 (T+120s): Human Escalation with alerts");
-        Console.WriteLine("   🛑 Level 5 (T+300s): System Shutdown via kill.txt");
+        Program.WriteLineIfNotLabMode("🛡️ [STUCK-POSITION-RECOVERY] Three-layer defense system registered");
+        Program.WriteLineIfNotLabMode("   🔄 Layer 1: Position Reconciliation - Compares bot vs broker every 60s");
+        Program.WriteLineIfNotLabMode("   👁️ Layer 2: Stuck Position Monitor - Detects stuck/aged/runaway positions every 30s");
+        Program.WriteLineIfNotLabMode("   🚨 Layer 3: Emergency Exit Executor - 5-level escalation for position recovery");
+        Program.WriteLineIfNotLabMode("   ⚡ Level 1 (T+0s): Smart Retry with improved pricing");
+        Program.WriteLineIfNotLabMode("   🔄 Level 2 (T+30s): Fresh Start with market-based pricing");
+        Program.WriteLineIfNotLabMode("   🚨 Level 3 (T+60s): Market Order for guaranteed fill");
+        Program.WriteLineIfNotLabMode("   🚨🚨 Level 4 (T+120s): Human Escalation with alerts");
+        Program.WriteLineIfNotLabMode("   🛑 Level 5 (T+300s): System Shutdown via kill.txt");
         
         // ================================================================================
         // HISTORICAL DATA SEED SERVICE - SMART AUTO-REFRESH FOR LEARNING WARMUP
@@ -1072,20 +1138,21 @@ Please check the configuration and ensure all required services are registered.
         var isHistoricalMode = global::BotCore.Services.ProductionKillSwitchService.IsHistoricalMode();
         var isLabMode = Environment.GetEnvironmentVariable("LAB_MODE") == "1" || 
                        Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
+        _isLabMode = isLabMode;
         
         if (isHistoricalMode || isLabMode)
         {
             services.AddSingleton<TradingBot.Abstractions.IHistoricalDataSeedService, TradingBot.BotCore.Services.HistoricalDataSeedService>();
             
-            Console.WriteLine("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL or LAB MODE)");
-            Console.WriteLine("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
-            Console.WriteLine("   📅 Active in HISTORICAL_MODE=1 or LAB_MODE=1");
-            Console.WriteLine("   ✅ Validates data integrity (duplicates, volumes, gaps)");
-            Console.WriteLine("   🎯 Target: 90-day rolling window for ML/RL warmup");
+            Program.WriteLineIfNotLabMode("📊 [HISTORICAL-SEED] Smart auto-refresh service registered (HISTORICAL or LAB MODE)");
+            Program.WriteLineIfNotLabMode("   ⚡ Loads historical bars from disk (instant vs 30s+ API fetch)");
+            Program.WriteLineIfNotLabMode("   📅 Active in HISTORICAL_MODE=1 or LAB_MODE=1");
+            Program.WriteLineIfNotLabMode("   ✅ Validates data integrity (duplicates, volumes, gaps)");
+            Program.WriteLineIfNotLabMode("   🎯 Target: 90-day rolling window for ML/RL warmup");
         }
         else
         {
-            Console.WriteLine("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL or LAB MODE)");
+            Program.WriteLineIfNotLabMode("⏭️ [HISTORICAL-SEED] Skipped registration (not in HISTORICAL or LAB MODE)");
         }
         
         // ================================================================================
@@ -1115,7 +1182,7 @@ Please check the configuration and ensure all required services are registered.
         // Register market data to zone service bridge
         services.AddHostedService<global::BotCore.Services.ZoneMarketDataBridge>();
         
-        Console.WriteLine("🎯 [ZONE-AWARENESS] Modern zone awareness services registered - Modern-only provider active!");
+        Program.WriteLineIfNotLabMode("🎯 [ZONE-AWARENESS] Modern zone awareness services registered - Modern-only provider active!");
         
         // ================================================================================
         // S7 MULTI-HORIZON RELATIVE STRENGTH STRATEGY
@@ -1168,8 +1235,8 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Execution.ChildOrderScheduler>();
         services.AddSingleton<global::BotCore.Execution.BracketAdjustmentService>();
         
-        Console.WriteLine("⚡ [EXECUTION-ALPHA] S7 execution enhancements registered - Order type selection, child scheduling, bracket adjustment ready!");
-        Console.WriteLine("🔧 [AUTOMATION-UPGRADE] Feature engineering pipeline registered - Liquidity, MTF, OFI resolvers ready!");
+        Program.WriteLineIfNotLabMode("⚡ [EXECUTION-ALPHA] S7 execution enhancements registered - Order type selection, child scheduling, bracket adjustment ready!");
+        Program.WriteLineIfNotLabMode("🔧 [AUTOMATION-UPGRADE] Feature engineering pipeline registered - Liquidity, MTF, OFI resolvers ready!");
         
         // ================================================================================
         // REGIME-TAGGED MODEL ROTATION & PORTFOLIO RISK TILTS
@@ -1190,10 +1257,10 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.ModelRotationService>(provider => 
             provider.GetRequiredService<global::BotCore.Services.ModelRotationService>());
         
-        Console.WriteLine("🔄 [MODEL-ROTATION] Regime-tagged model rotation service registered - Automatic model switching per market regime!");
-        Console.WriteLine("📊 [PORTFOLIO-TILTS] Risk management services registered - Breadth reallocation, correlation caps, vol-of-vol guard!");
-        Console.WriteLine("🛡️ [DATA-HYGIENE] Drift defenses registered - Feature drift monitoring with kill switches!");
-        Console.WriteLine("📈 [S7-STRATEGY] S7 Multi-Horizon Relative Strength strategy registered - Full DSL implementation ready!");
+        Program.WriteLineIfNotLabMode("🔄 [MODEL-ROTATION] Regime-tagged model rotation service registered - Automatic model switching per market regime!");
+        Program.WriteLineIfNotLabMode("📊 [PORTFOLIO-TILTS] Risk management services registered - Breadth reallocation, correlation caps, vol-of-vol guard!");
+        Program.WriteLineIfNotLabMode("🛡️ [DATA-HYGIENE] Drift defenses registered - Feature drift monitoring with kill switches!");
+        Program.WriteLineIfNotLabMode("📈 [S7-STRATEGY] S7 Multi-Horizon Relative Strength strategy registered - Full DSL implementation ready!");
         
         // ================================================================================
 
@@ -1324,11 +1391,11 @@ Please check the configuration and ensure all required services are registered.
             services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
             services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
             
-            Console.WriteLine("✅ [ORCHESTRATOR] UnifiedOrchestratorService registered (LIVE/DRY-RUN mode)");
+            Program.WriteLineIfNotLabMode("✅ [ORCHESTRATOR] UnifiedOrchestratorService registered (LIVE/DRY-RUN mode)");
         }
         else
         {
-            Console.WriteLine("⏭️ [ORCHESTRATOR] UnifiedOrchestratorService skipped (HISTORICAL_MODE - using HistoricalReplayOrchestrator instead)");
+            Program.WriteLineIfNotLabMode("⏭️ [ORCHESTRATOR] UnifiedOrchestratorService skipped (HISTORICAL_MODE - using HistoricalReplayOrchestrator instead)");
         }
 
         // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
@@ -1343,19 +1410,19 @@ Please check the configuration and ensure all required services are registered.
         var ollamaLearningCommentary = configuration["OLLAMA_LEARNING_COMMENTARY_ENABLED"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true;
         if (ollamaTradeCommentary && ollamaLearningCommentary)
         {
-            Console.WriteLine("🗣️ [OLLAMA] Bot voice FULLY enabled - all AI commentary active");
+            Program.WriteLineIfNotLabMode("🗣️ [OLLAMA] Bot voice FULLY enabled - all AI commentary active");
         }
         else if (ollamaLearningCommentary)
         {
-            Console.WriteLine("� [OLLAMA] Trade commentary disabled - learning commentary only");
+            Program.WriteLineIfNotLabMode("� [OLLAMA] Trade commentary disabled - learning commentary only");
         }
         else if (ollamaTradeCommentary)
         {
-            Console.WriteLine("🗣️ [OLLAMA] Trade commentary enabled - learning commentary disabled");
+            Program.WriteLineIfNotLabMode("🗣️ [OLLAMA] Trade commentary enabled - learning commentary disabled");
         }
         else
         {
-            Console.WriteLine("🔇 [OLLAMA] Bot voice disabled - will operate silently");
+            Program.WriteLineIfNotLabMode("🔇 [OLLAMA] Bot voice disabled - will operate silently");
         }
         
         // Register Intelligence Services - LLM-powered market intelligence
@@ -1365,11 +1432,11 @@ Please check the configuration and ensure all required services are registered.
         {
             services.AddSingleton<global::BotCore.Intelligence.MarketDataReader>();
             services.AddSingleton<global::BotCore.Intelligence.IntelligenceSynthesizerService>();
-            Console.WriteLine("🧠 [INTELLIGENCE] LLM intelligence synthesis enabled - market data integration active");
+            Program.WriteLineIfNotLabMode("🧠 [INTELLIGENCE] LLM intelligence synthesis enabled - market data integration active");
         }
         else
         {
-            Console.WriteLine("🔇 [INTELLIGENCE] Intelligence synthesis disabled");
+            Program.WriteLineIfNotLabMode("🔇 [INTELLIGENCE] Intelligence synthesis disabled");
         }
         
         // Register AI Commentary Services - Enhanced self-awareness features
@@ -1519,12 +1586,12 @@ Please check the configuration and ensure all required services are registered.
         // services.AddEnhancedTradingBotServices(configuration);
         // services.ConfigureEnhancedTradingBotDefaults(configuration);
         
-        Console.WriteLine("🎯 [ENHANCED-COMPONENTS] Book-aware simulator, counterfactual replay, explainability stamps, and enhanced alerting registered!");
-        Console.WriteLine("📊 [OBSERVABILITY] Enhanced dashboards with liquidity, OFI, pattern, and fusion metrics ready!");
-        Console.WriteLine("🔍 [EXPLAINABILITY] Decision evidence tracking with zone scores, pattern probabilities, and S7 state capture enabled!");
-        Console.WriteLine("🎲 [SIMULATION] Book-aware execution simulator with live fill distributions and training feedback active!");
-        Console.WriteLine("🔄 [COUNTERFACTUAL] Nightly gate analysis with blocked signal replay for effectiveness validation scheduled!");
-        Console.WriteLine("🚨 [ENHANCED-ALERTS] Pattern promotion, model rollback, feature drift, and queue ETA breach monitoring configured!");
+        Program.WriteLineIfNotLabMode("🎯 [ENHANCED-COMPONENTS] Book-aware simulator, counterfactual replay, explainability stamps, and enhanced alerting registered!");
+        Program.WriteLineIfNotLabMode("📊 [OBSERVABILITY] Enhanced dashboards with liquidity, OFI, pattern, and fusion metrics ready!");
+        Program.WriteLineIfNotLabMode("🔍 [EXPLAINABILITY] Decision evidence tracking with zone scores, pattern probabilities, and S7 state capture enabled!");
+        Program.WriteLineIfNotLabMode("🎲 [SIMULATION] Book-aware execution simulator with live fill distributions and training feedback active!");
+        Program.WriteLineIfNotLabMode("🔄 [COUNTERFACTUAL] Nightly gate analysis with blocked signal replay for effectiveness validation scheduled!");
+        Program.WriteLineIfNotLabMode("🚨 [ENHANCED-ALERTS] Pattern promotion, model rollback, feature drift, and queue ETA breach monitoring configured!");
         
         // Register Production Validation Service for statistical validation and proof generation
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionValidationService>();
@@ -1567,8 +1634,8 @@ Please check the configuration and ensure all required services are registered.
         // Register Validation Service for production
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.ChampionChallengerValidationService>();
         
-        Console.WriteLine("🏆 Champion/Challenger Architecture registered successfully - Live trading inference now read-only with atomic model swaps");
-        Console.WriteLine("✅ Production Readiness Services registered - Ready for runtime validation and artifact generation");
+        Program.WriteLineIfNotLabMode("🏆 Champion/Challenger Architecture registered successfully - Live trading inference now read-only with atomic model swaps");
+        Program.WriteLineIfNotLabMode("✅ Production Readiness Services registered - Ready for runtime validation and artifact generation");
         
         // ================================================================================
         
@@ -1608,9 +1675,9 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<global::BotCore.Services.MasterDecisionOrchestrator>(provider => 
             provider.GetRequiredService<global::BotCore.Services.MasterDecisionOrchestrator>());
         
-        Console.WriteLine("🎯 Master Decision Orchestrator registered - Always-learning system that NEVER returns HOLD!");
-        Console.WriteLine("🔄 Unified data integration registered - Fixes contract mismatch and bar seeding issues!");
-        Console.WriteLine("🔍 Cross-platform model path resolver registered - Fixes ONNX loading issues!");
+        Program.WriteLineIfNotLabMode("🎯 Master Decision Orchestrator registered - Always-learning system that NEVER returns HOLD!");
+        Program.WriteLineIfNotLabMode("🔄 Unified data integration registered - Fixes contract mismatch and bar seeding issues!");
+        Program.WriteLineIfNotLabMode("🔍 Cross-platform model path resolver registered - Fixes ONNX loading issues!");
         
         // ================================================================================
         
@@ -1645,7 +1712,7 @@ Please check the configuration and ensure all required services are registered.
         // Compatibility Kit - extension method not available
         // services.AddCompatibilityKit(configuration);
         
-        Console.WriteLine("✅ [COMPATIBILITY-KIT] Compatibility Kit services registered - parameter learning and configuration system ready");
+        Program.WriteLineIfNotLabMode("✅ [COMPATIBILITY-KIT] Compatibility Kit services registered - parameter learning and configuration system ready");
         
         // ================================================================================
         // PRODUCTION READINESS SERVICES - Phase 4: Bar System Integration Fix
@@ -1668,7 +1735,7 @@ Please check the configuration and ensure all required services are registered.
         // Register bar dispatcher hook AFTER bar infrastructure is available
         services.AddHostedService<global::BotCore.Features.BarDispatcherHook>();
         
-        Console.WriteLine("✅ [BAR-INFRASTRUCTURE] BarPyramid and BarDispatcherHook registered - bar aggregation and dispatching ready");
+        Program.WriteLineIfNotLabMode("✅ [BAR-INFRASTRUCTURE] BarPyramid and BarDispatcherHook registered - bar aggregation and dispatching ready");
         
         // ================================================================================
         // MULTI-TIMEFRAME TRADING SYSTEM SERVICES
@@ -1786,12 +1853,12 @@ Please check the configuration and ensure all required services are registered.
         // Register multi-timeframe data integration hosted service (feeds live data to multi-timeframe services)
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.MultiTimeframeDataIntegrationService>();
         
-        Console.WriteLine("✅ [MULTI-TIMEFRAME] Multi-timeframe trading system services registered - 5m + 1m + tick analysis ready");
+        Program.WriteLineIfNotLabMode("✅ [MULTI-TIMEFRAME] Multi-timeframe trading system services registered - 5m + 1m + tick analysis ready");
         
         // Register pattern recognition and strategy DSL services - production ready pattern analysis and strategy reasoning
         services.AddPatternAndStrategyServices(configuration);
         
-        Console.WriteLine("✅ [PHASE-4] Production readiness services registered - Historical data bridge and enhanced market data flow services ready");
+        Program.WriteLineIfNotLabMode("✅ [PHASE-4] Production readiness services registered - Historical data bridge and enhanced market data flow services ready");
         
         // Register TradingSystemIntegrationService (533 lines) from BotCore as HOSTED SERVICE for live TopstepX connection
         // Configure TradingSystemIntegrationService for live TopstepX connection
@@ -1979,20 +2046,20 @@ Please check the configuration and ensure all required services are registered.
                 catch (Exception ex)
                 {
                     // Non-critical service registration failures are logged but don't stop initialization
-                    Console.WriteLine($"Warning: Failed to register complex services: {ex.Message}");
+                    Program.WriteLineIfNotLabMode($"Warning: Failed to register complex services: {ex.Message}");
                 }
                 
             }
             catch (Exception ex)
             {
                 // Service registration failures are expected for optional components
-                Console.WriteLine($"Warning: Failed to register some BotCore services: {ex.Message}");
+                Program.WriteLineIfNotLabMode($"Warning: Failed to register some BotCore services: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
             // Top-level service registration errors are logged but shouldn't crash the application
-            Console.WriteLine($"Warning: Some service registrations failed: {ex.Message}");
+            Program.WriteLineIfNotLabMode($"Warning: Some service registrations failed: {ex.Message}");
         }
 
         // ================================================================================
@@ -2021,7 +2088,7 @@ Please check the configuration and ensure all required services are registered.
         var rlMode = TradingBot.Abstractions.RlRuntimeMode.InferenceOnly; // Safe default
         if (!Enum.TryParse<TradingBot.Abstractions.RlRuntimeMode>(rlRuntimeModeStr, ignoreCase: true, out rlMode))
         {
-            Console.WriteLine($"⚠️ [RL-SAFETY] Invalid RlRuntimeMode '{rlRuntimeModeStr}', defaulting to InferenceOnly");
+            Program.WriteLineIfNotLabMode($"⚠️ [RL-SAFETY] Invalid RlRuntimeMode '{rlRuntimeModeStr}', defaulting to InferenceOnly");
             rlMode = TradingBot.Abstractions.RlRuntimeMode.InferenceOnly;
         }
         
@@ -2407,7 +2474,7 @@ Please check the configuration and ensure all required services are registered.
         
         // CloudRlTrainerV2 removed - legacy cloud training infrastructure no longer exists
         
-        Console.WriteLine("🔄 [MODEL-HOT-RELOAD] File watching service registered - Monitors models/rl for changes!");
+        Program.WriteLineIfNotLabMode("🔄 [MODEL-HOT-RELOAD] File watching service registered - Monitors models/rl for changes!");
         
         // Register Model Ensemble Service - Intelligent model blending (70% cloud, 30% local)
         services.AddSingleton<global::BotCore.Services.ModelEnsembleService>();
@@ -2419,17 +2486,17 @@ Please check the configuration and ensure all required services are registered.
         
         // Gate 2: Register CloudModelDownloader - ONNX model validation before deployment
         services.AddSingleton<global::BotCore.Services.ICloudModelDownloader, global::BotCore.Services.CloudModelDownloader>();
-        Console.WriteLine("🔒 [GATE-2] CloudModelDownloader with validation gates registered!");
+        Program.WriteLineIfNotLabMode("🔒 [GATE-2] CloudModelDownloader with validation gates registered!");
         
         // Gate 3: Register S15 Shadow Learning Service - Validates S15 before promotion
         services.AddSingleton<global::BotCore.Services.S15ShadowLearningService>();
         services.AddHostedService<global::BotCore.Services.S15ShadowLearningService>(provider => 
             provider.GetRequiredService<global::BotCore.Services.S15ShadowLearningService>());
-        Console.WriteLine("🔒 [GATE-3] S15ShadowLearningService with promotion validation registered!");
+        Program.WriteLineIfNotLabMode("🔒 [GATE-3] S15ShadowLearningService with promotion validation registered!");
         
         // Enhanced Trading Brain Integration already registered above with UnifiedDecisionRouter dependencies
         
-        Console.WriteLine("🚀 [ENHANCED-BRAIN] Production ML/RL/Cloud automation services registered successfully!");
+        Program.WriteLineIfNotLabMode("🚀 [ENHANCED-BRAIN] Production ML/RL/Cloud automation services registered successfully!");
         
         // ================================================================================
         
@@ -2473,7 +2540,7 @@ Please check the configuration and ensure all required services are registered.
 
         if (hasCredentials)
         {
-            Console.WriteLine("📈 TopstepX credentials detected - sophisticated trading system will be used");
+            Program.WriteLineIfNotLabMode("📈 TopstepX credentials detected - sophisticated trading system will be used");
         }
         
         // Register distributed orchestrator components for sophisticated system
@@ -2591,10 +2658,10 @@ Please check the configuration and ensure all required services are registered.
         TradingBot.Abstractions.RlRuntimeMode rlMode,
         HostBuilderContext hostContext)
     {
-        Console.WriteLine("📊 [LAB] Registering Lab-specific services...");
+        Program.WriteLineIfNotLabMode("📊 [LAB] Registering Lab-specific services...");
 
         // Lab Training Services (Phase 2 splits)
-        Console.WriteLine("   ✓ Registering CVaRPPOTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering CVaRPPOTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.CVaRPPOTrainer>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<TradingBot.RLAgent.CVaRPPOTrainer>>();
@@ -2621,25 +2688,25 @@ Please check the configuration and ensure all required services are registered.
             return new TradingBot.RLAgent.CVaRPPOTrainer(logger, config, "models/cvar_ppo", registrationCallback);
         });
         
-        Console.WriteLine("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering NeuralUcbBanditTrainer (Lab training)");
         services.AddSingleton<global::BotCore.Bandits.NeuralUcbBanditTrainer>();
         
-        Console.WriteLine("   ✓ Registering LSTMTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering LSTMTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.LSTMTrainer>();
         
-        Console.WriteLine("   ✓ Registering PatternRecognitionTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering PatternRecognitionTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.PatternRecognitionTrainer>();
         
-        Console.WriteLine("   ✓ Registering RegimeDetectorTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering RegimeDetectorTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.RegimeDetectorTrainer>();
         
-        Console.WriteLine("   ✓ Registering SlippageLatencyTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering SlippageLatencyTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.SlippageLatencyTrainer>();
         
-        Console.WriteLine("   ✓ Registering ModelEnsembleTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ModelEnsembleTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.ModelEnsembleTrainer>();
         
-        Console.WriteLine("   ✓ Registering SACConfig and SACTrainer (Lab training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering SACConfig and SACTrainer (Lab training)");
         services.AddSingleton<TradingBot.RLAgent.Algorithms.SACConfig>();
         services.AddSingleton<TradingBot.RLAgent.Algorithms.SoftActorCritic>();
         services.AddSingleton<TradingBot.RLAgent.Algorithms.SACTrainer>();
@@ -2647,97 +2714,97 @@ Please check the configuration and ensure all required services are registered.
         // Historical Data - Use existing SDK (IHistoricalDataBridgeService)
         // TopstepXHistoricalDataProvider already registered at line ~2312
         // IHistoricalDataBridgeService already registered via ProductionReadinessServiceExtensions
-        Console.WriteLine("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
+        Program.WriteLineIfNotLabMode("   ✓ Using existing TopstepX SDK for historical data (no parallel systems)");
         
         // Production-ready training infrastructure services
-        Console.WriteLine("   ✓ Registering TrainingManifestService (artifact manifests with checksums)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingManifestService (artifact manifests with checksums)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingManifestService>();
         
-        Console.WriteLine("   ✓ Registering DataIntegrityService (data completeness verification)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering DataIntegrityService (data completeness verification)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DataIntegrityService>();
         
-        Console.WriteLine("   ✓ Registering TrainingMetricsCollector (observability and metrics)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingMetricsCollector (observability and metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingMetricsCollector>();
         
-        Console.WriteLine("   ✓ Registering TrainingAlertService (notifications and structured alerts)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingAlertService (notifications and structured alerts)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
         
-        Console.WriteLine("   ✓ Registering TrainingRetryService (exponential backoff retry logic)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingRetryService (exponential backoff retry logic)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRetryService>();
         
-        Console.WriteLine("   ✓ Registering ResourcePreCheckService (pre-training resource validation)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ResourcePreCheckService (pre-training resource validation)");
         services.Configure<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckOptions>(
             hostContext.Configuration.GetSection("ResourcePreCheck"));
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
         
         // Phase 12: Resource Optimization & Dynamic Thresholds
-        Console.WriteLine("   ✓ Registering SystemCapabilityProfiler (adaptive resource profiling)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering SystemCapabilityProfiler (adaptive resource profiling)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.SystemCapabilityProfiler>();
         
-        Console.WriteLine("   ✓ Registering DynamicResourceManager (intelligent threshold calculation)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering DynamicResourceManager (intelligent threshold calculation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.DynamicResourceManager>();
         
-        Console.WriteLine("   ✓ Registering TrainingResourceMonitor (real-time resource tracking)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingResourceMonitor (real-time resource tracking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingResourceMonitor>();
         
         // Phase 13: Failure Handling & Recovery System
-        Console.WriteLine("   ✓ Registering TrainingCheckpointService (checkpoint save/load/resume)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingCheckpointService (checkpoint save/load/resume)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingCheckpointService>();
         
-        Console.WriteLine("   ✓ Registering TrainingFailureHandler (failure classification & retry)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingFailureHandler (failure classification & retry)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingFailureHandler>();
         
         // Phase 14: Debugging & Diagnostics Tools
-        Console.WriteLine("   ✓ Registering TrainingPerformanceProfiler (performance profiling)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingPerformanceProfiler (performance profiling)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingPerformanceProfiler>();
         
-        Console.WriteLine("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingDebugLogger (verbose logging & metrics)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingDebugLogger>();
         
-        Console.WriteLine("   ✓ Registering ModelHashVerifier (SHA256 verification for proof of learning)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ModelHashVerifier (SHA256 verification for proof of learning)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ModelHashVerifier>();
         
-        Console.WriteLine("   ✓ Registering TrainingRunLogger (epoch-by-epoch JSONL logging)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingRunLogger (epoch-by-epoch JSONL logging)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingRunLogger>();
         
         // Phase 14: Memory Leak Detection & Profiling
-        Console.WriteLine("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering MemoryLeakDetector (memory profiling & leak detection)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.MemoryLeakDetector>();
         
         // Learning Persistence Services - Track bot improvement and prevent forgetting
-        Console.WriteLine("   ✓ Registering LearningMetricsTracker (tracks win rate improvement over time)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering LearningMetricsTracker (tracks win rate improvement over time)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.LearningMetricsTracker>();
         
-        Console.WriteLine("   ✓ Registering TrainingSessionMemory (prevents catastrophic forgetting)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingSessionMemory (prevents catastrophic forgetting)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.TrainingSessionMemory>();
         
         // Phase 11: GitHub Cloud Backup System (Optional)
-        Console.WriteLine("   ✓ Registering GitHubBackupService (cloud backup of training artifacts)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering GitHubBackupService (cloud backup of training artifacts)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.GitHubBackupService>();
         
         // Training Orchestrator (Phase 1) - uses existing IHistoricalDataBridgeService
-        Console.WriteLine("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering HistoricalTrainingOrchestrator (Sunday training coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
         
         // Phase 1 & 2: Enhanced Training Orchestrator with Progress Tracking
-        Console.WriteLine("   ✓ Registering TrainingComponentLoader (component registry from JSON)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingComponentLoader (component registry from JSON)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingComponentLoader>();
         
-        Console.WriteLine("   ✓ Registering ProgressTracker (progress state and ETA calculation)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ProgressTracker (progress state and ETA calculation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ProgressTracker>();
         
-        Console.WriteLine("   ✓ Registering Lab Mode Dashboard Components");
+        Program.WriteLineIfNotLabMode("   ✓ Registering Lab Mode Dashboard Components");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LabModeDashboardRenderer>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LabModeDashboardStateManager>();
         
-        Console.WriteLine("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ConsoleProgressRenderer (visual progress bars)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ConsoleProgressRenderer>();
         
         // Overfitting Prevention Components
-        Console.WriteLine("   ✓ Registering DynamicDataSplitStrategy (train/validation/test split)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering DynamicDataSplitStrategy (train/validation/test split)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.DynamicDataSplitStrategy>();
         
-        Console.WriteLine("   ✓ Registering EarlyStoppingTracker (validation-based early stopping)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering EarlyStoppingTracker (validation-based early stopping)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker>>();
@@ -2745,20 +2812,20 @@ Please check the configuration and ensure all required services are registered.
             return new TradingBot.UnifiedOrchestrator.Training.EarlyStoppingTracker(logger, checkpointDir);
         });
         
-        Console.WriteLine("   ✓ Registering MultiSeedTrainingCoordinator (multi-seed promotion logic)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering MultiSeedTrainingCoordinator (multi-seed promotion logic)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MultiSeedTrainingCoordinator>();
         
         // Register Medium Phase Training Dependencies (4 missing services)
-        Console.WriteLine("   ✓ Registering ContinuousOperationService (continuous operation optimization)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ContinuousOperationService (continuous operation optimization)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ContinuousOperationService>();
         
-        Console.WriteLine("   ✓ Registering MicrostructureCalibrationService (microstructure calibration)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering MicrostructureCalibrationService (microstructure calibration)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Runtime.MicrostructureCalibrationService>();
         
-        Console.WriteLine("   ✓ Registering ProductionValidationService (production validation)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ProductionValidationService (production validation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionValidationService>();
         
-        Console.WriteLine("   ✓ Registering IsotonicCalibrationService (isotonic calibration)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering IsotonicCalibrationService (isotonic calibration)");
         // Configure CalibrationConfiguration with default values
         services.Configure<global::BotCore.Calibration.CalibrationConfiguration>(config =>
         {
@@ -2769,67 +2836,67 @@ Please check the configuration and ensure all required services are registered.
         });
         services.AddSingleton<global::BotCore.Calibration.IsotonicCalibrationService>();
         
-        Console.WriteLine("   ✓ Registering MediumPhaseTrainerService (calibration/optimization training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering MediumPhaseTrainerService (calibration/optimization training)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.MediumPhaseTrainerService>();
         
-        Console.WriteLine("   ✓ Registering LightPhaseTrainerService (online learning/fine-tuning training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering LightPhaseTrainerService (online learning/fine-tuning training)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.LightPhaseTrainerService>();
         
-        Console.WriteLine("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering TrainingOrchestratorService (enhanced lifecycle coordinator)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
         
         // Phase 4: Post-Training Validation Service
-        Console.WriteLine("   ✓ Registering ValidationService (post-training model validation)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering ValidationService (post-training model validation)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Training.ValidationService>();
         
         // Phase 5: Atomic Promotion Service
-        Console.WriteLine("   ✓ Registering AtomicPromotionService (atomic model promotion with rollback)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering AtomicPromotionService (atomic model promotion with rollback)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionService>();
         
         // Phase 6: Post-Training Validation System
-        Console.WriteLine("   ✓ Registering Phase 6: Post-Training Validation System");
-        Console.WriteLine("      - ValidationDatasetManager (frozen 1000-scenario validation dataset)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering Phase 6: Post-Training Validation System");
+        Program.WriteLineIfNotLabMode("      - ValidationDatasetManager (frozen 1000-scenario validation dataset)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationDatasetManager>();
         
-        Console.WriteLine("      - CanaryTestingOrchestrator (comprehensive model inference testing)");
+        Program.WriteLineIfNotLabMode("      - CanaryTestingOrchestrator (comprehensive model inference testing)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CanaryTestingOrchestrator>();
         
-        Console.WriteLine("      - BaselineModelManager (4-week baseline model storage)");
+        Program.WriteLineIfNotLabMode("      - BaselineModelManager (4-week baseline model storage)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.BaselineModelManager>();
         
-        Console.WriteLine("      - PerformanceComparisonEngine (new vs baseline comparison)");
+        Program.WriteLineIfNotLabMode("      - PerformanceComparisonEngine (new vs baseline comparison)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.PerformanceComparisonEngine>();
         
-        Console.WriteLine("      - CatastrophicForgettingDetector (temporal stability checking)");
+        Program.WriteLineIfNotLabMode("      - CatastrophicForgettingDetector (temporal stability checking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.CatastrophicForgettingDetector>();
         
-        Console.WriteLine("      - ValidationReportGenerator (comprehensive validation reporting)");
+        Program.WriteLineIfNotLabMode("      - ValidationReportGenerator (comprehensive validation reporting)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationReportGenerator>();
         
         // Phase 7: Atomic Model Promotion System
-        Console.WriteLine("   ✓ Registering Phase 7: Atomic Model Promotion System");
-        Console.WriteLine("      - ProductionBackupManager (4-week rolling backups with compression)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering Phase 7: Atomic Model Promotion System");
+        Program.WriteLineIfNotLabMode("      - ProductionBackupManager (4-week rolling backups with compression)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.ProductionBackupManager>();
         
-        Console.WriteLine("      - VersionManager (version.txt pointer + history tracking)");
+        Program.WriteLineIfNotLabMode("      - VersionManager (version.txt pointer + history tracking)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.VersionManager>();
         
-        Console.WriteLine("      - PostPromotionValidator (deployment verification)");
+        Program.WriteLineIfNotLabMode("      - PostPromotionValidator (deployment verification)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PostPromotionValidator>();
         
-        Console.WriteLine("      - PromotionHistoryTracker (append-only audit log)");
+        Program.WriteLineIfNotLabMode("      - PromotionHistoryTracker (append-only audit log)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.PromotionHistoryTracker>();
         
-        Console.WriteLine("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
+        Program.WriteLineIfNotLabMode("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
         
         // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
-        Console.WriteLine("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)
-        Console.WriteLine("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
+        Program.WriteLineIfNotLabMode("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
         services.AddHostedService(sp => sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>());
         
@@ -2837,19 +2904,19 @@ Please check the configuration and ensure all required services are registered.
         // Model Registry is shared (both modes)
         
         // DO NOT register Terminal-only services in Lab mode
-        Console.WriteLine("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
-        Console.WriteLine("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
-        Console.WriteLine("   ✗ Safety systems NOT registered (Lab = simulation only)");
+        Program.WriteLineIfNotLabMode("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
+        Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+        Program.WriteLineIfNotLabMode("   ✗ Safety systems NOT registered (Lab = simulation only)");
         
         // Warn if Lab mode in production
         var environment = hostContext.HostingEnvironment.EnvironmentName;
         if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine("⚠️ [LAB-SAFETY] WARNING: Lab training mode in Production environment!");
-            Console.WriteLine("   Lab should run on dedicated training infrastructure");
+            Program.WriteLineIfNotLabMode("⚠️ [LAB-SAFETY] WARNING: Lab training mode in Production environment!");
+            Program.WriteLineIfNotLabMode("   Lab should run on dedicated training infrastructure");
         }
         
-        Console.WriteLine("✅ [LAB] Lab services registration complete\n");
+        Program.WriteLineIfNotLabMode("✅ [LAB] Lab services registration complete\n");
     }
 
     /// <summary>
@@ -2861,13 +2928,13 @@ Please check the configuration and ensure all required services are registered.
         TradingBot.Abstractions.RlRuntimeMode rlMode,
         HostBuilderContext hostContext)
     {
-        Console.WriteLine("🚀 [TERMINAL] Registering Terminal-specific services...");
+        Program.WriteLineIfNotLabMode("🚀 [TERMINAL] Registering Terminal-specific services...");
 
         // Terminal uses inference-only versions (Phase 2 splits)
         // CVaRPPO and NeuralUcbBandit are already registered in shared services
         // They are inference-only in Terminal mode (no trainer classes)
-        Console.WriteLine("   ✓ Using CVaRPPO (inference only - no training)");
-        Console.WriteLine("   ✓ Using NeuralUcbBandit (inference only - no retraining)");
+        Program.WriteLineIfNotLabMode("   ✓ Using CVaRPPO (inference only - no training)");
+        Program.WriteLineIfNotLabMode("   ✓ Using NeuralUcbBandit (inference only - no retraining)");
         
         // Terminal-specific services (already registered in main ConfigureUnifiedServices)
         // - OrderExecutionService
@@ -2875,18 +2942,18 @@ Please check the configuration and ensure all required services are registered.
         // - UnifiedPositionManagementService
         // - All 350+ safety systems
         // - OnlineLearningSystem (lightweight real-time learning)
-        Console.WriteLine("   ✓ OrderExecutionService registered (live order routing)");
-        Console.WriteLine("   ✓ TopstepXWebSocketClient registered (real-time market data)");
-        Console.WriteLine("   ✓ All 350+ safety systems registered");
-        Console.WriteLine("   ✓ OnlineLearningSystem registered (lightweight real-time learning)");
+        Program.WriteLineIfNotLabMode("   ✓ OrderExecutionService registered (live order routing)");
+        Program.WriteLineIfNotLabMode("   ✓ TopstepXWebSocketClient registered (real-time market data)");
+        Program.WriteLineIfNotLabMode("   ✓ All 350+ safety systems registered");
+        Program.WriteLineIfNotLabMode("   ✓ OnlineLearningSystem registered (lightweight real-time learning)");
         
         // DO NOT register Lab-only services in Terminal mode
-        Console.WriteLine("   ✗ Trainer classes NOT registered (Terminal = inference only)");
-        Console.WriteLine("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
-        Console.WriteLine("   ✗ HistoricalTrainingOrchestrator NOT registered (Terminal = no Sunday training)");
-        Console.WriteLine("   ℹ️  Uses existing TopstepX SDK (IHistoricalDataBridgeService) - no parallel systems");
+        Program.WriteLineIfNotLabMode("   ✗ Trainer classes NOT registered (Terminal = inference only)");
+        Program.WriteLineIfNotLabMode("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
+        Program.WriteLineIfNotLabMode("   ✗ HistoricalTrainingOrchestrator NOT registered (Terminal = no Sunday training)");
+        Program.WriteLineIfNotLabMode("   ℹ️  Uses existing TopstepX SDK (IHistoricalDataBridgeService) - no parallel systems");
         
-        Console.WriteLine("✅ [TERMINAL] Terminal services registration complete\n");
+        Program.WriteLineIfNotLabMode("✅ [TERMINAL] Terminal services registration complete\n");
     }
 
     /// <summary>
@@ -2915,8 +2982,8 @@ Please check the configuration and ensure all required services are registered.
         }
         else
         {
-            Console.WriteLine("⚠️ [HISTORICAL-LEARNING] Historical backtest learning DISABLED");
-            Console.WriteLine("   💡 Set ENABLE_HISTORICAL_LEARNING=1 to enable continuous learning from historical data");
+            Program.WriteLineIfNotLabMode("⚠️ [HISTORICAL-LEARNING] Historical backtest learning DISABLED");
+            Program.WriteLineIfNotLabMode("   💡 Set ENABLE_HISTORICAL_LEARNING=1 to enable continuous learning from historical data");
         }
         
         // ================================================================================
@@ -3227,13 +3294,13 @@ internal static class EnvironmentLoader
             catch (Exception ex)
             {
                 // Environment file loading errors are non-critical, continue with defaults
-                Console.WriteLine($"Warning: Failed to load environment file {envFile}: {ex.Message}");
+                Program.WriteLineIfNotLabMode($"Warning: Failed to load environment file {envFile}: {ex.Message}");
             }
         }
 
         if (loadedFiles.Count == 0)
         {
-            Console.WriteLine("No environment files found, using system environment variables only");
+            Program.WriteLineIfNotLabMode("No environment files found, using system environment variables only");
         }
         else
         {
@@ -3244,11 +3311,11 @@ internal static class EnvironmentLoader
             
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
             {
-                Console.WriteLine("TopstepX credentials detected and loaded");
+                Program.WriteLineIfNotLabMode("TopstepX credentials detected and loaded");
             }
             else
             {
-                Console.WriteLine("No TopstepX credentials found - will attempt to use JWT token if available");
+                Program.WriteLineIfNotLabMode("No TopstepX credentials found - will attempt to use JWT token if available");
             }
         }
     }
@@ -3466,6 +3533,93 @@ Respond conversationally AS ME (the bot). Be helpful and explain my thinking.";
                     }
                 });
             });
+        }
+    }
+}
+
+/// <summary>
+/// Simple file logger provider for Lab Mode
+/// Writes all logs to a file that can be tailed to see training progress
+/// </summary>
+internal sealed class SimpleFileLoggerProvider : ILoggerProvider
+{
+    private readonly string _logFilePath;
+    private readonly object _lock = new object();
+
+    public SimpleFileLoggerProvider(string logFilePath)
+    {
+        _logFilePath = logFilePath;
+    }
+
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new SimpleFileLogger(_logFilePath, categoryName, _lock);
+    }
+
+    public void Dispose()
+    {
+        // No resources to dispose
+    }
+
+    private sealed class SimpleFileLogger : ILogger
+    {
+        private readonly string _logFilePath;
+        private readonly string _categoryName;
+        private readonly object _lock;
+
+        public SimpleFileLogger(string logFilePath, string categoryName, object lockObj)
+        {
+            _logFilePath = logFilePath;
+            _categoryName = categoryName;
+            _lock = lockObj;
+        }
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return logLevel >= LogLevel.Information;
+        }
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (!IsEnabled(logLevel))
+                return;
+
+            var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var level = logLevel.ToString().ToUpperInvariant();
+            var message = formatter(state, exception);
+            
+            // Extract short category name (last part)
+            var categoryParts = _categoryName.Split('.');
+            var shortCategory = categoryParts.Length > 0 ? categoryParts[^1] : _categoryName;
+            
+            var logLine = $"[{timestamp}] {level,-11} [{shortCategory}] {message}";
+            
+            if (exception != null)
+            {
+                logLine += Environment.NewLine + $"    Exception: {exception}";
+            }
+            
+            lock (_lock)
+            {
+                try
+                {
+                    File.AppendAllText(_logFilePath, logLine + Environment.NewLine);
+                }
+                catch
+                {
+                    // Ignore file write errors to avoid breaking the application
+                }
+            }
         }
     }
 }
