@@ -48,7 +48,12 @@ public static class SimpleDslLoader
             {
                 // Skip strategies that don't match the simple DSL format
                 // Complex strategies (like S7) may have their own loaders
-                Console.WriteLine($"⚠️ [DSL-LOADER] Skipping {Path.GetFileName(file)}: {ex.Message}");
+                // Only show warning if not in Lab Mode (dashboard-only view)
+                var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+                if (labMode != "1" && labMode?.ToLowerInvariant() != "true")
+                {
+                    Console.WriteLine($"⚠️ [DSL-LOADER] Skipping {Path.GetFileName(file)}: {ex.Message}");
+                }
             }
         }
 
