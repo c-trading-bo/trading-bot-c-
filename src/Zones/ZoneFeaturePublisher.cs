@@ -163,6 +163,7 @@ public sealed class ZoneFeaturePublisher : IHostedService, IDisposable
                 }
             }
             _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
     

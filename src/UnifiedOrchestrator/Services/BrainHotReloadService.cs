@@ -171,6 +171,7 @@ internal sealed class BrainHotReloadService : IHostedService, IDisposable
 
             _reloadSemaphore?.Dispose();
             _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }
