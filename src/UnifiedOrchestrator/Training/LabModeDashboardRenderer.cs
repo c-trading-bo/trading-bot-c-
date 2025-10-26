@@ -58,11 +58,9 @@ public sealed class LabModeDashboardRenderer
         // Strategy Performance Section
         RenderStrategyPerformance(output, state);
         
-        // Post-Training Validation
-        RenderPostTrainingValidation(output, state);
-        
-        // Model Promotion Status
-        RenderModelPromotionStatus(output, state);
+        // Post-Training Validation and Model Promotion Status removed
+        // These sections were displaying static data instead of actual training state
+        // They should only be shown when real validation/promotion results are available
         
         // Alerts (if any)
         if (state.ActiveAlerts.Any())
@@ -249,16 +247,15 @@ public sealed class LabModeDashboardRenderer
         output.AppendLine("┌─────────────────────────────────────────────────────────────────────────────────┐");
         output.AppendLine($"│ 📊 CURRENT TRAINING METRICS ({component.ComponentName})                              │");
         output.AppendLine("├─────────────────────────────────────────────────────────────────────────────────┤");
-        output.AppendLine($"│ Epoch: {component.EpochsCompleted}/{component.TotalEpochs} | Batch: N/A | Learning Rate: N/A                        │");
+        output.AppendLine($"│ Epoch: {component.EpochsCompleted}/{component.TotalEpochs}                                                                │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Loss Metrics:                                                                   │");
-        output.AppendLine($"│  • Total Loss:       {component.CurrentLoss:F4} (tracking)                                      │");
+        output.AppendLine($"│  • Total Loss:       {component.CurrentLoss:F4}                                                 │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Performance:                                                                    │");
         output.AppendLine($"│  • Training Progress:    {component.ProgressPercentage:F1}%                                                │");
         output.AppendLine("│                                                                                 │");
         output.AppendLine("│ Resource Usage:                                                                 │");
-        output.AppendLine($"│  • GPU Utilization:      N/A (CPU training)                                     │");
         output.AppendLine($"│  • CPU Utilization:      {state.Resources.CpuUsagePercent:F0}%                                                    │");
         output.AppendLine($"│  • Memory Used:          {state.Resources.MemoryUsedMb / 1024.0:F1} GB / {state.Resources.MemoryTotalMb / 1024.0:F1} GB ({(double)state.Resources.MemoryUsedMb / state.Resources.MemoryTotalMb * 100:F0}%)                                 │");
         output.AppendLine($"│  • Disk I/O:             {state.Resources.DiskReadMbPerSec:F0} MB/s read, {state.Resources.DiskWriteMbPerSec:F0} MB/s write                            │");
@@ -293,7 +290,7 @@ public sealed class LabModeDashboardRenderer
         if (totalTrades > 0)
         {
             output.AppendLine("│                                                                                 │");
-            output.AppendLine($"│ Total Portfolio: ${totalPnl:F2} | Sharpe: N/A | Max DD: N/A                          │");
+            output.AppendLine($"│ Total Portfolio PnL: ${totalPnl:F2} | Total Trades: {totalTrades}                                │");
         }
         
         output.AppendLine("└─────────────────────────────────────────────────────────────────────────────────┘");
