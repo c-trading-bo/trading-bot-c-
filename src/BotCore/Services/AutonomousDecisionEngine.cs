@@ -65,6 +65,11 @@ public class OrderBook
 /// - Keeping as BackgroundService but improving shutdown behavior
 /// - Service properly exits in LAB_MODE (training only, no live trading)
 /// - Registered as Singleton + HostedService for proper lifecycle management
+/// 
+/// FULL REFACTOR: Converted to conditional BackgroundService
+/// - Only runs ExecuteAsync in Terminal mode (not LAB_MODE)
+/// - Prevents premature host shutdown by staying registered but inactive in LAB_MODE
+/// - Maintains proper lifecycle without signaling completion
 /// </summary>
 public class AutonomousDecisionEngine : BackgroundService
 {
@@ -272,7 +277,9 @@ public class AutonomousDecisionEngine : BackgroundService
         {
             _logger.LogInformation("🔬 [AUTONOMOUS-ENGINE] Disabled in Lab Mode - Lab uses historical data for training only");
             _logger.LogInformation("   ℹ️ Autonomous engine requires live TopstepX connection (Terminal mode)");
-            return; // Exit immediately - no autonomous trading in Lab mode
+            // FIXED: Instead of returning immediately, wait indefinitely to prevent shutdown signal
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            return;
         }
 
         _logger.LogInformation("🚀 [AUTONOMOUS-ENGINE] Starting autonomous profit-maximizing trading system...");

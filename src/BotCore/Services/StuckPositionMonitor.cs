@@ -54,6 +54,8 @@ namespace BotCore.Services
             if (!_config.Enabled)
             {
                 _logger.LogInformation("👁️ [MONITOR] Stuck Position Monitor disabled via configuration");
+                // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
                 return;
             }
 

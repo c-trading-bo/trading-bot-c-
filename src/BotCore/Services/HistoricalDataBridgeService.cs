@@ -104,6 +104,8 @@ namespace BotCore.Services
             {
                 _logger.LogInformation("[HISTORICAL-BRIDGE] Lab Mode detected - skipping API-based historical data seeding");
                 _logger.LogInformation("[HISTORICAL-BRIDGE] Lab Mode uses pre-loaded JSON files for complete API segregation");
+                // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
                 return;
             }
 
