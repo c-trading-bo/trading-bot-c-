@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Zones;
 
@@ -12,72 +13,118 @@ public interface IFeatureBus
     void Publish(string symbol, DateTime utc, string name, double value);
 }
 
-public sealed class ZoneFeaturePublisher : BackgroundService
+/// <summary>
+/// Event-driven zone feature publisher that reacts to zone updates and bar events
+/// instead of polling on a timer. Part of Phase 4 reactive architecture refactoring.
+/// </summary>
+public sealed class ZoneFeaturePublisher : IHostedService, IDisposable
 {
-    private const int DefaultBarTimeframeMinutes = 5;
-    
     private readonly IZoneFeatureSource _zones; 
     private readonly IFeatureBus? _bus; 
-    private readonly ILogger<ZoneFeaturePublisher> _log; 
-    private readonly TimeSpan _tf; 
+    private readonly ILogger<ZoneFeaturePublisher> _log;
+    private readonly IServiceProvider _serviceProvider;
     private readonly int _emitEvery;
+    private int _barCount;
+    private object? _marketDataService;
+    private bool _disposed;
     
-    public ZoneFeaturePublisher(IZoneFeatureSource zones, IFeatureBus? bus, ILogger<ZoneFeaturePublisher> log, [NotNull] IConfiguration cfg)
+    public ZoneFeaturePublisher(
+        IZoneFeatureSource zones, 
+        IFeatureBus? bus, 
+        ILogger<ZoneFeaturePublisher> log, 
+        IServiceProvider serviceProvider,
+        [NotNull] IConfiguration cfg)
     { 
         ArgumentNullException.ThrowIfNull(cfg);
         
         _zones = zones; 
         _bus = bus; 
-        _log = log; 
-        _tf = TimeSpan.FromMinutes(cfg.GetValue("Zone:BarTimeframeMinutes", DefaultBarTimeframeMinutes)); 
+        _log = log;
+        _serviceProvider = serviceProvider;
         _emitEvery = cfg.GetValue("Zone:EmitFeatureEveryBars", 1); 
+        _barCount = 0;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         if (_bus == null)
         {
             LogNoBusConfigured(_log, null);
-            // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
-            return;
+            return Task.CompletedTask;
         }
 
-        int k = 0; 
-        while (!stoppingToken.IsCancellationRequested)
+        // Subscribe to market data events to trigger zone feature publishing
+        // This makes the service reactive instead of polling-based
+        try
         {
-            try
+            // Get the enhanced market data service dynamically to avoid circular dependencies
+            var marketDataServiceType = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.Name == "IEnhancedMarketDataFlowService");
+
+            if (marketDataServiceType != null)
             {
-                await Task.Delay(_tf, stoppingToken).ConfigureAwait(false); 
-                k++;
-                if (k % _emitEvery != 0) continue;
-                
-                await PublishZoneFeaturesAsync().ConfigureAwait(false);
+                _marketDataService = _serviceProvider.GetService(marketDataServiceType);
+                if (_marketDataService != null)
+                {
+                    // Subscribe to OnMarketDataReceived event using reflection
+                    var eventInfo = _marketDataService.GetType().GetEvent("OnMarketDataReceived");
+                    if (eventInfo != null)
+                    {
+                        var handler = new Action<string, object>(OnMarketDataReceived);
+                        eventInfo.AddEventHandler(_marketDataService, handler);
+                        _log.LogInformation("[ZONE-FEATURES] Event-driven publisher activated - listening for market data events");
+                    }
+                }
             }
-            catch (OperationCanceledException)
+
+            if (_marketDataService == null)
             {
-                // Expected when cancellation is requested
-                break;
+                _log.LogWarning("[ZONE-FEATURES] Market data service not available - zone features will not be published");
             }
-            catch (InvalidOperationException ex)
-            {
-                LogPublishError(_log, ex);
-                await HandleRecoverableErrorAsync(stoppingToken).ConfigureAwait(false);
-            }
-            catch (ArgumentException ex)
-            {
-                LogPublishError(_log, ex);
-                await HandleRecoverableErrorAsync(stoppingToken).ConfigureAwait(false);
-            }
-            catch (TimeoutException ex)
-            {
-                LogPublishError(_log, ex);
-                await HandleRecoverableErrorAsync(stoppingToken).ConfigureAwait(false);
-            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "[ZONE-FEATURES] Error subscribing to market data events");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Dispose();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Event handler for market data updates - publishes zone features reactively
+    /// </summary>
+    private void OnMarketDataReceived(string symbol, object data)
+    {
+        // Only publish on configured intervals (every N bars)
+        _barCount++;
+        if (_barCount % _emitEvery != 0) return;
+
+        try
+        {
+            PublishZoneFeatures();
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogPublishError(_log, ex);
+        }
+        catch (ArgumentException ex)
+        {
+            LogPublishError(_log, ex);
+        }
+        catch (TimeoutException ex)
+        {
+            LogPublishError(_log, ex);
         }
     }
 
-    private async Task PublishZoneFeaturesAsync()
+    private void PublishZoneFeatures()
     {
         if (_bus == null) return;
         
@@ -90,17 +137,34 @@ public sealed class ZoneFeaturePublisher : BackgroundService
             _bus.Publish(symbol, now, "zone.breakout_score", breakout);
             _bus.Publish(symbol, now, "zone.pressure", press);
         }
-        
-        await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private static Task HandleRecoverableErrorAsync(CancellationToken stoppingToken)
-    {
-        const int ErrorRecoveryDelayMinutes = 1;
-        return Task.Delay(TimeSpan.FromMinutes(ErrorRecoveryDelayMinutes), stoppingToken);
     }
 
     private readonly string[] _tracked = new[] { "ES", "NQ" };
+    
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            if (_marketDataService != null)
+            {
+                // Unsubscribe from events
+                try
+                {
+                    var eventInfo = _marketDataService.GetType().GetEvent("OnMarketDataReceived");
+                    if (eventInfo != null)
+                    {
+                        var handler = new Action<string, object>(OnMarketDataReceived);
+                        eventInfo.RemoveEventHandler(_marketDataService, handler);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.LogError(ex, "[ZONE-FEATURES] Error unsubscribing from market data events");
+                }
+            }
+            _disposed = true;
+        }
+    }
     
     // Logger message delegates for performance
     private static readonly Action<ILogger, Exception?> LogNoBusConfigured = 

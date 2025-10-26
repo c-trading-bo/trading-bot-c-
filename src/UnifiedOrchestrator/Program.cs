@@ -1208,8 +1208,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Services.IZoneProvider>(provider => 
             provider.GetRequiredService<global::BotCore.Services.HybridZoneProvider>());
         
-        // Register ZoneFeaturePublisher for telemetry emission
-        services.AddHostedService<Zones.ZoneFeaturePublisher>();
+        // Register ZoneFeaturePublisher as event-driven reactive service (Phase 4 refactoring)
+        // Converted from polling BackgroundService to event-driven IHostedService
+        services.AddSingleton<Zones.ZoneFeaturePublisher>();
+        services.AddHostedService<Zones.ZoneFeaturePublisher>(provider => 
+            provider.GetRequiredService<Zones.ZoneFeaturePublisher>());
         
         // Register market data to zone service bridge
         services.AddHostedService<global::BotCore.Services.ZoneMarketDataBridge>();
