@@ -1417,14 +1417,15 @@ internal sealed class HistoricalTrainingOrchestrator
             }
             
             // Convert TradingExperience to internal Experience format
+            // Expand 5 basic features to 50 features by deriving additional features
             var experiences = tradingExperiences.Select(te => new Experience
             {
                 Timestamp = te.Timestamp,
                 Symbol = te.Symbol,
-                State = $"{te.EntryRegimeConfidence},{te.EntryConfidence},{te.EntryHour},{te.EntryDayOfWeek},{te.VolatilityAtEntry}",
+                State = ExpandTo50Features(te),
                 Action = te.Strategy,
                 Reward = te.RMultiple,
-                NextState = $"{te.ExitRegimeConfidence},{te.VolatilityAtExit}",
+                NextState = ExpandTo50FeaturesForNextState(te),
                 Done = true // Position closed
             }).ToList();
             
@@ -2752,6 +2753,125 @@ internal sealed class HistoricalTrainingOrchestrator
         {
             return Array.Empty<double>();
         }
+    }
+
+    /// <summary>
+    /// Expand 5 basic TradingExperience fields to 50 features for CVaR-PPO training
+    /// Base features: EntryRegimeConfidence, EntryConfidence, EntryHour, EntryDayOfWeek, VolatilityAtEntry
+    /// Derived features: time-based (normalized hour, day indicators), volatility derivatives, confidence products
+    /// </summary>
+    private static string ExpandTo50Features(global::BotCore.Models.TradingExperience te)
+    {
+        var features = new List<double>(50);
+        
+        // Base features (5)
+        features.Add((double)te.EntryRegimeConfidence);
+        features.Add((double)te.EntryConfidence);
+        features.Add(te.EntryHour);
+        features.Add(te.EntryDayOfWeek);
+        features.Add((double)te.VolatilityAtEntry);
+        
+        // Time-based derived features (10)
+        features.Add(te.EntryHour / 24.0); // Normalized hour
+        features.Add(te.EntryDayOfWeek / 7.0); // Normalized day
+        features.Add(te.EntryDayOfWeek == 1 ? 1.0 : 0.0); // Is Monday
+        features.Add(te.EntryDayOfWeek == 5 ? 1.0 : 0.0); // Is Friday
+        features.Add((te.EntryHour >= 9 && te.EntryHour < 16) ? 1.0 : 0.0); // Is market hours
+        features.Add(te.EntryHour == 9 ? 1.0 : 0.0); // Is opening hour
+        features.Add(te.EntryHour == 15 ? 1.0 : 0.0); // Is closing hour
+        features.Add(Math.Sin(2 * Math.PI * te.EntryHour / 24.0)); // Hour sin encoding
+        features.Add(Math.Cos(2 * Math.PI * te.EntryHour / 24.0)); // Hour cos encoding
+        features.Add(Math.Sin(2 * Math.PI * te.EntryDayOfWeek / 7.0)); // Day sin encoding
+        
+        // Confidence-based derived features (10)
+        features.Add((double)(te.EntryRegimeConfidence * te.EntryConfidence)); // Confidence product
+        features.Add(Math.Sqrt((double)te.EntryConfidence)); // Sqrt confidence
+        features.Add((double)te.EntryConfidence * (double)te.EntryConfidence); // Squared confidence
+        features.Add((double)te.EntryRegimeConfidence * (double)te.EntryRegimeConfidence); // Squared regime confidence
+        features.Add(Math.Max((double)te.EntryConfidence, (double)te.EntryRegimeConfidence)); // Max confidence
+        features.Add(Math.Min((double)te.EntryConfidence, (double)te.EntryRegimeConfidence)); // Min confidence
+        features.Add(Math.Abs((double)te.EntryConfidence - (double)te.EntryRegimeConfidence)); // Confidence difference
+        features.Add(((double)te.EntryConfidence + (double)te.EntryRegimeConfidence) / 2.0); // Average confidence
+        features.Add((double)te.EntryConfidence > 0.7 ? 1.0 : 0.0); // High confidence indicator
+        features.Add((double)te.EntryRegimeConfidence > 0.7 ? 1.0 : 0.0); // High regime confidence indicator
+        
+        // Volatility-based derived features (10)
+        features.Add((double)te.VolatilityAtEntry * (double)te.VolatilityAtEntry); // Squared volatility
+        features.Add(Math.Sqrt(Math.Max(0, (double)te.VolatilityAtEntry))); // Sqrt volatility
+        features.Add((double)te.VolatilityAtEntry / Math.Max(0.001, (double)te.EntryConfidence)); // Volatility to confidence ratio
+        features.Add((double)te.VolatilityAtEntry * (double)te.EntryConfidence); // Volatility-confidence product
+        features.Add((double)te.VolatilityAtEntry > 0.02 ? 1.0 : 0.0); // High volatility indicator
+        features.Add((double)te.VolatilityAtEntry < 0.01 ? 1.0 : 0.0); // Low volatility indicator
+        features.Add(Math.Log(Math.Max(0.0001, (double)te.VolatilityAtEntry) + 1.0)); // Log volatility
+        features.Add(1.0 / Math.Max(0.001, (double)te.VolatilityAtEntry)); // Inverse volatility
+        features.Add((double)te.VolatilityAtEntry * te.EntryHour / 24.0); // Volatility-time interaction
+        features.Add((double)te.VolatilityAtEntry * te.EntryDayOfWeek / 7.0); // Volatility-day interaction
+        
+        // Interaction features (10)
+        features.Add((double)te.EntryConfidence * te.EntryHour / 24.0); // Confidence-time interaction
+        features.Add((double)te.EntryRegimeConfidence * te.EntryDayOfWeek / 7.0); // Regime-day interaction
+        features.Add((double)te.EntryConfidence * te.EntryDayOfWeek / 7.0); // Confidence-day interaction
+        features.Add((double)te.VolatilityAtEntry * (double)te.EntryRegimeConfidence); // Volatility-regime interaction
+        features.Add(te.EntryHour == 9 && te.EntryDayOfWeek == 1 ? 1.0 : 0.0); // Monday open
+        features.Add(te.EntryHour == 15 && te.EntryDayOfWeek == 5 ? 1.0 : 0.0); // Friday close
+        features.Add((double)te.EntryConfidence > 0.7 && (double)te.VolatilityAtEntry < 0.01 ? 1.0 : 0.0); // High conf + low vol
+        features.Add((double)te.EntryConfidence > 0.7 && (double)te.VolatilityAtEntry > 0.02 ? 1.0 : 0.0); // High conf + high vol
+        features.Add((te.EntryHour >= 9 && te.EntryHour < 16) && (double)te.EntryConfidence > 0.6 ? 1.0 : 0.0); // Market hours + decent conf
+        features.Add((double)te.EntryRegimeConfidence * (double)te.EntryConfidence * (double)te.VolatilityAtEntry); // Triple product
+        
+        // Statistical features (5 to reach exactly 50)
+        features.Add(Math.Tanh((double)te.EntryConfidence)); // Tanh-normalized confidence
+        features.Add(Math.Tanh((double)te.EntryRegimeConfidence)); // Tanh-normalized regime confidence
+        features.Add(Math.Exp(-(double)te.VolatilityAtEntry)); // Negative exp volatility (decay function)
+        features.Add(1.0 / (1.0 + Math.Exp(-(double)te.EntryConfidence))); // Sigmoid confidence
+        features.Add(1.0 / (1.0 + Math.Exp(-(double)te.EntryRegimeConfidence))); // Sigmoid regime confidence
+        
+        return string.Join(",", features);
+    }
+    
+    /// <summary>
+    /// Expand exit state to 50 features (simplified - many features will be zeros or derived from entry)
+    /// </summary>
+    private static string ExpandTo50FeaturesForNextState(global::BotCore.Models.TradingExperience te)
+    {
+        var features = new List<double>(50);
+        
+        // Base exit features (2)
+        features.Add((double)te.ExitRegimeConfidence);
+        features.Add((double)te.VolatilityAtExit);
+        
+        // Fill remaining with derived and sentinel-valued features to match 50
+        // Time features (use entry time as approximation since we don't have exact exit hour)
+        features.Add(te.EntryHour / 24.0);
+        features.Add(te.EntryDayOfWeek / 7.0);
+        features.Add(te.EntryDayOfWeek == 1 ? 1.0 : 0.0);
+        features.Add(te.EntryDayOfWeek == 5 ? 1.0 : 0.0);
+        features.Add(-1.0); // Market hours (unknown at exit - sentinel value)
+        features.Add(-1.0); // Opening hour (unknown - sentinel value)
+        features.Add(-1.0); // Closing hour (unknown - sentinel value)
+        features.Add(Math.Sin(2 * Math.PI * te.EntryHour / 24.0));
+        
+        // Confidence features (using exit regime confidence)
+        features.Add((double)te.ExitRegimeConfidence);
+        features.Add((double)te.ExitRegimeConfidence * (double)te.ExitRegimeConfidence);
+        features.Add(Math.Sqrt((double)te.ExitRegimeConfidence));
+        features.Add((double)te.ExitRegimeConfidence > 0.7 ? 1.0 : 0.0);
+        features.Add(-1.0); // Placeholder for unavailable confidence feature (sentinel)
+        
+        // Volatility features
+        features.Add((double)te.VolatilityAtExit * (double)te.VolatilityAtExit);
+        features.Add(Math.Sqrt(Math.Max(0, (double)te.VolatilityAtExit)));
+        features.Add((double)te.VolatilityAtExit > 0.02 ? 1.0 : 0.0);
+        features.Add((double)te.VolatilityAtExit < 0.01 ? 1.0 : 0.0);
+        features.Add(Math.Log(Math.Max(0.0001, (double)te.VolatilityAtExit) + 1.0));
+        
+        // Pad remaining features with sentinel value -1.0 to indicate unavailable data (reaching exactly 50)
+        while (features.Count < 50)
+        {
+            features.Add(-1.0); // Sentinel value for unavailable exit state features
+        }
+        
+        return string.Join(",", features);
     }
 
     private static int ParseAction(string actionString)
