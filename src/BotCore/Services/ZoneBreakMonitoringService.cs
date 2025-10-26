@@ -14,7 +14,7 @@ using Zones;
 namespace BotCore.Services
 {
     /// <summary>
-    /// Zone Break Monitoring Service - PHASE 2 Implementation
+    /// Zone Break Monitoring Service - Event-driven implementation
     /// 
     /// Monitors real-time price updates to detect when supply/demand zones are broken.
     /// Publishes zone break events that trigger position management actions:
@@ -22,14 +22,16 @@ namespace BotCore.Services
     /// - Short position + supply zone break → Early exit warning
     /// - Strong zone break → Aggressive entry signal boost
     /// 
-    /// Integrates with UnifiedPositionManagementService for zone-aware stop placement.
+    /// Converted to event-driven IHostedService with Timer (Phase 5 refactoring)
     /// </summary>
-    public sealed class ZoneBreakMonitoringService : BackgroundService
+    public sealed class ZoneBreakMonitoringService : IHostedService, IDisposable
     {
         private readonly ILogger<ZoneBreakMonitoringService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly ConcurrentDictionary<string, ZoneBreakState> _zoneStates = new();
         private readonly ConcurrentQueue<ZoneBreakEvent> _breakEvents = new();
+        private Timer? _monitoringTimer;
+        private bool _disposed;
         
         // Monitoring interval - check for zone breaks every 2 seconds
         private const int MonitoringIntervalSeconds = 2;
@@ -53,20 +55,41 @@ namespace BotCore.Services
             _serviceProvider = serviceProvider;
         }
         
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🔍 [ZONE-BREAK] Zone Break Monitoring Service starting...");
+            _logger.LogInformation("🔍 [ZONE-BREAK] Zone Break Monitoring Service starting (event-driven mode)...");
             
-            while (!stoppingToken.IsCancellationRequested)
+            // Start timer for zone break monitoring
+            var interval = TimeSpan.FromSeconds(MonitoringIntervalSeconds);
+            _monitoringTimer = new Timer(MonitorZoneBreaksCallback, null, TimeSpan.Zero, interval);
+            
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("🛑 [ZONE-BREAK] Zone Break Monitoring Service stopping");
+            _monitoringTimer?.Change(Timeout.Infinite, 0);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Timer callback for zone break monitoring - uses fire-and-forget pattern
+        /// </summary>
+        private void MonitorZoneBreaksCallback(object? state)
+        {
+            if (_disposed) return;
+
+            // Fire-and-forget pattern for async operation in timer callback
+            _ = Task.Run(async () =>
             {
                 try
                 {
-                    await MonitorZoneBreaksAsync(stoppingToken).ConfigureAwait(false);
+                    await MonitorZoneBreaksAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    // Cancellation requested, exit gracefully
-                    break;
+                    // Expected during shutdown
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -76,11 +99,7 @@ namespace BotCore.Services
                 {
                     _logger.LogError(ex, "❌ [ZONE-BREAK] Invalid argument in zone break monitoring");
                 }
-                
-                await Task.Delay(TimeSpan.FromSeconds(MonitoringIntervalSeconds), stoppingToken).ConfigureAwait(false);
-            }
-            
-            _logger.LogInformation("🛑 [ZONE-BREAK] Zone Break Monitoring Service stopping");
+            });
         }
         
         private async Task MonitorZoneBreaksAsync(CancellationToken cancellationToken)
@@ -373,6 +392,16 @@ namespace BotCore.Services
             }
             
             return events;
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _monitoringTimer?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
         }
     }
     

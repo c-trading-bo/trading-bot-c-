@@ -28,6 +28,7 @@ internal sealed class InternalScheduler : BackgroundService
     private readonly ILogger<InternalScheduler> _logger;
     private readonly HistoricalTrainingOrchestrator _trainingOrchestrator;
     private readonly Training.TrainingOrchestratorService? _enhancedOrchestrator;
+    private readonly EnhancedBacktestLearningService? _backtestService;
     private readonly ResourcePreCheckService _resourceChecker;
     private readonly TrainingAlertService _alertService;
     private readonly SemaphoreSlim _trainingLock = new(1, 1);
@@ -52,11 +53,13 @@ internal sealed class InternalScheduler : BackgroundService
         HistoricalTrainingOrchestrator trainingOrchestrator,
         ResourcePreCheckService resourceChecker,
         TrainingAlertService alertService,
-        Training.TrainingOrchestratorService? enhancedOrchestrator = null)
+        Training.TrainingOrchestratorService? enhancedOrchestrator = null,
+        EnhancedBacktestLearningService? backtestService = null)
     {
         _logger = logger;
         _trainingOrchestrator = trainingOrchestrator;
         _enhancedOrchestrator = enhancedOrchestrator;
+        _backtestService = backtestService;
         _resourceChecker = resourceChecker;
         _alertService = alertService;
         _lockFilePath = Path.Combine(Path.GetTempPath(), "qbot_lab_training.lock");
@@ -220,6 +223,21 @@ internal sealed class InternalScheduler : BackgroundService
                                         await _enhancedOrchestrator.CleanupAndFinalizeAsync(session, _currentTrainingCts.Token).ConfigureAwait(false);
 
                                         _logger.LogInformation("[LAB] Enhanced training session completed successfully");
+                                        
+                                        // PHASE 6: Trigger backtest service after training
+                                        if (_backtestService != null)
+                                        {
+                                            _logger.LogInformation("[LAB-SCHEDULER] Triggering backtest learning service...");
+                                            try
+                                            {
+                                                await _backtestService.RunBacktestAsync(_currentTrainingCts.Token).ConfigureAwait(false);
+                                                _logger.LogInformation("[LAB-SCHEDULER] Backtest learning completed");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _logger.LogError(ex, "[LAB-SCHEDULER] Backtest learning failed");
+                                            }
+                                        }
                                     }
                                     else
                                     {
@@ -232,6 +250,21 @@ internal sealed class InternalScheduler : BackgroundService
 
                                         await _trainingOrchestrator.RunTrainingSessionAsync(_currentTrainingCts.Token).ConfigureAwait(false);
                                         _logger.LogInformation("[LAB] Training completed successfully");
+
+                                        // PHASE 6: Trigger backtest service after training
+                                        if (_backtestService != null)
+                                        {
+                                            _logger.LogInformation("[LAB-SCHEDULER] Triggering backtest learning service...");
+                                            try
+                                            {
+                                                await _backtestService.RunBacktestAsync(_currentTrainingCts.Token).ConfigureAwait(false);
+                                                _logger.LogInformation("[LAB-SCHEDULER] Backtest learning completed");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _logger.LogError(ex, "[LAB-SCHEDULER] Backtest learning failed");
+                                            }
+                                        }
 
                                         // Alert success
                                         await _alertService.AlertTrainingSuccessAsync(

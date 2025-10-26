@@ -17,19 +17,15 @@ namespace BotCore.Services
     /// Session-End Position Flattener - Production Trading Bot
     /// 
     /// CRITICAL PRODUCTION SERVICE - Automatically closes all positions before market close:
-    /// - Runs every 30 seconds monitoring Eastern Time
+    /// - Timer-based monitoring every 30 seconds using Eastern Time
     /// - Flattens all positions at 4:55 PM ET (configurable)
     /// - Monday-Thursday: Always flatten (daily maintenance)
     /// - Friday: Configurable (weekend safety vs. weekend holds)
     /// - Saturday-Sunday: Skip (market closed)
     /// 
-    /// Works with:
-    /// - SessionAwareRuntimeGates for Eastern Time
-    /// - PositionTrackingSystem for open positions
-    /// - IOrderService for position closes
-    /// - UnifiedPositionManagementService for position unregistration
+    /// Converted to event-driven IHostedService with Timer (Phase 5 refactoring)
     /// </summary>
-    public sealed class SessionEndPositionFlattener : BackgroundService
+    public sealed class SessionEndPositionFlattener : IHostedService, IDisposable
     {
         private readonly ILogger<SessionEndPositionFlattener> _logger;
         private readonly IConfiguration _configuration;
@@ -37,6 +33,8 @@ namespace BotCore.Services
         private readonly PositionTrackingSystem _positionTracker;
         private readonly IServiceProvider _serviceProvider;
         private readonly UnifiedPositionManagementService _positionManagement;
+        private Timer? _monitoringTimer;
+        private bool _disposed;
         
         // Monitoring interval - check every 30 seconds
         private const int MonitoringIntervalSeconds = 30;
@@ -68,25 +66,43 @@ namespace BotCore.Services
             _logger.LogInformation("🔄 [SESSION-FLATTEN] Session-End Position Flattener initialized");
         }
         
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🎯 [SESSION-FLATTEN] Session-End Position Flattener starting...");
+            _logger.LogInformation("🎯 [SESSION-FLATTEN] Session-End Position Flattener starting (event-driven mode)...");
             
-            while (!stoppingToken.IsCancellationRequested)
+            // Start timer for position monitoring
+            var interval = TimeSpan.FromSeconds(MonitoringIntervalSeconds);
+            _monitoringTimer = new Timer(MonitorPositionsCallback, null, TimeSpan.Zero, interval);
+            
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("🛑 [SESSION-FLATTEN] Session-End Position Flattener stopping");
+            _monitoringTimer?.Change(Timeout.Infinite, 0);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Timer callback for position monitoring - uses fire-and-forget pattern
+        /// </summary>
+        private void MonitorPositionsCallback(object? state)
+        {
+            if (_disposed) return;
+
+            // Fire-and-forget pattern for async operation in timer callback
+            _ = Task.Run(async () =>
             {
                 try
                 {
-                    await MonitorAndFlattenPositionsAsync(stoppingToken).ConfigureAwait(false);
+                    await MonitorAndFlattenPositionsAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ [SESSION-FLATTEN] Error in position flatten monitoring loop");
+                    _logger.LogError(ex, "❌ [SESSION-FLATTEN] Error in position flatten monitoring");
                 }
-                
-                await Task.Delay(TimeSpan.FromSeconds(MonitoringIntervalSeconds), stoppingToken).ConfigureAwait(false);
-            }
-            
-            _logger.LogInformation("🛑 [SESSION-FLATTEN] Session-End Position Flattener stopping");
+            });
         }
         
         /// <summary>
@@ -231,6 +247,16 @@ namespace BotCore.Services
             // Log summary
             _logger.LogWarning("📊 [SESSION-FLATTEN] Flattened {Success} of {Total} positions successfully (failed: {Failed})",
                 successCount, openPositions.Count, failCount);
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _monitoringTimer?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
         }
     }
 }

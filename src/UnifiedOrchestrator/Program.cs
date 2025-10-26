@@ -1208,8 +1208,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Services.IZoneProvider>(provider => 
             provider.GetRequiredService<global::BotCore.Services.HybridZoneProvider>());
         
-        // Register ZoneFeaturePublisher for telemetry emission
-        services.AddHostedService<Zones.ZoneFeaturePublisher>();
+        // Register ZoneFeaturePublisher as event-driven reactive service (Phase 4 refactoring)
+        // Converted from polling BackgroundService to event-driven IHostedService
+        services.AddSingleton<Zones.ZoneFeaturePublisher>();
+        services.AddHostedService<Zones.ZoneFeaturePublisher>(provider => 
+            provider.GetRequiredService<Zones.ZoneFeaturePublisher>());
         
         // Register market data to zone service bridge
         services.AddHostedService<global::BotCore.Services.ZoneMarketDataBridge>();
@@ -2648,9 +2651,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService(provider => provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.ModelRegistry>());
         services.AddHostedService<CanaryWatchdog>();
         
-        // Brain hot-reload service for ONNX session swapping
+        // Brain hot-reload service for ONNX session swapping (converted to event-driven - Phase 4)
         services.AddSingleton<global::BotCore.ML.OnnxModelLoader>();
-        services.AddHostedService<BrainHotReloadService>();
+        services.AddSingleton<BrainHotReloadService>();
+        services.AddHostedService<BrainHotReloadService>(provider => 
+            provider.GetRequiredService<BrainHotReloadService>());
         
         // Cloud model integration service removed - CloudRlTrainerV2 infrastructure no longer exists
 
@@ -2922,10 +2927,6 @@ Please check the configuration and ensure all required services are registered.
         Program.WriteLineIfNotLabMode("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
         
-        // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
-        Program.WriteLineIfNotLabMode("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training)");
-        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
-        
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         // PHASE 1 REFACTOR: Register as Singleton ONLY (not as HostedService)
         // This prevents the service from exiting early and causing ASP.NET Core shutdown
@@ -2933,6 +2934,24 @@ Please check the configuration and ensure all required services are registered.
         Program.WriteLineIfNotLabMode("   ✓ Registering EnhancedBacktestLearningService (on-demand singleton, not background service)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
         // REMOVED: services.AddHostedService - this was causing premature shutdown when service exited
+        
+        // Internal Scheduler (Phase 5) - Self-contained scheduling without external Task Scheduler
+        // PHASE 6 UPDATE: Now coordinates with EnhancedBacktestLearningService
+        Program.WriteLineIfNotLabMode("   ✓ Registering InternalScheduler (automatic Sunday 12:00 PM - 5:45 PM ET training + backtest)");
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>>();
+            var trainingOrchestrator = provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.HistoricalTrainingOrchestrator>();
+            var resourceChecker = provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.ResourcePreCheckService>();
+            var alertService = provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.TrainingAlertService>();
+            var enhancedOrchestrator = provider.GetService<TradingBot.UnifiedOrchestrator.Training.TrainingOrchestratorService>();
+            var backtestService = provider.GetService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
+            
+            return new TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler(
+                logger, trainingOrchestrator, resourceChecker, alertService, enhancedOrchestrator, backtestService);
+        });
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>(provider => 
+            provider.GetRequiredService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>());
         
         // Promotion Evaluator is already registered via PromotionService
         // Model Registry is shared (both modes)

@@ -26,25 +26,26 @@ namespace BotCore.Services
     }
 
     /// <summary>
-    /// Position Management Optimizer - PHASE 3 Implementation
+    /// Position Management Optimizer - Event-driven implementation
     /// 
     /// Learns optimal position management parameters using ML/RL:
     /// - Optimal breakeven trigger timing (6 vs 8 vs 10 ticks)
     /// - Optimal trailing stop distance (1.0x vs 1.5x vs 2.0x ATR)
     /// - Optimal time exit thresholds per strategy and market regime
-    /// - Tracks outcomes: "BE at 8 ticks → stopped out, would have hit target"
     /// 
     /// VOLATILITY SCALING: Scales thresholds based on current ATR
     /// SESSION-SPECIFIC LEARNING: Learns separate parameters per trading session
     /// 
-    /// Integrates with ParameterChangeTracker for learning feedback.
+    /// Converted to event-driven IHostedService with Timer (Phase 5 refactoring)
     /// </summary>
-    public sealed class PositionManagementOptimizer : BackgroundService
+    public sealed class PositionManagementOptimizer : IHostedService, IDisposable
     {
         private readonly ILogger<PositionManagementOptimizer> _logger;
         private readonly ConcurrentDictionary<string, PositionManagementOutcome> _outcomes = new();
         private readonly ParameterChangeTracker _changeTracker;
         private DateTime _lastExportTime = DateTime.MinValue;
+        private Timer? _optimizationTimer;
+        private bool _disposed;
         
         // Learning parameters
         private const int OptimizationIntervalSeconds = 60; // Run optimization every minute
@@ -101,15 +102,40 @@ namespace BotCore.Services
             _changeTracker = changeTracker;
         }
         
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🧠 [PM-OPTIMIZER] Position Management Optimizer starting (PHASE 3)...");
+            _logger.LogInformation("🧠 [PM-OPTIMIZER] Position Management Optimizer starting (event-driven mode)...");
             
-            while (!stoppingToken.IsCancellationRequested)
+            // Initialize last export time to avoid immediate export
+            _lastExportTime = DateTime.UtcNow;
+            
+            // Start timer for optimization cycles
+            var interval = TimeSpan.FromSeconds(OptimizationIntervalSeconds);
+            _optimizationTimer = new Timer(OptimizationCallback, null, TimeSpan.Zero, interval);
+            
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("🛑 [PM-OPTIMIZER] Position Management Optimizer stopping");
+            _optimizationTimer?.Change(Timeout.Infinite, 0);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Timer callback for optimization cycles - uses fire-and-forget pattern
+        /// </summary>
+        private void OptimizationCallback(object? state)
+        {
+            if (_disposed) return;
+
+            // Fire-and-forget pattern for async operation in timer callback
+            _ = Task.Run(async () =>
             {
                 try
                 {
-                    await RunOptimizationCycleAsync(stoppingToken).ConfigureAwait(false);
+                    await RunOptimizationCycleAsync(CancellationToken.None).ConfigureAwait(false);
                     
                     // Check if it's time to export learned parameters (every 24 hours)
                     var timeSinceLastExport = DateTime.UtcNow - _lastExportTime;
@@ -121,13 +147,9 @@ namespace BotCore.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ [PM-OPTIMIZER] Error in optimization loop");
+                    _logger.LogError(ex, "❌ [PM-OPTIMIZER] Error in optimization cycle");
                 }
-                
-                await Task.Delay(TimeSpan.FromSeconds(OptimizationIntervalSeconds), stoppingToken).ConfigureAwait(false);
-            }
-            
-            _logger.LogInformation("🛑 [PM-OPTIMIZER] Position Management Optimizer stopping");
+            });
         }
         
         /// <summary>
@@ -1196,6 +1218,16 @@ namespace BotCore.Services
             
             var ciPercent = (int)(metrics.ConfidencePercentage * 100);
             return $"{parameterName}: {metrics.Mean:F1}{unit} [{metrics.ConfidenceIntervalLow:F1}-{metrics.ConfidenceIntervalHigh:F1}{unit} @ {ciPercent}% CI] (n={metrics.SampleSize}, σ={metrics.StandardDeviation:F2}, {levelStr} confidence)";
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _optimizationTimer?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
         }
     }
     
