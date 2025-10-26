@@ -672,16 +672,27 @@ Please check the configuration and ensure all required services are registered.
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
-                logging.AddConsole(options => 
+                
+                // Check if Lab Mode is enabled - if so, suppress console logging to allow dashboard to work
+                var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
+                var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
+                
+                if (!isLabMode)
                 {
-                    options.FormatterName = "Production";
-                });
-                logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+                    // Terminal Mode: Add console logging as normal
+                    logging.AddConsole(options => 
+                    {
+                        options.FormatterName = "Production";
+                    });
+                    logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+                }
+                // Lab Mode: Console logging disabled - dashboard uses direct Console.Write with ANSI codes
+                // Logs still go to files if configured separately
+                
                 logging.SetMinimumLevel(LogLevel.Information);
                 // REDUCE NOISE - Override Microsoft and System logging to warnings only
                 logging.AddFilter("Microsoft", LogLevel.Warning);
                 logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
                 logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
             })
             .ConfigureServices((context, services) =>
