@@ -2927,10 +2927,12 @@ Please check the configuration and ensure all required services are registered.
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Scheduling.InternalScheduler>();
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
-        // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)
-        Program.WriteLineIfNotLabMode("   ✓ Registering EnhancedBacktestLearningService (90-day historical replay)");
+        // PHASE 1 REFACTOR: Register as Singleton ONLY (not as HostedService)
+        // This prevents the service from exiting early and causing ASP.NET Core shutdown
+        // Services can inject it and call RunBacktestAsync() on-demand instead
+        Program.WriteLineIfNotLabMode("   ✓ Registering EnhancedBacktestLearningService (on-demand singleton, not background service)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
-        services.AddHostedService(sp => sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>());
+        // REMOVED: services.AddHostedService - this was causing premature shutdown when service exited
         
         // Promotion Evaluator is already registered via PromotionService
         // Model Registry is shared (both modes)
@@ -3008,9 +3010,10 @@ Please check the configuration and ensure all required services are registered.
         
         if (isHistoricalMode || historicalLearningEnabled || rlMode == TradingBot.Abstractions.RlRuntimeMode.Train)
         {
-            // Register as Singleton first so it can be injected into other services (e.g., ContinuousOperationService)
+            // PHASE 1 REFACTOR: Register as Singleton only (not as HostedService)
+            // This prevents the service from exiting early and causing ASP.NET Core shutdown
             services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>();
-            services.AddHostedService(sp => sp.GetRequiredService<TradingBot.UnifiedOrchestrator.Services.EnhancedBacktestLearningService>());
+            // REMOVED: services.AddHostedService - this was causing premature shutdown when service exited
         }
         else
         {
