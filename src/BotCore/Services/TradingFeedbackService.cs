@@ -9,8 +9,9 @@ namespace BotCore.Services;
 /// <summary>
 /// Production-grade feedback service that creates automated learning loops
 /// Monitors trading performance and triggers model retraining when needed
+/// Converted to event-driven IHostedService with Timer (Phase 4 refactoring)
 /// </summary>
-public class TradingFeedbackService : BackgroundService
+public class TradingFeedbackService : IHostedService, IDisposable
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
 
@@ -19,6 +20,8 @@ public class TradingFeedbackService : BackgroundService
     private readonly ModelEnsembleService _ensemble;
     private readonly ConcurrentQueue<TradingOutcome> _feedbackQueue = new();
     private readonly ConcurrentDictionary<string, TradingPerformanceMetrics> _performanceMetrics = new();
+    private Timer? _processingTimer;
+    private bool _disposed;
     
     // Configuration
     private readonly TimeSpan _processingInterval = TimeSpan.FromMinutes(5);
@@ -58,32 +61,47 @@ public class TradingFeedbackService : BackgroundService
             _performanceThreshold, _minFeedbackSamples);
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("🔄 [FEEDBACK] Background service started");
+        _logger.LogInformation("🔄 [FEEDBACK] Starting event-driven feedback service with {Interval} processing interval", 
+            _processingInterval);
         
-        while (!stoppingToken.IsCancellationRequested)
+        // Start timer for periodic feedback processing
+        _processingTimer = new Timer(ProcessFeedbackCallback, null, TimeSpan.Zero, _processingInterval);
+        
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🔄 [FEEDBACK] Stopping feedback service - Queue size: {QueueSize}", 
+            _feedbackQueue.Count);
+        
+        _processingTimer?.Change(Timeout.Infinite, 0);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Timer callback for periodic feedback processing - uses fire-and-forget pattern
+    /// </summary>
+    private void ProcessFeedbackCallback(object? state)
+    {
+        if (_disposed) return;
+
+        // Fire-and-forget pattern for async operation in timer callback
+        _ = Task.Run(async () =>
         {
             try
             {
-                await ProcessFeedbackQueue(stoppingToken).ConfigureAwait(false);
-                await AnalyzePerformance(stoppingToken).ConfigureAwait(false);
-                await CheckRetrainingTriggers(stoppingToken).ConfigureAwait(false);
-                
-                await Task.Delay(_processingInterval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
+                await ProcessFeedbackQueue(CancellationToken.None).ConfigureAwait(false);
+                await AnalyzePerformance(CancellationToken.None).ConfigureAwait(false);
+                await CheckRetrainingTriggers(CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "🔄 [FEEDBACK] Error in background processing");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
+                _logger.LogError(ex, "🔄 [FEEDBACK] Error in periodic feedback processing");
             }
-        }
-        
-        _logger.LogInformation("🔄 [FEEDBACK] Background service stopped");
+        });
     }
 
     /// <summary>
@@ -558,6 +576,16 @@ public class TradingFeedbackService : BackgroundService
         }
         
         return summary;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _processingTimer?.Dispose();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 }
 
