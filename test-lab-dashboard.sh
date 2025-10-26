@@ -1,10 +1,10 @@
 #!/bin/bash
-# Test Lab Mode Dashboard - Verify console logging is suppressed and file logging works
+# Test Lab Mode Dashboard - Verify stable dashboard with inline alerts
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════════╗"
-echo "║        Lab Mode Dashboard Console Logging Test                  ║"
+echo "║        Lab Mode Dashboard Test                                   ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -25,22 +25,19 @@ echo "✅ Build succeeded"
 echo ""
 
 echo "╔══════════════════════════════════════════════════════════════════╗"
-echo "║  Lab Mode will write logs to a file for monitoring              ║"
+echo "║  Lab Mode Dashboard - Single Terminal View                      ║"
 echo "╠══════════════════════════════════════════════════════════════════╣"
 echo "║                                                                  ║"
-echo "║  📝 Training logs: logs/lab-training-*.log                      ║"
-echo "║                                                                  ║"
-echo "║  💡 To monitor training progress, open another terminal and:    ║"
-echo "║     tail -f logs/lab-training-*.log                             ║"
-echo "║                                                                  ║"
-echo "║  Dashboard will update in place (main terminal)                 ║"
-echo "║  Training logs will stream to file (second terminal)            ║"
+echo "║  ✅ Dashboard shows training progress                           ║"
+echo "║  ✅ Critical errors/warnings appear in Alerts section           ║"
+echo "║  ✅ No log spam - clean, stable display                         ║"
+echo "║  ✅ Diagnostic logs saved to logs/lab-training-*.log            ║"
 echo "║                                                                  ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Run for 10 seconds to verify console logging behavior
-echo "🧪 Starting Lab Mode (will run for 10 seconds to test)..."
+# Run for 10 seconds to verify dashboard behavior
+echo "🧪 Starting Lab Mode (will run for 10 seconds)..."
 echo ""
 
 # Run with timeout
@@ -52,10 +49,8 @@ echo "╔═══════════════════════�
 echo "║                    Test Complete                                 ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "✅ Dashboard should have updated in place without scrolling"
-echo "📝 Training logs should be in logs/lab-training-*.log"
-echo ""
-echo "💡 View the log file:"
-echo "   ls -lh logs/lab-training-*.log"
-echo "   tail -20 logs/lab-training-*.log"
+echo "✅ Dashboard should update in place without scrolling"
+echo "✅ Only critical alerts shown inline (no spam)"
+echo "📝 Full logs available in logs/lab-training-*.log if needed"
+
 

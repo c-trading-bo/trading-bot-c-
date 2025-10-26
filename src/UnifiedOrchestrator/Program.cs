@@ -689,13 +689,18 @@ Please check the configuration and ensure all required services are registered.
                 else
                 {
                     // Lab Mode: Console logging disabled - dashboard uses direct Console.Write with ANSI codes
-                    // Add file logging so users can tail logs to see training progress
+                    // Add file logging for diagnostics (user doesn't need to monitor this)
                     var logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", $"lab-training-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
                     Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
                     
                     logging.AddProvider(new SimpleFileLoggerProvider(logFilePath));
-                    Console.WriteLine($"📝 [LAB-MODE] Training logs are being written to: {logFilePath}");
-                    Console.WriteLine($"💡 [LAB-MODE] Run 'tail -f {logFilePath}' in another terminal to see training progress");
+                    
+                    // Filter out TopstepX/API errors in Lab Mode (doesn't need API connection)
+                    logging.AddFilter("TopstepX", LogLevel.None);
+                    logging.AddFilter("TopstepXAdapterService", LogLevel.None);
+                    logging.AddFilter("TopstepXWebSocketClient", LogLevel.None);
+                    logging.AddFilter("TopstepXHttpClient", LogLevel.None);
+                    logging.AddFilter("OrderExecutionService", LogLevel.None);
                 }
                 
                 logging.SetMinimumLevel(LogLevel.Information);
