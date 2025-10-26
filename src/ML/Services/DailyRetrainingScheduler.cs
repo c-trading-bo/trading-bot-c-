@@ -81,6 +81,8 @@ public class DailyRetrainingScheduler : BackgroundService, IDailyRetrainingSched
         if (!_enabled)
         {
             _logger.LogInformation("Daily retraining is disabled, scheduler will not run");
+            // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             return;
         }
 

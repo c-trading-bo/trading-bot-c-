@@ -38,6 +38,8 @@ public sealed class ZoneFeaturePublisher : BackgroundService
         if (_bus == null)
         {
             LogNoBusConfigured(_log, null);
+            // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             return;
         }
 

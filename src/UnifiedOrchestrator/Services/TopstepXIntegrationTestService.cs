@@ -37,6 +37,8 @@ internal class TopstepXIntegrationTestService : BackgroundService
         if (!_runTests)
         {
             _logger.LogInformation("TopstepX integration tests disabled. Set RUN_TOPSTEPX_TESTS=true to enable.");
+            // FIXED: Wait indefinitely instead of returning to prevent shutdown signal
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             return;
         }
 
