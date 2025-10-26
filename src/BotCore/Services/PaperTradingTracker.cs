@@ -340,7 +340,10 @@ public class PaperTradingTracker : IHostedService, IDisposable
     {
         if (!_disposed)
         {
+            // No unmanaged resources to dispose
+            // Collections will be garbage collected
             _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }
