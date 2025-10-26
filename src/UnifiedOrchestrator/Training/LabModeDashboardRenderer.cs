@@ -28,9 +28,11 @@ public sealed class LabModeDashboardRenderer
     {
         var output = new StringBuilder();
 
-        // Clear screen and move cursor to top-left (ANSI escape codes)
-        output.Append("\x1b[2J");  // Clear entire screen
+        // Move cursor to top-left and clear screen (ANSI escape codes)
+        // Using \x1b[H first, then clear to avoid flicker
         output.Append("\x1b[H");   // Move cursor to home position (0,0)
+        output.Append("\x1b[2J");  // Clear entire screen
+        output.Append("\x1b[3J");  // Clear scrollback buffer (prevents scrolling)
 
         // Header
         RenderHeader(output, state);
@@ -388,6 +390,7 @@ public sealed class LabModeDashboardRenderer
         }
         else
         {
+            // Take up to 5 alerts, render each on a single line
             foreach (var alert in alerts.Take(5))
             {
                 var icon = alert.Level switch
@@ -399,21 +402,18 @@ public sealed class LabModeDashboardRenderer
                 };
                 
                 var timeStr = alert.Timestamp.ToOffset(TimeSpan.FromHours(-5)).ToString("HH:mm");
-                var levelStr = alert.Level.ToString().ToUpper();
-                var sourceStr = alert.Source.Length > 20 ? alert.Source.Substring(0, 17) + "..." : alert.Source;
+                var levelStr = alert.Level.ToString().ToUpper().PadRight(8);
+                var sourceStr = alert.Source.Length > 15 ? alert.Source.Substring(0, 12) + "..." : alert.Source.PadRight(15);
                 
-                // First line: icon, level, source, time
-                output.AppendLine($"│ {icon} {levelStr,-8} [{timeStr}] {sourceStr,-40}│");
-                
-                // Second line: message (wrapped if needed)
-                var message = alert.Message.Length > 75 ? alert.Message.Substring(0, 72) + "..." : alert.Message;
-                output.AppendLine($"│    {message,-76} │");
-                
-                // Blank line between alerts if there are multiple
-                if (alerts.Count > 1 && alert != alerts.Last())
-                {
-                    output.AppendLine("│                                                                                 │");
-                }
+                // Single line format: icon level [time] source: message
+                var message = alert.Message.Length > 40 ? alert.Message.Substring(0, 37) + "..." : alert.Message;
+                output.AppendLine($"│ {icon} {levelStr} [{timeStr}] {sourceStr}: {message,-40} │");
+            }
+            
+            // Fill remaining lines to keep dashboard stable (always show 5 alert slots)
+            for (int i = alerts.Count; i < 5; i++)
+            {
+                output.AppendLine("│                                                                                 │");
             }
         }
         
