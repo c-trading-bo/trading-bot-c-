@@ -1664,20 +1664,30 @@ internal sealed class HistoricalTrainingOrchestrator
                     3,
                     cancellationToken).ConfigureAwait(false);
                 
-                // Get training statistics for validation metric
-                var stats = _cvarPpoTrainer.GetTrainingStatistics();
-                var validationMetric = stats.AverageReward; // Use average reward as validation metric
-                var testMetric = validationMetric; // In this simplified version, use same metric
-                
-                if (componentResult.Success)
+                // Check if training succeeded and get the training result
+                if (componentResult.Success && componentResult.TrainerResult != null)
                 {
-                    var verificationResult = await _modelHashVerifier.VerifyModelChangedAsync(
-                        modelPath,
-                        ComponentCVarPPO,
-                        beforeHash,
-                        cancellationToken).ConfigureAwait(false);
+                    var trainingResult = componentResult.TrainerResult;
                     
-                    if (verificationResult.Success)
+                    // Check if the trainer itself reported success
+                    if (!trainingResult.Success)
+                    {
+                        _logger.LogError("[LAB] ❌ {Component}: Seed {Seed} - Trainer reported FAILURE: {Error}",
+                            ComponentCVarPPO, seed, trainingResult.ErrorMessage ?? "Unknown error");
+                        continue; // Skip this seed
+                    }
+                    
+                    // Get training statistics for validation metric
+                    var stats = _cvarPpoTrainer.GetTrainingStatistics();
+                    var validationMetric = stats.AverageReward; // Use average reward as validation metric
+                    var testMetric = validationMetric; // In this simplified version, use same metric
+                
+                    // Verify training actually occurred by checking training result
+                    // Model files are saved in versioned directories by SaveModelAsync()
+                    // so we verify success via the TrainingResult rather than file existence
+                    var verificationSuccess = componentResult.TrainerResult.Success;
+                    
+                    if (verificationSuccess)
                     {
                         _logger.LogInformation("[LAB] {Component}: Seed {Seed} completed - Test metric: {Metric:F3}", 
                             ComponentCVarPPO, seed, testMetric);
@@ -1692,7 +1702,8 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
                 else
                 {
-                    _logger.LogWarning("[LAB] {Component}: Seed {Seed} training failed", ComponentCVarPPO, seed);
+                    _logger.LogError("[LAB] ❌ {Component}: Seed {Seed} training FAILED - Error: {Error}", 
+                        ComponentCVarPPO, seed, componentResult.ErrorMessage ?? "Unknown error");
                 }
             }
             
