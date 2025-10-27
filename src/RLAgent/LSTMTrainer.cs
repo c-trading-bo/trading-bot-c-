@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -24,19 +27,33 @@ public class LSTMTrainer
     private readonly int _hiddenSize;
     private readonly int _numLayers;
     private readonly double _learningRate;
+    private readonly string _modelBasePath;
+    
+    private LSTMNetwork? _network;
+    private string _currentModelVersion = "1.0.0";
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     
     public LSTMTrainer(
         ILogger<LSTMTrainer> logger,
         int sequenceLength = 50,
         int hiddenSize = 128,
         int numLayers = 2,
-        double learningRate = 0.001)
+        double learningRate = 0.001,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _sequenceLength = sequenceLength;
         _hiddenSize = hiddenSize;
         _numLayers = numLayers;
         _learningRate = learningRate;
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "lstm");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("LSTMTrainer initialized (Lab mode) - SeqLen: {SeqLen}, Hidden: {Hidden}, Layers: {Layers}, LR: {LR}",
             _sequenceLength, _hiddenSize, _numLayers, _learningRate);
@@ -185,9 +202,9 @@ public class LSTMTrainer
         const int inputSize = 4; // OHLC features per bar
         const int outputSize = 1; // Binary direction prediction
         
-        // Create LSTM network
-        using var network = new LSTMNetwork(inputSize, _hiddenSize, _numLayers, outputSize);
-        using var optimizer = optim.Adam(network.parameters(), lr: _learningRate);
+        // Create LSTM network (store as instance variable for saving)
+        _network = new LSTMNetwork(inputSize, _hiddenSize, _numLayers, outputSize);
+        using var optimizer = optim.Adam(_network.parameters(), lr: _learningRate);
         
         double currentLoss = 1.0;
         double totalAccuracy = 0.0;
@@ -237,7 +254,7 @@ public class LSTMTrainer
                 
                 // Forward pass
                 optimizer.zero_grad();
-                using var output = network.forward(inputTensor);
+                using var output = _network.forward(inputTensor);
                 using var loss = functional.mse_loss(output, targetTensor);
                 
                 // Backward pass
@@ -433,6 +450,107 @@ public class LSTMTrainer
         }
         return result;
     }
+    
+    /// <summary>
+    /// Save trained LSTM model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (_network == null)
+            {
+                throw new InvalidOperationException("Cannot save model: network has not been trained yet");
+            }
+
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"lstm_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save network
+            await _network.SaveAsync(Path.Combine(modelPath, "network.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new LSTMMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                SequenceLength = _sequenceLength,
+                HiddenSize = _hiddenSize,
+                NumLayers = _numLayers,
+                LearningRate = _learningRate
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("LSTMTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LSTMTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained LSTM model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var networkPath = Path.Combine(modelPath, "network.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(networkPath) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("LSTMTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<LSTMMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("LSTMTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Create new network with loaded parameters
+            const int inputSize = 4; // OHLC features per bar
+            const int outputSize = 1; // Binary direction prediction
+            _network = new LSTMNetwork(inputSize, metadata.HiddenSize, metadata.NumLayers, outputSize);
+            _network.load(networkPath);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("LSTMTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LSTMTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
+    }
 }
 
 /// <summary>
@@ -485,6 +603,12 @@ internal class LSTMNetwork : Module<Tensor, Tensor>
         }
     }
     
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
+    }
+    
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -535,4 +659,17 @@ internal class LSTMTrainingMetrics
     public double FinalLoss { get; set; }
     public double AverageAccuracy { get; set; }
     public int Epochs { get; set; }
+}
+
+/// <summary>
+/// LSTM model metadata for persistence
+/// </summary>
+internal class LSTMMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int SequenceLength { get; set; }
+    public int HiddenSize { get; set; }
+    public int NumLayers { get; set; }
+    public double LearningRate { get; set; }
 }
