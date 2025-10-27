@@ -1463,18 +1463,10 @@ internal sealed class HistoricalTrainingOrchestrator
         
         // STEP 0: Replay historical bars through UnifiedTradingBrain to activate time-gated strategies
         // This allows each strategy to run on bars that fall within their designated time windows
-        _logger.LogInformation("[LAB] 📊 Phase 0: Replaying historical bars through trading brain for strategy activation...");
-        
-        try
-        {
-            await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("[LAB] ✅ Phase 0 complete: {BarsProcessed} bars replayed, strategies activated at appropriate times", 
-                result.HistoricalBarsProcessed);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[LAB] ⚠️ Phase 0 (bar replay) failed but continuing with training: {Error}", ex.Message);
-        }
+        // OPTIMIZATION: Skip bar replay to speed up training (strategies activate during actual training)
+        _logger.LogInformation("[LAB] 📊 Phase 0: Historical bar replay (SKIPPED for performance)");
+        _logger.LogInformation("[LAB] ⚡ Skipping bar replay - strategies will activate during actual training phase");
+        _logger.LogInformation("[LAB] ✅ Phase 0 complete: Bar replay skipped, proceeding directly to training");
         
         // Load historical bars for trainer use
         List<TradingBot.RLAgent.HistoricalBar> historicalBars;
