@@ -175,7 +175,7 @@ To verify the fix works:
 
 ## Future Work
 
-To reach 25/25 (100%) success rate, implement the 3 pending trainers:
+To reach 25/25 (100%) success rate, complete the implementation of the 3 pending trainers listed below:
 
 1. **MetaLearner.MetaTrainAsync**
    - Implement MAML (Model-Agnostic Meta-Learning)
