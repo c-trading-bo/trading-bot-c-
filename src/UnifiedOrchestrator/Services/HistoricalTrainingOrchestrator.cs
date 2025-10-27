@@ -1682,12 +1682,10 @@ internal sealed class HistoricalTrainingOrchestrator
                     var validationMetric = stats.AverageReward; // Use average reward as validation metric
                     var testMetric = validationMetric; // In this simplified version, use same metric
                 
-                    // WORKAROUND: Model file verification is temporarily relaxed since CVaRPPOTrainer
-                    // saves models in a different format (JSON in versioned directories) than what
-                    // the verifier expects (ONNX at seed-specific paths). Training is confirmed working
-                    // by the TrainingResult.Success flag and decreasing loss values.
-                    // TODO: Implement proper ONNX export in CVaRPPOTrainer or update verification to match actual format
-                    var verificationSuccess = true; // Trust training result instead of file verification
+                    // Verify training actually occurred by checking training result
+                    // Model files are saved in versioned directories by SaveModelAsync()
+                    // so we verify success via the TrainingResult rather than file existence
+                    var verificationSuccess = componentResult.TrainerResult.Success;
                     
                     if (verificationSuccess)
                     {
