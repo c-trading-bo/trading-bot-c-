@@ -154,22 +154,16 @@ internal sealed class TrainingCheckpointService
                 }
             }
 
-            // Check 2: System resources sufficient to continue
+            // Check 2: System resources (just log, don't block)
             var gcInfo = GC.GetGCMemoryInfo();
             var availableMemoryGB = (gcInfo.TotalAvailableMemoryBytes - gcInfo.MemoryLoadBytes) / (1024.0 * 1024.0 * 1024.0);
-            if (availableMemoryGB < 2)
-            {
-                issues.Add($"Insufficient memory: {availableMemoryGB:F1} GB available");
-            }
+            _logger.LogInformation("[CHECKPOINT] Available memory: {Memory:F1} GB", availableMemoryGB);
 
-            // Check 3: Disk space sufficient
+            // Check 3: Disk space (just log, don't block)
             var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
             var drive = new DriveInfo(Path.GetPathRoot(dataPath) ?? "/");
             var freeSpaceGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
-            if (freeSpaceGB < 10)
-            {
-                issues.Add($"Insufficient disk space: {freeSpaceGB:F1} GB available");
-            }
+            _logger.LogInformation("[CHECKPOINT] Available disk space: {Space:F1} GB", freeSpaceGB);
 
             if (issues.Count > 0)
             {

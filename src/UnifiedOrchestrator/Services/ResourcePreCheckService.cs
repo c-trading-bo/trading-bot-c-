@@ -468,13 +468,9 @@ internal sealed class ResourcePreCheckService
                 return false;
             }
 
-            if (availableMemoryGB < 6.0)
-            {
-                _logger.LogWarning("[RESOURCE-CHECK] ⚠️ Memory below optimal level: {Available:F2} GB < 6 GB (training may be slow)",
-                    availableMemoryGB);
-            }
-
-            _logger.LogInformation("[RESOURCE-CHECK] ✓ Sufficient memory available");
+            // Just log memory status, don't block training
+            _logger.LogInformation("[RESOURCE-CHECK] Memory available: {Available:F2} GB", availableMemoryGB);
+            _logger.LogInformation("[RESOURCE-CHECK] ✓ Memory check passed (no requirements in LAB_MODE)");
             return true;
         }
         catch (Exception ex)

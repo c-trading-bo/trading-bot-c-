@@ -7,6 +7,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 # Set environment variables to force immediate training
 $env:LAB_MODE = "1"
 $env:FORCE_LAB_NOW = "1"
+$env:FORCE_STRATEGY_EVAL_LAB = "1"  # 🚀 NEW: Force S6/S11 evaluation during training
 $env:HISTORICAL_MODE = "0"
 $env:DRY_RUN = "1"
 $env:SKIP_MODE_PROMPT = "1"  # Skip interactive mode selection
@@ -14,6 +15,7 @@ $env:SKIP_MODE_PROMPT = "1"  # Skip interactive mode selection
 Write-Host "`n✅ Environment configured:" -ForegroundColor Green
 Write-Host "   LAB_MODE = 1" -ForegroundColor Gray
 Write-Host "   FORCE_LAB_NOW = 1 (bypasses Sunday schedule)" -ForegroundColor Yellow
+Write-Host "   FORCE_STRATEGY_EVAL_LAB = 1 (S6/S11 learn on all data)" -ForegroundColor Cyan
 Write-Host "   SKIP_MODE_PROMPT = 1 (no menu - goes straight to training)" -ForegroundColor Yellow
 Write-Host "   HISTORICAL_MODE = 0" -ForegroundColor Gray
 Write-Host "   DRY_RUN = 1" -ForegroundColor Gray
