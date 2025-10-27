@@ -422,19 +422,6 @@ internal sealed class TrainingFailureHandler
 }
 
 /// <summary>
-/// Component training result returned from retry handler
-/// </summary>
-public class ComponentTrainingResult
-{
-    public string ComponentId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
-    public string? FailureType { get; set; }
-    public int RetryCount { get; set; }
-    public TimeSpan Duration { get; set; }
-}
-
-/// <summary>
 /// Generic component training result that captures trainer-specific result
 /// </summary>
 /// <typeparam name="T">Type of training result from the trainer</typeparam>
