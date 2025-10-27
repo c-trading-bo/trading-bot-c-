@@ -1664,13 +1664,24 @@ internal sealed class HistoricalTrainingOrchestrator
                     3,
                     cancellationToken).ConfigureAwait(false);
                 
-                // Get training statistics for validation metric
-                var stats = _cvarPpoTrainer.GetTrainingStatistics();
-                var validationMetric = stats.AverageReward; // Use average reward as validation metric
-                var testMetric = validationMetric; // In this simplified version, use same metric
-                
-                if (componentResult.Success)
+                // Check if training succeeded and get the training result
+                if (componentResult.Success && componentResult.TrainerResult != null)
                 {
+                    var trainingResult = componentResult.TrainerResult;
+                    
+                    // Check if the trainer itself reported success
+                    if (!trainingResult.Success)
+                    {
+                        _logger.LogError("[LAB] ❌ {Component}: Seed {Seed} - Trainer reported FAILURE: {Error}",
+                            ComponentCVarPPO, seed, trainingResult.ErrorMessage ?? "Unknown error");
+                        continue; // Skip this seed
+                    }
+                    
+                    // Get training statistics for validation metric
+                    var stats = _cvarPpoTrainer.GetTrainingStatistics();
+                    var validationMetric = stats.AverageReward; // Use average reward as validation metric
+                    var testMetric = validationMetric; // In this simplified version, use same metric
+                
                     var verificationResult = await _modelHashVerifier.VerifyModelChangedAsync(
                         modelPath,
                         ComponentCVarPPO,
@@ -1692,7 +1703,8 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
                 else
                 {
-                    _logger.LogWarning("[LAB] {Component}: Seed {Seed} training failed", ComponentCVarPPO, seed);
+                    _logger.LogError("[LAB] ❌ {Component}: Seed {Seed} training FAILED - Error: {Error}", 
+                        ComponentCVarPPO, seed, componentResult.ErrorMessage ?? "Unknown error");
                 }
             }
             

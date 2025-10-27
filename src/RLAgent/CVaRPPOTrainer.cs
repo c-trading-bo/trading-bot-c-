@@ -99,6 +99,16 @@ public class CVaRPPOTrainer
         var startTime = DateTime.UtcNow;
         var result = CreateInitialTrainingResult(startTime);
 
+        // CRITICAL FIX: Check if neural networks are initialized
+        if (_policyNetwork == null || _valueNetwork == null || _cvarNetwork == null)
+        {
+            _logger.LogError("❌ CVaRPPOTrainer: Neural networks not initialized. TorchSharp may not be available.");
+            result.Success = false;
+            result.ErrorMessage = "Neural networks not initialized - TorchSharp dependency missing or failed to load";
+            result.EndTime = DateTime.UtcNow;
+            return result;
+        }
+
         // Check if we have enough experiences
         if (experiences.Length < _config.MinExperiencesForTraining)
         {
@@ -109,14 +119,24 @@ public class CVaRPPOTrainer
 
         var experiencesList = new List<Experience>(experiences);
         
-        // Perform training iterations
-        PerformTrainingIteration(experiencesList, result, progressCallback);
+        try
+        {
+            // Perform training iterations
+            PerformTrainingIteration(experiencesList, result, progressCallback);
 
-        // Finalize result
-        await FinalizeTrainingResultAsync(experiencesList, result, cancellationToken).ConfigureAwait(false);
+            // Finalize result
+            await FinalizeTrainingResultAsync(experiencesList, result, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("✅ CVaRPPOTrainer completed training - Episode: {Episode}, AvgReward: {AvgReward:F4}, TotalLoss: {TotalLoss:F4}",
-            result.Episode, result.AverageReward, result.TotalLoss);
+            _logger.LogInformation("✅ CVaRPPOTrainer completed training - Episode: {Episode}, AvgReward: {AvgReward:F4}, TotalLoss: {TotalLoss:F4}",
+                result.Episode, result.AverageReward, result.TotalLoss);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ CVaRPPOTrainer: Training failed with exception");
+            result.Success = false;
+            result.ErrorMessage = $"Training failed: {ex.Message}";
+            result.EndTime = DateTime.UtcNow;
+        }
 
         return result;
     }
@@ -138,6 +158,16 @@ public class CVaRPPOTrainer
         var startTime = DateTime.UtcNow;
         var result = CreateInitialTrainingResult(startTime);
 
+        // CRITICAL FIX: Check if neural networks are initialized
+        if (_policyNetwork == null || _valueNetwork == null || _cvarNetwork == null)
+        {
+            _logger.LogError("❌ CVaRPPOTrainer: Neural networks not initialized. TorchSharp may not be available.");
+            result.Success = false;
+            result.ErrorMessage = "Neural networks not initialized - TorchSharp dependency missing or failed to load";
+            result.EndTime = DateTime.UtcNow;
+            return result;
+        }
+
         // Check if we have enough experiences
         if (experienceBuffer.Count < _config.MinExperiencesForTraining)
         {
@@ -153,14 +183,24 @@ public class CVaRPPOTrainer
             return result;
         }
 
-        // Perform training iterations
-        PerformTrainingIteration(experiences, result, progressCallback);
+        try
+        {
+            // Perform training iterations
+            PerformTrainingIteration(experiences, result, progressCallback);
 
-        // Finalize result
-        await FinalizeTrainingResultAsync(experiences, result, cancellationToken).ConfigureAwait(false);
+            // Finalize result
+            await FinalizeTrainingResultAsync(experiences, result, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("CVaRPPOTrainer completed training - Episode: {Episode}, AvgReward: {AvgReward:F4}, TotalLoss: {TotalLoss:F4}",
-            result.Episode, result.AverageReward, result.TotalLoss);
+            _logger.LogInformation("CVaRPPOTrainer completed training - Episode: {Episode}, AvgReward: {AvgReward:F4}, TotalLoss: {TotalLoss:F4}",
+                result.Episode, result.AverageReward, result.TotalLoss);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ CVaRPPOTrainer: Training failed with exception");
+            result.Success = false;
+            result.ErrorMessage = $"Training failed: {ex.Message}";
+            result.EndTime = DateTime.UtcNow;
+        }
 
         return result;
     }

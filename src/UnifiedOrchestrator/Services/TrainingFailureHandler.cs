@@ -212,6 +212,102 @@ internal sealed class TrainingFailureHandler
     }
 
     /// <summary>
+    /// Retry component training with backoff strategy - Generic result version
+    /// Captures and returns the training result from the trainer
+    /// </summary>
+    public async Task<ComponentTrainingResult<T>> RetryComponentTrainingAsync<T>(
+        string componentId,
+        Func<CancellationToken, Task<T>> trainingFunc,
+        int maxAttempts,
+        CancellationToken cancellationToken)
+    {
+        var result = new ComponentTrainingResult<T>
+        {
+            ComponentId = componentId,
+            Success = false
+        };
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                _logger.LogInformation("[RETRY] Component {Component}: Attempt {Attempt}/{Max}",
+                    componentId, attempt, maxAttempts);
+
+                var startTime = DateTime.UtcNow;
+                var trainerResult = await trainingFunc(cancellationToken).ConfigureAwait(false);
+                var duration = DateTime.UtcNow - startTime;
+
+                result.TrainerResult = trainerResult;
+                result.Success = true;
+                result.Duration = duration;
+                result.RetryCount = attempt - 1;
+                
+                if (attempt > 1)
+                {
+                    _logger.LogInformation("[RETRY] Component {Component}: SUCCESS after {Retries} retries",
+                        componentId, attempt - 1);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                var failureType = ClassifyFailure(ex);
+                result.ErrorMessage = ex.Message;
+                result.FailureType = failureType;
+                result.RetryCount = attempt;
+
+                _logger.LogWarning("[RETRY] Component {Component}: Attempt {Attempt} FAILED - {Type}: {Error}",
+                    componentId, attempt, failureType, ex.Message);
+
+                // Check if we should retry based on failure type
+                if (failureType.StartsWith("Permanent_"))
+                {
+                    _logger.LogError("[RETRY] Permanent failure detected - no retry");
+                    return result;
+                }
+
+                if (failureType.StartsWith("Resource_"))
+                {
+                    _logger.LogError("[RETRY] Resource failure detected - skipping component");
+                    return result;
+                }
+
+                // Transient failure - apply backoff before retry
+                if (attempt < maxAttempts)
+                {
+                    var backoffSeconds = attempt switch
+                    {
+                        1 => 0,    // Immediate retry
+                        2 => 30,   // Wait 30 seconds, force GC
+                        _ => 60    // Wait 60 seconds
+                    };
+
+                    if (backoffSeconds > 0)
+                    {
+                        _logger.LogInformation("[RETRY] Waiting {Seconds}s before retry...", backoffSeconds);
+                        
+                        if (attempt == 2)
+                        {
+                            // Attempt 2: Force full GC
+                            _logger.LogDebug("[RETRY] Forcing full garbage collection");
+                            GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+                        }
+
+                        await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+
+        _logger.LogError("[RETRY] Component {Component}: FAILED after {Attempts} attempts",
+            componentId, maxAttempts);
+        
+        return result;
+    }
+
+    /// <summary>
     /// Check if training session should be aborted
     /// Phase 13.6: Critical Failure Abort Logic
     /// </summary>
@@ -323,4 +419,32 @@ internal sealed class TrainingFailureHandler
         var remainingComponents = state.TotalComponents - state.ComponentsCompleted.Count - state.ComponentsFailed.Count;
         return remainingComponents * avgComponentMinutes;
     }
+}
+
+/// <summary>
+/// Component training result returned from retry handler
+/// </summary>
+public class ComponentTrainingResult
+{
+    public string ComponentId { get; set; } = string.Empty;
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? FailureType { get; set; }
+    public int RetryCount { get; set; }
+    public TimeSpan Duration { get; set; }
+}
+
+/// <summary>
+/// Generic component training result that captures trainer-specific result
+/// </summary>
+/// <typeparam name="T">Type of training result from the trainer</typeparam>
+public class ComponentTrainingResult<T>
+{
+    public string ComponentId { get; set; } = string.Empty;
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? FailureType { get; set; }
+    public int RetryCount { get; set; }
+    public TimeSpan Duration { get; set; }
+    public T? TrainerResult { get; set; }
 }
