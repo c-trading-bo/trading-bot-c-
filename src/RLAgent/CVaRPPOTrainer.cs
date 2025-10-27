@@ -360,8 +360,18 @@ public class CVaRPPOTrainer
         result.EndTime = DateTime.UtcNow;
         _lastTrainingTime = result.EndTime.Value;
         
-        // Save checkpoint if performance improved
-        await SaveCheckpointIfImproved(result, cancellationToken).ConfigureAwait(false);
+        // ALWAYS save model after training (not just when performance improves)
+        // This ensures the orchestrator can verify training occurred
+        try
+        {
+            var fullModelPath = await SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("[CVaR-PPO] Model saved after training to: {Path}", fullModelPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CVaR-PPO] Failed to save model, but training completed successfully");
+            // Don't fail the whole training just because model save failed
+        }
     }
 
     /// <summary>
