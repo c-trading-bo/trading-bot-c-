@@ -1256,6 +1256,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.MtfStructureResolver>();
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.OfiProxyResolver>();
         
+        // BACKTEST PARITY: Register Zone and Pattern bar feature resolvers
+        // Ensures ZoneService and PatternEngine receive bars during historical backtesting
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.ZoneBarFeatureResolver>();
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.PatternBarFeatureResolver>();
+        
         // Register feature publisher hosted service for automated feature publishing
         services.AddHostedService<global::BotCore.Features.FeaturePublisher>();
         

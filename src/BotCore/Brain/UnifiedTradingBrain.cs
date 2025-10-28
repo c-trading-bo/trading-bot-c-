@@ -198,6 +198,8 @@ namespace BotCore.Brain
         private readonly BotCore.Services.SafeHoldDecisionPolicy? _safeHoldPolicy; // Optional zone gate filtering
         private readonly BotCore.Brain.MultiTimeframeBrainAdapter? _mtfAdapter; // Optional multi-timeframe feature integration
         private readonly TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? _mtfLearning; // Optional multi-timeframe online learning
+        private readonly Zones.IZoneService? _zoneService; // Optional zone service for supply/demand analysis
+        private readonly BotCore.Patterns.PatternEngine? _patternEngine; // Optional pattern engine for candlestick patterns
         
         // Latest market data for risk analysis (updated in MakeIntelligentDecisionAsync)
         private Env? _latestEnv;
@@ -1164,7 +1166,9 @@ namespace BotCore.Brain
             TradingBot.Abstractions.IS7Service? s7Service = null,
             BotCore.Services.SafeHoldDecisionPolicy? safeHoldPolicy = null,
             BotCore.Brain.MultiTimeframeBrainAdapter? mtfAdapter = null,
-            TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null)
+            TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null,
+            Zones.IZoneService? zoneService = null,
+            BotCore.Patterns.PatternEngine? patternEngine = null)
         {
             _logger = logger;
             _memoryManager = memoryManager;
@@ -1184,6 +1188,8 @@ namespace BotCore.Brain
             _safeHoldPolicy = safeHoldPolicy; // Optional zone gate filtering
             _mtfAdapter = mtfAdapter; // Optional multi-timeframe features
             _mtfLearning = mtfLearning; // Optional multi-timeframe online learning
+            _zoneService = zoneService; // Optional zone service for supply/demand analysis
+            _patternEngine = patternEngine; // Optional pattern engine for candlestick patterns
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
@@ -3265,6 +3271,85 @@ Reason closed: {reason}
             // Start with single-timeframe context
             var context = CreateMarketContext(symbol, env, bars);
             
+            // BACKTEST PARITY: Add zone features if ZoneService is available
+            if (_zoneService != null)
+            {
+                try
+                {
+                    var zoneSnapshot = _zoneService.GetSnapshot(symbol);
+                    
+                    // Update context with zone analysis
+                    context.Features["zone.distance_to_supply"] = (decimal)zoneSnapshot.DistanceToNearestSupply;
+                    context.Features["zone.distance_to_demand"] = (decimal)zoneSnapshot.DistanceToNearestDemand;
+                    context.Features["zone.supply_count"] = zoneSnapshot.ActiveSupplyCount;
+                    context.Features["zone.demand_count"] = zoneSnapshot.ActiveDemandCount;
+                    context.Features["zone.net_pressure"] = (decimal)zoneSnapshot.NetPressure;
+                    context.Features["zone.in_supply"] = zoneSnapshot.InSupplyZone ? 1.0m : 0.0m;
+                    context.Features["zone.in_demand"] = zoneSnapshot.InDemandZone ? 1.0m : 0.0m;
+                    
+                    if (zoneSnapshot.ActiveSupplyCount > 0)
+                    {
+                        context.Features["zone.avg_supply_strength"] = (decimal)zoneSnapshot.AvgSupplyStrength;
+                    }
+                    if (zoneSnapshot.ActiveDemandCount > 0)
+                    {
+                        context.Features["zone.avg_demand_strength"] = (decimal)zoneSnapshot.AvgDemandStrength;
+                    }
+                    
+                    // Update support/resistance distances in main context
+                    context.DistanceToResistance = (decimal)zoneSnapshot.DistanceToNearestSupply;
+                    context.DistanceToSupport = (decimal)zoneSnapshot.DistanceToNearestDemand;
+                    
+                    _logger.LogTrace(
+                        "[ZONE-CONTEXT] {Symbol}: Supply zones={Supply}, Demand zones={Demand}, Pressure={Pressure:F3}",
+                        symbol, zoneSnapshot.ActiveSupplyCount, zoneSnapshot.ActiveDemandCount, zoneSnapshot.NetPressure);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, 
+                        "[ZONE-CONTEXT] Failed to get zone features for {Symbol}, continuing without zone data", 
+                        symbol);
+                }
+            }
+            
+            // BACKTEST PARITY: Add pattern features if PatternEngine is available
+            if (_patternEngine != null && bars.Count >= 3)
+            {
+                try
+                {
+                    var patternScores = _patternEngine.GetScores(symbol, bars);
+                    
+                    // Update context with pattern analysis
+                    context.Features["pattern.bull_score"] = (decimal)patternScores.BullScore;
+                    context.Features["pattern.bear_score"] = (decimal)patternScores.BearScore;
+                    context.Features["pattern.overall_bias"] = (decimal)patternScores.OverallBias;
+                    context.Features["pattern.confidence"] = (decimal)patternScores.Confidence;
+                    context.Features["pattern.reversal_signal"] = (decimal)patternScores.ReversalSignal;
+                    
+                    if (patternScores.ActivePatterns != null && patternScores.ActivePatterns.Count > 0)
+                    {
+                        context.Features["pattern.active_count"] = patternScores.ActivePatterns.Count;
+                        
+                        // Add individual pattern indicators
+                        foreach (var pattern in patternScores.ActivePatterns)
+                        {
+                            context.Features[$"pattern.active::{pattern}"] = 1.0m;
+                        }
+                    }
+                    
+                    _logger.LogTrace(
+                        "[PATTERN-CONTEXT] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}, Active={Count}",
+                        symbol, patternScores.BullScore, patternScores.BearScore, 
+                        patternScores.ActivePatterns?.Count ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, 
+                        "[PATTERN-CONTEXT] Failed to get pattern features for {Symbol}, continuing without pattern data", 
+                        symbol);
+                }
+            }
+            
             // Enhance with multi-timeframe features if adapter is available
             if (_mtfAdapter != null)
             {
@@ -3337,8 +3422,8 @@ Reason closed: {reason}
                 PriceChange = priceChange,
                 RSI = rsi,
                 TrendStrength = trendStrength,
-                DistanceToSupport = 0m, // levels.Support doesn't exist, using default
-                DistanceToResistance = 0m, // levels.Resistance doesn't exist, using default
+                DistanceToSupport = 0m, // Will be filled by zone analysis if available
+                DistanceToResistance = 0m, // Will be filled by zone analysis if available
                 VolatilityRank = volatilityRank,
                 Momentum = momentum,
                 MarketRegime = 0 // Will be filled by regime detector
