@@ -9,6 +9,7 @@ using BotCore.Brain.Models;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using TradingBot.RLAgent; // For CVaRPPO and ActionResult
@@ -3278,31 +3279,19 @@ Reason closed: {reason}
                 {
                     var zoneSnapshot = _zoneService.GetSnapshot(symbol);
                     
-                    // Update context with zone analysis
-                    context.Features["zone.distance_to_supply"] = (decimal)zoneSnapshot.DistanceToNearestSupply;
-                    context.Features["zone.distance_to_demand"] = (decimal)zoneSnapshot.DistanceToNearestDemand;
-                    context.Features["zone.supply_count"] = zoneSnapshot.ActiveSupplyCount;
-                    context.Features["zone.demand_count"] = zoneSnapshot.ActiveDemandCount;
-                    context.Features["zone.net_pressure"] = (decimal)zoneSnapshot.NetPressure;
-                    context.Features["zone.in_supply"] = zoneSnapshot.InSupplyZone ? 1.0m : 0.0m;
-                    context.Features["zone.in_demand"] = zoneSnapshot.InDemandZone ? 1.0m : 0.0m;
+                    // Update context with zone analysis (using actual ZoneSnapshot properties)
+                    context.Features["zone.dist_to_supply_atr"] = (double)zoneSnapshot.DistToSupplyAtr;
+                    context.Features["zone.dist_to_demand_atr"] = (double)zoneSnapshot.DistToDemandAtr;
+                    context.Features["zone.breakout_score"] = (double)zoneSnapshot.BreakoutScore;
+                    context.Features["zone.pressure"] = (double)zoneSnapshot.ZonePressure;
                     
-                    if (zoneSnapshot.ActiveSupplyCount > 0)
-                    {
-                        context.Features["zone.avg_supply_strength"] = (decimal)zoneSnapshot.AvgSupplyStrength;
-                    }
-                    if (zoneSnapshot.ActiveDemandCount > 0)
-                    {
-                        context.Features["zone.avg_demand_strength"] = (decimal)zoneSnapshot.AvgDemandStrength;
-                    }
-                    
-                    // Update support/resistance distances in main context
-                    context.DistanceToResistance = (decimal)zoneSnapshot.DistanceToNearestSupply;
-                    context.DistanceToSupport = (decimal)zoneSnapshot.DistanceToNearestDemand;
+                    // Update support/resistance distances in main context (convert ATR to price distance)
+                    context.DistanceToResistance = (decimal)zoneSnapshot.DistToSupplyAtr * env.atr ?? 0m;
+                    context.DistanceToSupport = (decimal)zoneSnapshot.DistToDemandAtr * env.atr ?? 0m;
                     
                     _logger.LogTrace(
-                        "[ZONE-CONTEXT] {Symbol}: Supply zones={Supply}, Demand zones={Demand}, Pressure={Pressure:F3}",
-                        symbol, zoneSnapshot.ActiveSupplyCount, zoneSnapshot.ActiveDemandCount, zoneSnapshot.NetPressure);
+                        "[ZONE-CONTEXT] {Symbol}: Supply dist={Supply:F2}ATR, Demand dist={Demand:F2}ATR, Pressure={Pressure:F3}",
+                        symbol, zoneSnapshot.DistToSupplyAtr, zoneSnapshot.DistToDemandAtr, zoneSnapshot.ZonePressure);
                 }
                 catch (Exception ex)
                 {
@@ -3317,30 +3306,17 @@ Reason closed: {reason}
             {
                 try
                 {
-                    var patternScores = _patternEngine.GetScores(symbol, bars);
+                    // Convert IList<Bar> to List<Bar> for GetScores
+                    var barsList = bars as List<Bar> ?? bars.ToList();
+                    var patternScores = _patternEngine.GetScores(symbol, barsList);
                     
-                    // Update context with pattern analysis
-                    context.Features["pattern.bull_score"] = (decimal)patternScores.BullScore;
-                    context.Features["pattern.bear_score"] = (decimal)patternScores.BearScore;
-                    context.Features["pattern.overall_bias"] = (decimal)patternScores.OverallBias;
-                    context.Features["pattern.confidence"] = (decimal)patternScores.Confidence;
-                    context.Features["pattern.reversal_signal"] = (decimal)patternScores.ReversalSignal;
-                    
-                    if (patternScores.ActivePatterns != null && patternScores.ActivePatterns.Count > 0)
-                    {
-                        context.Features["pattern.active_count"] = patternScores.ActivePatterns.Count;
-                        
-                        // Add individual pattern indicators
-                        foreach (var pattern in patternScores.ActivePatterns)
-                        {
-                            context.Features[$"pattern.active::{pattern}"] = 1.0m;
-                        }
-                    }
+                    // Update context with pattern analysis (using actual PatternScores properties)
+                    context.Features["pattern.bull_score"] = patternScores.BullScore;
+                    context.Features["pattern.bear_score"] = patternScores.BearScore;
                     
                     _logger.LogTrace(
-                        "[PATTERN-CONTEXT] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}, Active={Count}",
-                        symbol, patternScores.BullScore, patternScores.BearScore, 
-                        patternScores.ActivePatterns?.Count ?? 0);
+                        "[PATTERN-CONTEXT] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}",
+                        symbol, patternScores.BullScore, patternScores.BearScore);
                 }
                 catch (Exception ex)
                 {

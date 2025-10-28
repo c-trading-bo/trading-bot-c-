@@ -22,15 +22,10 @@ public sealed class ZoneBarFeatureResolver : IFeatureResolver
 
     private static readonly string[] FeatureKeys = new[]
     {
-        "zone.distance_to_supply",
-        "zone.distance_to_demand",
-        "zone.supply_count",
-        "zone.demand_count",
-        "zone.avg_supply_strength",
-        "zone.avg_demand_strength",
-        "zone.net_pressure",
-        "zone.in_supply",
-        "zone.in_demand"
+        "zone.dist_to_supply_atr",
+        "zone.dist_to_demand_atr",
+        "zone.breakout_score",
+        "zone.pressure"
     };
 
     public ZoneBarFeatureResolver(
@@ -69,51 +64,26 @@ public sealed class ZoneBarFeatureResolver : IFeatureResolver
             // Publish zone features to feature bus for Brain consumption
             var now = DateTime.UtcNow;
             
-            // Distance to nearest zones
-            _featureBus.Publish(symbol, now, "zone.distance_to_supply", (decimal)snapshot.DistanceToNearestSupply);
-            _featureBus.Publish(symbol, now, "zone.distance_to_demand", (decimal)snapshot.DistanceToNearestDemand);
+            // Distance to nearest zones (in ATR units)
+            _featureBus.Publish(symbol, now, "zone.dist_to_supply_atr", snapshot.DistToSupplyAtr);
+            _featureBus.Publish(symbol, now, "zone.dist_to_demand_atr", snapshot.DistToDemandAtr);
             
-            // Zone counts
-            _featureBus.Publish(symbol, now, "zone.supply_count", snapshot.ActiveSupplyCount);
-            _featureBus.Publish(symbol, now, "zone.demand_count", snapshot.ActiveDemandCount);
-            
-            // Zone strength
-            if (snapshot.ActiveSupplyCount > 0)
-            {
-                _featureBus.Publish(symbol, now, "zone.avg_supply_strength", (decimal)snapshot.AvgSupplyStrength);
-            }
-            if (snapshot.ActiveDemandCount > 0)
-            {
-                _featureBus.Publish(symbol, now, "zone.avg_demand_strength", (decimal)snapshot.AvgDemandStrength);
-            }
-            
-            // Zone pressure
-            _featureBus.Publish(symbol, now, "zone.net_pressure", (decimal)snapshot.NetPressure);
-            
-            // Zone interaction state
-            _featureBus.Publish(symbol, now, "zone.in_supply", snapshot.InSupplyZone ? 1.0m : 0.0m);
-            _featureBus.Publish(symbol, now, "zone.in_demand", snapshot.InDemandZone ? 1.0m : 0.0m);
+            // Zone quality scores
+            _featureBus.Publish(symbol, now, "zone.breakout_score", snapshot.BreakoutScore);
+            _featureBus.Publish(symbol, now, "zone.pressure", snapshot.ZonePressure);
             
             // Cache latest features for TryGetAsync
             lock (_lock)
             {
                 var key = symbol;
-                _latestFeatures[$"{key}::zone.distance_to_supply"] = snapshot.DistanceToNearestSupply;
-                _latestFeatures[$"{key}::zone.distance_to_demand"] = snapshot.DistanceToNearestDemand;
-                _latestFeatures[$"{key}::zone.supply_count"] = snapshot.ActiveSupplyCount;
-                _latestFeatures[$"{key}::zone.demand_count"] = snapshot.ActiveDemandCount;
-                _latestFeatures[$"{key}::zone.net_pressure"] = snapshot.NetPressure;
-                _latestFeatures[$"{key}::zone.in_supply"] = snapshot.InSupplyZone ? 1.0 : 0.0;
-                _latestFeatures[$"{key}::zone.in_demand"] = snapshot.InDemandZone ? 1.0 : 0.0;
-                
-                if (snapshot.ActiveSupplyCount > 0)
-                    _latestFeatures[$"{key}::zone.avg_supply_strength"] = snapshot.AvgSupplyStrength;
-                if (snapshot.ActiveDemandCount > 0)
-                    _latestFeatures[$"{key}::zone.avg_demand_strength"] = snapshot.AvgDemandStrength;
+                _latestFeatures[$"{key}::zone.dist_to_supply_atr"] = (double)snapshot.DistToSupplyAtr;
+                _latestFeatures[$"{key}::zone.dist_to_demand_atr"] = (double)snapshot.DistToDemandAtr;
+                _latestFeatures[$"{key}::zone.breakout_score"] = (double)snapshot.BreakoutScore;
+                _latestFeatures[$"{key}::zone.pressure"] = (double)snapshot.ZonePressure;
             }
 
-            _logger.LogTrace("[ZONE-BAR-RESOLVER] {Symbol}: Supply={Supply}, Demand={Demand}, Pressure={Pressure:F3}",
-                symbol, snapshot.ActiveSupplyCount, snapshot.ActiveDemandCount, snapshot.NetPressure);
+            _logger.LogTrace("[ZONE-BAR-RESOLVER] {Symbol}: DemandDist={Demand:F2}ATR, SupplyDist={Supply:F2}ATR, Pressure={Pressure:F3}",
+                symbol, snapshot.DistToDemandAtr, snapshot.DistToSupplyAtr, snapshot.ZonePressure);
 
             return Task.CompletedTask;
         }

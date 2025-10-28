@@ -26,11 +26,7 @@ public sealed class PatternBarFeatureResolver : IFeatureResolver
     private static readonly string[] FeatureKeys = new[]
     {
         "pattern.bull_score",
-        "pattern.bear_score",
-        "pattern.overall_bias",
-        "pattern.confidence",
-        "pattern.reversal_signal",
-        "pattern.active_count"
+        "pattern.bear_score"
     };
 
     public PatternBarFeatureResolver(
@@ -54,13 +50,17 @@ public sealed class PatternBarFeatureResolver : IFeatureResolver
             }
 
             // Convert Market.Bar to Models.Bar for pattern engine
-            var modelBar = new BotCore.Models.Bar(
-                bar.Open,
-                bar.High,
-                bar.Low,
-                bar.Close,
-                bar.Volume,
-                new DateTimeOffset(bar.Start).ToUnixTimeMilliseconds());
+            var modelBar = new BotCore.Models.Bar
+            {
+                Start = bar.Start,
+                Ts = new DateTimeOffset(bar.Start).ToUnixTimeMilliseconds(),
+                Symbol = symbol,
+                Open = bar.Open,
+                High = bar.High,
+                Low = bar.Low,
+                Close = bar.Close,
+                Volume = (int)bar.Volume
+            };
 
             // Maintain bar buffer for this symbol
             var buffer = _barBuffers.GetOrAdd(symbol, _ => new List<BotCore.Models.Bar>());
@@ -79,37 +79,28 @@ public sealed class PatternBarFeatureResolver : IFeatureResolver
             // Get pattern scores if we have enough bars
             if (buffer.Count >= 3)
             {
-                BotCore.Models.PatternScores scores;
+                BotCore.Patterns.PatternScores scores;
+                List<BotCore.Models.Bar> barsCopy;
                 lock (buffer)
                 {
-                    scores = _patternEngine.GetScores(symbol, buffer);
+                    barsCopy = new List<BotCore.Models.Bar>(buffer);
                 }
+                
+                scores = _patternEngine.GetScores(symbol, barsCopy);
 
                 // Publish pattern features to feature bus
                 var now = DateTime.UtcNow;
                 
-                _featureBus.Publish(symbol, now, "pattern.bull_score", (decimal)scores.BullScore);
-                _featureBus.Publish(symbol, now, "pattern.bear_score", (decimal)scores.BearScore);
-                _featureBus.Publish(symbol, now, "pattern.overall_bias", (decimal)scores.OverallBias);
-                _featureBus.Publish(symbol, now, "pattern.confidence", (decimal)scores.Confidence);
-                _featureBus.Publish(symbol, now, "pattern.reversal_signal", (decimal)scores.ReversalSignal);
+                _featureBus.Publish(symbol, now, "pattern.bull_score", scores.BullScore);
+                _featureBus.Publish(symbol, now, "pattern.bear_score", scores.BearScore);
                 
-                if (scores.ActivePatterns != null)
-                {
-                    _featureBus.Publish(symbol, now, "pattern.active_count", scores.ActivePatterns.Count);
-                }
-
                 // Cache latest features
                 var key = symbol;
                 _latestFeatures[$"{key}::pattern.bull_score"] = scores.BullScore;
                 _latestFeatures[$"{key}::pattern.bear_score"] = scores.BearScore;
-                _latestFeatures[$"{key}::pattern.overall_bias"] = scores.OverallBias;
-                _latestFeatures[$"{key}::pattern.confidence"] = scores.Confidence;
-                _latestFeatures[$"{key}::pattern.reversal_signal"] = scores.ReversalSignal;
-                _latestFeatures[$"{key}::pattern.active_count"] = scores.ActivePatterns?.Count ?? 0;
 
-                _logger.LogTrace("[PATTERN-BAR-RESOLVER] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}, Active={Count}",
-                    symbol, scores.BullScore, scores.BearScore, scores.ActivePatterns?.Count ?? 0);
+                _logger.LogTrace("[PATTERN-BAR-RESOLVER] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}",
+                    symbol, scores.BullScore, scores.BearScore);
             }
 
             return Task.CompletedTask;
