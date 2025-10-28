@@ -47,6 +47,25 @@ internal sealed class HistoricalTrainingOrchestrator
     private const string ComponentDataLoading = "DataLoading";
     private const string PhaseMain = "Main";
     
+    // Bar replay simulation constants
+    private const int MaxConcurrentPositions = 2; // Max simulated positions during lab mode replay
+    private const int AverageBarsPerTrade = 25; // Take trade approximately every 25 bars (2-3 trades/hour)
+    private const int TradeFrequencyVariation = 5; // +/- variation in bars between trades (20-30 bars)
+    private const int ExplorationPercentage = 30; // 30% exploration, 70% exploitation
+    
+    // Position simulation constants
+    private const decimal ESRiskPoints = 10m; // ES futures risk per trade (10 points)
+    private const decimal NQRiskPoints = 20m; // NQ futures risk per trade (20 points)
+    private const decimal ESContractMultiplier = 50m; // ES: $50 per point
+    private const decimal NQContractMultiplier = 20m; // NQ: $20 per point
+    private const decimal RewardRiskRatio = 2.0m; // 2:1 reward/risk ratio for lab mode
+    
+    // Confidence range constants for simulated positions
+    private const decimal MinConfidence = 0.6m; // Minimum confidence value
+    private const decimal ConfidenceRange = 0.3m; // Range for confidence values (0.6-0.9)
+    private const decimal MinVolatility = 0.01m; // Minimum volatility (1%)
+    private const decimal VolatilityRange = 0.02m; // Volatility range (1-3%)
+    
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
     private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
     private readonly TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry _modelRegistry;
@@ -1106,7 +1125,7 @@ internal sealed class HistoricalTrainingOrchestrator
                     // Use exploration mode to ensure all strategies get chances
                     var shouldTrade = ShouldTakeTradeInLabMode(totalBarsProcessed, activePositions.Count);
                     
-                    if (shouldTrade && activePositions.Count < 2) // Max 2 concurrent positions in lab mode
+                    if (shouldTrade && activePositions.Count < MaxConcurrentPositions)
                     {
                         // Create mock objects required by MakeIntelligentDecisionAsync
                         var env = CreateEnvFromBar(bar);
@@ -1347,14 +1366,14 @@ internal sealed class HistoricalTrainingOrchestrator
     private static bool ShouldTakeTradeInLabMode(int barIndex, int activePositionCount)
     {
         // Don't open new positions if we already have max concurrent
-        if (activePositionCount >= 2)
+        if (activePositionCount >= MaxConcurrentPositions)
             return false;
         
         // Take trade approximately every 25 bars (roughly 2-3 trades per hour on 5m bars)
         // Use hash-based deterministic variation to avoid predictable pattern
         var variationSeed = barIndex.GetHashCode();
-        var variation = Math.Abs(variationSeed % 11) - 5; // -5 to +5
-        var threshold = 25 + variation; // 20-30 bars
+        var variation = Math.Abs(variationSeed % (TradeFrequencyVariation * 2 + 1)) - TradeFrequencyVariation;
+        var threshold = AverageBarsPerTrade + variation;
         
         return barIndex % threshold == 0;
     }
@@ -1372,8 +1391,8 @@ internal sealed class HistoricalTrainingOrchestrator
         // Use secure random for exploration decision
         var explorationThreshold = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100);
         
-        // 30% exploration mode - force underutilized strategies
-        if (explorationThreshold < 30)
+        // Exploration mode - force underutilized strategies
+        if (explorationThreshold < ExplorationPercentage)
         {
             // Find strategy with minimum trades
             var minTrades = strategyTradeCount.Values.Min();
@@ -1389,7 +1408,7 @@ internal sealed class HistoricalTrainingOrchestrator
             }
         }
         
-        // 70% exploitation mode - use brain recommendation or random if none
+        // Exploitation mode - use brain recommendation or random if none
         if (!string.IsNullOrEmpty(brainRecommendation) && strategyTradeCount.ContainsKey(brainRecommendation))
         {
             return brainRecommendation;
@@ -1414,22 +1433,21 @@ internal sealed class HistoricalTrainingOrchestrator
         var isLong = directionValue >= 50;
         var positionSize = isLong ? 1 : -1; // 1 contract
         
-        // Set stop and target based on typical strategy parameters
-        // Use 2:1 reward/risk ratio for lab mode
-        var riskPoints = bar.Symbol == "ES" ? 10m : 20m; // ES: 10 points, NQ: 20 points
-        var rewardPoints = riskPoints * 2; // 2:1 R:R
+        // Set stop and target based on symbol
+        var riskPoints = bar.Symbol == "ES" ? ESRiskPoints : NQRiskPoints;
+        var rewardPoints = riskPoints * RewardRiskRatio;
         
         var stopLoss = isLong ? bar.Close - riskPoints : bar.Close + riskPoints;
         var target = isLong ? bar.Close + rewardPoints : bar.Close - rewardPoints;
         
-        // Use hash-based deterministic confidence values for lab mode (0.6-0.9 range)
+        // Use hash-based deterministic confidence values (0.6-0.9 range)
         var hashSeed1 = (barIndex * 31 + strategy.GetHashCode()) & 0x7FFFFFFF;
         var hashSeed2 = (barIndex * 37 + strategy.GetHashCode() * 2) & 0x7FFFFFFF;
         var hashSeed3 = (barIndex * 41 + strategy.GetHashCode() * 3) & 0x7FFFFFFF;
         
-        var entryConfidence = 0.6m + ((hashSeed1 % 1000) / 1000m * 0.3m); // 0.6-0.9
-        var regimeConfidence = 0.6m + ((hashSeed2 % 1000) / 1000m * 0.3m); // 0.6-0.9
-        var volatility = env.atr ?? (0.01m + ((hashSeed3 % 1000) / 1000m * 0.02m)); // 1-3%
+        var entryConfidence = MinConfidence + ((hashSeed1 % 1000) / 1000m * ConfidenceRange);
+        var regimeConfidence = MinConfidence + ((hashSeed2 % 1000) / 1000m * ConfidenceRange);
+        var volatility = env.atr ?? (MinVolatility + ((hashSeed3 % 1000) / 1000m * VolatilityRange));
         
         var regimes = new[] { "Trend", "Range", "Transition" };
         var regimeIndex = hashSeed1 % regimes.Length;
@@ -1556,8 +1574,8 @@ internal sealed class HistoricalTrainingOrchestrator
         var priceDiff = exitPrice - position.EntryPrice;
         var pnlPerContract = isLong ? priceDiff : -priceDiff;
         
-        // Apply contract multiplier (ES: $50, NQ: $20 per point)
-        var multiplier = position.Symbol == "ES" ? 50m : 20m;
+        // Apply contract multiplier based on symbol
+        var multiplier = position.Symbol == "ES" ? ESContractMultiplier : NQContractMultiplier;
         var pnl = pnlPerContract * multiplier * Math.Abs(position.PositionSize);
         
         // Calculate R-multiple
@@ -1575,8 +1593,8 @@ internal sealed class HistoricalTrainingOrchestrator
         var hashSeed = (position.EntryBarIndex + 1000) & 0x7FFFFFFF;
         var regimes = new[] { "Trend", "Range", "Transition" };
         var exitRegime = regimes[hashSeed % regimes.Length];
-        var exitRegimeConfidence = 0.6m + ((hashSeed % 1000) / 1000m * 0.3m);
-        var volatilityAtExit = 0.01m + (((hashSeed * 2) % 1000) / 1000m * 0.02m);
+        var exitRegimeConfidence = MinConfidence + ((hashSeed % 1000) / 1000m * ConfidenceRange);
+        var volatilityAtExit = MinVolatility + (((hashSeed * 2) % 1000) / 1000m * VolatilityRange);
         
         return new global::BotCore.Models.TradingExperience
         {
