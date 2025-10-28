@@ -165,7 +165,11 @@ public class NeuralUcbBanditTrainer
             Directory.CreateDirectory(modelPath);
 
             // Save network (delegating to INeuralNetwork implementation)
-            await network.SaveAsync(Path.Combine(modelPath, "network.json"), cancellationToken).ConfigureAwait(false);
+            var networkPath = Path.Combine(modelPath, "network.json");
+            await network.SaveAsync(networkPath, cancellationToken).ConfigureAwait(false);
+            
+            // Validate network file was created with substantial content
+            ValidateModelFile(networkPath, "NeuralUCB");
 
             // Save metadata
             var metadata = new NeuralUcbMetadata
@@ -240,6 +244,31 @@ public class NeuralUcbBanditTrainer
             return $"{parts[0]}.{parts[1]}.{patch + 1}";
         }
         return "1.0.1";
+    }
+    
+    private void ValidateModelFile(string path, string modelName)
+    {
+        if (!File.Exists(path))
+        {
+            throw new InvalidOperationException($"{modelName} model file was not created at: {path}. TorchSharp save may have failed silently.");
+        }
+        
+        var fileInfo = new FileInfo(path);
+        const long minExpectedSize = 1024; // Minimum 1KB - real PyTorch models should be much larger
+        
+        if (fileInfo.Length < minExpectedSize)
+        {
+            _logger.LogError("❌ {ModelName} model file is suspiciously small: {Size} bytes at {Path}. Expected at least " + minExpectedSize + " bytes. " +
+                "This indicates TorchSharp may have saved an empty/incomplete file or neural networks failed to initialize.",
+                modelName, fileInfo.Length, path);
+            throw new InvalidOperationException(
+                $"{modelName} model file appears to be incomplete or empty ({fileInfo.Length} bytes). " +
+                "Real trained models should be at least " + minExpectedSize + " bytes. " +
+                "Check that TorchSharp native libraries are available and neural networks initialized correctly.");
+        }
+        
+        _logger.LogDebug("✅ {ModelName} model file validated: {Size} bytes at {Path}", 
+            modelName, fileInfo.Length, path);
     }
 
     /// <summary>
