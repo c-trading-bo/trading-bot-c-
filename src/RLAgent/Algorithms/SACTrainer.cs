@@ -260,9 +260,18 @@ public class SACTrainer
             Directory.CreateDirectory(modelPath);
 
             // Save networks
-            await _sac._actor.SaveAsync(Path.Combine(modelPath, "actor.json"), cancellationToken).ConfigureAwait(false);
-            await _sac._critic1.SaveAsync(Path.Combine(modelPath, "critic1.json"), cancellationToken).ConfigureAwait(false);
-            await _sac._critic2.SaveAsync(Path.Combine(modelPath, "critic2.json"), cancellationToken).ConfigureAwait(false);
+            var actorPath = Path.Combine(modelPath, "actor.json");
+            var critic1Path = Path.Combine(modelPath, "critic1.json");
+            var critic2Path = Path.Combine(modelPath, "critic2.json");
+            
+            await _sac._actor.SaveAsync(actorPath, cancellationToken).ConfigureAwait(false);
+            await _sac._critic1.SaveAsync(critic1Path, cancellationToken).ConfigureAwait(false);
+            await _sac._critic2.SaveAsync(critic2Path, cancellationToken).ConfigureAwait(false);
+            
+            // Validate network files were created with substantial content
+            ValidateModelFile(actorPath, "SAC-Actor");
+            ValidateModelFile(critic1Path, "SAC-Critic1");
+            ValidateModelFile(critic2Path, "SAC-Critic2");
 
             // Save metadata
             var metadata = new SACMetadata
@@ -349,6 +358,31 @@ public class SACTrainer
             return $"{parts[0]}.{parts[1]}.{patch + 1}";
         }
         return "1.0.1";
+    }
+    
+    private void ValidateModelFile(string path, string modelName)
+    {
+        if (!File.Exists(path))
+        {
+            throw new InvalidOperationException($"{modelName} model file was not created at: {path}. TorchSharp save may have failed silently.");
+        }
+        
+        var fileInfo = new FileInfo(path);
+        const long minExpectedSize = 1024; // Minimum 1KB - real PyTorch models should be much larger
+        
+        if (fileInfo.Length < minExpectedSize)
+        {
+            _logger.LogError("❌ {ModelName} model file is suspiciously small: {Size} bytes at {Path}. Expected at least " + minExpectedSize + " bytes. " +
+                "This indicates TorchSharp may have saved an empty/incomplete file or neural networks failed to initialize.",
+                modelName, fileInfo.Length, path);
+            throw new InvalidOperationException(
+                $"{modelName} model file appears to be incomplete or empty ({fileInfo.Length} bytes). " +
+                "Real trained models should be at least " + minExpectedSize + " bytes. " +
+                "Check that TorchSharp native libraries are available and neural networks initialized correctly.");
+        }
+        
+        _logger.LogDebug("✅ {ModelName} model file validated: {Size} bytes at {Path}", 
+            modelName, fileInfo.Length, path);
     }
 }
 

@@ -514,9 +514,11 @@ internal class EnhancedBacktestLearningService
                             if (wasCorrect) winners++;
 
                             // Feed REAL outcome back to UnifiedTradingBrain for learning
+                            // FIX: Use the strategy being tested (from loop), not brain's recommendation
+                            // This ensures experiences are tagged with the correct strategy (S2/S3/S6/S11)
                             await _unifiedBrain.LearnFromResultAsync(
                                 symbol,
-                                brainDecision.RecommendedStrategy,
+                                strategy, // Use the strategy we're testing, not brain's recommendation
                                 pnl,
                                 wasCorrect,
                                 TimeSpan.FromMinutes(10),
@@ -529,7 +531,7 @@ internal class EnhancedBacktestLearningService
                                 _logger.LogDebug(
                                     "[HISTORICAL-TRADE] {Strategy} #{Count}: {Direction} @ {Price:F2}, " +
                                     "Confidence: {Confidence:F1}%, Regime: {Regime}, PnL: {PnL:F2}, Result: {Result}",
-                                    brainDecision.RecommendedStrategy, tradesSimulated, brainDecision.PriceDirection,
+                                    strategy, tradesSimulated, brainDecision.PriceDirection, // Use strategy being tested
                                     currentBar.Close, brainDecision.StrategyConfidence * 100,
                                     brainDecision.MarketRegime, pnl, wasCorrect ? "WIN" : "LOSS");
                             }
@@ -672,6 +674,7 @@ internal class EnhancedBacktestLearningService
                 Config = new UnifiedBacktestConfig
                 {
                     Symbol = config.Symbol,
+                    Strategy = config.Strategy, // FIX: Include strategy being tested
                     StartDate = config.StartDate,
                     EndDate = config.EndDate,
                     InitialCapital = config.InitialCapital
@@ -872,11 +875,13 @@ internal class EnhancedBacktestLearningService
                     replayContext.Symbol, env, levels, historicalBars, riskEngine, null, cancellationToken).ConfigureAwait(false);
 
                 // Record the decision for learning
+                // FIX: Use the strategy being tested (from replayContext), not brain's recommendation
+                // This ensures experiences are tagged with the correct strategy (S2/S3/S6/S11)
                 var historicalDecision = new UnifiedHistoricalDecision
                 {
                     Timestamp = currentBar.Start,
                     Symbol = replayContext.Symbol,
-                    Strategy = brainDecision.RecommendedStrategy,
+                    Strategy = replayContext.Config.Strategy, // Use the strategy we're testing, not brain's recommendation
                     Price = currentBar.Close,
                     Decision = new TradingBot.Abstractions.TradingDecision
                     {
