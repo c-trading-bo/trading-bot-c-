@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -20,15 +23,28 @@ public class PatternRecognitionTrainer
     private readonly ILogger<PatternRecognitionTrainer> _logger;
     private readonly int _minPatternLength;
     private readonly int _maxPatternLength;
+    private readonly string _modelBasePath;
+    private string _currentModelVersion = "1.0.0";
+    private PatternCNNNetwork? _network;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     
     public PatternRecognitionTrainer(
         ILogger<PatternRecognitionTrainer> logger,
         int minPatternLength = 3,
-        int maxPatternLength = 10)
+        int maxPatternLength = 10,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _minPatternLength = minPatternLength;
         _maxPatternLength = maxPatternLength;
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "pattern_recognition");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("PatternRecognitionTrainer initialized (Lab mode) - MinLen: {Min}, MaxLen: {Max}",
             _minPatternLength, _maxPatternLength);
@@ -197,9 +213,9 @@ public class PatternRecognitionTrainer
         const int imageSize = 64; // 64x64 chart images
         const int numClasses = 10; // Pattern types: Doji, BullishEngulfing, BearishEngulfing, Hammer, etc.
         
-        // Create CNN network for pattern classification
-        using var network = new PatternCNNNetwork(imageSize, numClasses);
-        using var optimizer = Adam(network.parameters(), lr: 0.0005);
+        // Create CNN network for pattern classification (store as instance variable for saving)
+        _network = new PatternCNNNetwork(imageSize, numClasses);
+        using var optimizer = Adam(_network.parameters(), lr: 0.0005);
         
         double totalError = 0.0;
         double totalAccuracy = 0.0;
@@ -242,7 +258,7 @@ public class PatternRecognitionTrainer
                 
                 // Forward pass
                 optimizer.zero_grad();
-                using var output = network.forward(imageTensor);
+                using var output = _network.forward(imageTensor);
                 using var loss = functional.cross_entropy(output, labelTensor);
                 
                 // Backward pass (REAL BACKPROPAGATION)
@@ -321,6 +337,105 @@ public class PatternRecognitionTrainer
             "ThreeBlackCrows" => 9,
             _ => 0 // Default to Doji
         };
+    }
+    
+    /// <summary>
+    /// Save trained pattern recognition model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (_network == null)
+            {
+                throw new InvalidOperationException("Cannot save model: network has not been trained yet");
+            }
+
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"pattern_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save network
+            await _network.SaveAsync(Path.Combine(modelPath, "pattern_network.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new PatternRecognitionMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                MinPatternLength = _minPatternLength,
+                MaxPatternLength = _maxPatternLength
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("PatternRecognitionTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PatternRecognitionTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained pattern recognition model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var networkPath = Path.Combine(modelPath, "pattern_network.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(networkPath) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("PatternRecognitionTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<PatternRecognitionMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("PatternRecognitionTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Create new network with loaded parameters
+            const int imageSize = 64;
+            const int numClasses = 10;
+            _network = new PatternCNNNetwork(imageSize, numClasses);
+            _network.load(networkPath);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("PatternRecognitionTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PatternRecognitionTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
     }
 }
 
@@ -437,4 +552,21 @@ internal class PatternCNNNetwork : Module<Tensor, Tensor>
         }
         base.Dispose(disposing);
     }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Pattern recognition model metadata for persistence
+/// </summary>
+internal class PatternRecognitionMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int MinPatternLength { get; set; }
+    public int MaxPatternLength { get; set; }
 }
