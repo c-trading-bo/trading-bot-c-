@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace TradingBot.UnifiedOrchestrator.Training;
 
 /// <summary>
-/// Standard interface that all 273 training components implement
+/// Standard interface that all 25 training components implement
 /// Provides unified way for orchestrator to invoke training on any component
 /// </summary>
 public interface ITrainingComponent

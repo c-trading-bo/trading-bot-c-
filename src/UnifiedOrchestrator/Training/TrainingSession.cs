@@ -46,7 +46,7 @@ public sealed class TrainingSession
     public string LockFilePath { get; set; } = string.Empty;
 
     /// <summary>
-    /// Total number of components to train (273 target)
+    /// Total number of components to train (25: Heavy=11, Medium=7, Light=7)
     /// </summary>
     public int ComponentsTotal { get; set; }
 
