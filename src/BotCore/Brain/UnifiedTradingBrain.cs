@@ -201,6 +201,8 @@ namespace BotCore.Brain
         private readonly TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? _mtfLearning; // Optional multi-timeframe online learning
         private readonly Zones.IZoneService? _zoneService; // Optional zone service for supply/demand analysis
         private readonly BotCore.Patterns.PatternEngine? _patternEngine; // Optional pattern engine for candlestick patterns
+        private readonly BotCore.Risk.RiskEngine? _riskEngine; // Optional risk engine for pre-trade validation
+        private readonly BotCore.Bandits.NeuralUcbExtended? _neuralUcbExtended; // Optional parameter bundle selection
         
         // Latest market data for risk analysis (updated in MakeIntelligentDecisionAsync)
         private Env? _latestEnv;
