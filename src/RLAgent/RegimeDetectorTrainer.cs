@@ -500,7 +500,8 @@ public class RegimeDetectorTrainer
                 return false;
             }
 
-            // Create new network with loaded parameters
+            // Dispose old network if exists and create new one
+            _network?.Dispose();
             const int inputSize = 8;
             const int numRegimes = 6;
             _network = new RegimeClassifierNetwork(inputSize, numRegimes);

@@ -408,7 +408,8 @@ public class SlippageLatencyTrainer
                 return false;
             }
 
-            // Create new network with loaded parameters
+            // Dispose old network if exists and create new one
+            _network?.Dispose();
             const int inputSize = 6;
             const int outputSize = 2;
             _network = new ExecutionRegressionNetwork(inputSize, outputSize);

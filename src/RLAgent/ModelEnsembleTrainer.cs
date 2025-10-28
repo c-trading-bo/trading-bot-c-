@@ -464,7 +464,8 @@ public class ModelEnsembleTrainer
                 return false;
             }
 
-            // Create new network with loaded parameters
+            // Dispose old network if exists and create new one
+            _network?.Dispose();
             const int numModels = 5;
             const int outputSize = 1;
             _network = new MetaLearningEnsembleNetwork(numModels, outputSize);
