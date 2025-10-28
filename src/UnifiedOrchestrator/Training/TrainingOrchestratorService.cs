@@ -140,9 +140,13 @@ internal sealed class TrainingOrchestratorService
             // Initialize dashboard if available
             if (_dashboardStateManager != null)
             {
-                // Initialize dashboard state with ACTUAL component count (25 total)
-                // Heavy: 11, Medium: 7, Light: 7
-                // Previously showed 250 from early development estimates
+                // Initialize dashboard state with documented component count (25 total)
+                // Heavy: 11 documented components (from training-components.json)
+                // Medium: 7 documented components
+                // Light: 7 documented components
+                // Note: Full codebase has 273 training methods (see COMPLETE_TRAINING_INVENTORY.md)
+                // but only 25 are formalized as orchestrated training components for Lab Mode.
+                // Heavy phase trains 6 major models: CVaR-PPO, SAC, Neural-UCB, LSTM, Position-Management, S15-Shadow
                 _dashboardStateManager.InitializeSession(sessionId, 25);
                 _dashboardStateManager.LogActivity("info", "TrainingOrchestrator", $"Training session {sessionId} started");
                 _dashboardUpdateTimer?.Start();

@@ -127,8 +127,7 @@ internal sealed class MediumPhaseTrainerService
     /// Train position management optimization (breakeven, trailing stops, time exits)
     /// 
     /// The PositionManagementOptimizer is a BackgroundService that continuously learns from trading outcomes.
-    /// During Lab Mode training, the BackgroundService processes accumulated outcomes automatically.
-    /// We verify the optimizer is running and log the training activity.
+    /// During Lab Mode training, we export the learned parameters it has accumulated.
     /// </summary>
     private async Task<bool> TrainPositionManagementAsync(string optimizationType, CancellationToken cancellationToken)
     {
@@ -140,24 +139,26 @@ internal sealed class MediumPhaseTrainerService
 
         _logger.LogInformation("[MEDIUM-PHASE] Training position management optimization: {Type}", optimizationType);
 
-        // Position management optimizer is a BackgroundService that runs continuously via ExecuteAsync
-        // It automatically calls RunOptimizationCycleAsync every OptimizationIntervalSeconds (60 seconds)
-        // The optimizer analyzes historical outcomes and learns optimal parameters for different regimes
+        // Position management optimizer is a BackgroundService that runs continuously
+        // It analyzes accumulated trading outcomes and learns optimal parameters
+        // During Lab Mode, we export the learned parameters to artifacts/learned_parameters/
         
-        // During Lab Mode training:
-        // - The BackgroundService is already running and processing outcomes
-        // - It calls OptimizeBreakevenParameterAsync, OptimizeTrailingParameterAsync, OptimizeTimeExitParameterAsync
-        // - These methods analyze accumulated trading data and generate parameter recommendations
-        // - Results are logged via ParameterChangeTracker and exported periodically
-        
-        // Training is handled by the BackgroundService ExecuteAsync loop
-        // No manual triggering needed - it runs automatically on the OptimizationIntervalSeconds schedule
-        
-        _logger.LogInformation("[MEDIUM-PHASE] ✓ Position management {Type} optimizer is running in background - analyzing accumulated trading outcomes", optimizationType);
-        
-        // Return immediately since BackgroundService handles training automatically
-        await Task.CompletedTask;
-        return true;
+        try
+        {
+            // Export learned parameters for all strategies (S2, S3, S6, S11)
+            // This creates JSON files with optimal breakeven triggers, trailing stops, and time exits
+            _positionOptimizer.ExportLearnedParameters();
+            
+            _logger.LogInformation("[MEDIUM-PHASE] ✓ Position management {Type} - Exported learned parameters to artifacts/", optimizationType);
+            
+            await Task.CompletedTask;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MEDIUM-PHASE] Error exporting position management parameters for {Type}", optimizationType);
+            return false;
+        }
     }
 
     /// <summary>
