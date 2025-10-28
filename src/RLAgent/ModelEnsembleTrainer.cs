@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -22,14 +25,27 @@ public class ModelEnsembleTrainer
     private readonly ILogger<ModelEnsembleTrainer> _logger;
     private readonly int _minPredictions;
     private readonly List<string> _modelNames;
+    private readonly string _modelBasePath;
+    private string _currentModelVersion = "1.0.0";
+    private MetaLearningEnsembleNetwork? _network;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     
     public ModelEnsembleTrainer(
         ILogger<ModelEnsembleTrainer> logger,
-        int minPredictions = 50)
+        int minPredictions = 50,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _minPredictions = minPredictions;
         _modelNames = new List<string> { "CVaR-PPO", "Neural-UCB", "LSTM", "Pattern-Recognition", "Regime-Detector" };
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "ensemble");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("ModelEnsembleTrainer initialized (Lab mode) - MinPredictions: {MinPredictions}, Models: {ModelCount}",
             _minPredictions, _modelNames.Count);
@@ -219,9 +235,9 @@ public class ModelEnsembleTrainer
         _logger.LogInformation("Prepared {Count} meta-learning feature vectors from {Models} base models",
             features.Count, _modelNames.Count);
         
-        // Create meta-learning ensemble network
-        using var network = new MetaLearningEnsembleNetwork(numModels, outputSize);
-        using var optimizer = Adam(network.parameters(), lr: 0.0006);
+        // Create meta-learning ensemble network (store as instance variable for saving)
+        _network = new MetaLearningEnsembleNetwork(numModels, outputSize);
+        using var optimizer = Adam(_network.parameters(), lr: 0.0006);
         
         double totalLoss = 0.0;
         double totalR2 = 0.0;
@@ -262,7 +278,7 @@ public class ModelEnsembleTrainer
                 
                 // Forward pass
                 optimizer.zero_grad();
-                using var output = network.forward(inputTensor);
+                using var output = _network.forward(inputTensor);
                 using var loss = functional.mse_loss(output, targetTensor);
                 
                 // Backward pass (REAL BACKPROPAGATION)
@@ -285,7 +301,7 @@ public class ModelEnsembleTrainer
             totalLoss += avgLoss;
             
             // Calculate R² for model quality assessment
-            var r2 = CalculateR2Score(features, targets, network);
+            var r2 = CalculateR2Score(features, targets, _network);
             totalR2 += r2;
             
             // Report progress if callback provided
@@ -299,7 +315,7 @@ public class ModelEnsembleTrainer
         }
 
         // Extract learned ensemble weights from the network
-        var learnedWeights = ExtractEnsembleWeights(network);
+        var learnedWeights = ExtractEnsembleWeights(_network);
         
         _logger.LogInformation("✅ Meta-learning ensemble trained with {Epochs} epochs of REAL gradient descent", epochs);
         _logger.LogInformation("Learned ensemble weights via neural meta-learning:");
@@ -377,6 +393,114 @@ public class ModelEnsembleTrainer
             { "Regime-Detector", weights[4] }
         };
     }
+    
+    /// <summary>
+    /// Save trained ensemble model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (_network == null)
+            {
+                throw new InvalidOperationException("Cannot save model: network has not been trained yet");
+            }
+
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"ensemble_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save network
+            await _network.SaveAsync(Path.Combine(modelPath, "ensemble_weights.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new ModelEnsembleMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                ModelNames = _modelNames
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("ModelEnsembleTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ModelEnsembleTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained ensemble model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var networkPath = Path.Combine(modelPath, "ensemble_weights.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(networkPath) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("ModelEnsembleTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<ModelEnsembleMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("ModelEnsembleTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Create new network with loaded parameters
+            const int numModels = 5;
+            const int outputSize = 1;
+            _network = new MetaLearningEnsembleNetwork(numModels, outputSize);
+            _network.load(networkPath);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("ModelEnsembleTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ModelEnsembleTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
+    }
+}
+
+/// <summary>
+/// Model ensemble metadata for persistence
+/// </summary>
+internal class ModelEnsembleMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public List<string> ModelNames { get; set; } = new();
 }
 
 /// <summary>
@@ -514,5 +638,11 @@ internal class MetaLearningEnsembleNetwork : Module<Tensor, Tensor>
             _dropout?.Dispose();
         }
         base.Dispose(disposing);
+    }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
     }
 }
