@@ -952,8 +952,9 @@ internal sealed class HistoricalTrainingOrchestrator
     }
 
     /// <summary>
-    /// Replay all historical bars sequentially through 24-hour cycle to generate training experiences.
-    /// This feeds bars to the brain chronologically, allowing time-gated strategies to activate at their designated windows.
+    /// Run backtest through all historical bars to generate training experiences.
+    /// Uses the full trading pipeline (brain + position management) to create real experiences.
+    /// Strategies trade at their time-gated windows, and experiences are saved automatically.
     /// </summary>
     private async Task ReplayHistoricalBarsAsync(
         Dictionary<string, int> historicalData, 
@@ -961,11 +962,147 @@ internal sealed class HistoricalTrainingOrchestrator
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
+        var totalExperiencesGenerated = 0;
+        
+        try
+        {
+            _logger.LogInformation("[LAB] 🎬 Starting backtest-based experience generation...");
+            _logger.LogInformation("[LAB] Using full trading pipeline: Brain → Position Management → Experience Collection");
+            
+            // Get the backtest harness service to run actual backtests
+            var backtestHarness = _serviceProvider.GetService<TradingBot.Backtest.BacktestHarnessService>();
+            if (backtestHarness == null)
+            {
+                _logger.LogWarning("[LAB] ⚠️ BacktestHarnessService not available - using fallback approach");
+                await RunFallbackBarReplayAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            
+            // Count experiences before backtest
+            var experiencesBeforeCount = 0;
+            if (_experienceRepository != null)
+            {
+                var beforeExperiences = await _experienceRepository.LoadRecentExperiencesAsync(90).ConfigureAwait(false);
+                experiencesBeforeCount = beforeExperiences.Count;
+                _logger.LogInformation("[LAB] 📊 Existing experiences: {Count}", experiencesBeforeCount);
+            }
+            
+            // Run backtest for each symbol
+            var symbols = historicalData.Keys.Where(k => !k.Contains("_1m", StringComparison.OrdinalIgnoreCase)).ToArray();
+            
+            foreach (var symbol in symbols)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+                
+                try
+                {
+                    _logger.LogInformation("[LAB] 📈 Running backtest for {Symbol}...", symbol);
+                    
+                    // Determine date range from historical data
+                    var dataFile = Path.Combine("data", "historical", $"{symbol}_90days.json");
+                    if (!File.Exists(dataFile))
+                    {
+                        _logger.LogWarning("[LAB] Data file not found for {Symbol}, skipping", symbol);
+                        continue;
+                    }
+                    
+                    var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
+                    using var jsonDoc = JsonDocument.Parse(jsonContent);
+                    var barsArray = jsonDoc.RootElement.GetProperty("bars");
+                    
+                    if (barsArray.GetArrayLength() == 0)
+                    {
+                        _logger.LogWarning("[LAB] No bars found for {Symbol}, skipping", symbol);
+                        continue;
+                    }
+                    
+                    // Get first and last bar timestamps
+                    var firstBar = barsArray[0];
+                    var lastBar = barsArray[barsArray.GetArrayLength() - 1];
+                    
+                    var startDate = DateTimeOffset.Parse(firstBar.GetProperty("timestamp").GetString()!).UtcDateTime;
+                    var endDate = DateTimeOffset.Parse(lastBar.GetProperty("timestamp").GetString()!).UtcDateTime;
+                    
+                    _logger.LogInformation("[LAB] Backtest period: {Start:yyyy-MM-dd} to {End:yyyy-MM-dd}", startDate, endDate);
+                    
+                    // Run backtest - this will use the full brain pipeline and generate experiences
+                    var backtestReport = await backtestHarness.RunAsync(
+                        symbol,
+                        startDate,
+                        endDate,
+                        "default", // model family
+                        cancellationToken).ConfigureAwait(false);
+                    
+                    if (backtestReport != null && backtestReport.Success)
+                    {
+                        var winRate = backtestReport.TotalTrades > 0 
+                            ? (decimal)backtestReport.WinningTrades / backtestReport.TotalTrades * 100 
+                            : 0;
+                        _logger.LogInformation("[LAB] ✅ Backtest complete for {Symbol}: {Trades} trades, {WinRate:F1}% win rate, PnL: ${PnL:F2}",
+                            symbol, backtestReport.TotalTrades, winRate, backtestReport.TotalPnL);
+                    }
+                    else if (backtestReport != null && !backtestReport.Success)
+                    {
+                        _logger.LogWarning("[LAB] ⚠️ Backtest completed with errors for {Symbol}: {Error}",
+                            symbol, backtestReport.ErrorMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] ERROR: Backtest failed for {Symbol}: {Error}", symbol, ex.Message);
+                    // Continue with next symbol
+                }
+            }
+            
+            // Count experiences after backtest
+            if (_experienceRepository != null)
+            {
+                var afterExperiences = await _experienceRepository.LoadRecentExperiencesAsync(90).ConfigureAwait(false);
+                var experiencesAfterCount = afterExperiences.Count;
+                totalExperiencesGenerated = experiencesAfterCount - experiencesBeforeCount;
+                
+                _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+                _logger.LogInformation("[LAB] 📊 EXPERIENCE GENERATION SUMMARY");
+                _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+                _logger.LogInformation("[LAB] Experiences before: {Before}", experiencesBeforeCount);
+                _logger.LogInformation("[LAB] Experiences after: {After}", experiencesAfterCount);
+                _logger.LogInformation("[LAB] NEW experiences generated: {New}", totalExperiencesGenerated);
+                _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+                
+                result.ExperiencesLoaded += totalExperiencesGenerated;
+            }
+            
+            stopwatch.Stop();
+            _logger.LogInformation("[LAB] ✅ Backtest-based experience generation complete in {Elapsed:F1}s", 
+                stopwatch.Elapsed.TotalSeconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LAB] ERROR: Backtest-based experience generation failed: {Error}", ex.Message);
+            result.FailedComponents.Add($"Backtest experience generation failed: {ex.Message}");
+        }
+        finally
+        {
+            stopwatch.Stop();
+        }
+    }
+    
+    /// <summary>
+    /// Fallback approach if BacktestHarnessService is not available.
+    /// Calls brain for decisions but doesn't create actual trades (no experience generation).
+    /// </summary>
+    private async Task RunFallbackBarReplayAsync(
+        Dictionary<string, int> historicalData,
+        TrainingSessionResult result,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
         var totalBarsProcessed = 0;
         
         try
         {
-            _logger.LogInformation("[LAB] 🎬 Starting historical bar replay across 24-hour cycle...");
+            _logger.LogInformation("[LAB] Running fallback bar replay (no experience generation)...");
             
             // Get the UnifiedTradingBrain instance from the service provider
             var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
@@ -983,6 +1120,10 @@ internal sealed class HistoricalTrainingOrchestrator
                 var symbol = kvp.Key;
                 var barCount = kvp.Value;
                 
+                // Skip 1m data entries
+                if (symbol.Contains("_1m", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                
                 if (barCount == 0)
                 {
                     _logger.LogWarning("[LAB] Skipping {Symbol} - no bars loaded", symbol);
@@ -996,7 +1137,7 @@ internal sealed class HistoricalTrainingOrchestrator
                     if (!File.Exists(dataFile))
                     {
                         _logger.LogError("[LAB] ❌ Data file not found for replay: {File}", dataFile);
-                        throw new FileNotFoundException($"Historical data file not found: {dataFile}");
+                        continue;
                     }
                     
                     var jsonContent = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
@@ -1023,25 +1164,23 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[LAB] ❌ CRITICAL ERROR: Failed to load bars for replay - {Symbol}: {Error}", 
+                    _logger.LogError(ex, "[LAB] ERROR: Failed to load bars for replay - {Symbol}: {Error}", 
                         symbol, ex.Message);
-                    throw; // Fail fast - cannot replay without data
                 }
             }
             
             // Validate that we have data to replay
             if (allBars.Count == 0)
             {
-                _logger.LogError("[LAB] ❌ CRITICAL ERROR: No bars available for replay");
-                throw new InvalidOperationException("No historical bars available for replay");
+                _logger.LogWarning("[LAB] No bars available for fallback replay");
+                return;
             }
             
             // Sort all bars chronologically
             allBars = allBars.OrderBy(b => b.Timestamp).ToList();
             _logger.LogInformation("[LAB] 📊 Total bars for replay: {Count} (sorted chronologically)", allBars.Count);
             
-            // Replay bars sequentially
-            var barsThisHour = new Dictionary<int, int>();
+            // Replay bars sequentially - just for logging strategy activations
             var strategiesActivatedByHour = new Dictionary<int, HashSet<string>>();
             
             foreach (var bar in allBars)
@@ -1051,10 +1190,7 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 try
                 {
-                    // Track hour distribution
                     var hour = bar.Timestamp.Hour;
-                    barsThisHour.TryGetValue(hour, out var count);
-                    barsThisHour[hour] = count + 1;
                     
                     // Create mock objects required by MakeIntelligentDecisionAsync
                     var env = CreateEnvFromBar(bar);
@@ -1062,18 +1198,17 @@ internal sealed class HistoricalTrainingOrchestrator
                     var bars = CreateBarsListFromBar(bar);
                     using var risk = CreateRiskEngine();
                     
-                    // Call brain.MakeIntelligentDecisionAsync with bar timestamp
-                    // This respects time gates and will activate different strategies at correct times
+                    // Call brain to see which strategies would activate (no actual trading)
                     var decision = await brain.MakeIntelligentDecisionAsync(
                         bar.Symbol,
                         env,
                         levels,
                         bars,
                         risk,
-                        null, // No intelligence data for historical replay
+                        null,
                         cancellationToken).ConfigureAwait(false);
                     
-                    // Track which strategies are being activated at different times
+                    // Track which strategies would activate at different times
                     if (decision != null && !string.IsNullOrEmpty(decision.RecommendedStrategy))
                     {
                         if (!strategiesActivatedByHour.ContainsKey(hour))
@@ -1085,10 +1220,9 @@ internal sealed class HistoricalTrainingOrchestrator
                     
                     totalBarsProcessed++;
                     
-                    // Log progress every 500 bars
-                    if (totalBarsProcessed % 500 == 0)
+                    if (totalBarsProcessed % 1000 == 0)
                     {
-                        _logger.LogInformation("[LAB] 📈 Progress: {Processed}/{Total} bars replayed ({Percent:F1}%)",
+                        _logger.LogInformation("[LAB] 📈 Progress: {Processed}/{Total} bars ({Percent:F1}%)",
                             totalBarsProcessed, allBars.Count, (totalBarsProcessed * 100.0 / allBars.Count));
                     }
                 }
@@ -1099,31 +1233,14 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
             }
             
-            // Log hour distribution
-            _logger.LogInformation("[LAB] ✅ Bar replay complete - {Total} bars processed in {Elapsed:F1}s",
-                totalBarsProcessed, stopwatch.Elapsed.TotalSeconds);
-            
-            _logger.LogInformation("[LAB] 📊 Hour distribution and strategy activation:");
-            foreach (var hour in Enumerable.Range(0, 24))
-            {
-                var count = barsThisHour.GetValueOrDefault(hour, 0);
-                if (count > 0)
-                {
-                    var strategies = strategiesActivatedByHour.GetValueOrDefault(hour, new HashSet<string>());
-                    var strategyList = strategies.Count > 0 
-                        ? string.Join(", ", strategies) 
-                        : "No strategies activated";
-                    _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars - Strategies: {Strategies}", 
-                        hour, count, strategyList);
-                }
-            }
+            _logger.LogInformation("[LAB] ✅ Fallback replay complete - {Total} bars processed", totalBarsProcessed);
+            _logger.LogInformation("[LAB] ⚠️ Note: No experiences generated (backtest service required for experience collection)");
             
             result.HistoricalBarsProcessed = totalBarsProcessed;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LAB] ERROR: Historical bar replay failed: {Error}", ex.Message);
-            result.FailedComponents.Add($"Bar replay failed: {ex.Message}");
+            _logger.LogError(ex, "[LAB] ERROR: Fallback bar replay failed: {Error}", ex.Message);
         }
         finally
         {
