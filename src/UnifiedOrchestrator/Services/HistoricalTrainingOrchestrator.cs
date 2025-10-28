@@ -308,6 +308,16 @@ internal sealed class HistoricalTrainingOrchestrator
         var historicalData = await LoadHistoricalDataWithRetryAsync(cancellationToken).ConfigureAwait(false);
         result.HistoricalBarsLoaded = historicalData.Sum(kvp => kvp.Value);
 
+        // Replay historical bars to generate trading experiences
+        // This feeds all bars through the brain, allowing all strategies to trade and create experiences
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        _logger.LogInformation("[LAB] 🎬 HISTORICAL BAR REPLAY - EXPERIENCE GENERATION");
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+        
+        await ReplayHistoricalBarsAsync(historicalData, result, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+
         // Load actual historical bars for splitting
         var allHistoricalBars = await LoadHistoricalBarsForTrainingAsync(historicalData, cancellationToken).ConfigureAwait(false);
         
