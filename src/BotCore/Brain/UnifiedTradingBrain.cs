@@ -1169,7 +1169,9 @@ namespace BotCore.Brain
             BotCore.Brain.MultiTimeframeBrainAdapter? mtfAdapter = null,
             TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null,
             Zones.IZoneService? zoneService = null,
-            BotCore.Patterns.PatternEngine? patternEngine = null)
+            BotCore.Patterns.PatternEngine? patternEngine = null,
+            BotCore.Risk.RiskEngine? riskEngine = null,
+            BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
         {
             _logger = logger;
             _memoryManager = memoryManager;
@@ -1191,6 +1193,8 @@ namespace BotCore.Brain
             _mtfLearning = mtfLearning; // Optional multi-timeframe online learning
             _zoneService = zoneService; // Optional zone service for supply/demand analysis
             _patternEngine = patternEngine; // Optional pattern engine for candlestick patterns
+            _riskEngine = riskEngine; // Optional risk engine for pre-trade validation
+            _neuralUcbExtended = neuralUcbExtended; // Optional parameter bundle selection
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());

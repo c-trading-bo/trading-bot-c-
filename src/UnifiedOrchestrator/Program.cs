@@ -1261,6 +1261,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.ZoneBarFeatureResolver>();
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.PatternBarFeatureResolver>();
         
+        // BACKTEST PARITY: Register advanced market context and session parameters
+        // Ensures historical backtesting has VIX proxy, volume z-score, spread analysis, session adjustments
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.AdvancedMarketContextResolver>();
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.SessionParametersResolver>();
+        
         // BACKTEST PARITY: Register risk-reward optimization and strategy conditions
         // Ensures historical backtesting has dynamic stop/target calculation and strategy selection
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.RiskRewardOptimizationResolver>();
