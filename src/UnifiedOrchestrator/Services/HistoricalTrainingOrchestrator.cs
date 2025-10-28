@@ -49,9 +49,9 @@ internal sealed class HistoricalTrainingOrchestrator
     
     // Bar replay simulation constants
     private const int MaxConcurrentPositions = 2; // Max simulated positions during lab mode replay
-    private const int AverageBarsPerTrade = 25; // Take trade approximately every 25 bars (2-3 trades/hour)
-    private const int TradeFrequencyVariation = 5; // +/- variation in bars between trades (20-30 bars)
-    private const int ExplorationPercentage = 30; // 30% exploration, 70% exploitation
+    private const int AverageBarsPerTrade = 25; // Take trade approximately every 25 bars (on 5m bars: ~2-3 trades/hour)
+    private const int TradeFrequencyVariation = 5; // +/- variation in bars between trades (20-30 bars range)
+    private const int ExplorationPercentage = 30; // 30% exploration, 70% exploitation in epsilon-greedy
     
     // Position simulation constants
     private const decimal ESRiskPoints = 10m; // ES futures risk per trade (10 points)
@@ -60,11 +60,11 @@ internal sealed class HistoricalTrainingOrchestrator
     private const decimal NQContractMultiplier = 20m; // NQ: $20 per point
     private const decimal RewardRiskRatio = 2.0m; // 2:1 reward/risk ratio for lab mode
     
-    // Confidence range constants for simulated positions
-    private const decimal MinConfidence = 0.6m; // Minimum confidence value
-    private const decimal ConfidenceRange = 0.3m; // Range for confidence values (0.6-0.9)
+    // Confidence and volatility range constants for simulated positions
+    private const decimal MinConfidence = 0.6m; // Minimum confidence value (60%)
+    private const decimal ConfidenceRange = 0.3m; // Confidence range: MinConfidence to (MinConfidence + ConfidenceRange) = 0.6 to 0.9
     private const decimal MinVolatility = 0.01m; // Minimum volatility (1%)
-    private const decimal VolatilityRange = 0.02m; // Volatility range (1-3%)
+    private const decimal VolatilityRange = 0.02m; // Volatility range: MinVolatility to (MinVolatility + VolatilityRange) = 1% to 3%
     
     private readonly ILogger<HistoricalTrainingOrchestrator> _logger;
     private readonly global::BotCore.Data.ExperienceRepository? _experienceRepository;
