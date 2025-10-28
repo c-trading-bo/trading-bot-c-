@@ -8,7 +8,7 @@
 
 ## Problem Statement
 
-> "investigate if theres anything missing for lab mode everything that my bot learns from heavy meduim and light creates new models that bot can use and dashboard components r 25 not 250 since it only trains 25"
+> "investigate if theres anything missing for lab mode everything that my bot learns from heavy medium and light creates new models that bot can use and dashboard components r 25 not 250 since it only trains 25"
 
 ## Executive Summary
 
@@ -61,11 +61,11 @@ Lab Mode Heavy phase training creates these 6 model artifacts:
 
 | Model | Files Created | Purpose |
 |-------|---------------|---------|
-| **CVaR-PPO** | `policy.json`, `value.json`, `cvar.json` | Risk-adjusted position sizing with tail risk control |
-| **SAC** | `actor.json`, `critic.json` | Soft Actor-Critic RL for continuous action spaces |
-| **Neural-UCB** | `ucb_network.json` | Neural Upper Confidence Bound for strategy selection |
-| **LSTM** | `lstm.json` | Time-series predictor for price forecasting |
-| **Position-Management** | Config files with parameters | Breakeven, trailing stops, time exit optimization |
+| **CVaR-PPO** | policy.json, value.json, cvar.json | Risk-adjusted position sizing with tail risk control |
+| **SAC** | actor.json, critic.json | Soft Actor-Critic RL for continuous action spaces |
+| **Neural-UCB** | ucb_network.json | Neural Upper Confidence Bound for strategy selection |
+| **LSTM** | lstm.json | Time-series predictor for price forecasting |
+| **Position-Management** | Config files with parameters | Breakeven, trailing stops, and time exit optimization |
 | **S15-Shadow-Validation** | Shadow model artifacts | Safe testing without risking capital |
 
 **Registration**: All 6 models are now properly registered and evaluated for promotion.
@@ -129,7 +129,7 @@ var modelsToRegister = new List<(string Algorithm, bool Success)>
 **Sunday 12:00 PM - 5:45 PM ET (Lab Mode)**
 
 ```
-12:00 PM - Load data (6,989 historical bars, 20-100 live experiences)
+12:00 PM - Load data (~7,000 historical bars, 20-100 live experiences)
 12:15 PM - Start Heavy phase training
   ├─ CVaR-PPO Training (30-45 min) ✅
   ├─ SAC Training (30-45 min) ✅
