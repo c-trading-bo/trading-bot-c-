@@ -326,6 +326,9 @@ public sealed class LabModeDashboardStateManager
             
             lock (_stateLock)
             {
+                // Update elapsed time (important for dashboard time display)
+                _currentState.Elapsed = DateTimeOffset.UtcNow - _currentState.SessionStartTime;
+                
                 // CPU usage (approximate)
                 _currentState.Resources.CpuUsagePercent = GetCpuUsage();
                 
