@@ -954,6 +954,7 @@ internal sealed class HistoricalTrainingOrchestrator
     /// <summary>
     /// Replay all historical bars sequentially through 24-hour cycle to generate training experiences.
     /// This feeds bars to the brain chronologically, allowing time-gated strategies to activate at their designated windows.
+    /// Enhanced to ensure ALL strategies get trading opportunities via exploration mode and experience generation.
     /// </summary>
     private async Task ReplayHistoricalBarsAsync(
         Dictionary<string, int> historicalData, 
@@ -962,10 +963,11 @@ internal sealed class HistoricalTrainingOrchestrator
     {
         var stopwatch = Stopwatch.StartNew();
         var totalBarsProcessed = 0;
+        var experiencesGenerated = 0;
         
         try
         {
-            _logger.LogInformation("[LAB] 🎬 Starting historical bar replay across 24-hour cycle...");
+            _logger.LogInformation("[LAB] 🎬 Starting historical bar replay with experience generation...");
             
             // Get the UnifiedTradingBrain instance from the service provider
             var brain = _serviceProvider.GetService<global::BotCore.Brain.UnifiedTradingBrain>();
@@ -982,6 +984,12 @@ internal sealed class HistoricalTrainingOrchestrator
             {
                 var symbol = kvp.Key;
                 var barCount = kvp.Value;
+                
+                // Skip 1m data entries (they have "_1m" suffix)
+                if (symbol.Contains("_1m", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 
                 if (barCount == 0)
                 {
@@ -1040,14 +1048,29 @@ internal sealed class HistoricalTrainingOrchestrator
             allBars = allBars.OrderBy(b => b.Timestamp).ToList();
             _logger.LogInformation("[LAB] 📊 Total bars for replay: {Count} (sorted chronologically)", allBars.Count);
             
-            // Replay bars sequentially
+            // Strategy tracking for balanced exploration
+            var strategiesAvailable = new[] { "S2", "S3", "S6", "S11" }; // From strategies-enabled.json
+            var strategyTradeCount = new Dictionary<string, int>();
+            var strategyActivationsByHour = new Dictionary<int, Dictionary<string, int>>();
             var barsThisHour = new Dictionary<int, int>();
-            var strategiesActivatedByHour = new Dictionary<int, HashSet<string>>();
             
-            foreach (var bar in allBars)
+            // Initialize tracking
+            foreach (var strategy in strategiesAvailable)
+            {
+                strategyTradeCount[strategy] = 0;
+            }
+            
+            // Active positions tracking for experience generation
+            var activePositions = new Dictionary<string, SimulatedPosition>();
+            var completedExperiences = new List<global::BotCore.Models.TradingExperience>();
+            
+            // Replay bars sequentially
+            for (int barIndex = 0; barIndex < allBars.Count; barIndex++)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
+                
+                var bar = allBars[barIndex];
                 
                 try
                 {
@@ -1056,31 +1079,62 @@ internal sealed class HistoricalTrainingOrchestrator
                     barsThisHour.TryGetValue(hour, out var count);
                     barsThisHour[hour] = count + 1;
                     
-                    // Create mock objects required by MakeIntelligentDecisionAsync
-                    var env = CreateEnvFromBar(bar);
-                    var levels = CreateLevelsFromBar(bar);
-                    var bars = CreateBarsListFromBar(bar);
-                    using var risk = CreateRiskEngine();
-                    
-                    // Call brain.MakeIntelligentDecisionAsync with bar timestamp
-                    // This respects time gates and will activate different strategies at correct times
-                    var decision = await brain.MakeIntelligentDecisionAsync(
-                        bar.Symbol,
-                        env,
-                        levels,
-                        bars,
-                        risk,
-                        null, // No intelligence data for historical replay
-                        cancellationToken).ConfigureAwait(false);
-                    
-                    // Track which strategies are being activated at different times
-                    if (decision != null && !string.IsNullOrEmpty(decision.RecommendedStrategy))
+                    // Initialize hour tracking if needed
+                    if (!strategyActivationsByHour.ContainsKey(hour))
                     {
-                        if (!strategiesActivatedByHour.ContainsKey(hour))
+                        strategyActivationsByHour[hour] = new Dictionary<string, int>();
+                        foreach (var s in strategiesAvailable)
                         {
-                            strategiesActivatedByHour[hour] = new HashSet<string>();
+                            strategyActivationsByHour[hour][s] = 0;
                         }
-                        strategiesActivatedByHour[hour].Add(decision.RecommendedStrategy);
+                    }
+                    
+                    // Update existing positions - check stop loss / target hit
+                    await UpdateActivePositionsAsync(activePositions, bar, completedExperiences, cancellationToken).ConfigureAwait(false);
+                    
+                    // Decide whether to open new position
+                    // Use exploration mode to ensure all strategies get chances
+                    var shouldTrade = ShouldTakeTradeInLabMode(totalBarsProcessed, activePositions.Count);
+                    
+                    if (shouldTrade && activePositions.Count < 2) // Max 2 concurrent positions in lab mode
+                    {
+                        // Create mock objects required by MakeIntelligentDecisionAsync
+                        var env = CreateEnvFromBar(bar);
+                        var levels = CreateLevelsFromBar(bar);
+                        var bars = CreateBarsListFromBar(bar);
+                        using var risk = CreateRiskEngine();
+                        
+                        // Call brain.MakeIntelligentDecisionAsync with bar timestamp
+                        // This respects time gates and will activate different strategies at correct times
+                        var decision = await brain.MakeIntelligentDecisionAsync(
+                            bar.Symbol,
+                            env,
+                            levels,
+                            bars,
+                            risk,
+                            null, // No intelligence data for historical replay
+                            cancellationToken).ConfigureAwait(false);
+                        
+                        // Apply exploration strategy to ensure balanced strategy usage
+                        var selectedStrategy = SelectStrategyWithExploration(
+                            decision?.RecommendedStrategy, 
+                            strategyTradeCount, 
+                            strategiesAvailable,
+                            hour);
+                        
+                        if (!string.IsNullOrEmpty(selectedStrategy))
+                        {
+                            // Open simulated position
+                            var position = CreateSimulatedPosition(bar, selectedStrategy, env, barIndex);
+                            activePositions[position.PositionId] = position;
+                            
+                            // Track activations
+                            strategyTradeCount[selectedStrategy]++;
+                            strategyActivationsByHour[hour][selectedStrategy]++;
+                            
+                            _logger.LogDebug("[LAB] 📊 Opened {Strategy} position at {Time} on {Symbol} @ ${Price}",
+                                selectedStrategy, bar.Timestamp.ToString("HH:mm"), bar.Symbol, bar.Close);
+                        }
                     }
                     
                     totalBarsProcessed++;
@@ -1088,8 +1142,9 @@ internal sealed class HistoricalTrainingOrchestrator
                     // Log progress every 500 bars
                     if (totalBarsProcessed % 500 == 0)
                     {
-                        _logger.LogInformation("[LAB] 📈 Progress: {Processed}/{Total} bars replayed ({Percent:F1}%)",
-                            totalBarsProcessed, allBars.Count, (totalBarsProcessed * 100.0 / allBars.Count));
+                        _logger.LogInformation("[LAB] 📈 Progress: {Processed}/{Total} bars ({Percent:F1}%) | Positions: {Active} active, {Completed} completed",
+                            totalBarsProcessed, allBars.Count, (totalBarsProcessed * 100.0 / allBars.Count),
+                            activePositions.Count, completedExperiences.Count);
                     }
                 }
                 catch (Exception ex)
@@ -1099,26 +1154,63 @@ internal sealed class HistoricalTrainingOrchestrator
                 }
             }
             
-            // Log hour distribution
-            _logger.LogInformation("[LAB] ✅ Bar replay complete - {Total} bars processed in {Elapsed:F1}s",
-                totalBarsProcessed, stopwatch.Elapsed.TotalSeconds);
+            // Close any remaining open positions at end of replay
+            await CloseRemainingPositionsAsync(activePositions, allBars[^1], completedExperiences, cancellationToken).ConfigureAwait(false);
             
-            _logger.LogInformation("[LAB] 📊 Hour distribution and strategy activation:");
-            foreach (var hour in Enumerable.Range(0, 24))
+            // Save all generated experiences to repository
+            if (_experienceRepository != null && completedExperiences.Count > 0)
             {
-                var count = barsThisHour.GetValueOrDefault(hour, 0);
-                if (count > 0)
+                _logger.LogInformation("[LAB] 💾 Saving {Count} generated experiences to repository...", completedExperiences.Count);
+                
+                foreach (var experience in completedExperiences)
                 {
-                    var strategies = strategiesActivatedByHour.GetValueOrDefault(hour, new HashSet<string>());
-                    var strategyList = strategies.Count > 0 
-                        ? string.Join(", ", strategies) 
-                        : "No strategies activated";
-                    _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars - Strategies: {Strategies}", 
-                        hour, count, strategyList);
+                    await _experienceRepository.SaveExperienceAsync(experience).ConfigureAwait(false);
+                    experiencesGenerated++;
                 }
+                
+                _logger.LogInformation("[LAB] ✅ Saved {Count} trading experiences for training", experiencesGenerated);
+            }
+            else if (_experienceRepository == null)
+            {
+                _logger.LogWarning("[LAB] ⚠️ ExperienceRepository not available - experiences not saved");
             }
             
+            // Log comprehensive summary
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            _logger.LogInformation("[LAB] ✅ Bar replay complete - {Total} bars processed in {Elapsed:F1}s",
+                totalBarsProcessed, stopwatch.Elapsed.TotalSeconds);
+            _logger.LogInformation("[LAB] 📊 Trading Summary:");
+            _logger.LogInformation("[LAB]    - Experiences generated: {Count}", experiencesGenerated);
+            _logger.LogInformation("[LAB]    - Average experience per strategy:");
+            
+            foreach (var strategy in strategiesAvailable)
+            {
+                var tradeCount = strategyTradeCount[strategy];
+                _logger.LogInformation("[LAB]      • {Strategy}: {Count} trades", strategy, tradeCount);
+            }
+            
+            _logger.LogInformation("[LAB] 📊 Hourly strategy activation (ensures all strategies get opportunities):");
+            foreach (var hour in Enumerable.Range(0, 24))
+            {
+                var barCount = barsThisHour.GetValueOrDefault(hour, 0);
+                if (barCount > 0 && strategyActivationsByHour.ContainsKey(hour))
+                {
+                    var activations = strategyActivationsByHour[hour];
+                    var activationSummary = string.Join(", ", 
+                        activations.Where(kvp => kvp.Value > 0)
+                                   .Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+                    
+                    if (!string.IsNullOrEmpty(activationSummary))
+                    {
+                        _logger.LogInformation("[LAB]    Hour {Hour:D2}: {Count} bars - Trades: {Summary}", 
+                            hour, barCount, activationSummary);
+                    }
+                }
+            }
+            _logger.LogInformation("[LAB] ═══════════════════════════════════════════════════════");
+            
             result.HistoricalBarsProcessed = totalBarsProcessed;
+            result.ExperiencesLoaded += experiencesGenerated; // Add to total experience count
         }
         catch (Exception ex)
         {
@@ -1214,6 +1306,313 @@ internal sealed class HistoricalTrainingOrchestrator
         public required decimal Low { get; init; }
         public required decimal Close { get; init; }
         public required long Volume { get; init; }
+    }
+    
+    /// <summary>
+    /// Simulated position for lab mode trading
+    /// </summary>
+    private sealed class SimulatedPosition
+    {
+        public required string PositionId { get; init; }
+        public required string Symbol { get; init; }
+        public required string Strategy { get; init; }
+        public required DateTimeOffset EntryTime { get; init; }
+        public required decimal EntryPrice { get; init; }
+        public required int PositionSize { get; init; } // + for long, - for short
+        public required decimal StopLoss { get; init; }
+        public required decimal Target { get; init; }
+        public required decimal EntryRegimeConfidence { get; init; }
+        public required decimal EntryConfidence { get; init; }
+        public required decimal VolatilityAtEntry { get; init; }
+        public required string EntryRegime { get; init; }
+        public required int EntryBarIndex { get; init; }
+        public decimal MaxFavorablePrice { get; set; }
+        public decimal MaxAdversePrice { get; set; }
+    }
+    
+    /// <summary>
+    /// Decide whether to take a trade in lab mode
+    /// Uses frequency-based sampling: trade every ~20-30 bars on average
+    /// </summary>
+    private static bool ShouldTakeTradeInLabMode(int barIndex, int activePositionCount)
+    {
+        // Don't open new positions if we already have max concurrent
+        if (activePositionCount >= 2)
+            return false;
+        
+        // Take trade approximately every 25 bars (roughly 2-3 trades per hour on 5m bars)
+        // Use hash-based deterministic variation to avoid predictable pattern
+        var variationSeed = barIndex.GetHashCode();
+        var variation = Math.Abs(variationSeed % 11) - 5; // -5 to +5
+        var threshold = 25 + variation; // 20-30 bars
+        
+        return barIndex % threshold == 0;
+    }
+    
+    /// <summary>
+    /// Select strategy with exploration to ensure all strategies get chances
+    /// Uses epsilon-greedy: 70% use brain decision, 30% explore underutilized strategies
+    /// </summary>
+    private static string? SelectStrategyWithExploration(
+        string? brainRecommendation,
+        Dictionary<string, int> strategyTradeCount,
+        string[] strategiesAvailable,
+        int currentHour)
+    {
+        // Use secure random for exploration decision
+        var explorationThreshold = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100);
+        
+        // 30% exploration mode - force underutilized strategies
+        if (explorationThreshold < 30)
+        {
+            // Find strategy with minimum trades
+            var minTrades = strategyTradeCount.Values.Min();
+            var underutilizedStrategies = strategyTradeCount
+                .Where(kvp => kvp.Value == minTrades)
+                .Select(kvp => kvp.Key)
+                .ToArray();
+            
+            if (underutilizedStrategies.Length > 0)
+            {
+                var index = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, underutilizedStrategies.Length);
+                return underutilizedStrategies[index];
+            }
+        }
+        
+        // 70% exploitation mode - use brain recommendation or random if none
+        if (!string.IsNullOrEmpty(brainRecommendation) && strategyTradeCount.ContainsKey(brainRecommendation))
+        {
+            return brainRecommendation;
+        }
+        
+        // Fallback: random strategy using secure RNG
+        var fallbackIndex = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, strategiesAvailable.Length);
+        return strategiesAvailable[fallbackIndex];
+    }
+    
+    /// <summary>
+    /// Create simulated position from bar entry
+    /// </summary>
+    private static SimulatedPosition CreateSimulatedPosition(
+        HistoricalBar bar,
+        string strategy,
+        global::BotCore.Models.Env env,
+        int barIndex)
+    {
+        // Determine direction using secure random (50/50 long/short)
+        var directionValue = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100);
+        var isLong = directionValue >= 50;
+        var positionSize = isLong ? 1 : -1; // 1 contract
+        
+        // Set stop and target based on typical strategy parameters
+        // Use 2:1 reward/risk ratio for lab mode
+        var riskPoints = bar.Symbol == "ES" ? 10m : 20m; // ES: 10 points, NQ: 20 points
+        var rewardPoints = riskPoints * 2; // 2:1 R:R
+        
+        var stopLoss = isLong ? bar.Close - riskPoints : bar.Close + riskPoints;
+        var target = isLong ? bar.Close + rewardPoints : bar.Close - rewardPoints;
+        
+        // Use hash-based deterministic confidence values for lab mode (0.6-0.9 range)
+        var hashSeed1 = (barIndex * 31 + strategy.GetHashCode()) & 0x7FFFFFFF;
+        var hashSeed2 = (barIndex * 37 + strategy.GetHashCode() * 2) & 0x7FFFFFFF;
+        var hashSeed3 = (barIndex * 41 + strategy.GetHashCode() * 3) & 0x7FFFFFFF;
+        
+        var entryConfidence = 0.6m + ((hashSeed1 % 1000) / 1000m * 0.3m); // 0.6-0.9
+        var regimeConfidence = 0.6m + ((hashSeed2 % 1000) / 1000m * 0.3m); // 0.6-0.9
+        var volatility = env.atr ?? (0.01m + ((hashSeed3 % 1000) / 1000m * 0.02m)); // 1-3%
+        
+        var regimes = new[] { "Trend", "Range", "Transition" };
+        var regimeIndex = hashSeed1 % regimes.Length;
+        var regime = regimes[regimeIndex];
+        
+        return new SimulatedPosition
+        {
+            PositionId = $"SIM_{strategy}_{barIndex}",
+            Symbol = bar.Symbol,
+            Strategy = strategy,
+            EntryTime = bar.Timestamp,
+            EntryPrice = bar.Close,
+            PositionSize = positionSize,
+            StopLoss = stopLoss,
+            Target = target,
+            EntryRegimeConfidence = regimeConfidence,
+            EntryConfidence = entryConfidence,
+            VolatilityAtEntry = volatility,
+            EntryRegime = regime,
+            EntryBarIndex = barIndex,
+            MaxFavorablePrice = bar.Close,
+            MaxAdversePrice = bar.Close
+        };
+    }
+    
+    /// <summary>
+    /// Update active positions - check if stop or target hit
+    /// </summary>
+    private static async Task UpdateActivePositionsAsync(
+        Dictionary<string, SimulatedPosition> activePositions,
+        HistoricalBar bar,
+        List<global::BotCore.Models.TradingExperience> completedExperiences,
+        CancellationToken cancellationToken)
+    {
+        var positionsToClose = new List<string>();
+        
+        foreach (var kvp in activePositions)
+        {
+            var position = kvp.Value;
+            
+            // Only update positions for the same symbol
+            if (position.Symbol != bar.Symbol)
+                continue;
+            
+            // Update max favorable/adverse prices
+            var isLong = position.PositionSize > 0;
+            if (isLong)
+            {
+                if (bar.High > position.MaxFavorablePrice)
+                    position.MaxFavorablePrice = bar.High;
+                if (bar.Low < position.MaxAdversePrice)
+                    position.MaxAdversePrice = bar.Low;
+            }
+            else
+            {
+                if (bar.Low < position.MaxFavorablePrice)
+                    position.MaxFavorablePrice = bar.Low;
+                if (bar.High > position.MaxAdversePrice)
+                    position.MaxAdversePrice = bar.High;
+            }
+            
+            // Check if stop loss hit
+            var stopHit = isLong ? bar.Low <= position.StopLoss : bar.High >= position.StopLoss;
+            
+            // Check if target hit
+            var targetHit = isLong ? bar.High >= position.Target : bar.Low <= position.Target;
+            
+            if (stopHit || targetHit)
+            {
+                var exitPrice = stopHit ? position.StopLoss : position.Target;
+                var exitReason = stopHit ? "StopLoss" : "Target";
+                
+                // Create trading experience
+                var experience = CreateTradingExperience(position, bar, exitPrice, exitReason);
+                completedExperiences.Add(experience);
+                
+                positionsToClose.Add(position.PositionId);
+            }
+        }
+        
+        // Remove closed positions
+        foreach (var positionId in positionsToClose)
+        {
+            activePositions.Remove(positionId);
+        }
+        
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Close all remaining positions at end of replay
+    /// </summary>
+    private static async Task CloseRemainingPositionsAsync(
+        Dictionary<string, SimulatedPosition> activePositions,
+        HistoricalBar lastBar,
+        List<global::BotCore.Models.TradingExperience> completedExperiences,
+        CancellationToken cancellationToken)
+    {
+        foreach (var kvp in activePositions)
+        {
+            var position = kvp.Value;
+            
+            // Close at last bar's close price
+            var experience = CreateTradingExperience(position, lastBar, lastBar.Close, "EndOfReplay");
+            completedExperiences.Add(experience);
+        }
+        
+        activePositions.Clear();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Create trading experience from closed position
+    /// </summary>
+    private static global::BotCore.Models.TradingExperience CreateTradingExperience(
+        SimulatedPosition position,
+        HistoricalBar exitBar,
+        decimal exitPrice,
+        string exitReason)
+    {
+        var isLong = position.PositionSize > 0;
+        
+        // Calculate P&L
+        var priceDiff = exitPrice - position.EntryPrice;
+        var pnlPerContract = isLong ? priceDiff : -priceDiff;
+        
+        // Apply contract multiplier (ES: $50, NQ: $20 per point)
+        var multiplier = position.Symbol == "ES" ? 50m : 20m;
+        var pnl = pnlPerContract * multiplier * Math.Abs(position.PositionSize);
+        
+        // Calculate R-multiple
+        var riskPerContract = Math.Abs(position.EntryPrice - position.StopLoss);
+        var riskDollars = riskPerContract * multiplier * Math.Abs(position.PositionSize);
+        var rMultiple = riskDollars > 0 ? pnl / riskDollars : 0;
+        
+        // Calculate Sharpe contribution (simplified)
+        var sharpeContribution = rMultiple / Math.Max(1, (decimal)position.VolatilityAtEntry);
+        
+        // Duration
+        var durationMinutes = (exitBar.Timestamp - position.EntryTime).TotalMinutes;
+        
+        // Exit regime using hash-based deterministic values
+        var hashSeed = (position.EntryBarIndex + 1000) & 0x7FFFFFFF;
+        var regimes = new[] { "Trend", "Range", "Transition" };
+        var exitRegime = regimes[hashSeed % regimes.Length];
+        var exitRegimeConfidence = 0.6m + ((hashSeed % 1000) / 1000m * 0.3m);
+        var volatilityAtExit = 0.01m + (((hashSeed * 2) % 1000) / 1000m * 0.02m);
+        
+        return new global::BotCore.Models.TradingExperience
+        {
+            ExperienceId = Guid.NewGuid().ToString(),
+            Timestamp = exitBar.Timestamp.UtcDateTime,
+            PositionId = position.PositionId,
+            
+            // State at entry
+            EntryRegime = position.EntryRegime,
+            EntryRegimeConfidence = position.EntryRegimeConfidence,
+            EntryConfidence = position.EntryConfidence,
+            Symbol = position.Symbol,
+            EntryHour = position.EntryTime.Hour,
+            EntryDayOfWeek = (int)position.EntryTime.DayOfWeek,
+            VolatilityAtEntry = position.VolatilityAtEntry,
+            
+            // Action
+            Strategy = position.Strategy,
+            PositionSize = position.PositionSize,
+            EntryPrice = position.EntryPrice,
+            InitialStopPrice = position.StopLoss,
+            InitialTargetPrice = position.Target,
+            BreakevenAfterTicks = 0,
+            TrailTicks = 0,
+            
+            // Reward
+            RMultiple = rMultiple,
+            PnL = pnl,
+            SharpeContribution = sharpeContribution,
+            ExitReason = exitReason,
+            DurationMinutes = durationMinutes,
+            
+            // Next state
+            ExitRegime = exitRegime,
+            ExitRegimeConfidence = exitRegimeConfidence,
+            ExitPrice = exitPrice,
+            VolatilityAtExit = volatilityAtExit,
+            
+            // Additional metrics
+            MaxFavorablePrice = position.MaxFavorablePrice,
+            MaxAdversePrice = position.MaxAdversePrice,
+            StopModificationCount = 0,
+            BreakevenActivated = false,
+            TrailingStopActive = false,
+            RegimeChangeCount = 0
+        };
     }
 
     /// <summary>
