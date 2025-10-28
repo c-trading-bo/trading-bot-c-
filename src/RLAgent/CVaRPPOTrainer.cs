@@ -702,7 +702,7 @@ public class CVaRPPOTrainer
                 modelName, fileInfo.Length, path, minExpectedSize);
             throw new InvalidOperationException(
                 $"{modelName} model file appears to be incomplete or empty ({fileInfo.Length} bytes). " +
-                "Real trained models should be at least {minExpectedSize} bytes. " +
+                "Real trained models should be at least " + minExpectedSize + " bytes. " +
                 "Check that TorchSharp native libraries are available and neural networks initialized correctly.");
         }
         
