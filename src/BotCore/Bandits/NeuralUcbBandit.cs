@@ -631,6 +631,8 @@ public interface INeuralNetwork
     Task<decimal[]> ComputeGradientsAsync(decimal[] features, CancellationToken ct = default);
     Task<decimal> GetComplexityAsync(CancellationToken ct = default);
     INeuralNetwork Clone();
+    Task SaveAsync(string path, CancellationToken ct = default);
+    Task LoadAsync(string path, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -941,6 +943,43 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
                 _isInitialized = false;
             }
             _disposed = true;
+        }
+    }
+    
+    public async Task SaveAsync(string path, CancellationToken ct = default)
+    {
+        // For ONNX models, we simply copy the model file
+        if (File.Exists(_modelPath))
+        {
+            await Task.Run(() => File.Copy(_modelPath, path, overwrite: true), ct).ConfigureAwait(false);
+            _logger.LogInformation("[NEURAL_UCB] Saved ONNX model to: {Path}", path);
+        }
+        else
+        {
+            _logger.LogWarning("[NEURAL_UCB] Cannot save: source model not found at {Path}", _modelPath);
+        }
+    }
+    
+    public async Task LoadAsync(string path, CancellationToken ct = default)
+    {
+        if (File.Exists(path))
+        {
+            await _reloadLock.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                _session?.Dispose();
+                _session = new InferenceSession(path);
+                _isInitialized = true;
+                _logger.LogInformation("[NEURAL_UCB] Loaded ONNX model from: {Path}", path);
+            }
+            finally
+            {
+                _reloadLock.Release();
+            }
+        }
+        else
+        {
+            _logger.LogWarning("[NEURAL_UCB] Cannot load: model file not found at {Path}", path);
         }
     }
 }

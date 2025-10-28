@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -22,15 +25,28 @@ public class RegimeDetectorTrainer
     private readonly ILogger<RegimeDetectorTrainer> _logger;
     private readonly int _lookbackWindow;
     private readonly double _trendThreshold;
+    private readonly string _modelBasePath;
+    private string _currentModelVersion = "1.0.0";
+    private RegimeClassifierNetwork? _network;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     
     public RegimeDetectorTrainer(
         ILogger<RegimeDetectorTrainer> logger,
         int lookbackWindow = 20,
-        double trendThreshold = 0.02)
+        double trendThreshold = 0.02,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _lookbackWindow = lookbackWindow;
         _trendThreshold = trendThreshold;
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "regime_detector");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("RegimeDetectorTrainer initialized (Lab mode) - Window: {Window}, Threshold: {Threshold}",
             _lookbackWindow, _trendThreshold);
@@ -277,9 +293,9 @@ public class RegimeDetectorTrainer
         var (features, labels) = PrepareRegimeFeatures(regimes);
         _logger.LogInformation("Prepared {Count} regime feature vectors with {Features} features each", features.Count, inputSize);
         
-        // Create regime classifier network
-        using var network = new RegimeClassifierNetwork(inputSize, numRegimes);
-        using var optimizer = Adam(network.parameters(), lr: 0.001);
+        // Create regime classifier network (store as instance variable for saving)
+        _network = new RegimeClassifierNetwork(inputSize, numRegimes);
+        using var optimizer = Adam(_network.parameters(), lr: 0.001);
         
         double totalLoss = 0.0;
         double totalAccuracy = 0.0;
@@ -321,7 +337,7 @@ public class RegimeDetectorTrainer
                 
                 // Forward pass
                 optimizer.zero_grad();
-                using var output = network.forward(inputTensor);
+                using var output = _network.forward(inputTensor);
                 using var loss = functional.cross_entropy(output, labelTensor);
                 
                 // Backward pass (REAL BACKPROPAGATION)
@@ -411,6 +427,106 @@ public class RegimeDetectorTrainer
             "CONSOLIDATION" => 5,
             _ => 2 // Default to RANGE
         };
+    }
+    
+    /// <summary>
+    /// Save trained regime detector model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (_network == null)
+            {
+                throw new InvalidOperationException("Cannot save model: network has not been trained yet");
+            }
+
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"regime_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save network
+            await _network.SaveAsync(Path.Combine(modelPath, "regime_network.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new RegimeDetectorMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                LookbackWindow = _lookbackWindow,
+                TrendThreshold = _trendThreshold
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("RegimeDetectorTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RegimeDetectorTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained regime detector model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var networkPath = Path.Combine(modelPath, "regime_network.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(networkPath) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("RegimeDetectorTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<RegimeDetectorMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("RegimeDetectorTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Dispose old network if exists and create new one
+            _network?.Dispose();
+            const int inputSize = 8;
+            const int numRegimes = 6;
+            _network = new RegimeClassifierNetwork(inputSize, numRegimes);
+            _network.load(networkPath);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("RegimeDetectorTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RegimeDetectorTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
     }
 }
 
@@ -532,4 +648,21 @@ internal class RegimeClassifierNetwork : Module<Tensor, Tensor>
         }
         base.Dispose(disposing);
     }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Regime detector model metadata for persistence
+/// </summary>
+internal class RegimeDetectorMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int LookbackWindow { get; set; }
+    public double TrendThreshold { get; set; }
 }

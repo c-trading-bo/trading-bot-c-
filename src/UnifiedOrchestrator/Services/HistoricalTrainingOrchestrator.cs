@@ -2040,6 +2040,17 @@ internal sealed class HistoricalTrainingOrchestrator
             
             if (trainingResult.Success)
             {
+                // Save the trained model
+                try
+                {
+                    var modelPath = await _sacTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("[LAB] {Component}: Model saved to {Path}", ComponentSAC, modelPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LAB] {Component}: Failed to save model", ComponentSAC);
+                }
+                
                 _logger.LogInformation("[LAB] {Component}: Training completed successfully", ComponentSAC);
                 result.SacSuccess = true;
             }
@@ -2144,6 +2155,18 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (trainingResult.Success)
                 {
+                    // Save the trained model
+                    try
+                    {
+                        var savedModelPath = await _lstmTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("[LAB] {Component}: Seed {Seed} - Model saved to {Path}", 
+                            ComponentLSTM, seed, savedModelPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[LAB] {Component}: Seed {Seed} - Failed to save model", ComponentLSTM, seed);
+                    }
+                    
                     var testMetric = 1.0; // Get actual metric from trainer in production
                     var validationMetric = 1.0;
                     
@@ -2276,6 +2299,18 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (trainingResult.Success)
                 {
+                    // Save the trained model
+                    try
+                    {
+                        var savedModelPath = await _patternRecognitionTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("[LAB] Pattern-Recognition: Seed {Seed} - Model saved to {Path}", 
+                            seed, savedModelPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[LAB] Pattern-Recognition: Seed {Seed} - Failed to save model", seed);
+                    }
+                    
                     seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
                         seed, 1.0, 1.0, $"pattern_seed_{seed}.onnx"));
                 }
@@ -2367,6 +2402,18 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (trainingResult.Success)
                 {
+                    // Save the trained model
+                    try
+                    {
+                        var savedModelPath = await _regimeDetectorTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("[LAB] Regime-Detector: Seed {Seed} - Model saved to {Path}", 
+                            seed, savedModelPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[LAB] Regime-Detector: Seed {Seed} - Failed to save model", seed);
+                    }
+                    
                     seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
                         seed, 1.0, 1.0, $"regime_seed_{seed}.onnx"));
                 }
@@ -2456,6 +2503,18 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (trainingResult.Success)
                 {
+                    // Save the trained model
+                    try
+                    {
+                        var savedModelPath = await _slippageLatencyTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("[LAB] Slippage-Latency: Seed {Seed} - Model saved to {Path}", 
+                            seed, savedModelPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[LAB] Slippage-Latency: Seed {Seed} - Failed to save model", seed);
+                    }
+                    
                     seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
                         seed, 1.0, 1.0, $"slippage_seed_{seed}.onnx"));
                 }
@@ -2545,6 +2604,18 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (trainingResult.Success)
                 {
+                    // Save the trained model
+                    try
+                    {
+                        var savedModelPath = await _modelEnsembleTrainer.SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("[LAB] Model-Ensemble: Seed {Seed} - Model saved to {Path}", 
+                            seed, savedModelPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[LAB] Model-Ensemble: Seed {Seed} - Failed to save model", seed);
+                    }
+                    
                     seedResults.Add(_multiSeedCoordinator.CreateSeedResult(
                         seed, 1.0, 1.0, $"ensemble_seed_{seed}.onnx"));
                 }

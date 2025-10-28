@@ -140,7 +140,10 @@ internal sealed class TrainingOrchestratorService
             // Initialize dashboard if available
             if (_dashboardStateManager != null)
             {
-                _dashboardStateManager.InitializeSession(sessionId, 250);
+                // Initialize dashboard state with ACTUAL component count (25 total)
+                // Heavy: 11, Medium: 7, Light: 7
+                // Previously showed 250 from early development estimates
+                _dashboardStateManager.InitializeSession(sessionId, 25);
                 _dashboardStateManager.LogActivity("info", "TrainingOrchestrator", $"Training session {sessionId} started");
                 _dashboardUpdateTimer?.Start();
                 _logger.LogInformation("[LAB] Dashboard initialized for session {SessionId}", sessionId);

@@ -14,7 +14,7 @@ public sealed class ProgressTracker
     private readonly List<ComponentTiming> _componentTimings = new();
     
     /// <summary>
-    /// Total number of components to train (273 target)
+    /// Total number of components to train (25: Heavy=11, Medium=7, Light=7)
     /// </summary>
     public int TotalComponents { get; set; }
 

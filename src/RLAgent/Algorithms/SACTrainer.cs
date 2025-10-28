@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -20,12 +23,27 @@ public class SACTrainer
     private readonly ILogger<SACTrainer> _logger;
     private readonly SACConfig _config;
     private readonly SoftActorCritic _sac;
+    private readonly string _modelBasePath;
+    private string _currentModelVersion = "1.0.0";
     
-    public SACTrainer(ILogger<SACTrainer> logger, SACConfig config, SoftActorCritic sac)
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+    
+    public SACTrainer(
+        ILogger<SACTrainer> logger, 
+        SACConfig config, 
+        SoftActorCritic sac,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _config = config;
         _sac = sac;
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "sac");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("SACTrainer initialized (Lab mode) - StateSize: {State}, ActionDim: {Action}",
             _config.StateSize, _config.ActionDim);
@@ -227,4 +245,123 @@ public class SACTrainer
             targetCritic2Params[i].copy_(updated2);
         }
     }
+    
+    /// <summary>
+    /// Save trained SAC model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"sac_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save networks
+            await _sac._actor.SaveAsync(Path.Combine(modelPath, "actor.json"), cancellationToken).ConfigureAwait(false);
+            await _sac._critic1.SaveAsync(Path.Combine(modelPath, "critic1.json"), cancellationToken).ConfigureAwait(false);
+            await _sac._critic2.SaveAsync(Path.Combine(modelPath, "critic2.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new SACMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                StateSize = _config.StateSize,
+                ActionDim = _config.ActionDim,
+                LearningRate = _config.LearningRate,
+                Gamma = _config.Gamma,
+                Tau = _config.Tau
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("SACTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SACTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained SAC model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var actorPath = Path.Combine(modelPath, "actor.json");
+            var critic1Path = Path.Combine(modelPath, "critic1.json");
+            var critic2Path = Path.Combine(modelPath, "critic2.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(actorPath) || !File.Exists(critic1Path) || 
+                !File.Exists(critic2Path) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("SACTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<SACMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("SACTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Load networks
+            _sac._actor.load(actorPath);
+            _sac._critic1.load(critic1Path);
+            _sac._critic2.load(critic2Path);
+            
+            // Copy to target networks
+            _sac._targetCritic1.load(critic1Path);
+            _sac._targetCritic2.load(critic2Path);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("SACTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SACTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
+    }
+}
+
+/// <summary>
+/// SAC model metadata for persistence
+/// </summary>
+internal class SACMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int StateSize { get; set; }
+    public int ActionDim { get; set; }
+    public double LearningRate { get; set; }
+    public double Gamma { get; set; }
+    public double Tau { get; set; }
 }

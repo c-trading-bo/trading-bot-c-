@@ -172,6 +172,12 @@ internal class SACActorNetwork : Module<Tensor, (Tensor, Tensor)>
         }
         base.Dispose(disposing);
     }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>
@@ -208,6 +214,12 @@ internal class SACCriticNetwork : Module<Tensor, Tensor>
             _network?.Dispose();
         }
         base.Dispose(disposing);
+    }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
     }
 }
 

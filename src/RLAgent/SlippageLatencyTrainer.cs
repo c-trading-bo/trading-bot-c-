@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TorchSharp;
@@ -21,13 +24,26 @@ public class SlippageLatencyTrainer
 {
     private readonly ILogger<SlippageLatencyTrainer> _logger;
     private readonly int _minSamples;
+    private readonly string _modelBasePath;
+    private string _currentModelVersion = "1.0.0";
+    private ExecutionRegressionNetwork? _network;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     
     public SlippageLatencyTrainer(
         ILogger<SlippageLatencyTrainer> logger,
-        int minSamples = 100)
+        int minSamples = 100,
+        string? modelBasePath = null)
     {
         _logger = logger;
         _minSamples = minSamples;
+        _modelBasePath = modelBasePath ?? Path.Combine("models", "slippage_latency");
+        
+        Directory.CreateDirectory(_modelBasePath);
         
         _logger.LogInformation("SlippageLatencyTrainer initialized (Lab mode) - MinSamples: {MinSamples}",
             _minSamples);
@@ -201,9 +217,9 @@ public class SlippageLatencyTrainer
         var (features, targets) = PrepareExecutionFeatures(slippageMetrics, latencyPatterns);
         _logger.LogInformation("Prepared {Count} execution feature vectors", features.Count);
         
-        // Create regression network
-        using var network = new ExecutionRegressionNetwork(inputSize, outputSize);
-        using var optimizer = Adam(network.parameters(), lr: 0.0008);
+        // Create regression network (store as instance variable for saving)
+        _network = new ExecutionRegressionNetwork(inputSize, outputSize);
+        using var optimizer = Adam(_network.parameters(), lr: 0.0008);
         
         double totalLoss = 0.0;
         
@@ -246,7 +262,7 @@ public class SlippageLatencyTrainer
                 
                 // Forward pass
                 optimizer.zero_grad();
-                using var output = network.forward(inputTensor);
+                using var output = _network.forward(inputTensor);
                 using var loss = functional.mse_loss(output, targetTensor);
                 
                 // Backward pass (REAL BACKPROPAGATION)
@@ -321,6 +337,115 @@ public class SlippageLatencyTrainer
         
         return (features, targets);
     }
+    
+    /// <summary>
+    /// Save trained slippage/latency model to disk
+    /// </summary>
+    public async Task<string> SaveModelAsync(string? customVersion = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (_network == null)
+            {
+                throw new InvalidOperationException("Cannot save model: network has not been trained yet");
+            }
+
+            var version = customVersion ?? GenerateNextVersion();
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var modelPath = Path.Combine(_modelBasePath, $"slippage_latency_v{version}_{timestamp}");
+            
+            Directory.CreateDirectory(modelPath);
+
+            // Save network
+            await _network.SaveAsync(Path.Combine(modelPath, "slippage_network.json"), cancellationToken).ConfigureAwait(false);
+
+            // Save metadata
+            var metadata = new SlippageLatencyMetadata
+            {
+                Version = version,
+                CreatedAt = DateTime.UtcNow,
+                MinSamples = _minSamples
+            };
+
+            var metadataJson = JsonSerializer.Serialize(metadata, JsonOptions);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
+
+            _currentModelVersion = version;
+            _logger.LogInformation("SlippageLatencyTrainer saved model - Path: {Path}, Version: {Version}", modelPath, version);
+            
+            return modelPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SlippageLatencyTrainer failed to save model");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Load trained slippage/latency model from disk
+    /// </summary>
+    public async Task<bool> LoadModelAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var networkPath = Path.Combine(modelPath, "slippage_network.json");
+            var metadataPath = Path.Combine(modelPath, "metadata.json");
+
+            if (!File.Exists(networkPath) || !File.Exists(metadataPath))
+            {
+                _logger.LogWarning("SlippageLatencyTrainer model files not found at path: {Path}", modelPath);
+                return false;
+            }
+
+            // Load metadata
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+            var metadata = JsonSerializer.Deserialize<SlippageLatencyMetadata>(metadataJson, JsonOptions);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("SlippageLatencyTrainer failed to deserialize metadata");
+                return false;
+            }
+
+            // Dispose old network if exists and create new one
+            _network?.Dispose();
+            const int inputSize = 6;
+            const int outputSize = 2;
+            _network = new ExecutionRegressionNetwork(inputSize, outputSize);
+            _network.load(networkPath);
+
+            _currentModelVersion = metadata.Version;
+            _logger.LogInformation("SlippageLatencyTrainer loaded model - Path: {Path}, Version: {Version}", modelPath, metadata.Version);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SlippageLatencyTrainer failed to load model from path: {Path}", modelPath);
+            return false;
+        }
+    }
+
+    private string GenerateNextVersion()
+    {
+        var parts = _currentModelVersion.Split('.');
+        if (parts.Length == 3 && int.TryParse(parts[2], out var patch))
+        {
+            return $"{parts[0]}.{parts[1]}.{patch + 1}";
+        }
+        return "1.0.1";
+    }
+}
+
+/// <summary>
+/// Slippage/latency model metadata for persistence
+/// </summary>
+internal class SlippageLatencyMetadata
+{
+    public string Version { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int MinSamples { get; set; }
 }
 
 /// <summary>
@@ -438,5 +563,11 @@ internal class ExecutionRegressionNetwork : Module<Tensor, Tensor>
             _dropout?.Dispose();
         }
         base.Dispose(disposing);
+    }
+    
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        save(path);
+        return Task.CompletedTask;
     }
 }
