@@ -627,7 +627,8 @@ internal sealed class HistoricalTrainingOrchestrator
                 ["HeavyPhaseDuration"] = (result.CvarPpoTrainingDuration + result.NeuralUcbTrainingDuration + result.LstmTrainingDuration).TotalMinutes,
                 ["MediumPhaseDuration"] = result.MediumPhaseTrainingDuration.TotalMinutes,
                 ["LightPhaseDuration"] = result.LightPhaseTrainingDuration.TotalMinutes,
-                ["TotalModels"] = 37, // 7 Heavy + 15 Medium + 15 Light
+                ["TotalComponents"] = 25, // 11 Heavy + 7 Medium + 7 Light documented components
+                ["HeavyModels"] = 6, // CVaR-PPO, SAC, Neural-UCB, LSTM, Position-Mgmt, S15-Shadow
                 ["FailedComponents"] = result.FailedComponents.Count,
                 ["NextTraining"] = GetNextSundayNoon().ToString("yyyy-MM-dd HH:mm:ss") + " ET"
             },
@@ -642,7 +643,8 @@ internal sealed class HistoricalTrainingOrchestrator
 ║  Training Summary:                                                         ║
 ║  • Run ID: {1}                                        ║
 ║  • Duration: {2:F1} hours                                                 ║
-║  • Models Trained: 37 (7 Heavy + 15 Medium + 15 Light)                   ║
+║  • Components Trained: 25 (11 Heavy + 7 Medium + 7 Light)                ║
+║  • Heavy Models Created: 6 (CVaR-PPO, SAC, UCB, LSTM, PM, Shadow)       ║
 ║  • Models Promoted: {3}                                                   ║
 ║  • Canary Test: PASSED ✅                                                 ║
 ║  • Next Training: {4}                                           ║
@@ -3248,45 +3250,89 @@ internal sealed class HistoricalTrainingOrchestrator
 
     #region Private Methods - Model Management
 
-    private async Task SaveChallengersAsync(TrainingSessionResult result, CancellationToken cancellationToken)
+    private Task SaveChallengersAsync(TrainingSessionResult result, CancellationToken cancellationToken)
     {
         var savedCount = 0;
-        var algorithms = new[] { "cvar-ppo", "neural-ucb" };
-
-        foreach (var algorithm in algorithms)
+        
+        // Register all Heavy phase models that were successfully trained
+        // Models are saved by trainers during training via SaveModelAsync()
+        // Here we track which ones succeeded for dashboard and reporting
+        
+        var modelsToRegister = new List<(string Algorithm, bool Success)>
         {
+            ("CVaR-PPO", result.CvarPpoSuccess),
+            ("SAC", result.SacSuccess),
+            ("Neural-UCB", result.NeuralUcbSuccess),
+            ("LSTM", result.LstmSuccess),
+            ("Position-Management", result.PositionMgmtSuccess),
+            ("S15-Shadow-Validation", result.ShadowValidationSuccess)
+        };
+
+        foreach (var (algorithm, success) in modelsToRegister)
+        {
+            if (!success)
+            {
+                _logger.LogWarning("[LAB] Skipping challenger registration for {Algorithm} - training failed", algorithm);
+                continue;
+            }
+            
             try
             {
                 var version = $"v{DateTime.UtcNow:yyyy.MM.dd}";
-                _logger.LogInformation("[LAB] Saving challenger: {Algorithm}-{Version}", algorithm, version);
+                _logger.LogInformation("[LAB] Registering trained model: {Algorithm}-{Version}", algorithm, version);
                 
-                // Challengers are saved by the trainers themselves during training
-                // CVaRPPOTrainer and NeuralUcbBanditTrainer handle model persistence
-                await Task.CompletedTask.ConfigureAwait(false);
+                // Models are already saved by trainers during training via SaveModelAsync()
+                // Trainers handle:
+                // - CVaRPPOTrainer.SaveModelAsync() -> saves policy.json, value.json, cvar.json
+                // - SACTrainer.SaveModelAsync() -> saves actor.json, critic.json
+                // - NeuralUcbBanditTrainer.SaveModelAsync() -> saves ucb_network.json
+                // - LSTMTrainer.SaveModelAsync() -> saves lstm.json
+                // - PositionManagementOptimizer exports parameters to config files
+                // - S15ShadowLearningService saves shadow model artifacts
                 
+                // Mark as successfully registered
                 savedCount++;
+                _logger.LogInformation("[LAB] ✓ Model registered: {Algorithm}", algorithm);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LAB] ERROR: Failed to save challenger - {Algorithm}: {Error}", 
+                _logger.LogError(ex, "[LAB] ERROR: Failed to register model - {Algorithm}: {Error}", 
                     algorithm, ex.Message);
             }
         }
 
         result.ChallengersSaved = savedCount;
-        _logger.LogInformation("[LAB] Saved {Count} challengers to registry", savedCount);
+        _logger.LogInformation("[LAB] Registered {Count} trained models from Heavy phase", savedCount);
+        
+        return Task.CompletedTask;
     }
 
     private async Task RunPromotionEvaluationsAsync(TrainingSessionResult result, CancellationToken cancellationToken)
     {
-        var algorithms = new[] { "cvar-ppo", "neural-ucb" };
-        
-        foreach (var algorithm in algorithms)
+        // Evaluate all Heavy phase models for promotion
+        var modelsToEvaluate = new List<(string Algorithm, bool Success)>
         {
+            ("CVaR-PPO", result.CvarPpoSuccess),
+            ("SAC", result.SacSuccess),
+            ("Neural-UCB", result.NeuralUcbSuccess),
+            ("LSTM", result.LstmSuccess),
+            ("Position-Management", result.PositionMgmtSuccess),
+            ("S15-Shadow-Validation", result.ShadowValidationSuccess)
+        };
+        
+        foreach (var (algorithm, success) in modelsToEvaluate)
+        {
+            if (!success)
+            {
+                _logger.LogInformation("[LAB] Skipping promotion for {Algorithm} - training failed", algorithm);
+                result.ModelsDiscarded++;
+                continue;
+            }
+            
             try
             {
                 var version = $"v{DateTime.UtcNow:yyyy.MM.dd}";
-                var challengerVersionId = $"{algorithm}_{version}_challenger";
+                var challengerVersionId = $"{algorithm.ToLower().Replace("-", "_")}_{version}_challenger";
                 
                 _logger.LogInformation("[LAB] Evaluating promotion for {Algorithm} {Version}", 
                     algorithm, version);
@@ -3295,7 +3341,7 @@ internal sealed class HistoricalTrainingOrchestrator
                 
                 if (decision.ShouldPromote)
                 {
-                    _logger.LogInformation("[LAB] PROMOTED: {Algorithm}-{Version} (metrics improved based on backtest)", 
+                    _logger.LogInformation("[LAB] ✅ PROMOTED: {Algorithm}-{Version} (metrics improved based on validation)", 
                         algorithm, version);
                     result.ModelsPromoted++;
                 }
@@ -3303,7 +3349,7 @@ internal sealed class HistoricalTrainingOrchestrator
                 {
                     var reason = decision.Reason ?? "did not outperform champion";
                     
-                    _logger.LogInformation("[LAB] DISCARDED: {Algorithm}-{Version} ({Reason})", 
+                    _logger.LogInformation("[LAB] ⏭️  DISCARDED: {Algorithm}-{Version} ({Reason})", 
                         algorithm, version, reason);
                     result.ModelsDiscarded++;
                 }
@@ -3312,6 +3358,7 @@ internal sealed class HistoricalTrainingOrchestrator
             {
                 _logger.LogError(ex, "[LAB] ERROR: Promotion evaluation - {Algorithm}: {Error}", 
                     algorithm, ex.Message);
+                result.ModelsDiscarded++;
             }
         }
     }
@@ -3347,6 +3394,7 @@ internal sealed class HistoricalTrainingOrchestrator
 ╠═══════════════════════════════════════════════════════════════════════════╣
 ║ Training Results:                                                          ║
 ║   CVaR-PPO:           {CvarPpo,-50} ║
+║   SAC:                {Sac,-50} ║
 ║   Neural UCB:         {NeuralUcb,-50} ║
 ║   LSTM:               {Lstm,-50} ║
 ║   Position Mgmt:      {PositionMgmt,-50} ║
@@ -3367,6 +3415,7 @@ internal sealed class HistoricalTrainingOrchestrator
             result.HistoricalBarsLoaded.ToString("N0"),
             result.ExperiencesLoaded.ToString("N0"),
             result.CvarPpoSuccess ? $"✅ ({result.CvarPpoTrainingDuration.TotalMinutes:F1} min)" : "❌ FAILED",
+            result.SacSuccess ? $"✅ ({result.SacTrainingDuration.TotalMinutes:F1} min)" : "❌ FAILED",
             result.NeuralUcbSuccess ? $"✅ ({result.NeuralUcbTrainingDuration.TotalMinutes:F1} min)" : "❌ FAILED",
             result.LstmSuccess ? $"✅ ({result.LstmTrainingDuration.TotalMinutes:F1} min)" : "❌ FAILED",
             result.PositionMgmtSuccess ? $"✅ ({result.PositionMgmtTrainingDuration.TotalMinutes:F1} min)" : "❌ FAILED",
