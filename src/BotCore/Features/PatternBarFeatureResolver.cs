@@ -50,6 +50,9 @@ public sealed class PatternBarFeatureResolver : IFeatureResolver
             }
 
             // Convert Market.Bar to Models.Bar for pattern engine
+            // Use Math.Min to prevent overflow when volume exceeds int.MaxValue
+            var volumeInt = bar.Volume > int.MaxValue ? int.MaxValue : (int)bar.Volume;
+            
             var modelBar = new BotCore.Models.Bar
             {
                 Start = bar.Start,
@@ -59,7 +62,7 @@ public sealed class PatternBarFeatureResolver : IFeatureResolver
                 High = bar.High,
                 Low = bar.Low,
                 Close = bar.Close,
-                Volume = (int)bar.Volume
+                Volume = volumeInt
             };
 
             // Maintain bar buffer for this symbol

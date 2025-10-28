@@ -3286,8 +3286,8 @@ Reason closed: {reason}
                     context.Features["zone.pressure"] = (double)zoneSnapshot.ZonePressure;
                     
                     // Update support/resistance distances in main context (convert ATR to price distance)
-                    context.DistanceToResistance = (decimal)zoneSnapshot.DistToSupplyAtr * env.atr ?? 0m;
-                    context.DistanceToSupport = (decimal)zoneSnapshot.DistToDemandAtr * env.atr ?? 0m;
+                    context.DistanceToResistance = (decimal)zoneSnapshot.DistToSupplyAtr * (env.atr ?? 0m);
+                    context.DistanceToSupport = (decimal)zoneSnapshot.DistToDemandAtr * (env.atr ?? 0m);
                     
                     _logger.LogTrace(
                         "[ZONE-CONTEXT] {Symbol}: Supply dist={Supply:F2}ATR, Demand dist={Demand:F2}ATR, Pressure={Pressure:F3}",
