@@ -1261,6 +1261,11 @@ Please check the configuration and ensure all required services are registered.
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.ZoneBarFeatureResolver>();
         services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.PatternBarFeatureResolver>();
         
+        // BACKTEST PARITY: Register risk-reward optimization and strategy conditions
+        // Ensures historical backtesting has dynamic stop/target calculation and strategy selection
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.RiskRewardOptimizationResolver>();
+        services.AddSingleton<global::BotCore.Features.IFeatureResolver, global::BotCore.Features.StrategyOptimalConditionsResolver>();
+        
         // Register feature publisher hosted service for automated feature publishing
         services.AddHostedService<global::BotCore.Features.FeaturePublisher>();
         
