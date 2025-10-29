@@ -17,15 +17,16 @@ This document summarizes the implementation of the fully offline backtest mode f
 - Added logging to show which data provider is being used
 - Shows real-time P&L and trade details
 
-**Example Output**:
+**Example Output** (sample values):
 ```
 ✅ [BACKTEST] Historical data available for ES using provider: LocalQuotesProvider
-📊 [BACKTEST] Loading historical data from ES (2024-10-28 to 2024-10-29)
-📊 [BACKTEST] Processed 100 bars | Current Price: 4705.25 | P&L: $0.00
-✅ TRADE EXECUTED: LONG 1 @ 4705.50 | Reason: Market order fill | Total P&L: -$2.50
+📊 [BACKTEST] Loading historical data from ES (2024-10-29 to 2024-10-29)
+📊 [BACKTEST] Processed 60 bars | Current Price: 4700.25 | P&L: $0.00
+✅ TRADE EXECUTED: LONG 1 @ 4700.50 | Reason: Market order fill | Total P&L: -$2.50
 📊 [BACKTEST] Completed processing 60 historical bars
-Backtest completed successfully. Final PnL: $XXX.XX, Trades: X
+Backtest completed successfully. Final P&L: $87.50, Trades: 3
 ```
+*Note: Actual values will vary based on trading decisions and market data.*
 
 ### 2. Improved Logging Configuration
 **File**: `appsettings.backtest.json`
@@ -120,13 +121,13 @@ The `HistoricalDataResolver` tries providers in order and uses the first one wit
 ## Historical Data
 
 ### Available Data
-- **ES (E-mini S&P 500)**: 60 minute bars
-  - Date: 2024-10-29 09:30:00Z to 10:29:00Z
+- **ES (E-mini S&P 500)**: 60 1-minute bars (1 hour of data)
+  - Date range: 2024-10-29 09:30:00Z to 10:29:00Z (1 hour)
   - Price range: $4698.74 - $4700.51
   - Fields: Time, Symbol, Bid, Ask, Last, Volume, Open, High, Low, Close
 
-- **NQ (E-mini NASDAQ-100)**: 60 minute bars
-  - Date: 2024-10-29 09:30:00Z to 10:29:00Z
+- **NQ (E-mini NASDAQ-100)**: 60 1-minute bars (1 hour of data)
+  - Date range: 2024-10-29 09:30:00Z to 10:29:00Z (1 hour)
   - Price range: $14999.40 - $15000.68
   - Same field structure as ES
 
@@ -255,9 +256,11 @@ All changes follow the security guidelines:
 
 ## Performance
 
-- **Processing Speed**: ~1000-2000 bars/second
-- **Memory Usage**: <500MB typical
-- **CPU Usage**: Single core, <50%
+*Note: Performance metrics are estimated based on typical .NET application behavior. Actual values may vary based on hardware and configuration.*
+
+- **Processing Speed**: ~1000-2000 bars/second (estimated)
+- **Memory Usage**: <500MB typical (estimated)
+- **CPU Usage**: Single core, <50% (estimated)
 - **Disk I/O**: Minimal (read quotes, write results)
 
 ## Compliance with Requirements
