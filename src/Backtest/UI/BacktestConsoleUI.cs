@@ -16,7 +16,7 @@ namespace TradingBot.Backtest.UI
     }
 
     /// <summary>
-    /// Console UI for backtest tick replay visualization with live position tracking
+    /// Console UI for backtest tick/bar replay visualization with live position tracking
     /// 
     /// USAGE:
     /// Set environment variable: export ENABLE_BACKTEST_UI=1
@@ -24,7 +24,7 @@ namespace TradingBot.Backtest.UI
     /// 
     /// FEATURES:
     /// - Interactive Controls - Start, Pause, Stop, Rewind with keyboard
-    /// - Depth of Market (DOM) - Last 10 ticks with bid/ask/volume
+    /// - Market Data Display - Supports both tick-by-tick AND bar-by-bar replay
     /// - Bot Brain Thinking - Signal detection with entry/stop/target details
     /// - Open Position Panel - Live P&L tracking with visual indicators
     /// - Account Stats - Equity, daily P&L, trade statistics
@@ -36,12 +36,18 @@ namespace TradingBot.Backtest.UI
     /// - +/-: Increase/Decrease speed
     /// - Q: Quit
     /// 
+    /// DATA GRANULARITY:
+    /// - Tick: Tick-by-tick replay (high precision)
+    /// - Bar1m: 1-minute bar replay
+    /// - Bar5m: 5-minute bar replay
+    /// Set via BacktestOptions.DataGranularity or BACKTEST_GRANULARITY env var
+    /// 
     /// CONFIGURATION:
     /// - ReplaySpeed: 1 = real-time, 2 = 2x speed, etc.
     /// - Automatically shows/hides position panel based on trade status
-    /// - Renders every 5 ticks or when signals detected
+    /// - Renders every 5 data points or when signals detected
     /// 
-    /// The UI plays through all historical bars in real-time, allowing you to see
+    /// The UI plays through all historical data in real-time, allowing you to see
     /// how well the bot performs on historical data and validates training improvements.
     /// </summary>
     public class BacktestConsoleUI
@@ -70,6 +76,7 @@ namespace TradingBot.Backtest.UI
         private DateTime _endDate;
         private int _currentTickIndex = 0;
         private int _totalTicks = 0;
+        private string _dataGranularity = "Tick";
         
         public BacktestConsoleUI(string symbol, DateTime backtestDate, decimal initialEquity)
         {
@@ -85,11 +92,12 @@ namespace TradingBot.Backtest.UI
         /// <summary>
         /// Set the date range and total ticks for progress tracking
         /// </summary>
-        public void SetDateRange(DateTime startDate, DateTime endDate, int totalTicks)
+        public void SetDateRange(DateTime startDate, DateTime endDate, int totalTicks, string granularity = "Tick")
         {
             _startDate = startDate;
             _endDate = endDate;
             _totalTicks = totalTicks;
+            _dataGranularity = granularity;
         }
         
         /// <summary>
@@ -285,9 +293,10 @@ namespace TradingBot.Backtest.UI
             Console.WriteLine("│ 🎮 PLAYBACK CONTROLS                                                │");
             Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
             Console.WriteLine($"│ Status: {stateIcon} {stateText,-20} Speed: {_replaySpeed}x                    │");
+            Console.WriteLine($"│ Granularity: {_dataGranularity,-15} (Tick/Bar support)             │");
             Console.WriteLine($"│ Progress: [{progressBar}] {progressPercent,3}%           │");
             Console.WriteLine($"│ Date Range: {_startDate:yyyy-MM-dd} to {_endDate:yyyy-MM-dd}                      │");
-            Console.WriteLine($"│ Tick: {_currentTickIndex,6} / {_totalTicks,-6}                                    │");
+            Console.WriteLine($"│ Data Points: {_currentTickIndex,6} / {_totalTicks,-6}                              │");
             Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
             Console.WriteLine("│ [SPACE] Play/Pause  [R] Rewind  [S] Stop  [+/-] Speed  [Q] Quit   │");
             Console.WriteLine("└─────────────────────────────────────────────────────────────────────┘");
@@ -303,8 +312,9 @@ namespace TradingBot.Backtest.UI
 
         private void RenderDepthOfMarket()
         {
+            var dataTypeLabel = _dataGranularity.Contains("Bar") ? "Bars" : "Ticks";
             Console.WriteLine("┌─────────────────────────────────────────────────────────────────────┐");
-            Console.WriteLine($"│ DEPTH OF MARKET (Last 10 Ticks)                    Speed: {_replaySpeed}x Real   │");
+            Console.WriteLine($"│ MARKET DATA (Last 10 {dataTypeLabel})                    Speed: {_replaySpeed}x Real   │");
             Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
             
             if (_recentTicks.Count == 0)

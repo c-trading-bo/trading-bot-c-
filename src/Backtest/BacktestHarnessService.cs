@@ -44,6 +44,12 @@ namespace TradingBot.Backtest
         /// Tick replay speed multiplier (1 = real-time, 2 = 2x speed, etc.)
         /// </summary>
         public int ReplaySpeed { get; set; } = 1;
+        
+        /// <summary>
+        /// Data granularity for backtest replay (Tick, Bar1m, Bar5m)
+        /// Supports both tick-by-tick and bar-by-bar replay
+        /// </summary>
+        public string DataGranularity { get; set; } = "Tick";
     }
 
     /// <summary>
@@ -191,7 +197,7 @@ namespace TradingBot.Backtest
                     }
                     
                     ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
-                    ui.SetDateRange(startDate, endDate, allQuotes.Count);
+                    ui.SetDateRange(startDate, endDate, allQuotes.Count, _options.DataGranularity);
                     ui.SetPlaybackState(UI.PlaybackState.Stopped);
                     ui.Render();
                     
