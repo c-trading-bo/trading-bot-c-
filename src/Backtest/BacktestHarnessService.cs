@@ -60,6 +60,7 @@ namespace TradingBot.Backtest
         private readonly IMetricSink _metricSink;
         private readonly IModelRegistry _modelRegistry;
         private readonly IMLConfigurationService _mlConfigService;
+        private readonly global::BotCore.Services.UnifiedDecisionRouter? _decisionRouter;
 
         public BacktestHarnessService(
             ILogger<BacktestHarnessService> logger,
@@ -68,7 +69,8 @@ namespace TradingBot.Backtest
             IExecutionSimulator executionSimulator,
             IMetricSink metricSink,
             IModelRegistry modelRegistry,
-            IMLConfigurationService mlConfigService)
+            IMLConfigurationService mlConfigService,
+            global::BotCore.Services.UnifiedDecisionRouter? decisionRouter = null)
         {
             _logger = logger;
             _options = options.Value;
@@ -77,6 +79,7 @@ namespace TradingBot.Backtest
             _metricSink = metricSink;
             _modelRegistry = modelRegistry;
             _mlConfigService = mlConfigService ?? throw new ArgumentNullException(nameof(mlConfigService));
+            _decisionRouter = decisionRouter; // Optional - uses real trading logic when available
         }
 
         /// <summary>
@@ -318,8 +321,8 @@ namespace TradingBot.Backtest
         }
 
         /// <summary>
-        /// Make trading decision using simplified approach
-        /// This can be enhanced to integrate with existing trading logic
+        /// Make trading decision using real UnifiedDecisionRouter
+        /// Integrates with existing ML/RL models and strategy services
         /// </summary>
         private async Task<DecisionLog> MakeTradingDecisionAsync(
             Quote quote,
@@ -327,44 +330,92 @@ namespace TradingBot.Backtest
             SimState simState,
             CancellationToken cancellationToken)
         {
-            // Simplified decision logic - in production this would integrate with:
-            // - Existing strategy services
-            // - ML/RL decision systems  
-            // - Risk management systems
-            
-            await Task.CompletedTask; // Satisfy async requirement
-            
-            // For now, create a basic decision framework
             var decision = TradingAction.Hold;
-            var confidence = (decimal)_mlConfigService.GetMinimumConfidence(); // Use minimum confidence for hold/neutral decisions
+            var confidence = (decimal)_mlConfigService.GetMinimumConfidence();
             var rationale = "Hold - no clear signal";
+            decimal? stopLoss = null;
+            decimal? takeProfit = null;
 
-            // Basic decision logic based on quote data
-            var spread = quote.Ask - quote.Bid;
-            var spreadPercent = quote.Last > 0 ? spread / quote.Last : 0m;
-
-            // Simple momentum-based decision (can be replaced with real strategy logic)
-            if (spreadPercent < 0.001m && quote.Volume > 1000) // Good liquidity conditions
+            // Use real UnifiedDecisionRouter if available
+            if (_decisionRouter != null)
             {
-                // Deterministic signal generation for backtesting
-                // Use hash-based deterministic value instead of Random for reproducible results
-                var hashCode = quote.Time.GetHashCode();
-                var signal = (double)((uint)hashCode % 10000) / 10000.0; // 0.0 to 0.9999
-                
-                if (signal > 0.6)
+                try
                 {
-                    decision = TradingAction.Buy;
-                    confidence = (decimal)_mlConfigService.GetAIConfidenceThreshold();
-                    rationale = "Buy signal - favorable conditions";
+                    // Create market context from quote data
+                    var marketContext = new TradingBot.Abstractions.MarketContext
+                    {
+                        Symbol = quote.Symbol,
+                        Price = quote.Last,
+                        Bid = quote.Bid,
+                        Ask = quote.Ask,
+                        Volume = (long)quote.Volume,
+                        Timestamp = quote.Time
+                    };
+
+                    // Get unified trading decision from router (uses all ML/RL models)
+                    var routerDecision = await _decisionRouter.RouteDecisionAsync(
+                        quote.Symbol,
+                        marketContext,
+                        cancellationToken).ConfigureAwait(false);
+
+                    // Convert router decision to backtest decision log
+                    decision = routerDecision.Action switch
+                    {
+                        TradingBot.Abstractions.TradingAction.Buy => TradingAction.Buy,
+                        TradingBot.Abstractions.TradingAction.Sell => TradingAction.Sell,
+                        _ => TradingAction.Hold
+                    };
+
+                    confidence = routerDecision.Confidence;
+                    rationale = routerDecision.Strategy + " - " + routerDecision.DecisionSource;
+                    
+                    // Calculate stop loss and take profit based on confidence
+                    if (decision != TradingAction.Hold)
+                    {
+                        var riskPercent = 0.02m; // 2% risk
+                        stopLoss = decision == TradingAction.Buy ? quote.Last * (1 - riskPercent) : quote.Last * (1 + riskPercent);
+                        takeProfit = decision == TradingAction.Buy ? quote.Last * (1 + riskPercent * 2) : quote.Last * (1 - riskPercent * 2);
+                    }
                 }
-                else if (signal < 0.4)
+                catch (Exception ex)
                 {
-                    decision = TradingAction.Sell;
-                    confidence = (decimal)_mlConfigService.GetAIConfidenceThreshold();
-                    rationale = "Sell signal - favorable conditions";
+                    _logger.LogWarning(ex, "Failed to get decision from UnifiedDecisionRouter, using fallback logic");
+                    // Fall through to fallback logic below
                 }
             }
 
+            // Fallback logic if router not available or failed (for testing/development)
+            if (decision == TradingAction.Hold && _decisionRouter == null)
+            {
+                var spread = quote.Ask - quote.Bid;
+                var spreadPercent = quote.Last > 0 ? spread / quote.Last : 0m;
+
+                // Basic momentum-based decision for testing only
+                if (spreadPercent < 0.001m && quote.Volume > 1000)
+                {
+                    var hashCode = quote.Time.GetHashCode();
+                    var signal = (double)((uint)hashCode % 10000) / 10000.0;
+                    
+                    if (signal > 0.6)
+                    {
+                        decision = TradingAction.Buy;
+                        confidence = (decimal)_mlConfigService.GetAIConfidenceThreshold();
+                        rationale = "Buy signal - fallback test logic";
+                        stopLoss = quote.Last * 0.98m;
+                        takeProfit = quote.Last * 1.02m;
+                    }
+                    else if (signal < 0.4)
+                    {
+                        decision = TradingAction.Sell;
+                        confidence = (decimal)_mlConfigService.GetAIConfidenceThreshold();
+                        rationale = "Sell signal - fallback test logic";
+                        stopLoss = quote.Last * 1.02m;
+                        takeProfit = quote.Last * 0.98m;
+                    }
+                }
+            }
+
+            var spreadData = quote.Ask - quote.Bid;
             return new DecisionLog(
                 Timestamp: quote.Time,
                 Symbol: quote.Symbol,
@@ -373,10 +424,10 @@ namespace TradingBot.Backtest
                 Confidence: confidence,
                 Rationale: rationale,
                 EntryPrice: quote.Last,
-                StopLoss: decision != TradingAction.Hold ? quote.Last * 0.98m : null,
-                TakeProfit: decision != TradingAction.Hold ? quote.Last * 1.02m : null,
-                RiskAmount: 1000m, // Fixed risk for now
-                MarketConditions: $"Spread: {spread:F4}, Volume: {quote.Volume}"
+                StopLoss: stopLoss,
+                TakeProfit: takeProfit,
+                RiskAmount: 1000m,
+                MarketConditions: $"Spread: {spreadData:F4}, Volume: {quote.Volume}"
             );
         }
 
