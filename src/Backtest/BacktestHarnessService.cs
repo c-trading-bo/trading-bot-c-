@@ -183,116 +183,32 @@ namespace TradingBot.Backtest
                 
                 if (uiEnabled)
                 {
+                    // Load all quotes first for interactive playback
+                    var allQuotes = new List<Quote>();
+                    await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
+                    {
+                        allQuotes.Add(quote);
+                    }
+                    
                     ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
-                    ui.SetReplaySpeed(_options.ReplaySpeed);
+                    ui.SetDateRange(startDate, endDate, allQuotes.Count);
+                    ui.SetPlaybackState(UI.PlaybackState.Stopped);
                     ui.Render();
+                    
+                    // Run interactive playback
+                    await RunInteractivePlaybackAsync(ui, symbol, model, allQuotes, simState, cancellationToken);
                 }
                 else
                 {
                     _logger.LogInformation("📊 [BACKTEST] Running in silent mode (no UI)");
-                }
-
-                // 4. Process historical data through live trading pipeline
-                await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    tickCount++;
-
-                    // Update position PnL with new market data
-                    _executionSimulator.UpdatePositionPnL(quote, simState);
-
-                    // Check for bracket order triggers (stop-loss, take-profit)
-                    var bracketFills = await _executionSimulator.CheckBracketTriggersAsync(quote, simState, cancellationToken);
-                    foreach (var fill in bracketFills)
-                    {
-                        await RecordFillAsync(fill, simState, cancellationToken);
-                    }
-
-                    // Make trading decision using EXISTING live trading logic
-                    var decision = await MakeTradingDecisionAsync(quote, model, simState, cancellationToken);
                     
-                    // Record decision for analysis
-                    await RecordDecisionAsync(decision, quote, cancellationToken);
-
-                    // Update UI if enabled
-                    if (ui != null)
+                    // Non-interactive mode - process all quotes automatically
+                    await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
                     {
-                        // Determine tick direction
-                        var direction = lastPrice == 0m ? "flat" : 
-                                       quote.Last > lastPrice ? "up" : 
-                                       quote.Last < lastPrice ? "down" : "flat";
-                        lastPrice = quote.Last;
-
-                        // Add tick to UI
-                        ui.AddTick(quote.Time, quote.Last, quote.Volume, direction, quote.Bid, quote.Ask);
-
-                        // Format bot thinking
-                        var thinkingText = FormatBotThinking(decision, quote);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        tickCount++;
                         
-                        // Handle position UI updates and order execution display
-                        if (decision.Decision != TradingAction.Hold && !ui.HasOpenPosition())
-                        {
-                            // Show signal and order submission in thinking
-                            ui.UpdateBotThinking(thinkingText);
-                            ui.Render();
-                            await Task.Delay(500, cancellationToken).ConfigureAwait(false); // Brief pause to show order submission
-                            
-                            // Opening new position - show fill confirmation
-                            var side = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
-                            var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
-                            var stopLoss = decision.StopLoss ?? quote.Last * 0.98m;
-                            var target = decision.TakeProfit ?? quote.Last * 1.02m;
-                            var fillPrice = decision.EntryPrice ?? quote.Last;
-                            
-                            // Add fill confirmation to thinking
-                            thinkingText += $"\n✅ [FILL] FILLED @ {fillPrice:N2} (Slippage: 0 ticks)";
-                            ui.UpdateBotThinking(thinkingText);
-                            
-                            ui.OpenPosition(side, fillPrice, stopLoss, target, 1, decision.Confidence, decision.Rationale);
-                        }
-                        else if (bracketFills.Count > 0 && ui.HasOpenPosition())
-                        {
-                            // Position closed by bracket order - show exit message
-                            // Determine if stop or target based on fill reason
-                            var closeReason = bracketFills[0].Reason.Contains("stop", StringComparison.OrdinalIgnoreCase) ? "STOP LOSS" : "TAKE PROFIT";
-                            var exitPrice = bracketFills[0].FillPrice;
-                            thinkingText = $"🔔 [{closeReason}] Position closed @ {exitPrice:N2}\n" +
-                                         $"📊 P&L will update in account stats";
-                            ui.UpdateBotThinking(thinkingText);
-                            ui.ClosePosition();
-                        }
-                        else
-                        {
-                            // Normal update - just bot thinking
-                            ui.UpdateBotThinking(thinkingText);
-                        }
-
-                        // Update account stats
-                        var winRate = simState.RoundTripTrades > 0 ? simState.WinningTrades : 0;
-                        var bestTrade = simState.BestTrade;
-                        ui.UpdateAccountStats(
-                            _options.InitialCapital + simState.RealizedPnL + simState.UnrealizedPnL,
-                            simState.RealizedPnL,
-                            simState.UnrealizedPnL,
-                            simState.RoundTripTrades,
-                            winRate,
-                            bestTrade);
-
-                        // Render UI every N ticks to reduce flicker
-                        if (tickCount % 5 == 0 || decision.Decision != TradingAction.Hold)
-                        {
-                            ui.Render();
-                        }
-
-                        // Add delay for realistic tick replay (scaled by speed)
-                        var delayMs = Math.Max(10, 100 / _options.ReplaySpeed);
-                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    // Execute decision if action required
-                    if (decision.Decision != TradingAction.Hold)
-                    {
-                        await ExecuteTradingDecisionAsync(decision, quote, simState, cancellationToken);
+                        lastPrice = await ProcessSingleTickAsync(quote, model, simState, null, lastPrice, tickCount, cancellationToken);
                     }
                 }
 
@@ -575,6 +491,228 @@ namespace TradingBot.Backtest
             report.TotalReturn = _options.InitialCapital != 0 ? report.TotalPnL / _options.InitialCapital : 0m;
 
             await _metricSink.FlushAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Run interactive playback loop with keyboard controls
+        /// </summary>
+        private async Task RunInteractivePlaybackAsync(
+            BacktestConsoleUI ui,
+            string symbol,
+            ModelCard model,
+            List<Quote> allQuotes,
+            SimState simState,
+            CancellationToken cancellationToken)
+        {
+            decimal lastPrice = 0m;
+            var quit = false;
+            
+            while (!quit && !cancellationToken.IsCancellationRequested)
+            {
+                // Check for keyboard input (non-blocking)
+                if (Console.KeyAvailable)
+                {
+                    var key = Console.ReadKey(true);
+                    
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.Spacebar:
+                            // Toggle play/pause
+                            if (ui.GetPlaybackState() == UI.PlaybackState.Playing)
+                            {
+                                ui.SetPlaybackState(UI.PlaybackState.Paused);
+                            }
+                            else
+                            {
+                                ui.SetPlaybackState(UI.PlaybackState.Playing);
+                            }
+                            ui.Render();
+                            break;
+                            
+                        case ConsoleKey.R:
+                            // Rewind to start
+                            ui.SetPlaybackState(UI.PlaybackState.Stopped);
+                            ui.SetCurrentTickIndex(0);
+                            simState.RealizedPnL = 0;
+                            simState.UnrealizedPnL = 0;
+                            simState.RoundTripTrades = 0;
+                            simState.WinningTrades = 0;
+                            ui.ClosePosition();
+                            ui.Render();
+                            break;
+                            
+                        case ConsoleKey.S:
+                            // Stop
+                            ui.SetPlaybackState(UI.PlaybackState.Stopped);
+                            ui.SetCurrentTickIndex(0);
+                            ui.Render();
+                            break;
+                            
+                        case ConsoleKey.Add:
+                        case ConsoleKey.OemPlus:
+                            // Increase speed
+                            ui.IncreaseSpeed();
+                            ui.Render();
+                            break;
+                            
+                        case ConsoleKey.Subtract:
+                        case ConsoleKey.OemMinus:
+                            // Decrease speed
+                            ui.DecreaseSpeed();
+                            ui.Render();
+                            break;
+                            
+                        case ConsoleKey.Q:
+                            // Quit
+                            quit = true;
+                            break;
+                    }
+                }
+                
+                // Process ticks if playing
+                if (ui.GetPlaybackState() == UI.PlaybackState.Playing)
+                {
+                    var currentIndex = 0;
+                    for (int i = 0; i < allQuotes.Count && ui.GetPlaybackState() == UI.PlaybackState.Playing && !quit; i++)
+                    {
+                        var quote = allQuotes[i];
+                        currentIndex = i + 1;
+                        ui.SetCurrentTickIndex(currentIndex);
+                        
+                        lastPrice = await ProcessSingleTickAsync(quote, model, simState, ui, lastPrice, currentIndex, cancellationToken);
+                        
+                        // Check for keyboard input between ticks
+                        if (Console.KeyAvailable)
+                        {
+                            break; // Break to process keyboard input
+                        }
+                        
+                        // Delay based on speed
+                        var delayMs = Math.Max(10, 100 / ui.GetReplaySpeed());
+                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    }
+                    
+                    // If we finished all ticks, stop
+                    if (currentIndex >= allQuotes.Count)
+                    {
+                        ui.SetPlaybackState(UI.PlaybackState.Stopped);
+                        ui.Render();
+                    }
+                }
+                else
+                {
+                    // If not playing, just wait a bit to avoid busy loop
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Process a single tick (quote) through the trading pipeline
+        /// Returns the last price for tracking tick direction
+        /// </summary>
+        private async Task<decimal> ProcessSingleTickAsync(
+            Quote quote,
+            ModelCard model,
+            SimState simState,
+            BacktestConsoleUI? ui,
+            decimal lastPrice,
+            int tickCount,
+            CancellationToken cancellationToken)
+        {
+            // Update position PnL with new market data
+            _executionSimulator.UpdatePositionPnL(quote, simState);
+
+            // Check for bracket order triggers (stop-loss, take-profit)
+            var bracketFills = await _executionSimulator.CheckBracketTriggersAsync(quote, simState, cancellationToken);
+            foreach (var fill in bracketFills)
+            {
+                await RecordFillAsync(fill, simState, cancellationToken);
+            }
+
+            // Make trading decision using EXISTING live trading logic
+            var decision = await MakeTradingDecisionAsync(quote, model, simState, cancellationToken);
+            
+            // Record decision for analysis
+            await RecordDecisionAsync(decision, quote, cancellationToken);
+
+            // Update UI if enabled
+            if (ui != null)
+            {
+                // Determine tick direction
+                var direction = lastPrice == 0m ? "flat" : 
+                               quote.Last > lastPrice ? "up" : 
+                               quote.Last < lastPrice ? "down" : "flat";
+                lastPrice = quote.Last;
+
+                // Add tick to UI
+                ui.AddTick(quote.Time, quote.Last, quote.Volume, direction, quote.Bid, quote.Ask);
+
+                // Format bot thinking
+                var thinkingText = FormatBotThinking(decision, quote);
+                
+                // Handle position UI updates and order execution display
+                if (decision.Decision != TradingAction.Hold && !ui.HasOpenPosition())
+                {
+                    // Show signal and order submission in thinking
+                    ui.UpdateBotThinking(thinkingText);
+                    ui.Render();
+                    await Task.Delay(500, cancellationToken).ConfigureAwait(false); // Brief pause to show order submission
+                    
+                    // Opening new position - show fill confirmation
+                    var side = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
+                    var stopLoss = decision.StopLoss ?? quote.Last * 0.98m;
+                    var target = decision.TakeProfit ?? quote.Last * 1.02m;
+                    var fillPrice = decision.EntryPrice ?? quote.Last;
+                    
+                    // Add fill confirmation to thinking
+                    thinkingText += $"\n✅ [FILL] FILLED @ {fillPrice:N2} (Slippage: 0 ticks)";
+                    ui.UpdateBotThinking(thinkingText);
+                    
+                    ui.OpenPosition(side, fillPrice, stopLoss, target, 1, decision.Confidence, decision.Rationale);
+                }
+                else if (bracketFills.Count > 0 && ui.HasOpenPosition())
+                {
+                    // Position closed by bracket order - show exit message
+                    var closeReason = bracketFills[0].Reason.Contains("stop", StringComparison.OrdinalIgnoreCase) ? "STOP LOSS" : "TAKE PROFIT";
+                    var exitPrice = bracketFills[0].FillPrice;
+                    thinkingText = $"🔔 [{closeReason}] Position closed @ {exitPrice:N2}\n" +
+                                 $"📊 P&L will update in account stats";
+                    ui.UpdateBotThinking(thinkingText);
+                    ui.ClosePosition();
+                }
+                else
+                {
+                    // Normal update - just bot thinking
+                    ui.UpdateBotThinking(thinkingText);
+                }
+
+                // Update account stats
+                var winRate = simState.RoundTripTrades > 0 ? simState.WinningTrades : 0;
+                var bestTrade = simState.BestTrade;
+                ui.UpdateAccountStats(
+                    _options.InitialCapital + simState.RealizedPnL + simState.UnrealizedPnL,
+                    simState.RealizedPnL,
+                    simState.UnrealizedPnL,
+                    simState.RoundTripTrades,
+                    winRate,
+                    bestTrade);
+
+                // Render UI every 5 ticks to reduce flicker
+                if (tickCount % 5 == 0 || decision.Decision != TradingAction.Hold)
+                {
+                    ui.Render();
+                }
+            }
+
+            // Execute decision if action required
+            if (decision.Decision != TradingAction.Hold)
+            {
+                await ExecuteTradingDecisionAsync(decision, quote, simState, cancellationToken);
+            }
+            
+            // Return the current price for next iteration
+            return quote.Last;
         }
 
         /// <summary>

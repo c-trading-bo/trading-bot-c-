@@ -6,6 +6,16 @@ using System.Text;
 namespace TradingBot.Backtest.UI
 {
     /// <summary>
+    /// Playback state for interactive backtest controls
+    /// </summary>
+    public enum PlaybackState
+    {
+        Stopped,
+        Playing,
+        Paused
+    }
+
+    /// <summary>
     /// Console UI for backtest tick replay visualization with live position tracking
     /// 
     /// USAGE:
@@ -13,10 +23,18 @@ namespace TradingBot.Backtest.UI
     /// Or in appsettings.backtest.json: "EnableTickReplayUI": true
     /// 
     /// FEATURES:
+    /// - Interactive Controls - Start, Pause, Stop, Rewind with keyboard
     /// - Depth of Market (DOM) - Last 10 ticks with bid/ask/volume
     /// - Bot Brain Thinking - Signal detection with entry/stop/target details
     /// - Open Position Panel - Live P&L tracking with visual indicators
     /// - Account Stats - Equity, daily P&L, trade statistics
+    /// 
+    /// CONTROLS:
+    /// - SPACE: Play/Pause
+    /// - R: Rewind to start
+    /// - S: Stop
+    /// - +/-: Increase/Decrease speed
+    /// - Q: Quit
     /// 
     /// CONFIGURATION:
     /// - ReplaySpeed: 1 = real-time, 2 = 2x speed, etc.
@@ -37,7 +55,7 @@ namespace TradingBot.Backtest.UI
         private int _totalTrades;
         private int _winningTrades;
         private decimal _bestTrade;
-        private string _botThinking = "Initializing...";
+        private string _botThinking = "Press SPACE to start backtesting...";
         private decimal _currentBid;
         private decimal _currentAsk;
         private int _replaySpeed = 1;
@@ -46,6 +64,13 @@ namespace TradingBot.Backtest.UI
         private PositionInfo? _openPosition;
         private decimal _currentPrice;
         
+        // Playback control
+        private PlaybackState _playbackState = PlaybackState.Stopped;
+        private DateTime _startDate;
+        private DateTime _endDate;
+        private int _currentTickIndex = 0;
+        private int _totalTicks = 0;
+        
         public BacktestConsoleUI(string symbol, DateTime backtestDate, decimal initialEquity)
         {
             _symbol = symbol;
@@ -53,7 +78,76 @@ namespace TradingBot.Backtest.UI
             _currentEquity = initialEquity;
             _dailyPnL = 0m;
             _openPnL = 0m;
+            _startDate = backtestDate;
+            _endDate = backtestDate;
         }
+        
+        /// <summary>
+        /// Set the date range and total ticks for progress tracking
+        /// </summary>
+        public void SetDateRange(DateTime startDate, DateTime endDate, int totalTicks)
+        {
+            _startDate = startDate;
+            _endDate = endDate;
+            _totalTicks = totalTicks;
+        }
+        
+        /// <summary>
+        /// Get current playback state
+        /// </summary>
+        public PlaybackState GetPlaybackState() => _playbackState;
+        
+        /// <summary>
+        /// Set playback state
+        /// </summary>
+        public void SetPlaybackState(PlaybackState state)
+        {
+            _playbackState = state;
+            if (state == PlaybackState.Playing)
+            {
+                _botThinking = "Analyzing market data...";
+            }
+            else if (state == PlaybackState.Paused)
+            {
+                _botThinking = "Paused - Press SPACE to continue...";
+            }
+            else if (state == PlaybackState.Stopped)
+            {
+                _botThinking = "Stopped - Press SPACE to start...";
+                _currentTickIndex = 0;
+            }
+        }
+        
+        /// <summary>
+        /// Update current tick index for progress display
+        /// </summary>
+        public void SetCurrentTickIndex(int index)
+        {
+            _currentTickIndex = index;
+        }
+        
+        /// <summary>
+        /// Increase replay speed
+        /// </summary>
+        public void IncreaseSpeed()
+        {
+            if (_replaySpeed < 10)
+                _replaySpeed++;
+        }
+        
+        /// <summary>
+        /// Decrease replay speed
+        /// </summary>
+        public void DecreaseSpeed()
+        {
+            if (_replaySpeed > 1)
+                _replaySpeed--;
+        }
+        
+        /// <summary>
+        /// Get current replay speed
+        /// </summary>
+        public int GetReplaySpeed() => _replaySpeed;
 
         /// <summary>
         /// Clear the console and render the full UI
@@ -64,6 +158,7 @@ namespace TradingBot.Backtest.UI
             Console.OutputEncoding = Encoding.UTF8;
             
             RenderHeader();
+            RenderControlPanel();
             RenderDepthOfMarket();
             RenderBotThinking();
             if (_openPosition != null)
@@ -163,10 +258,47 @@ namespace TradingBot.Backtest.UI
         private void RenderHeader()
         {
             Console.WriteLine("╔══════════════════════════════════════════════════════════════════════╗");
-            Console.WriteLine($"║              {_symbol} BACKTEST - LIVE TICK REPLAY{new string(' ', 27 - _symbol.Length)}║");
+            Console.WriteLine($"║              {_symbol} BACKTEST - INTERACTIVE REPLAY{new string(' ', 26 - _symbol.Length)}║");
             Console.WriteLine($"║              {_backtestDate:MMM dd, yyyy  HH:mm:ss} CT{new string(' ', 38)}║");
             Console.WriteLine("╚══════════════════════════════════════════════════════════════════════╝");
             Console.WriteLine();
+        }
+        
+        private void RenderControlPanel()
+        {
+            // Calculate progress percentage
+            var progressPercent = _totalTicks > 0 ? (int)((_currentTickIndex / (double)_totalTicks) * 100) : 0;
+            var progressBar = GenerateProgressBar(progressPercent, 50);
+            
+            // State display
+            var stateIcon = _playbackState switch
+            {
+                PlaybackState.Playing => "▶️",
+                PlaybackState.Paused => "⏸️",
+                PlaybackState.Stopped => "⏹️",
+                _ => "⏹️"
+            };
+            
+            var stateText = _playbackState.ToString().ToUpperInvariant();
+            
+            Console.WriteLine("┌─────────────────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│ 🎮 PLAYBACK CONTROLS                                                │");
+            Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
+            Console.WriteLine($"│ Status: {stateIcon} {stateText,-20} Speed: {_replaySpeed}x                    │");
+            Console.WriteLine($"│ Progress: [{progressBar}] {progressPercent,3}%           │");
+            Console.WriteLine($"│ Date Range: {_startDate:yyyy-MM-dd} to {_endDate:yyyy-MM-dd}                      │");
+            Console.WriteLine($"│ Tick: {_currentTickIndex,6} / {_totalTicks,-6}                                    │");
+            Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
+            Console.WriteLine("│ [SPACE] Play/Pause  [R] Rewind  [S] Stop  [+/-] Speed  [Q] Quit   │");
+            Console.WriteLine("└─────────────────────────────────────────────────────────────────────┘");
+            Console.WriteLine();
+        }
+        
+        private string GenerateProgressBar(int percent, int width)
+        {
+            var filled = (int)(percent / 100.0 * width);
+            var empty = width - filled;
+            return new string('█', filled) + new string('░', empty);
         }
 
         private void RenderDepthOfMarket()
