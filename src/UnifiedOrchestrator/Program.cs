@@ -2804,9 +2804,11 @@ Please check the configuration and ensure all required services are registered.
         Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Backtest = no live data)");
         Program.WriteLineIfNotLabMode("   ✗ Training services NOT registered (Backtest = testing only)");
         
-        // BacktestHarnessService will be the primary service that runs
-        // It's already registered via AddProductionBacktestServices in the main service registration
-        // We just need to ensure EnhancedBacktestLearningService doesn't run
+        // Register the BacktestHarnessService and all its dependencies
+        services.AddProductionBacktestServices(hostContext.Configuration, "reports/bt");
+        
+        // EnhancedBacktestLearningService is NOT registered in Backtest mode
+        // (it's for Lab mode training, not for strategy testing/visualization)
     }
 
     /// <summary>
