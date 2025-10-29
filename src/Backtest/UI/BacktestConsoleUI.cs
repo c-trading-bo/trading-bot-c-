@@ -6,8 +6,25 @@ using System.Text;
 namespace TradingBot.Backtest.UI
 {
     /// <summary>
-    /// Console UI for backtest tick replay visualization
-    /// Displays depth of market, bot thinking, and account stats in real-time
+    /// Console UI for backtest tick replay visualization with live position tracking
+    /// 
+    /// USAGE:
+    /// Set environment variable: export ENABLE_BACKTEST_UI=1
+    /// Or in appsettings.backtest.json: "EnableTickReplayUI": true
+    /// 
+    /// FEATURES:
+    /// - Depth of Market (DOM) - Last 10 ticks with bid/ask/volume
+    /// - Bot Brain Thinking - Signal detection with entry/stop/target details
+    /// - Open Position Panel - Live P&L tracking with visual indicators
+    /// - Account Stats - Equity, daily P&L, trade statistics
+    /// 
+    /// CONFIGURATION:
+    /// - ReplaySpeed: 1 = real-time, 2 = 2x speed, etc.
+    /// - Automatically shows/hides position panel based on trade status
+    /// - Renders every 5 ticks or when signals detected
+    /// 
+    /// The UI plays through all historical bars in real-time, allowing you to see
+    /// how well the bot performs on historical data and validates training improvements.
     /// </summary>
     public class BacktestConsoleUI
     {

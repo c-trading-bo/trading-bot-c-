@@ -17,6 +17,7 @@ using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Backtest;
+using TradingBot.Backtest.Extensions;
 using UnifiedOrchestrator.Services;
 using TopstepX.Bot.Authentication;
 using TradingBot.RLAgent;  // Add this for ModelHotReloadManager
@@ -2948,6 +2949,10 @@ Please check the configuration and ensure all required services are registered.
         
         Program.WriteLineIfNotLabMode("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
+        
+        // Production Backtest Services - BacktestHarnessService with UI integration
+        Program.WriteLineIfNotLabMode("   ✓ Registering Production Backtest Services (BacktestHarnessService, ExecutionSimulator, UI)");
+        services.AddProductionBacktestServices(hostContext.Configuration, "reports/bt");
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         // PHASE 1 REFACTOR: Register as Singleton ONLY (not as HostedService)
