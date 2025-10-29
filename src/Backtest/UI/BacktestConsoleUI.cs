@@ -25,6 +25,10 @@ namespace TradingBot.Backtest.UI
         private decimal _currentAsk;
         private int _replaySpeed = 1;
         
+        // Open position tracking
+        private PositionInfo? _openPosition;
+        private decimal _currentPrice;
+        
         public BacktestConsoleUI(string symbol, DateTime backtestDate, decimal initialEquity)
         {
             _symbol = symbol;
@@ -45,6 +49,10 @@ namespace TradingBot.Backtest.UI
             RenderHeader();
             RenderDepthOfMarket();
             RenderBotThinking();
+            if (_openPosition != null)
+            {
+                RenderOpenPosition();
+            }
             RenderAccountStats();
         }
 
@@ -55,6 +63,7 @@ namespace TradingBot.Backtest.UI
         {
             _currentBid = bid;
             _currentAsk = ask;
+            _currentPrice = price;
             
             _recentTicks.Enqueue(new TickDisplay
             {
@@ -97,6 +106,41 @@ namespace TradingBot.Backtest.UI
         public void SetReplaySpeed(int speed)
         {
             _replaySpeed = speed;
+        }
+
+        /// <summary>
+        /// Open a new position
+        /// </summary>
+        public void OpenPosition(string side, decimal entryPrice, decimal stopLoss, decimal target, int quantity, decimal confidence, string reason)
+        {
+            _openPosition = new PositionInfo
+            {
+                Symbol = _symbol,
+                Side = side,
+                EntryPrice = entryPrice,
+                StopLoss = stopLoss,
+                Target = target,
+                Quantity = quantity,
+                Confidence = confidence,
+                Reason = reason,
+                EntryTime = DateTime.Now
+            };
+        }
+
+        /// <summary>
+        /// Close the current position
+        /// </summary>
+        public void ClosePosition()
+        {
+            _openPosition = null;
+        }
+
+        /// <summary>
+        /// Check if there's an open position
+        /// </summary>
+        public bool HasOpenPosition()
+        {
+            return _openPosition != null;
         }
 
         private void RenderHeader()
@@ -170,6 +214,67 @@ namespace TradingBot.Backtest.UI
                 thinkingLines.Add("");
             }
             
+            Console.WriteLine("└─────────────────────────────────────────────────────────────────────┘");
+            Console.WriteLine();
+        }
+
+        private void RenderOpenPosition()
+        {
+            if (_openPosition == null)
+                return;
+
+            Console.WriteLine("┌─────────────────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│ OPEN POSITION                                                       │");
+            Console.WriteLine("├─────────────────────────────────────────────────────────────────────┤");
+
+            // Position details
+            var positionLine = $"│ {_openPosition.Symbol} {_openPosition.Side} {_openPosition.Quantity} @ {_openPosition.EntryPrice:N2}";
+            var padding = 73 - positionLine.Length;
+            if (padding > 0)
+                positionLine += new string(' ', padding);
+            positionLine += "│";
+            Console.WriteLine(positionLine);
+
+            // Current price and direction
+            var direction = _currentPrice > _openPosition.EntryPrice ? "↑" : _currentPrice < _openPosition.EntryPrice ? "↓" : "→";
+            var priceLine = $"│ Current Price: {_currentPrice:N2}  {direction}";
+            padding = 73 - priceLine.Length;
+            if (padding > 0)
+                priceLine += new string(' ', padding);
+            priceLine += "│";
+            Console.WriteLine(priceLine);
+
+            // Calculate P&L
+            var pnl = _openPosition.Side.ToUpper() == "LONG" 
+                ? (_currentPrice - _openPosition.EntryPrice) * _openPosition.Quantity * 50 // ES point value
+                : (_openPosition.EntryPrice - _currentPrice) * _openPosition.Quantity * 50;
+            var pnlPercent = _openPosition.EntryPrice != 0 ? (pnl / (_openPosition.EntryPrice * _openPosition.Quantity * 50)) * 100 : 0;
+            var pnlIndicator = pnl >= 0 ? "🟢" : "🔴";
+            var pnlLine = $"│ P&L: {(pnl >= 0 ? "+" : "")}{pnl:C2} ({(pnlPercent >= 0 ? "+" : "")}{pnlPercent:N2}%)  {pnlIndicator}";
+            padding = 73 - pnlLine.Length;
+            if (padding > 0)
+                pnlLine += new string(' ', padding);
+            pnlLine += "│";
+            Console.WriteLine(pnlLine);
+
+            // Stop loss distance
+            var stopDistance = Math.Abs(_openPosition.StopLoss - _openPosition.EntryPrice);
+            var stopLine = $"│ Stop: {_openPosition.StopLoss:N2} (-{stopDistance:N1} pts away)";
+            padding = 73 - stopLine.Length;
+            if (padding > 0)
+                stopLine += new string(' ', padding);
+            stopLine += "│";
+            Console.WriteLine(stopLine);
+
+            // Target distance
+            var targetDistance = Math.Abs(_openPosition.Target - _openPosition.EntryPrice);
+            var targetLine = $"│ Target: {_openPosition.Target:N2} (+{targetDistance:N1} pts away)";
+            padding = 73 - targetLine.Length;
+            if (padding > 0)
+                targetLine += new string(' ', padding);
+            targetLine += "│";
+            Console.WriteLine(targetLine);
+
             Console.WriteLine("└─────────────────────────────────────────────────────────────────────┘");
             Console.WriteLine();
         }
@@ -270,6 +375,19 @@ namespace TradingBot.Backtest.UI
             public string Direction { get; set; } = "";
             public decimal Bid { get; set; }
             public decimal Ask { get; set; }
+        }
+
+        private class PositionInfo
+        {
+            public string Symbol { get; set; } = "";
+            public string Side { get; set; } = "";
+            public decimal EntryPrice { get; set; }
+            public decimal StopLoss { get; set; }
+            public decimal Target { get; set; }
+            public int Quantity { get; set; }
+            public decimal Confidence { get; set; }
+            public string Reason { get; set; } = "";
+            public DateTime EntryTime { get; set; }
         }
     }
 }

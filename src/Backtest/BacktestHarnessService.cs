@@ -226,6 +226,21 @@ namespace TradingBot.Backtest
                         var thinkingText = FormatBotThinking(decision, quote);
                         ui.UpdateBotThinking(thinkingText);
 
+                        // Handle position UI updates
+                        if (decision.Decision != TradingAction.Hold && !ui.HasOpenPosition())
+                        {
+                            // Opening new position
+                            var side = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
+                            var stopLoss = decision.StopLoss ?? quote.Last * 0.98m;
+                            var target = decision.TakeProfit ?? quote.Last * 1.02m;
+                            ui.OpenPosition(side, decision.EntryPrice ?? quote.Last, stopLoss, target, 1, decision.Confidence, decision.Rationale);
+                        }
+                        else if (bracketFills.Count > 0 && ui.HasOpenPosition())
+                        {
+                            // Position closed by bracket order
+                            ui.ClosePosition();
+                        }
+
                         // Update account stats
                         var winRate = simState.RoundTripTrades > 0 ? simState.WinningTrades : 0;
                         var bestTrade = simState.BestTrade;
@@ -499,22 +514,45 @@ namespace TradingBot.Backtest
             }
 
             var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
+            var sideText = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
             var confidencePercent = (decision.Confidence * 100m).ToString("N0");
             var riskReward = 0m;
+            var stopDistance = 0m;
+            var targetDistance = 0m;
+            var stopDollar = 0m;
+            var targetDollar = 0m;
+            
             if (decision.TakeProfit.HasValue && decision.StopLoss.HasValue && decision.EntryPrice.HasValue && decision.EntryPrice.Value != decision.StopLoss.Value)
             {
                 riskReward = Math.Abs((decision.TakeProfit.Value - decision.EntryPrice.Value) / (decision.EntryPrice.Value - decision.StopLoss.Value));
+                stopDistance = Math.Abs(decision.EntryPrice.Value - decision.StopLoss.Value);
+                targetDistance = Math.Abs(decision.TakeProfit.Value - decision.EntryPrice.Value);
+                stopDollar = stopDistance * 50; // ES point value
+                targetDollar = targetDistance * 50; // ES point value
             }
 
             var entryPriceText = decision.EntryPrice.HasValue ? decision.EntryPrice.Value.ToString("N2") : quote.Last.ToString("N2");
 
-            return $"🧠 Analyzing tick flow...\n" +
-                   $"📊 Pattern detected: {decision.Strategy} signal\n" +
-                   $"🎯 {decision.Rationale}\n" +
-                   $"📈 Strategy: {decision.Strategy} (Confidence: {confidencePercent}%)\n" +
-                   $"⚖️  Risk/Reward: {riskReward:N1}:1 {(riskReward >= 2.0m ? "(Good setup)" : "")}\n" +
-                   $"\n" +
-                   $"⚡ SIGNAL: {actionText} @ {entryPriceText}";
+            // Create detailed signal message
+            var signalDetails = $"🚨 [SIGNAL] BOT DECISION: ENTER {sideText} {decision.Symbol}!\n" +
+                               $"├─ Entry: {entryPriceText}\n";
+            
+            if (decision.StopLoss.HasValue)
+            {
+                signalDetails += $"├─ Stop: {decision.StopLoss.Value:N2} (-{stopDistance:N1} pts = -${stopDollar:N0})\n";
+            }
+            
+            if (decision.TakeProfit.HasValue)
+            {
+                signalDetails += $"├─ Target: {decision.TakeProfit.Value:N2} (+{targetDistance:N1} pts = +${targetDollar:N0})\n";
+            }
+            
+            signalDetails += $"├─ Risk/Reward: {riskReward:N2}:1\n" +
+                           $"├─ Confidence: {confidencePercent}%\n" +
+                           $"└─ Reason: {decision.Rationale}\n\n" +
+                           $"⚡ [ORDER] Submitting MARKET {actionText} 1 {decision.Symbol}...";
+
+            return signalDetails;
         }
     }
 

@@ -14,9 +14,18 @@ The backtest system now includes a **Live Tick Replay UI** that displays market 
 
 ### 🤖 Bot Brain Thinking
 - Real-time strategy analysis
-- Pattern detection with confidence levels
+- Signal detection with entry/stop/target details
 - Risk/Reward calculations
-- Entry signals and rationale
+- Entry signals with dollar amounts
+- Order submission status
+
+### 📍 Open Position Panel (NEW!)
+- Live position tracking
+- Real-time P&L updates with percentage
+- Current price with direction indicator
+- Stop loss distance (points and dollars)
+- Target distance (points and dollars)
+- Visual P&L indicator (🟢 profit / 🔴 loss)
 
 ### 💼 Account & Stats Panel
 - Current equity and daily P&L
