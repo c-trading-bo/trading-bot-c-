@@ -124,8 +124,17 @@ namespace TradingBot.Backtest
             if (!System.Text.RegularExpressions.Regex.IsMatch(modelFamily, @"^[A-Za-z0-9_]+$"))
                 throw new ArgumentException("Model family must contain only letters, numbers, and underscores", nameof(modelFamily));
 
-            _logger.LogInformation("Starting backtest for {Symbol} from {StartDate} to {EndDate} using {ModelFamily}",
-                symbol, startDate, endDate, modelFamily);
+            // Check if UI is enabled - suppress logging if so
+            var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+            var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
+                ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
+                : _options.EnableTickReplayUI;
+            
+            if (!uiEnabled)
+            {
+                _logger.LogInformation("Starting backtest for {Symbol} from {StartDate} to {EndDate} using {ModelFamily}",
+                    symbol, startDate, endDate, modelFamily);
+            }
 
             var report = new BacktestReport
             {
@@ -165,12 +174,6 @@ namespace TradingBot.Backtest
                 _executionSimulator.ResetState(simState);
 
                 // 3.5. Initialize tick replay UI if enabled
-                // Check environment variable first, then fall back to config
-                var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
-                var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
-                    ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
-                    : _options.EnableTickReplayUI;
-
                 BacktestConsoleUI? ui = null;
                 decimal lastPrice = 0m;
                 var tickCount = 0;
@@ -180,8 +183,6 @@ namespace TradingBot.Backtest
                     ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
                     ui.SetReplaySpeed(_options.ReplaySpeed);
                     ui.Render();
-                    
-                    _logger.LogInformation("🎬 [BACKTEST-UI] Live tick replay enabled at {Speed}x speed", _options.ReplaySpeed);
                 }
                 else
                 {
@@ -224,21 +225,43 @@ namespace TradingBot.Backtest
 
                         // Format bot thinking
                         var thinkingText = FormatBotThinking(decision, quote);
-                        ui.UpdateBotThinking(thinkingText);
-
-                        // Handle position UI updates
+                        
+                        // Handle position UI updates and order execution display
                         if (decision.Decision != TradingAction.Hold && !ui.HasOpenPosition())
                         {
-                            // Opening new position
+                            // Show signal and order submission in thinking
+                            ui.UpdateBotThinking(thinkingText);
+                            ui.Render();
+                            await Task.Delay(500, cancellationToken).ConfigureAwait(false); // Brief pause to show order submission
+                            
+                            // Opening new position - show fill confirmation
                             var side = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
+                            var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
                             var stopLoss = decision.StopLoss ?? quote.Last * 0.98m;
                             var target = decision.TakeProfit ?? quote.Last * 1.02m;
-                            ui.OpenPosition(side, decision.EntryPrice ?? quote.Last, stopLoss, target, 1, decision.Confidence, decision.Rationale);
+                            var fillPrice = decision.EntryPrice ?? quote.Last;
+                            
+                            // Add fill confirmation to thinking
+                            thinkingText += $"\n✅ [FILL] FILLED @ {fillPrice:N2} (Slippage: 0 ticks)";
+                            ui.UpdateBotThinking(thinkingText);
+                            
+                            ui.OpenPosition(side, fillPrice, stopLoss, target, 1, decision.Confidence, decision.Rationale);
                         }
                         else if (bracketFills.Count > 0 && ui.HasOpenPosition())
                         {
-                            // Position closed by bracket order
+                            // Position closed by bracket order - show exit message
+                            // Determine if stop or target based on fill reason
+                            var closeReason = bracketFills[0].Reason.Contains("stop", StringComparison.OrdinalIgnoreCase) ? "STOP LOSS" : "TAKE PROFIT";
+                            var exitPrice = bracketFills[0].FillPrice;
+                            thinkingText = $"🔔 [{closeReason}] Position closed @ {exitPrice:N2}\n" +
+                                         $"📊 P&L will update in account stats";
+                            ui.UpdateBotThinking(thinkingText);
                             ui.ClosePosition();
+                        }
+                        else
+                        {
+                            // Normal update - just bot thinking
+                            ui.UpdateBotThinking(thinkingText);
                         }
 
                         // Update account stats
@@ -276,8 +299,11 @@ namespace TradingBot.Backtest
                 report.EndTime = DateTime.UtcNow;
                 report.Success = true;
 
-                _logger.LogInformation("Backtest completed successfully. Final PnL: {PnL:C}, Trades: {Trades}",
-                    report.TotalPnL, report.TotalTrades);
+                if (!uiEnabled)
+                {
+                    _logger.LogInformation("Backtest completed successfully. Final PnL: {PnL:C}, Trades: {Trades}",
+                        report.TotalPnL, report.TotalTrades);
+                }
 
                 return report;
             }

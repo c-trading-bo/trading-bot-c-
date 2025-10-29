@@ -284,9 +284,18 @@ internal static class Program
             var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
             if (backtestMode == "1" || backtestMode?.ToLowerInvariant() == "true")
             {
-                Program.WriteLineIfNotLabMode("\n🎬 [BACKTEST] Starting backtest harness service...");
-                Program.WriteLineIfNotLabMode("   This will replay historical data with tick-by-tick UI");
-                Program.WriteLineIfNotLabMode("   Set ENABLE_BACKTEST_UI=1 to see the visual replay\n");
+                // Check if UI is enabled - if so, suppress all startup messages
+                var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+                var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
+                    ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    : false;
+                
+                if (!uiEnabled)
+                {
+                    Program.WriteLineIfNotLabMode("\n🎬 [BACKTEST] Starting backtest harness service...");
+                    Program.WriteLineIfNotLabMode("   This will replay historical data with tick-by-tick UI");
+                    Program.WriteLineIfNotLabMode("   Set ENABLE_BACKTEST_UI=1 to see the visual replay\n");
+                }
                 
                 // Get the BacktestHarnessService and run it
                 var backtestHarness = host.Services.GetService<TradingBot.Backtest.BacktestHarnessService>();
@@ -299,14 +308,20 @@ internal static class Program
                     var endDate = DateTime.UtcNow.Date;
                     var startDate = endDate.AddDays(-daysBack);
                     
-                    Program.WriteLineIfNotLabMode($"   Symbol: {symbol}");
-                    Program.WriteLineIfNotLabMode($"   Model: {modelFamily}");
-                    Program.WriteLineIfNotLabMode($"   Period: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd} ({daysBack} days)");
-                    Program.WriteLineIfNotLabMode("");
+                    if (!uiEnabled)
+                    {
+                        Program.WriteLineIfNotLabMode($"   Symbol: {symbol}");
+                        Program.WriteLineIfNotLabMode($"   Model: {modelFamily}");
+                        Program.WriteLineIfNotLabMode($"   Period: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd} ({daysBack} days)");
+                        Program.WriteLineIfNotLabMode("");
+                    }
                     
                     await backtestHarness.RunAsync(symbol, startDate, endDate, modelFamily, CancellationToken.None).ConfigureAwait(false);
                     
-                    Program.WriteLineIfNotLabMode("\n✅ [BACKTEST] Backtest completed successfully");
+                    if (!uiEnabled)
+                    {
+                        Program.WriteLineIfNotLabMode("\n✅ [BACKTEST] Backtest completed successfully");
+                    }
                 }
                 else
                 {
