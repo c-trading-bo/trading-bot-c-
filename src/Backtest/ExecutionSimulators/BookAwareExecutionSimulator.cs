@@ -524,6 +524,13 @@ namespace TradingBot.Backtest.ExecutionSimulators
                 {
                     // Position closed - track if it was a winning trade
                     state.RoundTripTrades++;
+                    
+                    // Track best trade
+                    if (tradePnL > state.BestTrade)
+                    {
+                        state.BestTrade = tradePnL;
+                    }
+                    
                     if (tradePnL > 0)
                     {
                         state.WinningTrades++;

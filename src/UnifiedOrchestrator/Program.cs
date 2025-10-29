@@ -17,6 +17,7 @@ using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Backtest;
+using TradingBot.Backtest.Extensions;
 using UnifiedOrchestrator.Services;
 using TopstepX.Bot.Authentication;
 using TradingBot.RLAgent;  // Add this for ModelHotReloadManager
@@ -279,8 +280,54 @@ internal static class Program
             
             if (!isLabMode) Program.WriteLineIfNotLabMode("🚀 [STARTUP] Starting unified orchestrator...");
             
-            // Run the unified orchestrator
-            await host.RunAsync().ConfigureAwait(false);
+            // Check if we're in Backtest mode and run BacktestHarnessService directly
+            var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
+            if (backtestMode == "1" || backtestMode?.ToLowerInvariant() == "true")
+            {
+                // Check if UI is enabled - if so, suppress all startup messages
+                var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+                var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
+                    ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    : false;
+                
+                if (!uiEnabled)
+                {
+                    Program.WriteLineIfNotLabMode("\n🎬 [BACKTEST] Starting backtest harness service...");
+                    Program.WriteLineIfNotLabMode("   This will replay historical data with tick-by-tick UI");
+                    Program.WriteLineIfNotLabMode("   Set ENABLE_BACKTEST_UI=1 to see the visual replay\n");
+                }
+                
+                // Get the BacktestHarnessService and run it
+                // Use GetRequiredService to throw exception if service is not registered (better error message)
+                var backtestHarness = host.Services.GetRequiredService<TradingBot.Backtest.BacktestHarnessService>();
+                
+                // Run backtest with default parameters
+                var symbol = Environment.GetEnvironmentVariable("BACKTEST_SYMBOL") ?? "ES";
+                var modelFamily = Environment.GetEnvironmentVariable("BACKTEST_MODEL") ?? "CVaR-PPO";
+                var daysBack = int.TryParse(Environment.GetEnvironmentVariable("BACKTEST_DAYS"), out var days) ? days : 7;
+                var endDate = DateTime.UtcNow.Date;
+                var startDate = endDate.AddDays(-daysBack);
+                
+                if (!uiEnabled)
+                {
+                    Program.WriteLineIfNotLabMode($"   Symbol: {symbol}");
+                    Program.WriteLineIfNotLabMode($"   Model: {modelFamily}");
+                    Program.WriteLineIfNotLabMode($"   Period: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd} ({daysBack} days)");
+                    Program.WriteLineIfNotLabMode("");
+                }
+                
+                await backtestHarness.RunAsync(symbol, startDate, endDate, modelFamily, CancellationToken.None).ConfigureAwait(false);
+                
+                if (!uiEnabled)
+                {
+                    Program.WriteLineIfNotLabMode("\n✅ [BACKTEST] Backtest completed successfully");
+                }
+            }
+            else
+            {
+                // Run the unified orchestrator (normal mode)
+                await host.RunAsync().ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
@@ -514,11 +561,13 @@ internal static class Program
             case "3":
                 // Backtest Mode (Strategy Testing)
                 Program.WriteLineIfNotLabMode("\n✅ Backtest Mode (Strategy Testing) selected");
-                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "1");
+                Environment.SetEnvironmentVariable("BACKTEST_MODE", "1");
+                Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                 Environment.SetEnvironmentVariable("LAB_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1");
                 Program.WriteLineIfNotLabMode("📊 Bot will replay historical data for strategy validation");
                 Program.WriteLineIfNotLabMode("📈 Performance metrics will be calculated");
+                Program.WriteLineIfNotLabMode("🎬 Tick replay UI will display bot decisions in real-time");
                 break;
                 
             default:
@@ -778,7 +827,8 @@ Please check the configuration and ensure all required services are registered.
     private enum BotMode
     {
         Terminal,  // Live or Dry-Run trading (inference only)
-        Lab        // Historical training mode (training + inference)
+        Lab,       // Historical training mode (training + inference)
+        Backtest   // Strategy testing with tick replay UI (no API, local data)
     }
 
     /// <summary>
@@ -787,10 +837,22 @@ Please check the configuration and ensure all required services are registered.
     /// </summary>
     private static BotMode DetectBotMode()
     {
-        // Priority 1: Explicit BOT_MODE environment variable
+        // Priority 1: BACKTEST_MODE environment variable (highest priority for backtest)
+        var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
+        if (backtestMode == "1" || backtestMode?.ToLowerInvariant() == "true")
+        {
+            return BotMode.Backtest;
+        }
+
+        // Priority 2: Explicit BOT_MODE environment variable
         var botModeEnv = Environment.GetEnvironmentVariable("BOT_MODE");
         if (!string.IsNullOrEmpty(botModeEnv))
         {
+            if (botModeEnv.Equals("Backtest", StringComparison.OrdinalIgnoreCase) ||
+                botModeEnv.Equals("BacktestMode", StringComparison.OrdinalIgnoreCase))
+            {
+                return BotMode.Backtest;
+            }
             if (botModeEnv.Equals("Lab", StringComparison.OrdinalIgnoreCase) ||
                 botModeEnv.Equals("Historical", StringComparison.OrdinalIgnoreCase) ||
                 botModeEnv.Equals("Training", StringComparison.OrdinalIgnoreCase))
@@ -805,21 +867,21 @@ Please check the configuration and ensure all required services are registered.
             }
         }
 
-        // Priority 2: LAB_MODE environment variable
+        // Priority 3: LAB_MODE environment variable
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
         if (labMode == "1" || labMode?.ToLowerInvariant() == "true")
         {
             return BotMode.Lab;
         }
 
-        // Priority 3: HISTORICAL_MODE environment variable (legacy support)
+        // Priority 4: HISTORICAL_MODE environment variable (legacy support - Lab mode)
         var historicalMode = Environment.GetEnvironmentVariable("HISTORICAL_MODE");
         if (historicalMode == "1" || historicalMode?.ToLowerInvariant() == "true")
         {
             return BotMode.Lab;
         }
 
-        // Priority 4: Check if Sunday (Lab runs on Sunday)
+        // Priority 5: Check if Sunday (Lab runs on Sunday)
         var now = DateTime.Now;
         if (now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 12 && now.Hour < 18)
         {
@@ -828,7 +890,7 @@ Please check the configuration and ensure all required services are registered.
             return BotMode.Lab;
         }
 
-        // Priority 5: Check RL_RUNTIME_MODE
+        // Priority 6: Check RL_RUNTIME_MODE
         var rlModeStr = Environment.GetEnvironmentVariable("RL_RUNTIME_MODE");
         if (!string.IsNullOrEmpty(rlModeStr))
         {
@@ -875,6 +937,20 @@ Please check the configuration and ensure all required services are registered.
                 Program.WriteLineIfNotLabMode("   ✓ EnhancedBacktestLearningService registered");
                 Program.WriteLineIfNotLabMode("   ✗ OrderExecutionService NOT registered (Lab = offline training)");
                 Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Lab = no live data)");
+            }
+        }
+        else if (mode == BotMode.Backtest)
+        {
+            if (!suppressStartupOutput)
+            {
+                Program.WriteLineIfNotLabMode("🎬 BACKTEST MODE - Strategy Testing with Tick Replay UI");
+                Program.WriteLineIfNotLabMode("   ✓ BacktestHarnessService with live tick replay UI");
+                Program.WriteLineIfNotLabMode("   ✓ BacktestConsoleUI (DOM, signals, position tracking, P&L)");
+                Program.WriteLineIfNotLabMode("   ✓ IExecutionSimulator, IMetricSink registered");
+                Program.WriteLineIfNotLabMode("   ✓ Local historical data (NO API connections needed)");
+                Program.WriteLineIfNotLabMode("   ✗ OrderExecutionService NOT registered (Backtest = offline testing)");
+                Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Backtest = no live data)");
+                Program.WriteLineIfNotLabMode("   ✗ EnhancedBacktestLearningService NOT registered (Backtest = UI mode)");
             }
         }
         else
@@ -2702,10 +2778,37 @@ Please check the configuration and ensure all required services are registered.
         {
             RegisterLabServices(services, rlMode, hostContext);
         }
+        else if (mode == BotMode.Backtest)
+        {
+            RegisterBacktestServices(services, rlMode, hostContext);
+        }
         else
         {
             RegisterTerminalServices(services, rlMode, hostContext);
         }
+    }
+
+    /// <summary>
+    /// Register Backtest-only services for strategy testing with tick replay UI
+    /// No API connections - uses local/script data only
+    /// </summary>
+    private static void RegisterBacktestServices(
+        IServiceCollection services,
+        TradingBot.Abstractions.RlRuntimeMode rlMode,
+        HostBuilderContext hostContext)
+    {
+        Program.WriteLineIfNotLabMode("📊 [BACKTEST] Registering Backtest-specific services...");
+        Program.WriteLineIfNotLabMode("   ✓ BacktestHarnessService with tick replay UI");
+        Program.WriteLineIfNotLabMode("   ✓ Local historical data (no API connections)");
+        Program.WriteLineIfNotLabMode("   ✗ OrderExecutionService NOT registered (Backtest = offline testing)");
+        Program.WriteLineIfNotLabMode("   ✗ TopstepXWebSocketClient NOT registered (Backtest = no live data)");
+        Program.WriteLineIfNotLabMode("   ✗ Training services NOT registered (Backtest = testing only)");
+        
+        // Register the BacktestHarnessService and all its dependencies
+        services.AddProductionBacktestServices(hostContext.Configuration, "reports/bt");
+        
+        // EnhancedBacktestLearningService is NOT registered in Backtest mode
+        // (it's for Lab mode training, not for strategy testing/visualization)
     }
 
     /// <summary>
@@ -2948,6 +3051,10 @@ Please check the configuration and ensure all required services are registered.
         
         Program.WriteLineIfNotLabMode("      - AtomicPromotionCoordinator (8-step bulletproof deployment)");
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.AtomicPromotionCoordinator>();
+        
+        // Production Backtest Services - BacktestHarnessService with UI integration
+        Program.WriteLineIfNotLabMode("   ✓ Registering Production Backtest Services (BacktestHarnessService, ExecutionSimulator, UI)");
+        services.AddProductionBacktestServices(hostContext.Configuration, "reports/bt");
         
         // Enhanced Backtest Learning Service (Lab-only - Task 2.4)
         // PHASE 1 REFACTOR: Register as Singleton ONLY (not as HostedService)

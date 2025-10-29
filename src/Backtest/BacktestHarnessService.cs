@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using TradingBot.Backtest.UI;
 
 namespace TradingBot.Backtest
 {
@@ -33,6 +34,16 @@ namespace TradingBot.Backtest
         /// Maximum position size as percentage of capital
         /// </summary>
         public decimal MaxPositionSizePercent { get; set; } = 0.02m;
+
+        /// <summary>
+        /// Enable live tick replay UI (fancy visual mode)
+        /// </summary>
+        public bool EnableTickReplayUI { get; set; } = true;
+
+        /// <summary>
+        /// Tick replay speed multiplier (1 = real-time, 2 = 2x speed, etc.)
+        /// </summary>
+        public int ReplaySpeed { get; set; } = 1;
     }
 
     /// <summary>
@@ -113,8 +124,17 @@ namespace TradingBot.Backtest
             if (!System.Text.RegularExpressions.Regex.IsMatch(modelFamily, @"^[A-Za-z0-9_]+$"))
                 throw new ArgumentException("Model family must contain only letters, numbers, and underscores", nameof(modelFamily));
 
-            _logger.LogInformation("Starting backtest for {Symbol} from {StartDate} to {EndDate} using {ModelFamily}",
-                symbol, startDate, endDate, modelFamily);
+            // Check if UI is enabled - suppress logging if so
+            var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+            var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
+                ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
+                : _options.EnableTickReplayUI;
+            
+            if (!uiEnabled)
+            {
+                _logger.LogInformation("Starting backtest for {Symbol} from {StartDate} to {EndDate} using {ModelFamily}",
+                    symbol, startDate, endDate, modelFamily);
+            }
 
             var report = new BacktestReport
             {
@@ -153,10 +173,27 @@ namespace TradingBot.Backtest
                 };
                 _executionSimulator.ResetState(simState);
 
+                // 3.5. Initialize tick replay UI if enabled
+                BacktestConsoleUI? ui = null;
+                decimal lastPrice = 0m;
+                var tickCount = 0;
+                
+                if (uiEnabled)
+                {
+                    ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
+                    ui.SetReplaySpeed(_options.ReplaySpeed);
+                    ui.Render();
+                }
+                else
+                {
+                    _logger.LogInformation("📊 [BACKTEST] Running in silent mode (no UI)");
+                }
+
                 // 4. Process historical data through live trading pipeline
                 await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    tickCount++;
 
                     // Update position PnL with new market data
                     _executionSimulator.UpdatePositionPnL(quote, simState);
@@ -174,6 +211,81 @@ namespace TradingBot.Backtest
                     // Record decision for analysis
                     await RecordDecisionAsync(decision, quote, cancellationToken);
 
+                    // Update UI if enabled
+                    if (ui != null)
+                    {
+                        // Determine tick direction
+                        var direction = lastPrice == 0m ? "flat" : 
+                                       quote.Last > lastPrice ? "up" : 
+                                       quote.Last < lastPrice ? "down" : "flat";
+                        lastPrice = quote.Last;
+
+                        // Add tick to UI
+                        ui.AddTick(quote.Time, quote.Last, quote.Volume, direction, quote.Bid, quote.Ask);
+
+                        // Format bot thinking
+                        var thinkingText = FormatBotThinking(decision, quote);
+                        
+                        // Handle position UI updates and order execution display
+                        if (decision.Decision != TradingAction.Hold && !ui.HasOpenPosition())
+                        {
+                            // Show signal and order submission in thinking
+                            ui.UpdateBotThinking(thinkingText);
+                            ui.Render();
+                            await Task.Delay(500, cancellationToken).ConfigureAwait(false); // Brief pause to show order submission
+                            
+                            // Opening new position - show fill confirmation
+                            var side = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
+                            var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
+                            var stopLoss = decision.StopLoss ?? quote.Last * 0.98m;
+                            var target = decision.TakeProfit ?? quote.Last * 1.02m;
+                            var fillPrice = decision.EntryPrice ?? quote.Last;
+                            
+                            // Add fill confirmation to thinking
+                            thinkingText += $"\n✅ [FILL] FILLED @ {fillPrice:N2} (Slippage: 0 ticks)";
+                            ui.UpdateBotThinking(thinkingText);
+                            
+                            ui.OpenPosition(side, fillPrice, stopLoss, target, 1, decision.Confidence, decision.Rationale);
+                        }
+                        else if (bracketFills.Count > 0 && ui.HasOpenPosition())
+                        {
+                            // Position closed by bracket order - show exit message
+                            // Determine if stop or target based on fill reason
+                            var closeReason = bracketFills[0].Reason.Contains("stop", StringComparison.OrdinalIgnoreCase) ? "STOP LOSS" : "TAKE PROFIT";
+                            var exitPrice = bracketFills[0].FillPrice;
+                            thinkingText = $"🔔 [{closeReason}] Position closed @ {exitPrice:N2}\n" +
+                                         $"📊 P&L will update in account stats";
+                            ui.UpdateBotThinking(thinkingText);
+                            ui.ClosePosition();
+                        }
+                        else
+                        {
+                            // Normal update - just bot thinking
+                            ui.UpdateBotThinking(thinkingText);
+                        }
+
+                        // Update account stats
+                        var winRate = simState.RoundTripTrades > 0 ? simState.WinningTrades : 0;
+                        var bestTrade = simState.BestTrade;
+                        ui.UpdateAccountStats(
+                            _options.InitialCapital + simState.RealizedPnL + simState.UnrealizedPnL,
+                            simState.RealizedPnL,
+                            simState.UnrealizedPnL,
+                            simState.RoundTripTrades,
+                            winRate,
+                            bestTrade);
+
+                        // Render UI every N ticks to reduce flicker
+                        if (tickCount % 5 == 0 || decision.Decision != TradingAction.Hold)
+                        {
+                            ui.Render();
+                        }
+
+                        // Add delay for realistic tick replay (scaled by speed)
+                        var delayMs = Math.Max(10, 100 / _options.ReplaySpeed);
+                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    }
+
                     // Execute decision if action required
                     if (decision.Decision != TradingAction.Hold)
                     {
@@ -187,8 +299,11 @@ namespace TradingBot.Backtest
                 report.EndTime = DateTime.UtcNow;
                 report.Success = true;
 
-                _logger.LogInformation("Backtest completed successfully. Final PnL: {PnL:C}, Trades: {Trades}",
-                    report.TotalPnL, report.TotalTrades);
+                if (!uiEnabled)
+                {
+                    _logger.LogInformation("Backtest completed successfully. Final PnL: {PnL:C}, Trades: {Trades}",
+                        report.TotalPnL, report.TotalTrades);
+                }
 
                 return report;
             }
@@ -409,6 +524,61 @@ namespace TradingBot.Backtest
             report.TotalReturn = _options.InitialCapital != 0 ? report.TotalPnL / _options.InitialCapital : 0m;
 
             await _metricSink.FlushAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Format bot decision into readable thinking text for UI display
+        /// </summary>
+        private static string FormatBotThinking(DecisionLog decision, Quote quote)
+        {
+            if (decision.Decision == TradingAction.Hold)
+            {
+                return $"🧠 Analyzing tick flow...\n" +
+                       $"📊 {decision.Rationale}\n" +
+                       $"📈 Price: {quote.Last:N2} | Spread: {(quote.Ask - quote.Bid):N4}\n" +
+                       $"⏳ WATCHING... No clear signal yet";
+            }
+
+            var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
+            var sideText = decision.Decision == TradingAction.Buy ? "LONG" : "SHORT";
+            var confidencePercent = (decision.Confidence * 100m).ToString("N0");
+            var riskReward = 0m;
+            var stopDistance = 0m;
+            var targetDistance = 0m;
+            var stopDollar = 0m;
+            var targetDollar = 0m;
+            
+            if (decision.TakeProfit.HasValue && decision.StopLoss.HasValue && decision.EntryPrice.HasValue && decision.EntryPrice.Value != decision.StopLoss.Value)
+            {
+                riskReward = Math.Abs((decision.TakeProfit.Value - decision.EntryPrice.Value) / (decision.EntryPrice.Value - decision.StopLoss.Value));
+                stopDistance = Math.Abs(decision.EntryPrice.Value - decision.StopLoss.Value);
+                targetDistance = Math.Abs(decision.TakeProfit.Value - decision.EntryPrice.Value);
+                stopDollar = stopDistance * 50; // ES point value
+                targetDollar = targetDistance * 50; // ES point value
+            }
+
+            var entryPriceText = decision.EntryPrice.HasValue ? decision.EntryPrice.Value.ToString("N2") : quote.Last.ToString("N2");
+
+            // Create detailed signal message
+            var signalDetails = $"🚨 [SIGNAL] BOT DECISION: ENTER {sideText} {decision.Symbol}!\n" +
+                               $"├─ Entry: {entryPriceText}\n";
+            
+            if (decision.StopLoss.HasValue)
+            {
+                signalDetails += $"├─ Stop: {decision.StopLoss.Value:N2} (-{stopDistance:N1} pts = -${stopDollar:N0})\n";
+            }
+            
+            if (decision.TakeProfit.HasValue)
+            {
+                signalDetails += $"├─ Target: {decision.TakeProfit.Value:N2} (+{targetDistance:N1} pts = +${targetDollar:N0})\n";
+            }
+            
+            signalDetails += $"├─ Risk/Reward: {riskReward:N2}:1\n" +
+                           $"├─ Confidence: {confidencePercent}%\n" +
+                           $"└─ Reason: {decision.Rationale}\n\n" +
+                           $"⚡ [ORDER] Submitting MARKET {actionText} 1 {decision.Symbol}...";
+
+            return signalDetails;
         }
     }
 

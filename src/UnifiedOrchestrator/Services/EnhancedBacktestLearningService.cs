@@ -138,6 +138,10 @@ internal class EnhancedBacktestLearningService
         var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
         var isBacktestMode = backtestMode == "1" || backtestMode?.ToLowerInvariant() == "true";
 
+        // Check if tick replay UI is enabled (suppresses verbose logging)
+        var uiEnabled = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+        var isUIEnabled = uiEnabled == "1" || uiEnabled?.ToLowerInvariant() == "true";
+
         if (isLabMode && !isBacktestMode)
         {
             _logger.LogInformation("[ENHANCED-BACKTEST] ⏸️ Skipping - LAB_MODE detected (HistoricalTrainingOrchestrator handles real training)");
@@ -145,7 +149,11 @@ internal class EnhancedBacktestLearningService
             return; // Exit immediately, don't run backtest spam
         }
 
-        _logger.LogInformation("[ENHANCED-BACKTEST] Starting enhanced backtest learning service with UnifiedTradingBrain");
+        // Suppress verbose startup logging when UI is enabled
+        if (!isUIEnabled)
+        {
+            _logger.LogInformation("[ENHANCED-BACKTEST] Starting enhanced backtest learning service with UnifiedTradingBrain");
+        }
 
         // Wait for system initialization
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
@@ -153,7 +161,10 @@ internal class EnhancedBacktestLearningService
         // ================================================================================
         // HISTORICAL SEED LOADING - FAST WARMUP WITH 90-DAY DATA
         // ================================================================================
-        _logger.LogInformation("📊 [HISTORICAL-SEED] Attempting to load historical seed data for fast warmup...");
+        if (!isUIEnabled)
+        {
+            _logger.LogInformation("📊 [HISTORICAL-SEED] Attempting to load historical seed data for fast warmup...");
+        }
 
         try
         {
@@ -161,30 +172,36 @@ internal class EnhancedBacktestLearningService
 
             if (seedResult.Success && seedResult.Bars != null && seedResult.Bars.Count > 0)
             {
-                _logger.LogInformation(
-                    "✅ [HISTORICAL-SEED] Successfully loaded {BarCount} historical bars (ES: {ES}, NQ: {NQ})",
-                    seedResult.Bars.Count,
-                    seedResult.Bars.Count(b => b.Symbol == "ES"),
-                    seedResult.Bars.Count(b => b.Symbol == "NQ"));
-
-                if (seedResult.ValidationResult != null)
+                if (!isUIEnabled)
                 {
                     _logger.LogInformation(
-                        "📅 [HISTORICAL-SEED] Date range: {OldestBar:yyyy-MM-dd HH:mm} to {NewestBar:yyyy-MM-dd HH:mm}",
-                        seedResult.ValidationResult.OldestBar,
-                        seedResult.ValidationResult.NewestBar);
+                        "✅ [HISTORICAL-SEED] Successfully loaded {BarCount} historical bars (ES: {ES}, NQ: {NQ})",
+                        seedResult.Bars.Count,
+                        seedResult.Bars.Count(b => b.Symbol == "ES"),
+                        seedResult.Bars.Count(b => b.Symbol == "NQ"));
 
-                    _logger.LogInformation(
-                        "✅ [HISTORICAL-SEED] Validation: Duplicates={Duplicates}, InvalidVolumes={InvalidVolumes}, TimeGaps={TimeGaps}",
-                        seedResult.ValidationResult.DuplicateTimestamps,
-                        seedResult.ValidationResult.InvalidVolumes,
-                        seedResult.ValidationResult.TimeGaps);
+                    if (seedResult.ValidationResult != null)
+                    {
+                        _logger.LogInformation(
+                            "📅 [HISTORICAL-SEED] Date range: {OldestBar:yyyy-MM-dd HH:mm} to {NewestBar:yyyy-MM-dd HH:mm}",
+                            seedResult.ValidationResult.OldestBar,
+                            seedResult.ValidationResult.NewestBar);
+
+                        _logger.LogInformation(
+                            "✅ [HISTORICAL-SEED] Validation: Duplicates={Duplicates}, InvalidVolumes={InvalidVolumes}, TimeGaps={TimeGaps}",
+                            seedResult.ValidationResult.DuplicateTimestamps,
+                            seedResult.ValidationResult.InvalidVolumes,
+                            seedResult.ValidationResult.TimeGaps);
+                    }
                 }
 
                 // Process seed bars through market data flow service for proper pipeline integration
                 if (_marketDataFlow != null)
                 {
-                    _logger.LogInformation("🔥 [HISTORICAL-SEED] Processing {BarCount} bars through market data pipeline...", seedResult.Bars.Count);
+                    if (!isUIEnabled)
+                    {
+                        _logger.LogInformation("🔥 [HISTORICAL-SEED] Processing {BarCount} bars through market data pipeline...", seedResult.Bars.Count);
+                    }
 
                     // Group bars by symbol for proper processing
                     var barsBySymbol = seedResult.Bars
@@ -206,12 +223,18 @@ internal class EnhancedBacktestLearningService
                             Volume = (int)Math.Min(seedBar.Volume, int.MaxValue)
                         }).ToList();
 
-                        _logger.LogInformation("📊 [HISTORICAL-SEED] Processing {BarCount} bars for {Symbol}", bars.Count, symbol);
+                        if (!isUIEnabled)
+                        {
+                            _logger.LogInformation("📊 [HISTORICAL-SEED] Processing {BarCount} bars for {Symbol}", bars.Count, symbol);
+                        }
                         await _marketDataFlow.ProcessHistoricalBarsAsync(symbol, bars, stoppingToken).ConfigureAwait(false);
                     }
 
-                    _logger.LogInformation("✅ [HISTORICAL-SEED] All seed bars processed through market data pipeline!");
-                    _logger.LogInformation("🎯 [HISTORICAL-SEED] Indicators warmed up, ML/RL models ready with {BarCount} bars of context", seedResult.Bars.Count);
+                    if (!isUIEnabled)
+                    {
+                        _logger.LogInformation("✅ [HISTORICAL-SEED] All seed bars processed through market data pipeline!");
+                        _logger.LogInformation("🎯 [HISTORICAL-SEED] Indicators warmed up, ML/RL models ready with {BarCount} bars of context", seedResult.Bars.Count);
+                    }
 
                     // Mark seed as successfully loaded AND store bars for continuous learning
                     _historicalSeedLoaded = true;
@@ -221,8 +244,11 @@ internal class EnhancedBacktestLearningService
                 }
                 else
                 {
-                    _logger.LogWarning("⚠️ [HISTORICAL-SEED] Market data flow service not available - seed loaded but not processed");
-                    _logger.LogInformation("🎯 [HISTORICAL-SEED] Seed bars will be used in backtest learning cycles");
+                    if (!isUIEnabled)
+                    {
+                        _logger.LogWarning("⚠️ [HISTORICAL-SEED] Market data flow service not available - seed loaded but not processed");
+                        _logger.LogInformation("🎯 [HISTORICAL-SEED] Seed bars will be used in backtest learning cycles");
+                    }
 
                     // Mark seed as loaded even if not processed (data exists for learning)
                     _historicalSeedLoaded = true;
@@ -233,20 +259,29 @@ internal class EnhancedBacktestLearningService
             }
             else
             {
-                _logger.LogWarning("⚠️ [HISTORICAL-SEED] Seed loading failed or returned no bars: {ErrorMessage}",
-                    seedResult.ErrorMessage ?? "Unknown error");
-                _logger.LogInformation("🔄 [HISTORICAL-SEED] Will continue with live-only learning (slower warmup)");
+                if (!isUIEnabled)
+                {
+                    _logger.LogWarning("⚠️ [HISTORICAL-SEED] Seed loading failed or returned no bars: {ErrorMessage}",
+                        seedResult.ErrorMessage ?? "Unknown error");
+                    _logger.LogInformation("🔄 [HISTORICAL-SEED] Will continue with live-only learning (slower warmup)");
+                }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [HISTORICAL-SEED] Exception during seed loading - continuing with live-only learning");
+            if (!isUIEnabled)
+            {
+                _logger.LogError(ex, "❌ [HISTORICAL-SEED] Exception during seed loading - continuing with live-only learning");
+            }
         }
 
         // ================================================================================
         // CONTINUOUS LEARNING LOOP - CONCURRENT WITH LIVE TRADING
         // ================================================================================
-        _logger.LogInformation("🔄 [ENHANCED-BACKTEST] Starting continuous learning loop...");
+        if (!isUIEnabled)
+        {
+            _logger.LogInformation("🔄 [ENHANCED-BACKTEST] Starting continuous learning loop...");
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -256,8 +291,11 @@ internal class EnhancedBacktestLearningService
                 var currentTime = DateTime.UtcNow;
                 var schedulingRecommendation = _unifiedBrain.GetUnifiedSchedulingRecommendation(currentTime);
 
-                _logger.LogInformation("[UNIFIED-SCHEDULING] {Reasoning} - Learning every {Minutes} minutes",
-                    schedulingRecommendation.Reasoning, schedulingRecommendation.HistoricalLearningIntervalMinutes);
+                if (!isUIEnabled)
+                {
+                    _logger.LogInformation("[UNIFIED-SCHEDULING] {Reasoning} - Learning every {Minutes} minutes",
+                        schedulingRecommendation.Reasoning, schedulingRecommendation.HistoricalLearningIntervalMinutes);
+                }
 
                 if (schedulingRecommendation.LearningIntensity == "INTENSIVE" ||
                     schedulingRecommendation.LearningIntensity == "LIGHT")
@@ -272,13 +310,19 @@ internal class EnhancedBacktestLearningService
                     ? int.Parse(envInterval)
                     : schedulingRecommendation.HistoricalLearningIntervalMinutes;
 
-                _logger.LogInformation("[ENHANCED-BACKTEST] Next learning session in {Minutes} minutes (env override: {Override})",
-                    delayMinutes, !string.IsNullOrEmpty(envInterval));
+                if (!isUIEnabled)
+                {
+                    _logger.LogInformation("[ENHANCED-BACKTEST] Next learning session in {Minutes} minutes (env override: {Override})",
+                        delayMinutes, !string.IsNullOrEmpty(envInterval));
+                }
                 await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ENHANCED-BACKTEST] Error in backtest learning service");
+                if (!isUIEnabled)
+                {
+                    _logger.LogError(ex, "[ENHANCED-BACKTEST] Error in backtest learning service");
+                }
                 await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken).ConfigureAwait(false);
             }
         }
