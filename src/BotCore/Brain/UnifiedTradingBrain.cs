@@ -9,6 +9,7 @@ using BotCore.Brain.Models;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using TradingBot.RLAgent; // For CVaRPPO and ActionResult
@@ -198,6 +199,10 @@ namespace BotCore.Brain
         private readonly BotCore.Services.SafeHoldDecisionPolicy? _safeHoldPolicy; // Optional zone gate filtering
         private readonly BotCore.Brain.MultiTimeframeBrainAdapter? _mtfAdapter; // Optional multi-timeframe feature integration
         private readonly TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? _mtfLearning; // Optional multi-timeframe online learning
+        private readonly Zones.IZoneService? _zoneService; // Optional zone service for supply/demand analysis
+        private readonly BotCore.Patterns.PatternEngine? _patternEngine; // Optional pattern engine for candlestick patterns
+        private readonly BotCore.Risk.RiskEngine? _riskEngine; // Optional risk engine for pre-trade validation
+        private readonly BotCore.Bandits.NeuralUcbExtended? _neuralUcbExtended; // Optional parameter bundle selection
         
         // Latest market data for risk analysis (updated in MakeIntelligentDecisionAsync)
         private Env? _latestEnv;
@@ -1164,7 +1169,11 @@ namespace BotCore.Brain
             TradingBot.Abstractions.IS7Service? s7Service = null,
             BotCore.Services.SafeHoldDecisionPolicy? safeHoldPolicy = null,
             BotCore.Brain.MultiTimeframeBrainAdapter? mtfAdapter = null,
-            TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null)
+            TradingBot.IntelligenceStack.MultiTimeframeOnlineLearning? mtfLearning = null,
+            Zones.IZoneService? zoneService = null,
+            BotCore.Patterns.PatternEngine? patternEngine = null,
+            BotCore.Risk.RiskEngine? riskEngine = null,
+            BotCore.Bandits.NeuralUcbExtended? neuralUcbExtended = null)
         {
             _logger = logger;
             _memoryManager = memoryManager;
@@ -1184,6 +1193,10 @@ namespace BotCore.Brain
             _safeHoldPolicy = safeHoldPolicy; // Optional zone gate filtering
             _mtfAdapter = mtfAdapter; // Optional multi-timeframe features
             _mtfLearning = mtfLearning; // Optional multi-timeframe online learning
+            _zoneService = zoneService; // Optional zone service for supply/demand analysis
+            _patternEngine = patternEngine; // Optional pattern engine for candlestick patterns
+            _riskEngine = riskEngine; // Optional risk engine for pre-trade validation
+            _neuralUcbExtended = neuralUcbExtended; // Optional parameter bundle selection
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
@@ -3265,6 +3278,60 @@ Reason closed: {reason}
             // Start with single-timeframe context
             var context = CreateMarketContext(symbol, env, bars);
             
+            // BACKTEST PARITY: Add zone features if ZoneService is available
+            if (_zoneService != null)
+            {
+                try
+                {
+                    var zoneSnapshot = _zoneService.GetSnapshot(symbol);
+                    
+                    // Update context with zone analysis (using actual ZoneSnapshot properties)
+                    context.Features["zone.dist_to_supply_atr"] = (double)zoneSnapshot.DistToSupplyAtr;
+                    context.Features["zone.dist_to_demand_atr"] = (double)zoneSnapshot.DistToDemandAtr;
+                    context.Features["zone.breakout_score"] = (double)zoneSnapshot.BreakoutScore;
+                    context.Features["zone.pressure"] = (double)zoneSnapshot.ZonePressure;
+                    
+                    // Update support/resistance distances in main context (convert ATR to price distance)
+                    context.DistanceToResistance = (decimal)zoneSnapshot.DistToSupplyAtr * (env.atr ?? 0m);
+                    context.DistanceToSupport = (decimal)zoneSnapshot.DistToDemandAtr * (env.atr ?? 0m);
+                    
+                    _logger.LogTrace(
+                        "[ZONE-CONTEXT] {Symbol}: Supply dist={Supply:F2}ATR, Demand dist={Demand:F2}ATR, Pressure={Pressure:F3}",
+                        symbol, zoneSnapshot.DistToSupplyAtr, zoneSnapshot.DistToDemandAtr, zoneSnapshot.ZonePressure);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, 
+                        "[ZONE-CONTEXT] Failed to get zone features for {Symbol}, continuing without zone data", 
+                        symbol);
+                }
+            }
+            
+            // BACKTEST PARITY: Add pattern features if PatternEngine is available
+            if (_patternEngine != null && bars.Count >= 3)
+            {
+                try
+                {
+                    // Convert IList<Bar> to List<Bar> for GetScores
+                    var barsList = bars as List<Bar> ?? bars.ToList();
+                    var patternScores = _patternEngine.GetScores(symbol, barsList);
+                    
+                    // Update context with pattern analysis (using actual PatternScores properties)
+                    context.Features["pattern.bull_score"] = patternScores.BullScore;
+                    context.Features["pattern.bear_score"] = patternScores.BearScore;
+                    
+                    _logger.LogTrace(
+                        "[PATTERN-CONTEXT] {Symbol}: Bull={Bull:F3}, Bear={Bear:F3}",
+                        symbol, patternScores.BullScore, patternScores.BearScore);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, 
+                        "[PATTERN-CONTEXT] Failed to get pattern features for {Symbol}, continuing without pattern data", 
+                        symbol);
+                }
+            }
+            
             // Enhance with multi-timeframe features if adapter is available
             if (_mtfAdapter != null)
             {
@@ -3337,8 +3404,8 @@ Reason closed: {reason}
                 PriceChange = priceChange,
                 RSI = rsi,
                 TrendStrength = trendStrength,
-                DistanceToSupport = 0m, // levels.Support doesn't exist, using default
-                DistanceToResistance = 0m, // levels.Resistance doesn't exist, using default
+                DistanceToSupport = 0m, // Will be filled by zone analysis if available
+                DistanceToResistance = 0m, // Will be filled by zone analysis if available
                 VolatilityRank = volatilityRank,
                 Momentum = momentum,
                 MarketRegime = 0 // Will be filled by regime detector
