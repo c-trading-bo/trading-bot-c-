@@ -298,35 +298,29 @@ internal static class Program
                 }
                 
                 // Get the BacktestHarnessService and run it
-                var backtestHarness = host.Services.GetService<TradingBot.Backtest.BacktestHarnessService>();
-                if (backtestHarness != null)
+                // Use GetRequiredService to throw exception if service is not registered (better error message)
+                var backtestHarness = host.Services.GetRequiredService<TradingBot.Backtest.BacktestHarnessService>();
+                
+                // Run backtest with default parameters
+                var symbol = Environment.GetEnvironmentVariable("BACKTEST_SYMBOL") ?? "ES";
+                var modelFamily = Environment.GetEnvironmentVariable("BACKTEST_MODEL") ?? "CVaR-PPO";
+                var daysBack = int.TryParse(Environment.GetEnvironmentVariable("BACKTEST_DAYS"), out var days) ? days : 7;
+                var endDate = DateTime.UtcNow.Date;
+                var startDate = endDate.AddDays(-daysBack);
+                
+                if (!uiEnabled)
                 {
-                    // Run backtest with default parameters
-                    var symbol = Environment.GetEnvironmentVariable("BACKTEST_SYMBOL") ?? "ES";
-                    var modelFamily = Environment.GetEnvironmentVariable("BACKTEST_MODEL") ?? "CVaR-PPO";
-                    var daysBack = int.TryParse(Environment.GetEnvironmentVariable("BACKTEST_DAYS"), out var days) ? days : 7;
-                    var endDate = DateTime.UtcNow.Date;
-                    var startDate = endDate.AddDays(-daysBack);
-                    
-                    if (!uiEnabled)
-                    {
-                        Program.WriteLineIfNotLabMode($"   Symbol: {symbol}");
-                        Program.WriteLineIfNotLabMode($"   Model: {modelFamily}");
-                        Program.WriteLineIfNotLabMode($"   Period: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd} ({daysBack} days)");
-                        Program.WriteLineIfNotLabMode("");
-                    }
-                    
-                    await backtestHarness.RunAsync(symbol, startDate, endDate, modelFamily, CancellationToken.None).ConfigureAwait(false);
-                    
-                    if (!uiEnabled)
-                    {
-                        Program.WriteLineIfNotLabMode("\n✅ [BACKTEST] Backtest completed successfully");
-                    }
+                    Program.WriteLineIfNotLabMode($"   Symbol: {symbol}");
+                    Program.WriteLineIfNotLabMode($"   Model: {modelFamily}");
+                    Program.WriteLineIfNotLabMode($"   Period: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd} ({daysBack} days)");
+                    Program.WriteLineIfNotLabMode("");
                 }
-                else
+                
+                await backtestHarness.RunAsync(symbol, startDate, endDate, modelFamily, CancellationToken.None).ConfigureAwait(false);
+                
+                if (!uiEnabled)
                 {
-                    Program.WriteLineIfNotLabMode("❌ [BACKTEST] BacktestHarnessService not found in DI container!");
-                    Program.WriteLineIfNotLabMode("   Make sure AddProductionBacktestServices() is called");
+                    Program.WriteLineIfNotLabMode("\n✅ [BACKTEST] Backtest completed successfully");
                 }
             }
             else
