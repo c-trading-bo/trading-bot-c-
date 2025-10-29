@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using TradingBot.Backtest.UI;
 
 namespace TradingBot.Backtest
 {
@@ -33,6 +34,16 @@ namespace TradingBot.Backtest
         /// Maximum position size as percentage of capital
         /// </summary>
         public decimal MaxPositionSizePercent { get; set; } = 0.02m;
+
+        /// <summary>
+        /// Enable live tick replay UI (fancy visual mode)
+        /// </summary>
+        public bool EnableTickReplayUI { get; set; } = true;
+
+        /// <summary>
+        /// Tick replay speed multiplier (1 = real-time, 2 = 2x speed, etc.)
+        /// </summary>
+        public int ReplaySpeed { get; set; } = 1;
     }
 
     /// <summary>
@@ -153,10 +164,29 @@ namespace TradingBot.Backtest
                 };
                 _executionSimulator.ResetState(simState);
 
+                // 3.5. Initialize tick replay UI if enabled
+                BacktestConsoleUI? ui = null;
+                decimal lastPrice = 0m;
+                var tickCount = 0;
+                
+                if (_options.EnableTickReplayUI)
+                {
+                    ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
+                    ui.SetReplaySpeed(_options.ReplaySpeed);
+                    ui.Render();
+                    
+                    _logger.LogInformation("🎬 [BACKTEST-UI] Live tick replay enabled at {Speed}x speed", _options.ReplaySpeed);
+                }
+                else
+                {
+                    _logger.LogInformation("📊 [BACKTEST] Running in silent mode (no UI)");
+                }
+
                 // 4. Process historical data through live trading pipeline
                 await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    tickCount++;
 
                     // Update position PnL with new market data
                     _executionSimulator.UpdatePositionPnL(quote, simState);
@@ -173,6 +203,44 @@ namespace TradingBot.Backtest
                     
                     // Record decision for analysis
                     await RecordDecisionAsync(decision, quote, cancellationToken);
+
+                    // Update UI if enabled
+                    if (ui != null)
+                    {
+                        // Determine tick direction
+                        var direction = lastPrice == 0m ? "flat" : 
+                                       quote.Last > lastPrice ? "up" : 
+                                       quote.Last < lastPrice ? "down" : "flat";
+                        lastPrice = quote.Last;
+
+                        // Add tick to UI
+                        ui.AddTick(quote.Time, quote.Last, quote.Volume, direction, quote.Bid, quote.Ask);
+
+                        // Format bot thinking
+                        var thinkingText = FormatBotThinking(decision, quote);
+                        ui.UpdateBotThinking(thinkingText);
+
+                        // Update account stats
+                        var winRate = simState.RoundTripTrades > 0 ? simState.WinningTrades : 0;
+                        var bestTrade = simState.BestTrade;
+                        ui.UpdateAccountStats(
+                            _options.InitialCapital + simState.RealizedPnL + simState.UnrealizedPnL,
+                            simState.RealizedPnL,
+                            simState.UnrealizedPnL,
+                            simState.RoundTripTrades,
+                            winRate,
+                            bestTrade);
+
+                        // Render UI every N ticks to reduce flicker
+                        if (tickCount % 5 == 0 || decision.Decision != TradingAction.Hold)
+                        {
+                            ui.Render();
+                        }
+
+                        // Add delay for realistic tick replay (scaled by speed)
+                        var delayMs = Math.Max(10, 100 / _options.ReplaySpeed);
+                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    }
 
                     // Execute decision if action required
                     if (decision.Decision != TradingAction.Hold)
@@ -409,6 +477,38 @@ namespace TradingBot.Backtest
             report.TotalReturn = _options.InitialCapital != 0 ? report.TotalPnL / _options.InitialCapital : 0m;
 
             await _metricSink.FlushAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Format bot decision into readable thinking text for UI display
+        /// </summary>
+        private static string FormatBotThinking(DecisionLog decision, Quote quote)
+        {
+            if (decision.Decision == TradingAction.Hold)
+            {
+                return $"🧠 Analyzing tick flow...\n" +
+                       $"📊 {decision.Rationale}\n" +
+                       $"📈 Price: {quote.Last:N2} | Spread: {(quote.Ask - quote.Bid):N4}\n" +
+                       $"⏳ WATCHING... No clear signal yet";
+            }
+
+            var actionText = decision.Decision == TradingAction.Buy ? "BUY" : "SELL";
+            var confidencePercent = (decision.Confidence * 100m).ToString("N0");
+            var riskReward = 0m;
+            if (decision.TakeProfit.HasValue && decision.StopLoss.HasValue && decision.EntryPrice.HasValue && decision.EntryPrice.Value != decision.StopLoss.Value)
+            {
+                riskReward = Math.Abs((decision.TakeProfit.Value - decision.EntryPrice.Value) / (decision.EntryPrice.Value - decision.StopLoss.Value));
+            }
+
+            var entryPriceText = decision.EntryPrice.HasValue ? decision.EntryPrice.Value.ToString("N2") : quote.Last.ToString("N2");
+
+            return $"🧠 Analyzing tick flow...\n" +
+                   $"📊 Pattern detected: {decision.Strategy} signal\n" +
+                   $"🎯 {decision.Rationale}\n" +
+                   $"📈 Strategy: {decision.Strategy} (Confidence: {confidencePercent}%)\n" +
+                   $"⚖️  Risk/Reward: {riskReward:N1}:1 {(riskReward >= 2.0m ? "(Good setup)" : "")}\n" +
+                   $"\n" +
+                   $"⚡ SIGNAL: {actionText} @ {entryPriceText}";
         }
     }
 

@@ -131,6 +131,11 @@ namespace TradingBot.Abstractions
         /// Number of winning trades (trades with positive realized PnL)
         /// </summary>
         public int WinningTrades { get; set; }
+
+        /// <summary>
+        /// Best single trade P&L
+        /// </summary>
+        public decimal BestTrade { get; set; }
     }
 
     /// <summary>
