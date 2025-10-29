@@ -54,7 +54,8 @@
 
 **Want to see your bot trade on historical data with a professional UI?**
 
-📖 **[Backtest Mode Guide](BACKTEST_MODE_GUIDE.md)** ← Complete backtest mode documentation
+📖 **[Backtest Mode Guide](BACKTEST_MODE_GUIDE.md)** ← Complete backtest mode documentation with UI  
+📖 **[Offline Backtest Guide](OFFLINE_BACKTEST_GUIDE.md)** ← Run completely offline with saved bars ✨
 
 **Features:**
 - ✅ **No API required** - works offline with local data
@@ -63,15 +64,19 @@
 - ✅ **Real-time features** - ticks play like they actually happened
 - ✅ **Multiple speeds** - 1x real-time or faster replay
 - ✅ **Sample data included** - ES and NQ tick data ready to use
+- ✅ **See trades execute** - Watch bot make decisions and execute trades
 
 **Quick Start:**
 ```bash
-# Option 1: Interactive menu
+# Option 1: Offline mode with console logging (see trades execute)
+./run-offline-backtest.sh
+
+# Option 2: Interactive menu
 cd src/UnifiedOrchestrator
 dotnet run
 # Then select option 3
 
-# Option 2: Direct launch
+# Option 3: Direct launch with UI
 export BACKTEST_MODE=1 ENABLE_BACKTEST_UI=1 SKIP_MODE_PROMPT=1
 cd src/UnifiedOrchestrator
 dotnet run
