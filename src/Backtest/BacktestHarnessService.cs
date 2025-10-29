@@ -165,11 +165,17 @@ namespace TradingBot.Backtest
                 _executionSimulator.ResetState(simState);
 
                 // 3.5. Initialize tick replay UI if enabled
+                // Check environment variable first, then fall back to config
+                var uiEnabledEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+                var uiEnabled = !string.IsNullOrEmpty(uiEnabledEnv)
+                    ? (uiEnabledEnv == "1" || uiEnabledEnv.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    : _options.EnableTickReplayUI;
+
                 BacktestConsoleUI? ui = null;
                 decimal lastPrice = 0m;
                 var tickCount = 0;
                 
-                if (_options.EnableTickReplayUI)
+                if (uiEnabled)
                 {
                     ui = new BacktestConsoleUI(symbol, startDate, _options.InitialCapital);
                     ui.SetReplaySpeed(_options.ReplaySpeed);
