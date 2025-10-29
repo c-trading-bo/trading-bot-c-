@@ -345,10 +345,10 @@ namespace TradingBot.Backtest
                     var marketContext = new TradingBot.Abstractions.MarketContext
                     {
                         Symbol = quote.Symbol,
-                        Price = quote.Last,
-                        Bid = quote.Bid,
-                        Ask = quote.Ask,
-                        Volume = (long)quote.Volume,
+                        Price = (double)quote.Last,
+                        Bid = (double)quote.Bid,
+                        Ask = (double)quote.Ask,
+                        Volume = (double)quote.Volume,
                         Timestamp = quote.Time
                     };
 
