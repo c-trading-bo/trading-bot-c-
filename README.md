@@ -50,6 +50,40 @@
 
 ---
 
+## 🎬 **NEW: Backtest Mode - Test Strategies Without API**
+
+**Want to see your bot trade on historical data with a professional UI?**
+
+📖 **[Backtest Mode Guide](BACKTEST_MODE_GUIDE.md)** ← Complete backtest mode documentation
+
+**Features:**
+- ✅ **No API required** - works offline with local data
+- ✅ **Professional tick replay UI** - DOM, signals, positions, P&L
+- ✅ **Zero log spam** - clean UI-only display
+- ✅ **Real-time features** - ticks play like they actually happened
+- ✅ **Multiple speeds** - 1x real-time or faster replay
+- ✅ **Sample data included** - ES and NQ tick data ready to use
+
+**Quick Start:**
+```bash
+# Option 1: Interactive menu
+cd src/UnifiedOrchestrator
+dotnet run
+# Then select option 3
+
+# Option 2: Direct launch
+export BACKTEST_MODE=1 ENABLE_BACKTEST_UI=1 SKIP_MODE_PROMPT=1
+cd src/UnifiedOrchestrator
+dotnet run
+```
+
+**The 3 Bot Modes:**
+1. **Terminal Mode** - Live trading with real money (requires API)
+2. **Lab Mode** - Model training on historical data (requires API for data)
+3. **Backtest Mode** - Strategy testing with visual replay (**no API needed**) ✨
+
+---
+
 ### 🧠 **Enhanced Multi-Brain Architecture with Auto-Promotion**
 - **Primary Decision Engine**: EnhancedTradingBrainIntegration with UnifiedTradingBrain
 - **ML Algorithms**: Neural UCB (627 lines) + CVaR-PPO (1,026 lines) + LSTM

@@ -347,15 +347,15 @@ internal static class Program
             Program.WriteLineIfNotLabMode("\n" + new string('=', 80));
             Program.WriteLineIfNotLabMode(errorMsg);
             Program.WriteLineIfNotLabMode(new string('=', 80));
-            Console.WriteLine($"Exception Type: {ex.GetType().FullName}");
-            Console.WriteLine($"Stack Trace:\n{ex.StackTrace}");
+            Program.WriteLineIfNotLabMode($"Exception Type: {ex.GetType().FullName}");
+            Program.WriteLineIfNotLabMode($"Stack Trace:\n{ex.StackTrace}");
             
             // Show inner exceptions
             var innerEx = ex.InnerException;
             int depth = 1;
             while (innerEx != null && depth <= 5)
             {
-                Console.WriteLine($"\n--- Inner Exception [{depth}] ---");
+                Program.WriteLineIfNotLabMode($"\n--- Inner Exception [{depth}] ---");
                 Program.WriteLineIfNotLabMode($"Message: {innerEx.Message}");
                 Program.WriteLineIfNotLabMode($"Type: {innerEx.GetType().FullName}");
                 Program.WriteLineIfNotLabMode($"Stack: {innerEx.StackTrace}");
