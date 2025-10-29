@@ -183,7 +183,7 @@ python3 convert-tick-data.py
 ### Logs appearing on screen
 Check that `ENABLE_BACKTEST_UI=1` is set. All logs go to:
 ```
-logs/backtest-20251029-164500.log
+logs/backtest-YYYYMMDD-HHMMSS.log  (e.g., backtest-20241029-093000.log)
 ```
 
 ### UI not rendering
@@ -225,8 +225,12 @@ All diagnostic logs are saved to `logs/backtest-*.log` for debugging:
 - Decision making
 - Trade execution
 
-You can tail this file in another terminal:
+You can tail the most recent log file in another terminal:
 ```bash
+# Tail the most recent backtest log
+tail -f $(ls -t logs/backtest-*.log | head -1)
+
+# Or use wildcard if only one backtest is running
 tail -f logs/backtest-*.log
 ```
 
