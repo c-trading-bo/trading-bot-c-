@@ -62,13 +62,16 @@ internal static class Program
     
     // Lab Mode flag - set once at startup
     private static bool _isLabMode = false;
+    
+    // Backtest Mode UI flag - set once at startup to suppress all logs
+    private static bool _isBacktestUIMode = false;
 
     /// <summary>
-    /// Console.WriteLine wrapper that suppresses output in Lab Mode (dashboard-only view)
+    /// Console.WriteLine wrapper that suppresses output in Lab Mode (dashboard-only view) or Backtest UI Mode
     /// </summary>
     internal static void WriteLineIfNotLabMode(string message = "")
     {
-        if (!_isLabMode)
+        if (!_isLabMode && !_isBacktestUIMode)
         {
             Console.WriteLine(message);
         }
@@ -162,6 +165,10 @@ internal static class Program
         var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
         _isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
         
+        // Set Backtest UI Mode flag early to suppress all startup output
+        var backtestUIMode = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+        _isBacktestUIMode = backtestUIMode == "1" || backtestUIMode?.ToLowerInvariant() == "true";
+        
         // Load .env files in priority order for auto TopstepX configuration
         EnvironmentLoader.LoadEnvironmentFiles();
         
@@ -183,16 +190,21 @@ internal static class Program
                         Environment.GetEnvironmentVariable("LAB_MODE")?.ToLowerInvariant() == "true";
         _isLabMode = isLabMode;
         
-        // In Lab Mode, suppress all console output during host startup
-        // We'll restore it after the host is built so the dashboard can write
+        // Backtest UI Mode suppresses all startup output - UI only
+        var isBacktestUIMode = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI") == "1" ||
+                               Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI")?.ToLowerInvariant() == "true";
+        _isBacktestUIMode = isBacktestUIMode;
+        
+        // In Lab Mode or Backtest UI Mode, suppress all console output during host startup
+        // We'll restore it after the host is built so the dashboard/UI can write
         TextWriter? originalOut = null;
-        if (isLabMode)
+        if (isLabMode || isBacktestUIMode)
         {
             originalOut = Console.Out;
             Console.SetOut(TextWriter.Null);
         }
         
-        if (!isLabMode)
+        if (!isLabMode && !isBacktestUIMode)
         {
             Program.WriteLineIfNotLabMode(@"
 ================================================================================
@@ -218,19 +230,19 @@ internal static class Program
 
         try
         {
-            if (!isLabMode) Program.WriteLineIfNotLabMode("🔧 [STARTUP] Building dependency injection container...");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("🔧 [STARTUP] Building dependency injection container...");
             
             // Build the unified host with all services
             IHost? host = null;
             try
             {
                 host = CreateHostBuilder(args).Build();
-                if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
+                if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] DI container built successfully");
             }
             catch (Exception diEx)
             {
                 // Restore console output in case of error so we can see the error messages
-                if (isLabMode && originalOut != null)
+                if ((isLabMode || isBacktestUIMode) && originalOut != null)
                 {
                     Console.SetOut(originalOut);
                 }
@@ -255,30 +267,30 @@ internal static class Program
             }
             finally
             {
-                // Always restore console output for Lab Mode dashboard
-                if (isLabMode && originalOut != null)
+                // Always restore console output for Lab Mode dashboard or Backtest UI
+                if ((isLabMode || isBacktestUIMode) && originalOut != null)
                 {
                     Console.SetOut(originalOut);
                 }
             }
             
-            if (!isLabMode) Program.WriteLineIfNotLabMode("🔍 [STARTUP] Validating service registration...");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("🔍 [STARTUP] Validating service registration...");
             
             // Validate service registration and configuration on startup
             await ValidateStartupServicesAsync(host.Services).ConfigureAwait(false);
             
-            if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] Service validation completed");
-            if (!isLabMode) Program.WriteLineIfNotLabMode("⚙️ [STARTUP] Initializing ML parameter provider...");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] Service validation completed");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("⚙️ [STARTUP] Initializing ML parameter provider...");
             
             // Initialize ML parameter provider for TradingBot classes
             TradingBot.BotCore.Services.TradingBotParameterProvider.Initialize(host.Services);
             
-            if (!isLabMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] ML parameter provider initialized");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("✅ [STARTUP] ML parameter provider initialized");
             
             // Display startup information
             // Note: DisplayStartupInfo() temporarily disabled during build phase
             
-            if (!isLabMode) Program.WriteLineIfNotLabMode("🚀 [STARTUP] Starting unified orchestrator...");
+            if (!isLabMode && !isBacktestUIMode) Program.WriteLineIfNotLabMode("🚀 [STARTUP] Starting unified orchestrator...");
             
             // Check if we're in Backtest mode and run BacktestHarnessService directly
             var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
@@ -565,6 +577,8 @@ internal static class Program
                 Environment.SetEnvironmentVariable("HISTORICAL_MODE", "0");
                 Environment.SetEnvironmentVariable("LAB_MODE", "0");
                 Environment.SetEnvironmentVariable("DRY_RUN", "1");
+                // Auto-enable backtest UI for clean visual experience
+                Environment.SetEnvironmentVariable("ENABLE_BACKTEST_UI", "1");
                 Program.WriteLineIfNotLabMode("📊 Bot will replay historical data for strategy validation");
                 Program.WriteLineIfNotLabMode("📈 Performance metrics will be calculated");
                 Program.WriteLineIfNotLabMode("🎬 Tick replay UI will display bot decisions in real-time");
@@ -775,7 +789,11 @@ Please check the configuration and ensure all required services are registered.
                 var labMode = Environment.GetEnvironmentVariable("LAB_MODE");
                 var isLabMode = labMode == "1" || labMode?.ToLowerInvariant() == "true";
                 
-                if (!isLabMode)
+                // Check if Backtest UI Mode is enabled
+                var backtestUIMode = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+                var isBacktestUIMode = backtestUIMode == "1" || backtestUIMode?.ToLowerInvariant() == "true";
+                
+                if (!isLabMode && !isBacktestUIMode)
                 {
                     // Terminal Mode: Add console logging as normal
                     logging.AddConsole(options => 
@@ -789,6 +807,25 @@ Please check the configuration and ensure all required services are registered.
                     logging.AddFilter("Microsoft", LogLevel.Warning);
                     logging.AddFilter("System", LogLevel.Warning);
                     logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
+                }
+                else if (isBacktestUIMode)
+                {
+                    // Backtest UI Mode: Console logging completely disabled - only UI should write to console
+                    // Add file logging for diagnostics (user doesn't need to monitor this)
+                    var logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", $"backtest-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
+                    Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
+                    
+                    logging.AddProvider(new SimpleFileLoggerProvider(logFilePath));
+                    
+                    // Set minimum level but filter everything to file only
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    
+                    // Filter out ALL console output in Backtest UI Mode - only UI should write to console
+                    logging.AddFilter("Microsoft", LogLevel.None);  // Covers all Microsoft.* including Microsoft.Hosting.Lifetime
+                    logging.AddFilter("System", LogLevel.None);
+                    logging.AddFilter("TradingBot", LogLevel.None);
+                    logging.AddFilter("TopstepX", LogLevel.None);
+                    logging.AddFilter("BotCore", LogLevel.None);
                 }
                 else
                 {
@@ -919,7 +956,12 @@ Please check the configuration and ensure all required services are registered.
         var suppressStartupOutput = labModeEnv == "1" || labModeEnv?.ToLowerInvariant() == "true";
         _isLabMode = suppressStartupOutput; // Set global flag
         
-        if (!suppressStartupOutput)
+        // Check if Backtest UI Mode - suppress mode display if so (UI-only view)
+        var backtestUIModeEnv = Environment.GetEnvironmentVariable("ENABLE_BACKTEST_UI");
+        var suppressBacktestStartupOutput = backtestUIModeEnv == "1" || backtestUIModeEnv?.ToLowerInvariant() == "true";
+        _isBacktestUIMode = suppressBacktestStartupOutput; // Set global flag
+        
+        if (!suppressStartupOutput && !suppressBacktestStartupOutput)
         {
             Program.WriteLineIfNotLabMode("\n" + new string('=', 80));
             Program.WriteLineIfNotLabMode($"🎯 BOT MODE: {mode.ToString().ToUpperInvariant()}");
@@ -941,7 +983,7 @@ Please check the configuration and ensure all required services are registered.
         }
         else if (mode == BotMode.Backtest)
         {
-            if (!suppressStartupOutput)
+            if (!suppressStartupOutput && !suppressBacktestStartupOutput)
             {
                 Program.WriteLineIfNotLabMode("🎬 BACKTEST MODE - Strategy Testing with Tick Replay UI");
                 Program.WriteLineIfNotLabMode("   ✓ BacktestHarnessService with live tick replay UI");
@@ -963,7 +1005,7 @@ Please check the configuration and ensure all required services are registered.
             Program.WriteLineIfNotLabMode("   ✗ EnhancedBacktestLearningService NOT registered (Terminal = real-time only)");
         }
         
-        if (!suppressStartupOutput)
+        if (!suppressStartupOutput && !suppressBacktestStartupOutput)
         {
             Program.WriteLineIfNotLabMode(new string('=', 80) + "\n");
         }
