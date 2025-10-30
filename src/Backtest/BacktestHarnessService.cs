@@ -164,6 +164,9 @@ namespace TradingBot.Backtest
                 {
                     throw new InvalidOperationException($"Historical data not available for {symbol} from {startDate} to {endDate}");
                 }
+                
+                _logger.LogInformation("✅ [BACKTEST] Historical data available for {Symbol} using provider: {Provider}", 
+                    symbol, _dataProvider.GetType().Name);
 
                 // 2. Get historical model (prevents future leakage)
                 var model = await _modelRegistry.GetModelAsOfDateAsync(modelFamily, startDate, cancellationToken);
@@ -207,6 +210,8 @@ namespace TradingBot.Backtest
                 else
                 {
                     _logger.LogInformation("📊 [BACKTEST] Running in silent mode (no UI)");
+                    _logger.LogInformation("📊 [BACKTEST] Loading historical data from {Symbol} ({StartDate} to {EndDate})", 
+                        symbol, startDate.ToString("yyyy-MM-dd"), endDate.ToString("yyyy-MM-dd"));
                     
                     // Non-interactive mode - process all quotes automatically
                     await foreach (var quote in await _dataProvider.GetHistoricalQuotesAsync(symbol, startDate, endDate, cancellationToken))
@@ -214,8 +219,17 @@ namespace TradingBot.Backtest
                         cancellationToken.ThrowIfCancellationRequested();
                         tickCount++;
                         
+                        // Log every 100 ticks to show progress
+                        if (tickCount % 100 == 0)
+                        {
+                            _logger.LogInformation("📊 [BACKTEST] Processed {TickCount} bars | Current Price: {Price:F2} | P&L: {PnL:C}",
+                                tickCount, quote.Last, simState.RealizedPnL + simState.UnrealizedPnL);
+                        }
+                        
                         lastPrice = await ProcessSingleTickAsync(quote, model, simState, null, lastPrice, tickCount, cancellationToken);
                     }
+                    
+                    _logger.LogInformation("📊 [BACKTEST] Completed processing {TickCount} historical bars", tickCount);
                 }
 
                 // 5. Calculate final metrics from actual trades
@@ -431,11 +445,12 @@ namespace TradingBot.Backtest
 
         private async Task RecordFillAsync(FillResult fill, SimState simState, CancellationToken cancellationToken)
         {
+            var side = fill.FilledQuantity > 0 ? OrderSide.Buy : OrderSide.Sell;
             var fillLog = new FillLog(
                 Timestamp: fill.FillTime,
                 OrderId: fill.OrderId,
                 Symbol: "Unknown", // Fill.Symbol not available in FillResult
-                Side: fill.FilledQuantity > 0 ? OrderSide.Buy : OrderSide.Sell,
+                Side: side,
                 Quantity: Math.Abs(fill.FilledQuantity),
                 FillPrice: fill.FillPrice,
                 Slippage: fill.Slippage,
@@ -445,6 +460,15 @@ namespace TradingBot.Backtest
                 UnrealizedPnL: simState.UnrealizedPnL,
                 TotalPnL: simState.RealizedPnL + simState.UnrealizedPnL
             );
+
+            // Log trade execution to show the bot is actively trading
+            _logger.LogInformation(
+                "✅ TRADE EXECUTED: {Side} {Quantity} @ {Price:F2} | Reason: {Reason} | Total P&L: {PnL:C}",
+                side == OrderSide.Buy ? "LONG" : "SHORT",
+                Math.Abs(fill.FilledQuantity),
+                fill.FillPrice,
+                fill.Reason,
+                simState.RealizedPnL + simState.UnrealizedPnL);
 
             await _metricSink.RecordFillAsync(fillLog, cancellationToken);
         }
