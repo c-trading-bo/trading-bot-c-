@@ -67,6 +67,7 @@ namespace TradingBot.Backtest
         private readonly IModelRegistry _modelRegistry;
         private readonly IMLConfigurationService _mlConfigService;
         private readonly global::BotCore.Services.UnifiedDecisionRouter? _decisionRouter;
+        private readonly Services.BacktestOrderService? _backtestOrderService;
 
         public BacktestHarnessService(
             ILogger<BacktestHarnessService> logger,
@@ -76,7 +77,8 @@ namespace TradingBot.Backtest
             IMetricSink metricSink,
             IModelRegistry modelRegistry,
             IMLConfigurationService mlConfigService,
-            global::BotCore.Services.UnifiedDecisionRouter? decisionRouter = null)
+            global::BotCore.Services.UnifiedDecisionRouter? decisionRouter = null,
+            Services.BacktestOrderService? backtestOrderService = null)
         {
             _logger = logger;
             _options = options.Value;
@@ -86,6 +88,7 @@ namespace TradingBot.Backtest
             _modelRegistry = modelRegistry;
             _mlConfigService = mlConfigService ?? throw new ArgumentNullException(nameof(mlConfigService));
             _decisionRouter = decisionRouter; // Optional - uses real trading logic when available
+            _backtestOrderService = backtestOrderService; // Optional - enables position management in backtest
         }
 
         /// <summary>
@@ -184,6 +187,13 @@ namespace TradingBot.Backtest
                     LastMarketPrice = 0m
                 };
                 _executionSimulator.ResetState(simState);
+                
+                // Reset backtest order service for new run
+                if (_backtestOrderService != null)
+                {
+                    _backtestOrderService.Reset();
+                    _logger.LogInformation("✅ [BACKTEST] BacktestOrderService initialized - position management enabled");
+                }
 
                 // 3.5. Initialize tick replay UI if enabled
                 BacktestConsoleUI? ui = null;
@@ -650,6 +660,13 @@ namespace TradingBot.Backtest
             int tickCount,
             CancellationToken cancellationToken)
         {
+            // Update backtest order service context with current market state
+            if (_backtestOrderService != null)
+            {
+                _backtestOrderService.SetBacktestContext(simState, quote);
+                await _backtestOrderService.ProcessMarketUpdateAsync();
+            }
+            
             // Update position PnL with new market data
             _executionSimulator.UpdatePositionPnL(quote, simState);
 

@@ -7,6 +7,7 @@ using TradingBot.Backtest.Adapters;
 using TradingBot.Backtest.Configuration;
 using TradingBot.Backtest.ExecutionSimulators;
 using TradingBot.Backtest.Metrics;
+using TradingBot.Backtest.Services;
 
 namespace TradingBot.Backtest.Extensions
 {
@@ -36,6 +37,10 @@ namespace TradingBot.Backtest.Extensions
 
             // Execution simulation
             services.AddSingleton<IExecutionSimulator, SimpleExecutionSimulator>();
+            
+            // Mock order service for backtesting - enables position management features
+            services.AddSingleton<BacktestOrderService>();
+            services.AddSingleton<IOrderService>(sp => sp.GetRequiredService<BacktestOrderService>());
 
             // Metric collection
             services.AddSingleton<IMetricSink>(sp =>
