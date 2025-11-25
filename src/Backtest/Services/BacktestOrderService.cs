@@ -52,10 +52,10 @@ namespace TradingBot.Backtest.Services
         /// Process pending orders and update positions based on current market price
         /// This should be called on each tick/bar during backtest
         /// </summary>
-        public async Task ProcessMarketUpdateAsync()
+        public Task ProcessMarketUpdateAsync()
         {
             if (_currentSimState == null || _currentQuote == null)
-                return;
+                return Task.CompletedTask;
                 
             // Check stop-loss and take-profit triggers
             var triggeredOrders = new List<BacktestOrder>();
@@ -66,10 +66,12 @@ namespace TradingBot.Backtest.Services
                 
                 if (order.OrderType == "Stop" && order.StopPrice.HasValue)
                 {
-                    // Stop order triggers when price crosses stop level
-                    if (order.Side == "Buy" && _currentQuote.Last >= order.StopPrice.Value)
+                    // Stop-loss order triggers when price crosses stop level
+                    // Sell stop (long position stop-loss): triggers when price drops to/below stop
+                    // Buy stop (short position stop-loss): triggers when price rises to/above stop
+                    if (order.Side == "Sell" && _currentQuote.Last <= order.StopPrice.Value)
                         triggered = true;
-                    else if (order.Side == "Sell" && _currentQuote.Last <= order.StopPrice.Value)
+                    else if (order.Side == "Buy" && _currentQuote.Last >= order.StopPrice.Value)
                         triggered = true;
                 }
                 
@@ -82,7 +84,7 @@ namespace TradingBot.Backtest.Services
             // Execute triggered orders
             foreach (var order in triggeredOrders)
             {
-                await ExecuteOrderAsync(order);
+                ExecuteOrderAsync(order);
             }
             
             // Update position unrealized PnL
@@ -98,13 +100,13 @@ namespace TradingBot.Backtest.Services
                 }
             }
             
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
         
-        private async Task ExecuteOrderAsync(BacktestOrder order)
+        private Task ExecuteOrderAsync(BacktestOrder order)
         {
             if (_currentQuote == null || _currentSimState == null)
-                return;
+                return Task.CompletedTask;
                 
             // Determine fill price based on order type
             decimal fillPrice = order.OrderType switch
@@ -123,7 +125,71 @@ namespace TradingBot.Backtest.Services
             _logger.LogInformation("📋 [BACKTEST-ORDER] Filled {OrderType} order {OrderId}: {Side} {Qty} {Symbol} @ {Price:F2}",
                 order.OrderType, order.Id, order.Side, order.Quantity, order.Symbol, fillPrice);
             
-            await Task.CompletedTask;
+            // Update position tracking based on fill
+            UpdatePositionFromFill(order, fillPrice);
+            
+            return Task.CompletedTask;
+        }
+        
+        private void UpdatePositionFromFill(BacktestOrder order, decimal fillPrice)
+        {
+            // Find or create position for this symbol
+            var positionId = order.Tag?.Replace("SL-", "").Replace("TP-", "") ?? $"pos-{order.Symbol}";
+            
+            if (!_positions.TryGetValue(positionId, out var position))
+            {
+                // Check if this is a closing order (opposite side of existing position)
+                var existingPosition = _positions.Values.FirstOrDefault(p => p.Symbol == order.Symbol);
+                if (existingPosition != null && 
+                    ((existingPosition.Side == "Long" && order.Side == "Sell") ||
+                     (existingPosition.Side == "Short" && order.Side == "Buy")))
+                {
+                    // Closing an existing position
+                    var closePnL = existingPosition.Side == "Long"
+                        ? (fillPrice - existingPosition.AveragePrice) * order.Quantity
+                        : (existingPosition.AveragePrice - fillPrice) * order.Quantity;
+                    
+                    existingPosition.RealizedPnL += closePnL;
+                    existingPosition.Quantity -= order.Quantity;
+                    
+                    if (existingPosition.Quantity <= 0)
+                    {
+                        _positions.Remove(existingPosition.Id);
+                        _logger.LogInformation("🔚 [BACKTEST-ORDER] Position {PositionId} closed, Realized P&L: {PnL:F2}",
+                            existingPosition.Id, closePnL);
+                    }
+                    
+                    return;
+                }
+                
+                // Opening new position - skip if this is a stop/TP order without a parent position
+                if (order.Tag?.StartsWith("SL-") == true || order.Tag?.StartsWith("TP-") == true)
+                {
+                    _logger.LogWarning("⚠️ [BACKTEST-ORDER] Stop/TP order filled but no parent position found: {OrderId}",
+                        order.Id);
+                    return;
+                }
+            }
+            else
+            {
+                // Update existing position
+                var newQty = position.Quantity + (order.Side == "Buy" ? order.Quantity : -order.Quantity);
+                if (newQty == 0)
+                {
+                    // Position closed
+                    _positions.Remove(positionId);
+                }
+                else
+                {
+                    position.Quantity = newQty;
+                    // Recalculate average price if adding to position
+                    if (Math.Sign(newQty) == Math.Sign(position.Quantity))
+                    {
+                        var totalValue = (position.AveragePrice * position.Quantity) + (fillPrice * order.Quantity);
+                        position.AveragePrice = totalValue / newQty;
+                    }
+                }
+            }
         }
 
         #region IOrderService Implementation
