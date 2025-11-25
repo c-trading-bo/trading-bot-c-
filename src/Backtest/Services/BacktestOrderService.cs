@@ -17,6 +17,7 @@ namespace TradingBot.Backtest.Services
     {
         private readonly ILogger<BacktestOrderService> _logger;
         private readonly IExecutionSimulator _executionSimulator;
+        private readonly IMetricSink? _metricSink;
         
         // Shared state with backtest harness
         private SimState? _currentSimState;
@@ -29,10 +30,12 @@ namespace TradingBot.Backtest.Services
         
         public BacktestOrderService(
             ILogger<BacktestOrderService> logger,
-            IExecutionSimulator executionSimulator)
+            IExecutionSimulator executionSimulator,
+            IMetricSink? metricSink = null)
         {
             _logger = logger;
             _executionSimulator = executionSimulator;
+            _metricSink = metricSink;
         }
         
         /// <summary>
@@ -209,7 +212,7 @@ namespace TradingBot.Backtest.Services
             return Task.FromResult(orderId);
         }
 
-        public Task<bool> CancelOrderAsync(string orderId)
+        public async Task<bool> CancelOrderAsync(string orderId)
         {
             if (_orders.TryGetValue(orderId, out var order))
             {
@@ -221,11 +224,25 @@ namespace TradingBot.Backtest.Services
                     _logger.LogInformation("❌ [BACKTEST-ORDER] Cancelled order {OrderId}: {Side} {Symbol} @ {Price}",
                         orderId, order.Side, order.Symbol, order.StopPrice ?? order.Price);
                     
-                    return Task.FromResult(true);
+                    // Log order management event
+                    if (_metricSink != null && _currentQuote != null)
+                    {
+                        await _metricSink.RecordOrderManagementAsync(new OrderManagementLog(
+                            Timestamp: _currentQuote.Time,
+                            PositionId: order.Tag ?? orderId,
+                            Symbol: order.Symbol,
+                            EventType: "OrderCancelled",
+                            OldPrice: order.StopPrice ?? order.Price,
+                            NewPrice: null,
+                            Reason: "Order cancellation"
+                        ));
+                    }
+                    
+                    return true;
                 }
             }
             
-            return Task.FromResult(false);
+            return false;
         }
 
         public Task<bool> ModifyOrderAsync(string orderId, int? quantity = null, decimal? price = null)
@@ -300,7 +317,7 @@ namespace TradingBot.Backtest.Services
             return Task.FromResult(false);
         }
 
-        public Task<bool> ModifyStopLossAsync(string positionId, decimal stopPrice)
+        public async Task<bool> ModifyStopLossAsync(string positionId, decimal stopPrice)
         {
             if (_positions.TryGetValue(positionId, out var position))
             {
@@ -309,6 +326,20 @@ namespace TradingBot.Backtest.Services
                 
                 _logger.LogInformation("🛑 [BACKTEST-ORDER] Modified stop-loss for {PositionId}: {Old:F2} → {New:F2}",
                     positionId, oldStop, stopPrice);
+                
+                // Log order management event
+                if (_metricSink != null && _currentQuote != null)
+                {
+                    await _metricSink.RecordOrderManagementAsync(new OrderManagementLog(
+                        Timestamp: _currentQuote.Time,
+                        PositionId: positionId,
+                        Symbol: position.Symbol,
+                        EventType: "StopModified",
+                        OldPrice: oldStop,
+                        NewPrice: stopPrice,
+                        Reason: "Stop-loss update"
+                    ));
+                }
                 
                 // Update or create stop order
                 var stopOrder = _orders.Values.FirstOrDefault(o => 
@@ -322,16 +353,16 @@ namespace TradingBot.Backtest.Services
                 
                 // Place new stop order
                 var side = position.Side == "Long" ? "Sell" : "Buy";
-                PlaceStopOrderAsync(position.Symbol, side, position.Quantity, stopPrice, $"SL-{positionId}");
+                await PlaceStopOrderAsync(position.Symbol, side, position.Quantity, stopPrice, $"SL-{positionId}");
                 
-                return Task.FromResult(true);
+                return true;
             }
             
             _logger.LogWarning("⚠️ [BACKTEST-ORDER] Position {PositionId} not found for stop modification", positionId);
-            return Task.FromResult(false);
+            return false;
         }
 
-        public Task<bool> ModifyTakeProfitAsync(string positionId, decimal takeProfitPrice)
+        public async Task<bool> ModifyTakeProfitAsync(string positionId, decimal takeProfitPrice)
         {
             if (_positions.TryGetValue(positionId, out var position))
             {
@@ -340,6 +371,20 @@ namespace TradingBot.Backtest.Services
                 
                 _logger.LogInformation("🎯 [BACKTEST-ORDER] Modified take-profit for {PositionId}: {Old:F2} → {New:F2}",
                     positionId, oldTP, takeProfitPrice);
+                
+                // Log order management event
+                if (_metricSink != null && _currentQuote != null)
+                {
+                    await _metricSink.RecordOrderManagementAsync(new OrderManagementLog(
+                        Timestamp: _currentQuote.Time,
+                        PositionId: positionId,
+                        Symbol: position.Symbol,
+                        EventType: "TakeProfitModified",
+                        OldPrice: oldTP,
+                        NewPrice: takeProfitPrice,
+                        Reason: "Take-profit update"
+                    ));
+                }
                 
                 // Update or create take-profit order
                 var tpOrder = _orders.Values.FirstOrDefault(o => 
@@ -352,13 +397,13 @@ namespace TradingBot.Backtest.Services
                 else
                 {
                     var side = position.Side == "Long" ? "Sell" : "Buy";
-                    PlaceLimitOrderAsync(position.Symbol, side, position.Quantity, takeProfitPrice, $"TP-{positionId}");
+                    await PlaceLimitOrderAsync(position.Symbol, side, position.Quantity, takeProfitPrice, $"TP-{positionId}");
                 }
                 
-                return Task.FromResult(true);
+                return true;
             }
             
-            return Task.FromResult(false);
+            return false;
         }
 
         public Task<List<Position>> GetPositionsAsync()

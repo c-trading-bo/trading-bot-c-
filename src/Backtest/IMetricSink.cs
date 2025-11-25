@@ -64,6 +64,20 @@ namespace TradingBot.Backtest
     );
 
     /// <summary>
+    /// Order management log capturing stop modifications, breakeven, and trailing stops
+    /// Records position management events for analysis
+    /// </summary>
+    public record OrderManagementLog(
+        DateTime Timestamp,
+        string PositionId,
+        string Symbol,
+        string EventType, // "StopModified", "Breakeven", "TrailingStop", "OrderCancelled"
+        decimal? OldPrice,
+        decimal? NewPrice,
+        string Reason
+    );
+
+    /// <summary>
     /// Interface for capturing and storing backtest metrics
     /// Replaces simulated metric generation with real trade tracking
     /// </summary>
@@ -92,6 +106,14 @@ namespace TradingBot.Backtest
         /// <param name="closure">Position closure details to record</param>
         /// <param name="cancellationToken">Cancellation token</param>
         Task RecordPositionClosureAsync(PositionClosureLog closure, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Record an order management event (stop modification, breakeven, trailing stop)
+        /// Captures position management actions for analysis
+        /// </summary>
+        /// <param name="orderEvent">Order management event to record</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        Task RecordOrderManagementAsync(OrderManagementLog orderEvent, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Flush all pending metrics to persistent storage
