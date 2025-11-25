@@ -20,6 +20,7 @@ namespace TradingBot.Backtest.Metrics
         private readonly List<DecisionLog> _decisions;
         private readonly List<FillLog> _fills;
         private readonly List<PositionClosureLog> _closures;
+        private readonly List<OrderManagementLog> _orderManagementEvents;
         private readonly object _lockObject = new object();
 
         public JsonMetricSink(string storageDirectory, ILogger<JsonMetricSink> logger)
@@ -29,6 +30,7 @@ namespace TradingBot.Backtest.Metrics
             _decisions = new List<DecisionLog>();
             _fills = new List<FillLog>();
             _closures = new List<PositionClosureLog>();
+            _orderManagementEvents = new List<OrderManagementLog>();
 
             // Ensure storage directory exists
             Directory.CreateDirectory(_storageDirectory);
@@ -83,6 +85,22 @@ namespace TradingBot.Backtest.Metrics
         }
 
         /// <summary>
+        /// Record an order management event (stop modification, breakeven, trailing stop)
+        /// </summary>
+        public async Task RecordOrderManagementAsync(OrderManagementLog orderEvent, CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask; // Satisfy async requirement
+
+            lock (_lockObject)
+            {
+                _orderManagementEvents.Add(orderEvent);
+            }
+
+            _logger.LogDebug("Recorded order management: {EventType} for {PositionId} - {OldPrice} → {NewPrice} ({Reason})",
+                orderEvent.EventType, orderEvent.PositionId, orderEvent.OldPrice, orderEvent.NewPrice, orderEvent.Reason);
+        }
+
+        /// <summary>
         /// Flush all pending metrics to persistent storage
         /// </summary>
         public async Task FlushAsync(CancellationToken cancellationToken = default)
@@ -100,12 +118,15 @@ namespace TradingBot.Backtest.Metrics
                 // Save closures
                 await SaveToFileAsync($"closures_{timestamp}.json", _closures, cancellationToken);
 
+                // Save order management events
+                await SaveToFileAsync($"order_management_{timestamp}.json", _orderManagementEvents, cancellationToken);
+
                 // Create summary metrics
                 var summary = CreateSummary();
                 await SaveToFileAsync($"summary_{timestamp}.json", summary, cancellationToken);
 
-                _logger.LogInformation("Flushed metrics to storage: {Decisions} decisions, {Fills} fills, {Closures} closures",
-                    _decisions.Count, _fills.Count, _closures.Count);
+                _logger.LogInformation("Flushed metrics to storage: {Decisions} decisions, {Fills} fills, {Closures} closures, {OrderMgmt} order management events",
+                    _decisions.Count, _fills.Count, _closures.Count, _orderManagementEvents.Count);
             }
             catch (Exception ex)
             {
@@ -166,6 +187,7 @@ namespace TradingBot.Backtest.Metrics
                     TotalDecisions = _decisions.Count,
                     TotalFills = _fills.Count,
                     TotalRoundTripTrades = _closures.Count,
+                    TotalOrderManagementEvents = _orderManagementEvents.Count,
                     TotalPnL = totalPnL,
                     TotalCommissions = totalCommissions,
                     NetPnL = totalPnL - totalCommissions,
@@ -175,7 +197,8 @@ namespace TradingBot.Backtest.Metrics
                     AverageTrade = totalTrades > 0 ? totalPnL / totalTrades : 0m,
                     ActionBreakdown = CalculateActionBreakdown(),
                     HourlyBreakdown = CalculateHourlyBreakdown(),
-                    DailyBreakdown = CalculateDailyBreakdown()
+                    DailyBreakdown = CalculateDailyBreakdown(),
+                    OrderManagementBreakdown = CalculateOrderManagementBreakdown()
                 };
             }
         }
@@ -214,6 +237,19 @@ namespace TradingBot.Backtest.Metrics
             {
                 var day = decision.Timestamp.ToString("yyyy-MM-dd");
                 breakdown[day] = breakdown.GetValueOrDefault(day, 0) + 1;
+            }
+
+            return breakdown;
+        }
+
+        private Dictionary<string, int> CalculateOrderManagementBreakdown()
+        {
+            var breakdown = new Dictionary<string, int>();
+            
+            foreach (var orderEvent in _orderManagementEvents)
+            {
+                var eventType = orderEvent.EventType;
+                breakdown[eventType] = breakdown.GetValueOrDefault(eventType, 0) + 1;
             }
 
             return breakdown;
