@@ -1,0 +1,298 @@
+name: "🤖 Topstep Trading Bot"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (no live trading)'
+        required: false
+        type: boolean
+        default: true
+      log_level:
+        description: 'Logging level'
+        required: false
+        type: choice
+        default: 'INFO'
+        options:
+          - DEBUG
+          - INFO
+          - WARNING
+          - ERROR
+  schedule:
+    # Run at market open (9:30 AM ET = 13:30 UTC, but allow some buffer)
+    - cron: '20 13 * * 1-5'  # Mon-Fri at 1:20 PM UTC (9:20 AM ET)
+
+permissions:
+  contents: read
+
+env:
+  TOPSTEPX_API_BASE: "https://api.topstepx.com"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  run-trading-bot:
+    name: "Run Trading Bot"
+    runs-on: self-hosted
+    timeout-minutes: 480  # 8 hours for full trading session
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: "🐍 Setup Python ${{ env.PYTHON_VERSION }}"
+        shell: pwsh
+        run: |
+          Write-Host "=== Setting up Python ${{ env.PYTHON_VERSION }} ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          # Check if Python 3.11 is available
+          $pythonCmd = "python3.11"
+          
+          try {
+            $version = & $pythonCmd --version 2>&1
+            Write-Host "✅ Python found: $version" -ForegroundColor Green
+            
+            # Verify it's the correct version
+            if ($version -match "3\.11") {
+              Write-Host "✅ Python 3.11 is available" -ForegroundColor Green
+            } else {
+              Write-Host "⚠️ Warning: Expected Python 3.11, found: $version" -ForegroundColor Yellow
+            }
+          } catch {
+            Write-Host "❌ Python 3.11 not found" -ForegroundColor Red
+            Write-Host "Attempting to install Python 3.11..." -ForegroundColor Yellow
+            
+            # On Windows with chocolatey
+            if ($IsWindows -or $env:OS -match "Windows") {
+              Write-Host "Installing Python 3.11 via Chocolatey..." -ForegroundColor Yellow
+              choco install python311 -y --force
+              refreshenv
+            } else {
+              # On Linux
+              Write-Host "Installing Python 3.11 via apt..." -ForegroundColor Yellow
+              sudo apt-get update
+              sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
+            }
+            
+            # Verify installation
+            $version = & $pythonCmd --version 2>&1
+            Write-Host "✅ Python installed: $version" -ForegroundColor Green
+          }
+          
+          Write-Host ""
+          Write-Host "Python executable: $(Get-Command $pythonCmd | Select-Object -ExpandProperty Source)" -ForegroundColor Cyan
+          Write-Host ""
+
+      - name: "📦 Install pip and upgrade"
+        shell: pwsh
+        run: |
+          Write-Host "=== Upgrading pip ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          python3.11 -m pip install --upgrade pip setuptools wheel
+          
+          Write-Host ""
+          Write-Host "✅ pip upgraded successfully" -ForegroundColor Green
+          python3.11 -m pip --version
+          Write-Host ""
+
+      - name: "📦 Install Python dependencies"
+        shell: pwsh
+        run: |
+          Write-Host "=== Installing Python dependencies ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          if (Test-Path "requirements.txt") {
+            Write-Host "Installing from requirements.txt..." -ForegroundColor Yellow
+            python3.11 -m pip install -r requirements.txt
+            Write-Host ""
+            Write-Host "✅ Dependencies installed successfully" -ForegroundColor Green
+          } else {
+            Write-Host "⚠️ requirements.txt not found, installing minimal dependencies" -ForegroundColor Yellow
+            python3.11 -m pip install 'project-x-py[all]>=3.5.0'
+          }
+          
+          Write-Host ""
+
+      - name: "🔍 Verify Topstep SDK Installation"
+        shell: pwsh
+        run: |
+          Write-Host "=== Verifying project-x-py SDK ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          $result = python3.11 -c "import project_x_py; print(f'project-x-py v{project_x_py.__version__}')" 2>&1
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ $result" -ForegroundColor Green
+          } else {
+            Write-Host "❌ Failed to import project-x-py SDK" -ForegroundColor Red
+            Write-Host "Error: $result" -ForegroundColor Red
+            exit 1
+          }
+          
+          Write-Host ""
+          Write-Host "Installed packages:" -ForegroundColor Cyan
+          python3.11 -m pip list | Select-String -Pattern "project"
+          Write-Host ""
+
+      - name: "🔧 Setup Environment Variables"
+        shell: pwsh
+        env:
+          TOPSTEPX_API_KEY: ${{ secrets.TOPSTEPX_API_KEY }}
+          TOPSTEPX_USERNAME: ${{ secrets.TOPSTEPX_USERNAME }}
+          TOPSTEPX_ACCOUNT_ID: ${{ secrets.TOPSTEPX_ACCOUNT_ID }}
+        run: |
+          Write-Host "=== Configuring Environment ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          # Set environment variables for the workflow
+          "TOPSTEPX_API_KEY=${{ secrets.TOPSTEPX_API_KEY }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TOPSTEPX_USERNAME=${{ secrets.TOPSTEPX_USERNAME }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TOPSTEPX_ACCOUNT_ID=${{ secrets.TOPSTEPX_ACCOUNT_ID }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TOPSTEPX_API_BASE=${{ env.TOPSTEPX_API_BASE }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          
+          # Configure Python executable for the adapter
+          "PYTHON_EXECUTABLE=python3.11" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          
+          Write-Host "✅ Environment variables configured:" -ForegroundColor Green
+          Write-Host "  TOPSTEPX_API_KEY: $(if ($env:TOPSTEPX_API_KEY) { '[SET]' } else { '[MISSING]' })"
+          Write-Host "  TOPSTEPX_USERNAME: $(if ($env:TOPSTEPX_USERNAME) { $env:TOPSTEPX_USERNAME } else { '[MISSING]' })"
+          Write-Host "  TOPSTEPX_ACCOUNT_ID: $(if ($env:TOPSTEPX_ACCOUNT_ID) { $env:TOPSTEPX_ACCOUNT_ID } else { '[MISSING]' })"
+          Write-Host "  TOPSTEPX_API_BASE: ${{ env.TOPSTEPX_API_BASE }}"
+          Write-Host "  PYTHON_EXECUTABLE: python3.11"
+          Write-Host ""
+          
+          # Validate credentials are set
+          if (-not $env:TOPSTEPX_API_KEY) {
+            Write-Host "❌ TOPSTEPX_API_KEY secret is not set" -ForegroundColor Red
+            Write-Host "Please add the secret in GitHub Settings -> Secrets and variables -> Actions" -ForegroundColor Yellow
+            exit 1
+          }
+          
+          if (-not $env:TOPSTEPX_USERNAME) {
+            Write-Host "❌ TOPSTEPX_USERNAME secret is not set" -ForegroundColor Red
+            Write-Host "Please add the secret in GitHub Settings -> Secrets and variables -> Actions" -ForegroundColor Yellow
+            exit 1
+          }
+          
+          Write-Host "✅ All required credentials are set" -ForegroundColor Green
+          Write-Host ""
+
+      - name: "📁 Create Logs Directory"
+        shell: pwsh
+        run: |
+          Write-Host "=== Creating logs directory ===" -ForegroundColor Cyan
+          Write-Host ""
+          
+          $logsDir = "logs"
+          if (-not (Test-Path $logsDir)) {
+            New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+            Write-Host "✅ Created logs directory: $logsDir" -ForegroundColor Green
+          } else {
+            Write-Host "✅ Logs directory already exists: $logsDir" -ForegroundColor Green
+          }
+          
+          Write-Host ""
+
+      - name: "🤖 Launch Trading Bot"
+        id: run_bot
+        shell: pwsh
+        env:
+          TOPSTEPX_API_KEY: ${{ secrets.TOPSTEPX_API_KEY }}
+          TOPSTEPX_USERNAME: ${{ secrets.TOPSTEPX_USERNAME }}
+          TOPSTEPX_ACCOUNT_ID: ${{ secrets.TOPSTEPX_ACCOUNT_ID }}
+          TOPSTEPX_API_BASE: ${{ env.TOPSTEPX_API_BASE }}
+          PYTHON_EXECUTABLE: python3.11
+        run: |
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host "  🤖 Starting Topstep Trading Bot" -ForegroundColor Cyan
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host ""
+          
+          $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+          $logFile = "logs/bot-$timestamp.log"
+          
+          Write-Host "Log file: $logFile" -ForegroundColor Yellow
+          Write-Host ""
+          
+          # Build command with optional dry-run flag
+          $botArgs = @("--log-file", $logFile)
+          
+          $dryRun = "${{ github.event.inputs.dry_run }}"
+          if ($dryRun -eq "true" -or $dryRun -eq "") {
+            $botArgs += "--dry-run"
+            Write-Host "⚠️ Running in DRY-RUN mode (no live trading)" -ForegroundColor Yellow
+          } else {
+            Write-Host "🔴 Running in LIVE TRADING mode" -ForegroundColor Red
+          }
+          
+          Write-Host ""
+          Write-Host "Starting bot with Python 3.11..." -ForegroundColor Cyan
+          Write-Host ""
+          
+          # Run the bot and capture output
+          $exitCode = 0
+          try {
+            # Use Start-Process to run the bot and wait for completion
+            python3.11 bot.py @botArgs
+            $exitCode = $LASTEXITCODE
+          } catch {
+            Write-Host "❌ Bot execution failed with exception: $_" -ForegroundColor Red
+            $exitCode = 1
+          }
+          
+          Write-Host ""
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host "  Bot execution completed with exit code: $exitCode" -ForegroundColor $(if ($exitCode -eq 0) { 'Green' } else { 'Red' })
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host ""
+          
+          # Export log file path for artifact upload
+          "log_file=$logFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          
+          # Exit with the same code as the bot
+          exit $exitCode
+
+      - name: "📤 Upload Bot Logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs-${{ github.run_id }}
+          path: logs/*.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: "📊 Execution Summary"
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host "  📊 Workflow Execution Summary" -ForegroundColor Cyan
+          Write-Host "======================================================" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "Workflow: ${{ github.workflow }}" -ForegroundColor Yellow
+          Write-Host "Run ID: ${{ github.run_id }}" -ForegroundColor Yellow
+          Write-Host "Run Number: ${{ github.run_number }}" -ForegroundColor Yellow
+          Write-Host "Triggered by: ${{ github.actor }}" -ForegroundColor Yellow
+          Write-Host "Event: ${{ github.event_name }}" -ForegroundColor Yellow
+          Write-Host ""
+          
+          $logFile = "${{ steps.run_bot.outputs.log_file }}"
+          if ($logFile -and (Test-Path $logFile)) {
+            Write-Host "✅ Log file created: $logFile" -ForegroundColor Green
+            Write-Host "   Size: $((Get-Item $logFile).Length) bytes" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Host "Last 50 lines of log:" -ForegroundColor Yellow
+            Write-Host "---" -ForegroundColor DarkGray
+            Get-Content $logFile -Tail 50
+            Write-Host "---" -ForegroundColor DarkGray
+          } else {
+            Write-Host "⚠️ Log file not found or not created" -ForegroundColor Yellow
+          }
+          
+          Write-Host ""
+          Write-Host "Artifacts uploaded: bot-logs-${{ github.run_id }}" -ForegroundColor Green
+          Write-Host ""
+          Write-Host "======================================================" -ForegroundColor Cyan

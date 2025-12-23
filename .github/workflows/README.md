@@ -1,8 +1,33 @@
-# Full-Stack Quality Gate - Integrated Analyzer System
+# GitHub Actions Workflows
 
-This directory contains the comprehensive quality gate system integrated into the existing analyzer workflow.
+This directory contains GitHub Actions workflows for CI/CD, quality gates, data collection, and trading bot automation.
 
-## Overview
+## Trading Bot Workflows
+
+### 🤖 Topstep Trading Bot (`topstep-bot.yml`)
+Automated execution of the Topstep trading bot on self-hosted runner with comprehensive logging and safety features.
+
+**Key Features:**
+- Runs on self-hosted runner for security
+- Python 3.11 environment setup
+- Automatic SDK installation (project-x-py)
+- Secure credential management via GitHub Secrets
+- DRY-RUN mode by default
+- Log file artifact upload
+- Scheduled execution at market open (Mon-Fri)
+
+**Documentation:** See [TOPSTEP_BOT_WORKFLOW.md](../../TOPSTEP_BOT_WORKFLOW.md) for detailed setup and usage instructions.
+
+**Required Secrets:**
+- `TOPSTEPX_API_KEY` - TopstepX API key
+- `TOPSTEPX_USERNAME` - TopstepX username
+- `TOPSTEPX_ACCOUNT_ID` - TopstepX account ID (optional)
+
+---
+
+## Quality Gate Workflows
+
+### Full-Stack Quality Gate - Integrated Analyzer System
 
 The quality gate is **integrated into** the existing `ultimate_build_ci_pipeline.yml` workflow, providing a unified pass/fail signal for all quality standards.
 
